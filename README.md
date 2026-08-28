@@ -37,5 +37,3 @@ docs/
 - No DB-affecting change without an explicit decision + backup.
 - Validate PHP (`php -l`) and JS (`node --check`) before every commit.
 
-<!-- auto-deploy test marker: cashaadi-deploy-check-001 -->
-
