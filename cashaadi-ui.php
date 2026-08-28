@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.1.0' );
+define( 'CASHAADI_UI_VER', '0.2.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -33,6 +33,19 @@ function cashaadi_ui_asset_ver( $rel_path ) {
 	}
 	return CASHAADI_UI_VER;
 }
+
+/**
+ * Site-wide front-end fixes (all pages, not just member screens).
+ * Currently: the BuddyX off-canvas mobile-menu fix migrated from WPCode #11641.
+ */
+add_action( 'wp_enqueue_scripts', function () {
+	wp_enqueue_style(
+		'cashaadi-site',
+		CASHAADI_UI_URL . 'assets/css/site.css',
+		array(),
+		cashaadi_ui_asset_ver( 'assets/css/site.css' )
+	);
+}, 20 );
 
 /**
  * Front-end assets, scoped to BuddyPress member screens only.
@@ -49,6 +62,17 @@ add_action( 'wp_enqueue_scripts', function () {
 	// own styles + fonts and no-ops if the form isn't present, so it is safe
 	// site-wide but we scope it tightly anyway.
 	if ( function_exists( 'bp_is_user_profile_edit' ) && bp_is_user_profile_edit() ) {
+
+		// Mobile fixes for the edit form (DOB selects + hide auto-computed Age).
+		// Migrated from WPCode #11641. The wizard self-injects its own look on
+		// top of this; these are plain fixes that also apply if the JS no-ops.
+		wp_enqueue_style(
+			'cashaadi-profile-edit',
+			CASHAADI_UI_URL . 'assets/css/profile-edit.css',
+			array(),
+			cashaadi_ui_asset_ver( 'assets/css/profile-edit.css' )
+		);
+
 		wp_enqueue_script(
 			'cashaadi-profile-wizard',
 			CASHAADI_UI_URL . 'assets/js/profile-wizard.js',

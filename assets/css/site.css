@@ -1,0 +1,33 @@
+/* ==========================================================================
+   CAShaadi UI — Site-wide fixes
+   --------------------------------------------------------------------------
+   Migrated verbatim from the site-wide portion of WPCode #11641. The original
+   snippet loaded in the site header (all pages), so this stylesheet is enqueued
+   on every front-end page — NOT scoped to member screens.
+
+   Keep the BuddyX off-canvas mobile menu fixed/off-screen so it does not inflate
+   the header height on mobile (it was rendering position:static in-flow, creating
+   a tall white gap below the header).
+   ========================================================================== */
+
+@media (max-width: 767px) {
+	.main-navigation .primary-menu-container.buddyx-mobile-menu {
+		position: fixed !important;
+		top: 0;
+		bottom: 0;
+		right: 0;
+		width: 340px;
+		max-width: 85%;
+		z-index: 9999;
+		overflow: auto;
+		opacity: 0;
+		visibility: hidden;
+		transform: translate3d(340px, 0, 0);
+		transition: transform .25s ease, opacity .25s ease;
+	}
+	body.mobile-menu-opened .main-navigation .primary-menu-container.buddyx-mobile-menu {
+		opacity: 1 !important;
+		visibility: visible !important;
+		transform: none !important;
+	}
+}

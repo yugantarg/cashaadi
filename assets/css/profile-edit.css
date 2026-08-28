@@ -1,0 +1,36 @@
+/* ==========================================================================
+   CAShaadi UI — Profile edit form fixes
+   --------------------------------------------------------------------------
+   Migrated from WPCode #11641 "CSM — Profile Form Mobile Fixes
+   (DOB select + hide Age)". Only the profile-edit-scoped rules live here; the
+   site-wide BuddyX mobile-menu fix from the same snippet is in site.css.
+
+   Change vs. the original snippet: an extra unmatched closing brace that trailed
+   the field_286 rule is removed. Every rule below is otherwise identical to #11641.
+
+   DOB is xProfile field 586 (Day/Month/Year selects). Age is field 286.
+   ========================================================================== */
+
+/* DOB datebox selects (Day/Month/Year) overflow on mobile. */
+.field_586 select { max-width: 100%; box-sizing: border-box; }
+
+@media (max-width: 600px) {
+	.field_586 .field-block,
+	.field_586 .input-options { display: flex; flex-wrap: wrap; gap: 8px; }
+	#field_586_day, #field_586_month, #field_586_year { width: 30%; min-width: 0; flex: 1 1 30%; }
+}
+
+/* Age (field 286) is auto-computed from DOB; hide it on the profile edit form so
+   users cannot set it. Still visible on the profile view. */
+body.profile-edit .field_286 { display: none !important; }
+
+/* DOB selects: ensure Day/Month/Year values stay visible on mobile
+   (fix clipped numbers). */
+@media (max-width: 767px) {
+	.field_586 .field-block,
+	.field_586 .input-options { display: flex; flex-wrap: nowrap; gap: 6px; }
+	#field_586_day, #field_586_month, #field_586_year { flex: 1 1 auto; width: auto; min-width: 0; padding-right: 20px; padding-left: 8px; background-position: right 5px center; }
+	#field_586_day { min-width: 64px; }
+	#field_586_month { min-width: 110px; }
+	#field_586_year { min-width: 78px; }
+}

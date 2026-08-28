@@ -3,3 +3,7 @@
 node_modules/
 
 _bootstrap.tgz
+
+# Local brand assets — not part of the plugin
+/CA Shaadi Brand Assets/
+/CA Shaadi Logo/

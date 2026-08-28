@@ -53,9 +53,16 @@ cashaadi-ui/
 ### profile-edit  (UI + field logic)
 - 12124 Profile Edit reskin (CSS) — ✅ in plugin
 - 12132 Profile Edit wizard (JS) — ✅ in plugin
-- 11641 Profile Form Mobile Fixes (DOB select + hide Age) (CSS)
-- 11629 Save & Next + Step Indicator — ⚠️ likely superseded → delete after verify
-- 11844 Uniform Save & Next + Progress — ⚠️ likely superseded → delete after verify
+- 11641 Profile Form Mobile Fixes (DOB select + hide Age) (CSS) — ✅ in plugin
+  (v0.2.0): profile-edit rules → `assets/css/profile-edit.css`; the snippet's
+  site-wide BuddyX mobile-menu fix → `assets/css/site.css` (loaded on all pages).
+  Fixed a stray `}` from the original. **Disable snippet #11641 on staging** once
+  verified (plugin + snippet are identical, so both-on is safe until you do).
+- 11629 Save & Next + Step Indicator — ⚠️ superseded by the wizard (its own
+  progress + redirect-follow). **Disable on staging** (retire with #11844).
+- 11844 Uniform Save & Next + Progress — ⚠️ reads #11629's `.csm-pe-steps`; the
+  #11629+#11844 pair is the earlier "double progress bar". **Disable on staging**
+  (together with #11629). Watch the Photo/avatar step button styling after (see #11690).
 - 11690 Photo Step Next Button (onboarding)
 - 11838 Photos on Avatar Screen (onboarding)
 - 11619 Bio Plain Textarea (disable rich editor)
