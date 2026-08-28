@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.3.0
+ * Version:           0.4.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -17,12 +17,13 @@
 
 use CAShaadi\Core\Assets;
 use CAShaadi\Core\Migrator;
+use CAShaadi\Modules\ProfileEdit\FieldLogic;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.3.0' );
+define( 'CASHAADI_UI_VER', '0.4.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -33,6 +34,12 @@ require_once CASHAADI_UI_DIR . 'includes/autoload.php';
 // Install/upgrade custom tables in one place. Inert until a module registers a
 // schema (none yet), so this is a safe no-op today.
 add_action( 'init', array( Migrator::class, 'run' ) );
+
+// --- Modules ------------------------------------------------------------
+// Profile-edit field logic & guards (partial-save, gender/email lock, bio
+// plain, age-sync, height guard). Mirrors WPCode #11624/#11621/#11619/#11611/
+// #11797/#11625; runs safely alongside them until those snippets are disabled.
+FieldLogic::register();
 
 /**
  * Site-wide front-end fixes (all pages, not just member screens).

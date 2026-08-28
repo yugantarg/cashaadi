@@ -1,0 +1,31 @@
+/* ==========================================================================
+   CAShaadi UI — Profile form field UX styles
+   --------------------------------------------------------------------------
+   Real-asset replacement for the inline <style> in WPCode #11797 (height warn),
+   #11621 (locked gender) and #11619 (Bio plain — hide rich-editor chrome).
+   Paired with assets/js/profile-forms.js.
+   ========================================================================== */
+
+/* ---- Height guard warning (#11797) ---------------------------------- */
+.csm-hg-warn { color: #b23b3b; font-size: 13px; font-weight: 600; margin-top: 6px; display: none; }
+.csm-hg-warn.show { display: block; }
+.csm-hg-bad { border-color: #b23b3b !important; box-shadow: 0 0 0 1px #b23b3b; }
+
+/* ---- Locked gender select (#11621) ---------------------------------- */
+.editfield.field_299 select[disabled] { background: #f3f3f3; color: #555; cursor: not-allowed; }
+.csm-gender-lock-note { display: inline-block; margin-top: 6px; font-size: 12px; color: #777; }
+
+/* ---- Email lock note (#11625) --------------------------------------- */
+.csm-email-lock-note { font-size: 12px; color: #888; margin-top: 4px; }
+
+/* ---- Bio plain textarea — hide rich-editor chrome (#11619) ----------- */
+.editfield.field_496 .wp-editor-tabs,
+.editfield.field_496 .wp-editor-tools,
+.editfield.field_496 .mce-toolbar-grp,
+.editfield.field_496 .quicktags-toolbar,
+.editfield.field_496 .mce-statusbar { display: none !important; }
+.editfield.field_496 .wp-editor-container { border: 1px solid #ccc !important; border-radius: 6px; }
+.editfield.field_496 textarea {
+	width: 100% !important; min-height: 140px !important; padding: 10px !important;
+	font: inherit !important; line-height: 1.5 !important;
+}
