@@ -39,7 +39,11 @@ add_action( 'init', array( Migrator::class, 'run' ) );
 // Profile-edit field logic & guards (partial-save, gender/email lock, bio
 // plain, age-sync, height guard). Mirrors WPCode #11624/#11621/#11619/#11611/
 // #11797/#11625; runs safely alongside them until those snippets are disabled.
-FieldLogic::register();
+// Guarded so a class-resolution problem degrades gracefully instead of fataling
+// the whole site.
+if ( class_exists( 'CAShaadi\\Modules\\ProfileEdit\\FieldLogic' ) ) {
+	FieldLogic::register();
+}
 
 /**
  * Site-wide front-end fixes (all pages, not just member screens).
