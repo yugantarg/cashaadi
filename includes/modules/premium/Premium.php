@@ -42,7 +42,6 @@ final class Premium {
 		// keep the cart to just the premium product for everyone else.
 		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 20, 2 );
 		add_action( 'template_redirect', array( __CLASS__, 'bounce_premium' ), 5 );
-		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'checkout_assets' ) );
 
 		// Contact gate (#11614): phone + email visible only to owner / admin /
 		// premium; everyone else sees an upgrade nudge.
@@ -64,12 +63,36 @@ final class Premium {
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'lead_on_payment' ), 10, 1 );
 		add_action( 'pmpro_after_change_membership_level', array( __CLASS__, 'lead_on_level' ), 10, 2 );
 		add_action( 'admin_menu', array( __CLASS__, 'lead_menu' ) );
+
+		// Rejection Visibility & Profile Insights (#11807): owns the rejections +
+		// profile-views tables (the latter feeds Visitors above), logs both, and
+		// renders the [csm_rejection_insights] premium panel.
+		Migrator::register( 'rejections', array( __CLASS__, 'rej_schema' ) );
+		Migrator::register( 'profile_views', array( __CLASS__, 'view_schema' ) );
+		add_action( 'friends_friendship_rejected', array( __CLASS__, 'on_bp_reject' ), 10, 2 );
+		add_action( 'friends_friendship_accepted', array( __CLASS__, 'on_bp_accept' ), 10, 3 );
+		add_action( 'template_redirect', array( __CLASS__, 'log_view' ), 20 );
+		add_shortcode( 'csm_rejection_insights', array( __CLASS__, 'rv_shortcode' ) );
+
+		// Front-end assets for premium features (CSS + JS + a small config).
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'premium_assets' ) );
 	}
 
+	/** Enqueue premium CSS/JS on the front-end, with a small config object. */
 	public static function premium_assets() {
-		if ( function_exists( 'bp_is_user' ) && bp_is_user() ) {
-			Assets::style( 'premium', 'assets/css/premium.css' );
+		if ( is_admin() ) {
+			return;
 		}
+		Assets::style( 'premium', 'assets/css/premium.css' );
+		Assets::script( 'premium', 'assets/js/premium.js' );
+		wp_add_inline_script(
+			'cashaadi-premium',
+			'window.CASHAADI_PREMIUM=' . wp_json_encode( array(
+				'isPremium' => ( is_user_logged_in() && Membership::is_premium() ),
+				'productId' => (int) Config::WC_PREMIUM_PRODUCT,
+			) ) . ';',
+			'before'
+		);
 	}
 
 	/* ---- profile visitors (#11811) ------------------------------------- */
@@ -309,24 +332,6 @@ final class Premium {
 		exit;
 	}
 
-	/**
-	 * On the pricing page, replace the premium add-to-cart link with a label for
-	 * members who are already premium (JS reads window.CASHAADI_PREMIUM).
-	 */
-	public static function checkout_assets() {
-		if ( is_admin() || ! is_user_logged_in() || ! Membership::is_premium() ) {
-			return;
-		}
-		Assets::script( 'premium', 'assets/js/premium.js' );
-		wp_add_inline_script(
-			'cashaadi-premium',
-			'window.CASHAADI_PREMIUM=' . wp_json_encode( array(
-				'isPremium' => true,
-				'productId' => (int) Config::WC_PREMIUM_PRODUCT,
-			) ) . ';',
-			'before'
-		);
-	}
 
 	public static function upgrade_on_profile() {
 		if ( function_exists( 'bp_displayed_user_id' ) && function_exists( 'bp_loggedin_user_id' )
@@ -537,5 +542,234 @@ final class Premium {
 			echo '</tr>';
 		}
 		echo '</tbody></table></div>';
+	}
+
+	/* ---- rejection visibility & profile insights (#11807) -------------- */
+
+	private static function rej_table() {
+		global $wpdb;
+		return $wpdb->prefix . 'csm_rejections';
+	}
+
+	private static function view_table() {
+		global $wpdb;
+		return $wpdb->prefix . 'csm_profile_views';
+	}
+
+	public static function rej_schema( $wpdb ) {
+		$t       = $wpdb->prefix . 'csm_rejections';
+		$charset = $wpdb->get_charset_collate();
+		return "CREATE TABLE {$t} (
+			rejecter_id BIGINT UNSIGNED NOT NULL,
+			rejected_id BIGINT UNSIGNED NOT NULL,
+			source VARCHAR(20) NOT NULL DEFAULT 'request',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (rejecter_id, rejected_id),
+			KEY rejected_id (rejected_id)
+		) {$charset};";
+	}
+
+	public static function view_schema( $wpdb ) {
+		$t       = $wpdb->prefix . 'csm_profile_views';
+		$charset = $wpdb->get_charset_collate();
+		return "CREATE TABLE {$t} (
+			viewer_id BIGINT UNSIGNED NOT NULL,
+			viewed_id BIGINT UNSIGNED NOT NULL,
+			hits INT UNSIGNED NOT NULL DEFAULT 1,
+			first_at DATETIME NOT NULL,
+			last_at DATETIME NOT NULL,
+			PRIMARY KEY  (viewer_id, viewed_id),
+			KEY viewed_id (viewed_id),
+			KEY last_at (last_at)
+		) {$charset};";
+	}
+
+	/** Idempotent: record that $rejecter declined $rejected. */
+	public static function log_rejection( $rejecter, $rejected, $source = 'request' ) {
+		$rejecter = (int) $rejecter;
+		$rejected = (int) $rejected;
+		if ( ! $rejecter || ! $rejected || $rejecter === $rejected ) {
+			return;
+		}
+		global $wpdb;
+		$t = self::rej_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"INSERT INTO {$t} (rejecter_id, rejected_id, source, created_at)
+			 VALUES (%d, %d, %s, %s)
+			 ON DUPLICATE KEY UPDATE source = VALUES(source), created_at = VALUES(created_at)",
+			$rejecter,
+			$rejected,
+			sanitize_key( $source ),
+			current_time( 'mysql' )
+		) );
+	}
+
+	public static function on_bp_reject( $friendship_id, $friendship = null ) {
+		if ( ! $friendship && class_exists( 'BP_Friends_Friendship' ) ) {
+			$friendship = new \BP_Friends_Friendship( (int) $friendship_id );
+		}
+		if ( ! is_object( $friendship ) ) {
+			return;
+		}
+		$rejecter = isset( $friendship->friend_user_id ) ? (int) $friendship->friend_user_id : 0;
+		$rejected = isset( $friendship->initiator_user_id ) ? (int) $friendship->initiator_user_id : 0;
+		self::log_rejection( $rejecter, $rejected, 'request' );
+	}
+
+	public static function on_bp_accept( $friendship_id, $initiator_user_id = 0, $friend_user_id = 0 ) {
+		$initiator_user_id = (int) $initiator_user_id;
+		$friend_user_id    = (int) $friend_user_id;
+		if ( ! $initiator_user_id || ! $friend_user_id ) {
+			return;
+		}
+		global $wpdb;
+		$t = self::rej_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM {$t} WHERE (rejecter_id = %d AND rejected_id = %d) OR (rejecter_id = %d AND rejected_id = %d)",
+			$friend_user_id, $initiator_user_id, $initiator_user_id, $friend_user_id
+		) );
+	}
+
+	/** Log a profile view (viewer -> viewed) with a hit counter. */
+	public static function log_view() {
+		if ( ! is_user_logged_in() || ! function_exists( 'bp_is_user' ) || ! bp_is_user() ) {
+			return;
+		}
+		$viewer = (int) get_current_user_id();
+		$viewed = (int) bp_displayed_user_id();
+		if ( ! $viewer || ! $viewed || $viewer === $viewed ) {
+			return;
+		}
+		if ( user_can( $viewer, 'manage_options' ) || user_can( $viewed, 'manage_options' ) ) {
+			return; // never record views by or of admins
+		}
+		global $wpdb;
+		$t   = self::view_table();
+		$now = current_time( 'mysql' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"INSERT INTO {$t} (viewer_id, viewed_id, hits, first_at, last_at)
+			 VALUES (%d, %d, 1, %s, %s)
+			 ON DUPLICATE KEY UPDATE hits = hits + 1, last_at = VALUES(last_at)",
+			$viewer, $viewed, $now, $now
+		) );
+	}
+
+	private static function who_declined_me( $uid ) {
+		global $wpdb;
+		$t = self::rej_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT rejecter_id FROM {$t} WHERE rejected_id = %d ORDER BY created_at DESC LIMIT 100", $uid
+		) ) );
+	}
+
+	private static function i_declined( $uid ) {
+		global $wpdb;
+		$t = self::rej_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT rejected_id FROM {$t} WHERE rejecter_id = %d ORDER BY created_at DESC LIMIT 100", $uid
+		) ) );
+	}
+
+	private static function viewed_no_action( $uid ) {
+		global $wpdb;
+		$vt      = self::view_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$viewers = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT viewer_id FROM {$vt} WHERE viewed_id = %d ORDER BY last_at DESC LIMIT 200", $uid
+		) ) );
+		if ( empty( $viewers ) ) {
+			return array();
+		}
+		$ft = $wpdb->prefix . 'bp_friends';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$related = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT CASE WHEN initiator_user_id = %d THEN friend_user_id ELSE initiator_user_id END
+			 FROM {$ft} WHERE initiator_user_id = %d OR friend_user_id = %d",
+			$uid, $uid, $uid
+		) ) );
+		$rt = self::rej_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rej = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT CASE WHEN rejecter_id = %d THEN rejected_id ELSE rejecter_id END
+			 FROM {$rt} WHERE rejecter_id = %d OR rejected_id = %d",
+			$uid, $uid, $uid
+		) ) );
+		$exclude = array_flip( array_merge( $related, $rej ) );
+		$out     = array();
+		foreach ( $viewers as $v ) {
+			if ( ! isset( $exclude[ $v ] ) && ! user_can( $v, 'manage_options' ) ) {
+				$out[] = $v;
+			}
+		}
+		return $out;
+	}
+
+	private static function rv_cards( $ids, $empty ) {
+		if ( empty( $ids ) ) {
+			return '<p class="csm-rv-empty">' . esc_html( $empty ) . '</p>';
+		}
+		$age_field  = Config::FIELD_AGE;
+		$city_field = function_exists( 'xprofile_get_field_id_from_name' ) ? (int) xprofile_get_field_id_from_name( 'City' ) : 0;
+		$h = '<div class="csm-rv-cards">';
+		foreach ( $ids as $mid ) {
+			$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $mid ) : get_the_author_meta( 'display_name', $mid );
+			$link = function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $mid ) : '';
+			$av   = get_avatar( $mid, 84 );
+			$age  = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $age_field, $mid ) : '';
+			$city = $city_field ? xprofile_get_field_data( $city_field, $mid ) : '';
+			$h   .= '<div class="csm-rv-card">';
+			$h   .= '<a href="' . esc_url( $link ) . '" class="csm-rv-card-av">' . $av . '</a>';
+			$h   .= '<a href="' . esc_url( $link ) . '" class="csm-rv-card-name">' . esc_html( $name ) . '</a>';
+			$h   .= '<div class="csm-rv-card-meta">';
+			if ( $age ) {
+				$h .= esc_html( $age ) . ' yrs';
+			}
+			if ( $city ) {
+				$h .= ( $age ? ' &middot; ' : '' ) . esc_html( $city );
+			}
+			$h .= '</div></div>';
+		}
+		return $h . '</div>';
+	}
+
+	private static function rv_locked_html() {
+		$upgrade = site_url( '/membership-pricing/' );
+		return '<div class="csm-rv-lock"><div class="csm-rv-lock-blur" aria-hidden="true">'
+			. '<div class="r"><span></span><span></span><span></span></div>'
+			. '<div class="r"><span></span><span></span><span></span></div></div>'
+			. '<div class="csm-rv-lock-cta"><div class="csm-rv-lock-icon">&#128274;</div>'
+			. '<h3>Profile Insights</h3>'
+			. '<p>See who declined your request, revisit people you declined, and discover members who viewed your profile. This is a Premium feature.</p>'
+			. '<a class="csm-rv-upgrade" href="' . esc_url( $upgrade ) . '">Upgrade to Premium</a></div></div>';
+	}
+
+	public static function rv_shortcode() {
+		$uid = (int) get_current_user_id();
+		if ( ! is_user_logged_in() || ! Membership::is_premium( $uid ) ) {
+			return self::rv_locked_html();
+		}
+
+		$declined_me = self::who_declined_me( $uid );
+		$i_declined  = self::i_declined( $uid );
+		$viewed      = self::viewed_no_action( $uid );
+
+		$h  = '<div class="csm-rv"><div class="csm-rv-tabs">';
+		$h .= '<button type="button" class="csm-rv-tab active" data-p="a">Who declined you (' . count( $declined_me ) . ')</button>';
+		$h .= '<button type="button" class="csm-rv-tab" data-p="b">People you declined (' . count( $i_declined ) . ')</button>';
+		$h .= '<button type="button" class="csm-rv-tab" data-p="c">Viewed you, no action (' . count( $viewed ) . ')</button>';
+		$h .= '</div>';
+		$h .= '<div class="csm-rv-panel active" data-p="a"><p class="csm-rv-hint">Members who declined a match request you sent.</p>'
+			. self::rv_cards( $declined_me, 'No one has declined your requests. That is a good sign.' ) . '</div>';
+		$h .= '<div class="csm-rv-panel" data-p="b"><p class="csm-rv-hint">Requests you declined. Changed your mind? Open a profile to send a fresh request.</p>'
+			. self::rv_cards( $i_declined, 'You have not declined anyone.' ) . '</div>';
+		$h .= '<div class="csm-rv-panel" data-p="c"><p class="csm-rv-hint">Members who opened your profile but have not sent you a request yet.</p>'
+			. self::rv_cards( $viewed, 'No profile viewers waiting on the sidelines right now.' ) . '</div>';
+		$h .= '</div>';
+		return $h;
 	}
 }
