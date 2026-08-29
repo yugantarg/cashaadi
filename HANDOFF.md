@@ -124,6 +124,11 @@ WPCode snippets — nothing disabled yet):
   same steps (wp-config define + disable the 7); the 3 tables already exist there.
   Only unshown: `[csm_rejection_insights]` panel (no page embeds the shortcode yet).
   NOTE: **#11620 "Profile Gate" is NOT premium** (completion/phone gate) — left in WPCode.
+- **v0.19.0** — Photos module started (`includes/modules/photos/Photos.php`):
+  #11617 local default avatar (attachment 11616, resolved per-env) + #11813 HD
+  avatar sizes (896x1024 full / 448x512 thumb, jpeg q92). Both idempotent avatar
+  filters, NOT gated (safe both-active → Group A). Verified deployed + healthy.
+  The 3-filter privacy/NSFW resolver is Group E (gated, not built).
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -139,7 +144,9 @@ screen, re-enable if anything looks off.
   off), `#11638` (WC greeting), `#11696` (noindex member pages), `#11626`
   (/pricing/ redirect), `#11612` (hide sidebar CSS), `#11582` (caps-lock CSS),
   `#11691` (support footer — plugin's copy dedupes the snippet's via CSS),
-  `#11581` (membership checkout CSS → `site.css`).
+  `#11581` (membership checkout CSS → `site.css`), `#11617` (local default
+  avatar) + `#11813` (HD avatar sizes) — both idempotent avatar filters (photos
+  module, v0.19).
 - **Group B — wizard core, disable + immediately check a profile-edit page**:
   `#12132` (Phase-2 JS — the plugin serves a newer Phase-3 wizard; disabling
   removes a potential double-wizard). `#12124` (Phase-0 reskin CSS) — the plugin
@@ -154,9 +161,17 @@ screen, re-enable if anything looks off.
   `#11579` (upgrade button). DON'T flip the premium flag yet — wait until the
   module also covers the gates/checkout (#11620/#11614/#11795/…), then cut the
   whole premium set over together (flip flag + disable them all at once).
-- **Do NOT disable (not migrated):** all the rest — Discover engine, photos,
-  verification, matches, email queue, block, completion meter `#11560`,
-  mobile-menu `#11674`, and the remaining premium snippets.
+- **Group E — photos hard-gates (gated, NOT started yet)**: `#11770` (private
+  blur), `#11798` (photo request), `#12119` (NSFW mask) all filter
+  `bp_core_fetch_avatar_url` and fight each other — the flagship consolidation.
+  They'll be one composed Resolver gated behind `CASHAADI_PHOTOS_ENABLED`
+  (Config::photos_enabled), cutover = flip flag + disable the three together,
+  tested (match vs non-match viewer) like premium. NOT built yet. Also un-migrated
+  in photos: `#11822` gallery/upload, `#11771` lightbox, and the one-off tools
+  `#11814`/`#11861`.
+- **Do NOT disable (not migrated):** all the rest — Discover engine, the photos
+  items above, verification, matches, email queue, block, completion meter
+  `#11560`, mobile-menu `#11674`.
 
 ### Operational learnings (do this every deploy)
 - **CDN caches static assets for 7 days.** Staging serves assets via Hostinger
