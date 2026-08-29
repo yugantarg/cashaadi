@@ -42,6 +42,9 @@ final class Config {
 	const OG_IMAGE_ID     = 12072;                       // default social share image attachment (#12073)
 	const OG_IMAGE_URL    = 'https://staging.cashaadi.in/wp-content/uploads/2026/08/cashaadi-og-share.png';
 
+	/* ---- misc site config ---------------------------------------------- */
+	const SUPPORT_EMAIL = 'support@cashaadi.in'; // shown in the support footer (#11691)
+
 	/* ---- option keys (owned by their modules; named here for one map) --- */
 	const OPT_AV_OPTIONS = 'csm_av_options'; // AI doc-verify settings incl. OpenAI key (#11815)
 

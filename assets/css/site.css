@@ -59,3 +59,23 @@ aside#secondary { display: none !important; }
    -------------------------------------------------------------------------- */
 #caps-warning,
 .caps-warning { display: none !important; }
+
+/* --------------------------------------------------------------------------
+   Support-email footer (migrated from WPCode #11691). Styles moved out of the
+   PHP into this stylesheet. The general-sibling rule hides any duplicate footer
+   so the plugin's copy and the still-active snippet's copy never both show.
+   -------------------------------------------------------------------------- */
+.csm-support-footer {
+	text-align: center;
+	padding: 14px 16px;
+	font-size: 15px;
+	color: #333;
+	background: #f7f5ef;
+	border-top: 1px solid #e5ddc8;
+}
+.csm-support-footer .csm-support-email {
+	color: #b8860b;
+	font-weight: 600;
+	text-decoration: none;
+}
+.csm-support-footer ~ .csm-support-footer { display: none !important; }

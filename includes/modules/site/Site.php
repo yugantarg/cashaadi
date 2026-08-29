@@ -16,6 +16,8 @@
 
 namespace CAShaadi\Modules\Site;
 
+use CAShaadi\Core\Config;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -43,6 +45,12 @@ final class Site {
 
 		// --- /pricing/ -> /membership-pricing/ (#11626) ---
 		add_action( 'template_redirect', array( __CLASS__, 'pricing_redirect' ), 1 );
+
+		// --- Support-email footer (#11691) ---
+		// Priority 98 (before the snippet's 99) so that while both are active the
+		// plugin's footer renders FIRST and the snippet's duplicate is hidden by
+		// the `.csm-support-footer ~ .csm-support-footer` rule in site.css.
+		add_action( 'wp_footer', array( __CLASS__, 'support_footer' ), 98 );
 	}
 
 	/* ---- comments (#11242) --------------------------------------------- */
@@ -110,5 +118,23 @@ final class Site {
 			wp_safe_redirect( home_url( '/membership-pricing/' ), 301 );
 			exit;
 		}
+	}
+
+	/* ---- support footer (#11691) --------------------------------------- */
+
+	public static function support_footer() {
+		// Home / Discover / member profile pages only (same scope as #11691).
+		$show = is_front_page() || is_home()
+			|| ( function_exists( 'is_page' ) && is_page( 'discover' ) )
+			|| ( function_exists( 'bp_is_user' ) && bp_is_user() );
+		if ( ! $show ) {
+			return;
+		}
+		$email = Config::SUPPORT_EMAIL;
+		printf(
+			'<div class="csm-support-footer">Need help? Email us at <a class="csm-support-email" href="mailto:%s">%s</a></div>',
+			esc_attr( $email ),
+			esc_html( $email )
+		);
 	}
 }
