@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.22.0
+ * Version:           0.23.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -23,12 +23,13 @@ use CAShaadi\Modules\AppShell\AppShell;
 use CAShaadi\Modules\Site\Site;
 use CAShaadi\Modules\Premium\Premium;
 use CAShaadi\Modules\Photos\Photos;
+use CAShaadi\Modules\Verification\Verification;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.22.0' );
+define( 'CASHAADI_UI_VER', '0.23.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -83,6 +84,12 @@ if ( class_exists( 'CAShaadi\\Modules\\Premium\\Premium' ) ) {
 // #12119) is gated by Config::photos_enabled() and added later.
 if ( class_exists( 'CAShaadi\\Modules\\Photos\\Photos' ) ) {
 	Photos::register();
+}
+
+// Verification display: verified-CA badge + OTP checklist item. Gated OFF
+// (Config::verification_enabled) so it can't double the active #11701/#11682.
+if ( class_exists( 'CAShaadi\\Modules\\Verification\\Verification' ) ) {
+	Verification::register();
 }
 
 /**

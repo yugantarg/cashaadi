@@ -60,6 +60,17 @@ final class Config {
 		return defined( 'CASHAADI_PHOTOS_ENABLED' ) && CASHAADI_PHOTOS_ENABLED;
 	}
 
+	/**
+	 * Verification display master switch (verified-CA badge #11701 + OTP checklist
+	 * item #11682). OFF unless wp-config sets CASHAADI_VERIFICATION_ENABLED === true.
+	 * Flip on in the SAME change that disables #11701/#11682 (they inject via
+	 * JS/REST, so both-active would double). The OTP snippet #11618 (MSG91) is NOT
+	 * part of this — it stays in WPCode until the key moves to a wp-config constant.
+	 */
+	public static function verification_enabled() {
+		return defined( 'CASHAADI_VERIFICATION_ENABLED' ) && CASHAADI_VERIFICATION_ENABLED;
+	}
+
 	/** Local default avatar URL, resolved from the attachment (per-env) with a fallback. */
 	public static function default_avatar_url() {
 		$url = function_exists( 'wp_get_attachment_url' ) ? wp_get_attachment_url( self::DEFAULT_AVATAR_ID ) : '';

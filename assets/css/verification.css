@@ -1,0 +1,29 @@
+/* ==========================================================================
+   CAShaadi UI — Verification
+   --------------------------------------------------------------------------
+   Verified-CA badge tooltip (#11701) + the OTP checklist item (#11682).
+   ========================================================================== */
+
+.csm-verified { display: inline-flex; vertical-align: middle; margin-left: 6px; position: relative; cursor: pointer; line-height: 0; }
+.csm-verified svg { width: 18px; height: 18px; display: block; }
+.csm-verified .csm-tip {
+	position: absolute;
+	bottom: 130%;
+	left: 50%;
+	transform: translateX(-50%);
+	background: #111;
+	color: #fff;
+	font-size: 12px;
+	line-height: 1;
+	white-space: nowrap;
+	padding: 5px 8px;
+	border-radius: 4px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity .12s;
+	z-index: 9999;
+}
+.csm-verified:hover .csm-tip,
+.csm-verified.csm-open .csm-tip { opacity: 1; }
+
+.csm-pc-otp-item a { color: #1e5e9b; font-weight: 600; text-decoration: underline; }
