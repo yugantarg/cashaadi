@@ -55,6 +55,7 @@ final class Photos {
 		if ( Config::photos_enabled() ) {
 			Privacy::register();
 			PhotoRequest::register();
+			Nsfw::register();
 			add_action( 'wp_enqueue_scripts', array( __CLASS__, 'gate_assets' ) );
 			// Shim the global csm_photo_is_hidden() that the still-active
 			// photo-request snippet (#11798) calls, so it keeps working until
