@@ -66,8 +66,12 @@ WPCode snippets — nothing disabled yet):
   site-wide snippets #11242 (comments off), #11638 (WC greeting), #11696
   (noindex member pages), #11626 (/pricing/→/membership-pricing/); CSS-only
   #11612 (hide sidebar) + #11582 (caps-lock) moved into `site.css`. Verified
-  live (home healthy, /pricing/ 301s correctly). Deferred: #11691 support footer
-  (duplicate-output + a staging-specific email to reconcile).
+  live (home healthy, /pricing/ 301s correctly).
+- **v0.14.1** — support footer (#11691) added to the site module: markup from PHP,
+  styles in `site.css`, email from `Config::SUPPORT_EMAIL`. A general-sibling CSS
+  rule (`.csm-support-footer ~ .csm-support-footer{display:none}`) hides the
+  still-active snippet's duplicate, so both-active shows exactly one (verified: 2
+  in HTML, 1 visible).
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -81,7 +85,8 @@ screen, re-enable if anything looks off.
   `#11619` (bio plain), `#11611` (age sync), `#11797` (height guard),
   `#11625` (email lock); plus the **site** module (v0.14): `#11242` (comments
   off), `#11638` (WC greeting), `#11696` (noindex member pages), `#11626`
-  (/pricing/ redirect), `#11612` (hide sidebar CSS), `#11582` (caps-lock CSS).
+  (/pricing/ redirect), `#11612` (hide sidebar CSS), `#11582` (caps-lock CSS),
+  `#11691` (support footer — plugin's copy dedupes the snippet's via CSS).
 - **Group B — wizard core, disable + immediately check a profile-edit page**:
   `#12132` (Phase-2 JS — the plugin serves a newer Phase-3 wizard; disabling
   removes a potential double-wizard). `#12124` (Phase-0 reskin CSS) — the plugin
