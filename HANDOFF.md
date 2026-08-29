@@ -31,8 +31,16 @@ WPCode snippets — nothing disabled yet):
   green "Add Match" (friendship) + blue secondary actions. Scoped to
   `body.csm-screens`; enqueued on member screens + members directory. 2-up grid
   on mobile; card interior at all widths. NET-NEW UI. Verified live on staging.
-  Still to restyle: Messages (inbox/thread), Settings (grouped list),
-  Notifications, and the own-Profile screen (completion ring / photo grid).
+  Still to restyle: Settings (grouped list), Notifications, and the own-Profile
+  screen (completion ring / photo grid).
+- **v0.9.x** — Messages screen. Messages = the **Better Messages** plugin
+  (component `bp-messages`, class `.bpbm-*`), a self-contained chat app. We do
+  NOT override its internals (fragile). Fixed detection so the top bar reads
+  "Messages" and the bottom nav highlights Messages there; added per-screen body
+  class `csm-cur-<screen>`; on mobile, hide the redundant profile card +
+  completion meter (via `#item-header > *:not(.csm-topbar)`, keeping our top bar)
+  so BM reads as a focused full-screen chat. To brand the chat accent color, set
+  it in Better Messages' own settings (admin) — not via our CSS.
 
 Pending your action on staging (WPCode), each verified-then-disabled:
 - Module-1 UI: **#11641, #11629, #11844**
