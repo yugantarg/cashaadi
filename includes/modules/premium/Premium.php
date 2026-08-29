@@ -74,6 +74,10 @@ final class Premium {
 		add_action( 'template_redirect', array( __CLASS__, 'log_view' ), 20 );
 		add_shortcode( 'csm_rejection_insights', array( __CLASS__, 'rv_shortcode' ) );
 
+		// Profile-view email (#11821): email the owner (max 1/day) when someone
+		// views their profile. Runs right after log_view.
+		add_action( 'template_redirect', array( __CLASS__, 'pve_notify' ), 25 );
+
 		// Front-end assets for premium features (CSS + JS + a small config).
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'premium_assets' ) );
 	}
@@ -771,5 +775,76 @@ final class Premium {
 			. self::rv_cards( $viewed, 'No profile viewers waiting on the sidelines right now.' ) . '</div>';
 		$h .= '</div>';
 		return $h;
+	}
+
+	/* ---- profile-view email (#11821) ----------------------------------- */
+
+	private static function pve_visitors_url( $uid ) {
+		$base = function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $uid ) : '';
+		if ( ! $base ) {
+			return site_url( '/' );
+		}
+		$slug = function_exists( 'bp_get_friends_slug' ) ? bp_get_friends_slug() : 'friends';
+		return trailingslashit( trailingslashit( $base ) . $slug . '/visitors' );
+	}
+
+	public static function pve_html_ct() {
+		return 'text/html; charset=UTF-8';
+	}
+
+	/** Email the profile owner (at most once/day) that they have a new visitor. */
+	public static function pve_notify() {
+		if ( ! is_user_logged_in() || ! function_exists( 'bp_is_user' ) || ! bp_is_user() ) {
+			return;
+		}
+		$viewer = (int) get_current_user_id();
+		$viewed = function_exists( 'bp_displayed_user_id' ) ? (int) bp_displayed_user_id() : 0;
+		if ( ! $viewer || ! $viewed || $viewer === $viewed ) {
+			return;
+		}
+		if ( user_can( $viewer, 'manage_options' ) || user_can( $viewed, 'manage_options' ) ) {
+			return; // never notify about/for admins
+		}
+		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $viewer, $viewed ) ) {
+			return;
+		}
+
+		// One email per calendar day (site timezone).
+		$today = current_time( 'Ymd' );
+		if ( (string) get_user_meta( $viewed, 'csm_pve_last', true ) === $today ) {
+			return;
+		}
+
+		$owner = get_userdata( $viewed );
+		if ( ! $owner || ! is_email( $owner->user_email ) ) {
+			return;
+		}
+
+		// Stamp first so a slow mailer can't double-send in the same request.
+		update_user_meta( $viewed, 'csm_pve_last', $today );
+
+		$first = trim( (string) ( function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $viewed ) : $owner->display_name ) );
+		if ( '' === $first ) {
+			$first = 'there';
+		} else {
+			$parts = preg_split( '/\s+/', $first );
+			$first = $parts[0];
+		}
+
+		$url  = esc_url( self::pve_visitors_url( $viewed ) );
+		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$subject = 'Someone viewed your profile on ' . $site;
+
+		$msg  = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">';
+		$msg .= '<p>Hi ' . esc_html( $first ) . ',</p>';
+		$msg .= '<p>Good news — your profile is getting noticed. <strong>Someone just viewed your profile</strong> on ' . esc_html( $site ) . '.</p>';
+		$msg .= '<p style="margin:26px 0"><a href="' . $url . '" style="background:#7a1220;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:8px;display:inline-block">See who viewed you</a></p>';
+		$msg .= '<p style="color:#7a6f68;font-size:13px">You are receiving this because someone viewed your CA Shaadi profile. We send this at most once a day.</p>';
+		$msg .= '</div>';
+
+		add_filter( 'wp_mail_content_type', array( __CLASS__, 'pve_html_ct' ) );
+		wp_mail( $owner->user_email, $subject, $msg );
+		remove_filter( 'wp_mail_content_type', array( __CLASS__, 'pve_html_ct' ) );
 	}
 }

@@ -123,3 +123,29 @@ aside#secondary { display: none !important; }
 .csm-contact-value { color: var(--csm-ink, #16212b); }
 .csm-contact-locked a { color: var(--csm-blue, #2c5b8c); text-decoration: none; font-weight: 600; }
 .csm-contact-locked a:hover { text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   Membership checkout styling (migrated from WPCode #11581). Pure CSS on the
+   WooCommerce block checkout; safe alongside the snippet (idempotent).
+   -------------------------------------------------------------------------- */
+.wc-block-checkout,
+.wp-block-woocommerce-checkout { max-width: 1100px; margin-left: auto; margin-right: auto; }
+.wc-block-components-order-summary,
+.wp-block-woocommerce-checkout-order-summary-block {
+	background: #ffffff;
+	border: 1px solid #eee;
+	border-radius: 14px;
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+	padding: 8px 4px;
+}
+.wc-block-components-order-summary-item__quantity { display: none !important; }
+.wc-block-components-order-summary-item__image img { border-radius: 10px; }
+.wc-block-components-totals-coupon { opacity: 0.85; }
+.wc-block-components-checkout-place-order-button,
+.wc-block-components-button.wc-block-cart__submit-button {
+	border-radius: 10px !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.3px;
+	background: #c2185b !important;
+}
+.wc-block-components-checkout-step__title { font-weight: 700; }
