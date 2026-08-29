@@ -58,6 +58,17 @@ final class Config {
 		return defined( 'CASHAADI_ANALYTICS_ENABLED' ) && CASHAADI_ANALYTICS_ENABLED;
 	}
 
+	/**
+	 * Premium module master switch. OFF unless wp-config defines
+	 * CASHAADI_PREMIUM_ENABLED === true. The premium snippets inject buttons and
+	 * gates, so running the plugin's versions alongside the active snippets would
+	 * double them — flip this on in the SAME change that disables the migrated
+	 * premium snippets.
+	 */
+	public static function premium_enabled() {
+		return defined( 'CASHAADI_PREMIUM_ENABLED' ) && CASHAADI_PREMIUM_ENABLED;
+	}
+
 	/** Resolve the OG image URL from the attachment (per-environment), with a fallback. */
 	public static function og_image_url() {
 		$url = function_exists( 'wp_get_attachment_image_url' ) ? wp_get_attachment_image_url( self::OG_IMAGE_ID, 'full' ) : '';

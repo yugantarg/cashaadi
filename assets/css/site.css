@@ -79,3 +79,23 @@ aside#secondary { display: none !important; }
 	text-decoration: none;
 }
 .csm-support-footer ~ .csm-support-footer { display: none !important; }
+
+/* --------------------------------------------------------------------------
+   Premium upgrade / complete-profile buttons (migrated from WPCode #11579).
+   Rendered by the premium module (gated); harmless when absent.
+   -------------------------------------------------------------------------- */
+.cashaadi-upgrade-btn,
+.cashaadi-complete-profile-btn {
+	display: inline-block;
+	margin: 10px 0;
+	padding: 11px 22px;
+	border-radius: 10px;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-weight: 700;
+	text-decoration: none;
+	color: #fff !important;
+}
+.cashaadi-upgrade-btn { background: var(--csm-blue, #2c5b8c); }
+.cashaadi-upgrade-btn:hover { background: var(--csm-blue-press, #234a73); }
+.cashaadi-complete-profile-btn { background: var(--csm-green, #6f9f2e); }
+.cashaadi-complete-profile-btn:hover { background: var(--csm-green-press, #5e8926); }
