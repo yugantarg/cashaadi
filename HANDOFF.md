@@ -51,7 +51,12 @@ WPCode snippets — nothing disabled yet):
   cards (serif group heading, muted label / ink value rows, no boxy borders);
   stacks label-over-value on mobile. Verified live. Header card + photo grid +
   completion meter (#11560) already look reasonable; align later if wanted.
-  Still to restyle: Settings.
+- **v0.12.0** — Settings restyle (in `screens.css`): BuddyPress `.standard-form`
+  (General/Email/Visibility/…) → clean card with brand-styled labels, inputs
+  (focus ring, muted readonly for the locked Account Email), and a blue Save
+  Changes button; WP's own show/generate-password buttons left alone. Verified
+  live. **All member screens are now restyled** (Directory/Matches, Messages,
+  Notifications, Profile, Settings).
 
 Pending your action on staging (WPCode), each verified-then-disabled:
 - Module-1 UI: **#11641, #11629, #11844**
