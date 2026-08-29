@@ -25,9 +25,10 @@ final class AppShell {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 22 );
 		add_action( 'wp_footer', array( __CLASS__, 'render' ), 20 );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
-		// Top bar (screen title + settings + notifications) at the top of the
-		// member body. Member pages only; the Discover page has its own heading.
-		add_action( 'bp_before_member_body', array( __CLASS__, 'render_topbar' ) );
+		// Top bar (screen title + settings + notifications) above the member
+		// header, so it sits at the very top of the content. Member pages only;
+		// the Discover page has its own heading.
+		add_action( 'bp_before_member_header', array( __CLASS__, 'render_topbar' ) );
 	}
 
 	/** A BuddyPress member screen, or the Discover page. */
@@ -142,7 +143,7 @@ final class AppShell {
 	}
 
 	public static function render_topbar() {
-		// bp_before_member_body also fires on the profile-edit wizard — skip it there.
+		// bp_before_member_header also fires on the profile-edit wizard — skip there.
 		if ( ! self::active_here() ) {
 			return;
 		}
