@@ -20,6 +20,7 @@ namespace CAShaadi\Modules\Premium;
 use CAShaadi\Core\Config;
 use CAShaadi\Core\Membership;
 use CAShaadi\Core\Assets;
+use CAShaadi\Core\Migrator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -54,6 +55,15 @@ final class Premium {
 		add_shortcode( 'csm_profile_visitors', array( __CLASS__, 'pv_shortcode' ) );
 		add_action( 'bp_setup_nav', array( __CLASS__, 'pv_subnav' ), 20 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'premium_assets' ) );
+
+		// Premium intent leads (#11796): track upgrade-clicks that haven't paid.
+		// Owns the wp_csm_intent table via the Migrator.
+		Migrator::register( 'intent', array( __CLASS__, 'lead_schema' ) );
+		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'lead_record' ), 10, 2 );
+		add_action( 'woocommerce_payment_complete', array( __CLASS__, 'lead_on_payment' ), 10, 1 );
+		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'lead_on_payment' ), 10, 1 );
+		add_action( 'pmpro_after_change_membership_level', array( __CLASS__, 'lead_on_level' ), 10, 2 );
+		add_action( 'admin_menu', array( __CLASS__, 'lead_menu' ) );
 	}
 
 	public static function premium_assets() {
@@ -362,5 +372,170 @@ final class Premium {
 			'<div class="cashaadi-upgrade-wrap"><a class="cashaadi-upgrade-btn" href="%s">Upgrade to Premium</a></div>',
 			esc_url( home_url( '/membership-pricing/' ) )
 		);
+	}
+
+	/* ---- premium intent leads (#11796) --------------------------------- */
+
+	private static function lead_table() {
+		global $wpdb;
+		return $wpdb->prefix . 'csm_intent';
+	}
+
+	/** CREATE TABLE for the Migrator. */
+	public static function lead_schema( $wpdb ) {
+		$t       = $wpdb->prefix . 'csm_intent';
+		$charset = $wpdb->get_charset_collate();
+		return "CREATE TABLE {$t} (
+			user_id BIGINT UNSIGNED NOT NULL,
+			first_at DATETIME NOT NULL,
+			last_at DATETIME NOT NULL,
+			clicks INT UNSIGNED NOT NULL DEFAULT 1,
+			converted TINYINT NOT NULL DEFAULT 0,
+			converted_at DATETIME NULL,
+			PRIMARY KEY  (user_id),
+			KEY converted (converted)
+		) {$charset};";
+	}
+
+	/** Record (or bump) a lead when the premium product is added to cart. */
+	public static function lead_record( $cart_item_key, $product_id ) {
+		if ( (int) $product_id !== (int) Config::WC_PREMIUM_PRODUCT ) {
+			return;
+		}
+		$uid = (int) get_current_user_id();
+		if ( ! $uid ) {
+			return;
+		}
+		global $wpdb;
+		$t   = self::lead_table();
+		$now = current_time( 'mysql' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"INSERT INTO {$t} (user_id, first_at, last_at, clicks, converted)
+			 VALUES (%d, %s, %s, 1, 0)
+			 ON DUPLICATE KEY UPDATE last_at = %s, clicks = clicks + 1",
+			$uid,
+			$now,
+			$now,
+			$now
+		) );
+	}
+
+	private static function lead_mark_converted( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid ) {
+			return;
+		}
+		global $wpdb;
+		$t = self::lead_table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"UPDATE {$t} SET converted = 1, converted_at = %s WHERE user_id = %d AND converted = 0",
+			current_time( 'mysql' ),
+			$uid
+		) );
+	}
+
+	public static function lead_on_payment( $order_id ) {
+		if ( ! function_exists( 'wc_get_order' ) ) {
+			return;
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+		$uid = (int) $order->get_user_id();
+		if ( ! $uid ) {
+			return;
+		}
+		foreach ( $order->get_items() as $item ) {
+			if ( (int) $item->get_product_id() === (int) Config::WC_PREMIUM_PRODUCT ) {
+				self::lead_mark_converted( $uid );
+				break;
+			}
+		}
+	}
+
+	public static function lead_on_level( $level_id, $user_id ) {
+		if ( (int) $level_id === Config::PMPRO_PREMIUM_LEVEL ) {
+			self::lead_mark_converted( $user_id );
+		}
+	}
+
+	private static function lead_phone( $uid ) {
+		if ( function_exists( 'xprofile_get_field_data' ) ) {
+			$p = xprofile_get_field_data( Config::FIELD_PHONE, $uid );
+			if ( $p ) {
+				return $p;
+			}
+		}
+		return '';
+	}
+
+	private static function lead_rows( $only_pending = true ) {
+		global $wpdb;
+		$t     = self::lead_table();
+		$where = $only_pending ? 'WHERE converted = 0' : '';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+		return $wpdb->get_results( "SELECT user_id, first_at, last_at, clicks, converted, converted_at FROM {$t} {$where} ORDER BY last_at DESC" );
+	}
+
+	public static function lead_menu() {
+		add_users_page( 'Intent Leads', 'Intent Leads', 'manage_options', 'csm-intent-leads', array( __CLASS__, 'lead_page' ) );
+	}
+
+	public static function lead_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Not allowed.' );
+		}
+
+		if ( isset( $_GET['csm_lead_csv'] ) ) {
+			check_admin_referer( 'csm_lead_csv' );
+			$rows = self::lead_rows( true );
+			nocache_headers();
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=intent-leads.csv' );
+			$out = fopen( 'php://output', 'w' );
+			fputcsv( $out, array( 'Name', 'Phone', 'Email', 'Clicks', 'First clicked', 'Last clicked' ) );
+			foreach ( $rows as $r ) {
+				$u = get_userdata( $r->user_id );
+				fputcsv( $out, array(
+					$u ? bp_core_get_user_displayname( $r->user_id ) : ( '#' . $r->user_id ),
+					self::lead_phone( $r->user_id ),
+					$u ? $u->user_email : '',
+					$r->clicks,
+					$r->first_at,
+					$r->last_at,
+				) );
+			}
+			fclose( $out );
+			exit;
+		}
+
+		$pending = self::lead_rows( true );
+		$csv_url = wp_nonce_url(
+			add_query_arg( array( 'page' => 'csm-intent-leads', 'csm_lead_csv' => 1 ), admin_url( 'users.php' ) ),
+			'csm_lead_csv'
+		);
+
+		echo '<div class="wrap"><h1>Premium Intent Leads</h1>';
+		echo '<p>Members who clicked <strong>Upgrade to Premium</strong> but have not paid yet — high-intent leads for follow-up.</p>';
+		echo '<p><strong>' . count( $pending ) . '</strong> pending lead(s). <a class="button button-primary" href="' . esc_url( $csv_url ) . '">Download CSV</a></p>';
+		echo '<table class="widefat striped"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Clicks</th><th>First clicked</th><th>Last clicked</th></tr></thead><tbody>';
+		if ( empty( $pending ) ) {
+			echo '<tr><td colspan="6">No pending leads yet.</td></tr>';
+		}
+		foreach ( $pending as $r ) {
+			$u = get_userdata( $r->user_id );
+			echo '<tr>';
+			echo '<td>' . esc_html( $u ? bp_core_get_user_displayname( $r->user_id ) : ( '#' . $r->user_id ) ) . '</td>';
+			echo '<td>' . esc_html( self::lead_phone( $r->user_id ) ) . '</td>';
+			echo '<td>' . esc_html( $u ? $u->user_email : '' ) . '</td>';
+			echo '<td>' . (int) $r->clicks . '</td>';
+			echo '<td>' . esc_html( $r->first_at ) . '</td>';
+			echo '<td>' . esc_html( $r->last_at ) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table></div>';
 	}
 }

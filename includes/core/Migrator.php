@@ -25,10 +25,10 @@ final class Migrator {
 	const OPTION = 'cashaadi_db_version';
 
 	/**
-	 * Bump this string whenever a registered schema below changes.
-	 * Stays 0 while no schema is registered.
+	 * Bump this string whenever a registered schema changes. Modules register
+	 * their schemas at load (when enabled); run() installs them on version change.
 	 */
-	const VERSION = '0';
+	const VERSION = '1';
 
 	/**
 	 * Registered schemas: handle => callable returning the CREATE TABLE SQL for
