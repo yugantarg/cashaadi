@@ -12,10 +12,20 @@ WPCode snippets — nothing disabled yet):
 - **v0.4.0** — profile-edit field logic module (`includes/modules/profile-edit/
   FieldLogic.php` + `assets/js|css/profile-forms.*`): #11624/#11621/#11619/
   #11611/#11797/#11625.
+- **v0.5.0** — analytics module (`includes/modules/analytics/Analytics.php`):
+  #12084/#12091/#12112/#12073/#11697. **GATED OFF** (Config::analytics_enabled)
+  so it can't double-count; cutover = define `CASHAADI_ANALYTICS_ENABLED` true in
+  wp-config AND disable those 5 snippets, together.
+- **v0.6.0** — app-shell (`includes/modules/app-shell/AppShell.php` +
+  `assets/css/tokens.css` + `app-shell.css`): mobile bottom nav (Discover ·
+  Matches · Messages · Profile). NET-NEW UI (no snippet to disable). Additive —
+  existing BuddyX chrome untouched; hiding it + a top bar are the next app-shell
+  steps. Verified live: nav renders, links correct, hidden on desktop + wizard.
 
 Pending your action on staging (WPCode), each verified-then-disabled:
 - Module-1 UI: **#11641, #11629, #11844**
 - Field logic: **#11624, #11621, #11619, #11611, #11797, #11625**
+- Analytics (with the wp-config flag): **#12084, #12091, #12112, #12073, #11697**
 (Field-logic UX — email/gender/height — not yet visually confirmed; server
 filters are idempotent so both-active is safe.)
 
