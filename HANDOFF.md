@@ -115,6 +115,14 @@ WPCode snippets — nothing disabled yet):
   (dbDelta no-ops on the snippet-made tables). MUST be tested with a free + a
   premium account first (contact gate, visitors, insights, view-email, leads).
   (#11581 checkout CSS is NOT gated — it's in `site.css` as a Group-A item.)
+  **CUTOVER TESTED & PASSED on staging (2026-08-29):** `CASHAADI_PREMIUM_ENABLED`
+  is ON in staging wp-config and the 7 premium snippets are DISABLED. Verified via
+  User Switching with a free (Vedika) + premium (Yosha) account: upgrade button
+  (free)/none (premium), contact gate nudge/details, Visitors masked-teaser/full-
+  list, Intent Leads table created (no DB error, CSV), and the view-email actually
+  delivered. Staging DOES send real email. Leave the snippets OFF. For PRODUCTION:
+  same steps (wp-config define + disable the 7); the 3 tables already exist there.
+  Only unshown: `[csm_rejection_insights]` panel (no page embeds the shortcode yet).
   NOTE: **#11620 "Profile Gate" is NOT premium** (completion/phone gate) — left in WPCode.
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
