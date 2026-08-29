@@ -72,6 +72,12 @@ WPCode snippets — nothing disabled yet):
   rule (`.csm-support-footer ~ .csm-support-footer{display:none}`) hides the
   still-active snippet's duplicate, so both-active shows exactly one (verified: 2
   in HTML, 1 visible).
+- **v0.15.0** — Premium module started (`includes/modules/premium/Premium.php`):
+  migrates #11579 (upgrade button on own profile + directory; "complete profile"
+  CTA fallback), built on `Membership::is_premium()`. GATED OFF behind
+  `CASHAADI_PREMIUM_ENABLED` (see Group D). Button styles in `site.css`. Verified
+  deployed + gated off (no behaviour change). Checkout hygiene + viewing gates to
+  follow behind the same flag.
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -96,9 +102,14 @@ screen, re-enable if anything looks off.
   `define('CASHAADI_ANALYTICS_ENABLED', true);` to wp-config, THEN disable
   `#12084, #12091, #12112, #12073, #11697` (else analytics stops — the module is
   gated off by default).
+- **Group D — premium (gated, NOT ready to cut over yet)**: the premium module
+  (v0.15) is gated behind `CASHAADI_PREMIUM_ENABLED` and so far migrates only
+  `#11579` (upgrade button). DON'T flip the premium flag yet — wait until the
+  module also covers the gates/checkout (#11620/#11614/#11795/…), then cut the
+  whole premium set over together (flip flag + disable them all at once).
 - **Do NOT disable (not migrated):** all the rest — Discover engine, photos,
-  verification, premium/gating, matches, email queue, block, completion meter
-  `#11560`, mobile-menu `#11674`, and the other site snippets.
+  verification, matches, email queue, block, completion meter `#11560`,
+  mobile-menu `#11674`, and the remaining premium snippets.
 
 ### Operational learnings (do this every deploy)
 - **CDN caches static assets for 7 days.** Staging serves assets via Hostinger
