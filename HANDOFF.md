@@ -100,9 +100,19 @@ WPCode snippets — nothing disabled yet):
   + free-vs-premium accounts) — do before cutover.
   NOTE: **#11620 "Profile Gate" is NOT premium** — it's a *completion/phone-verify*
   gate (blur incomplete profiles) with child-theme deps; left in WPCode.
-  Still to migrate (premium, stateful): #11807 rejection insights (owns the
-  profile-views table + rejection tables + view logging — the big one), #11821
-  view-email, #11581 checkout CSS.
+    - #11807 Rejection Insights (v0.17): owns `wp_csm_rejections` +
+      `wp_csm_profile_views` via the **Migrator** (VERSION 2), logs rejections
+      (`friends_friendship_rejected/accepted`) + profile views
+      (`template_redirect`), and renders `[csm_rejection_insights]` (3-tab premium
+      panel / free locked teaser). This CLOSES the visitors data chain — #11811
+      now reads a table this module owns. Tab JS in `premium.js`, styles in
+      `premium.css`.
+  The premium module now covers **6 snippets** (#11579/#11795/#11614/#11811/
+  #11796/#11807). Cutover = flip `CASHAADI_PREMIUM_ENABLED` + disable all six
+  together. The Migrator creates the tables on enable (dbDelta no-ops on the
+  snippet-made tables). MUST be tested with a free + a premium account first.
+  NOTE: **#11620 "Profile Gate" is NOT premium** (completion/phone gate) — left in WPCode.
+  Still to migrate (premium): #11821 view-email, #11581 checkout CSS (small).
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
