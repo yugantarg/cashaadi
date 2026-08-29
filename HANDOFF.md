@@ -62,6 +62,12 @@ WPCode snippets — nothing disabled yet):
   consistent portrait photos, neutral Pass + green Like buttons; interior only,
   tray layout + like/pass JS (#11601) untouched. screens.css now also loads on
   the Discover page (scoped via `body.csm-cur-discover`). Verified live.
+- **v0.14.0** — `site` module (`includes/modules/site/Site.php`): idempotent
+  site-wide snippets #11242 (comments off), #11638 (WC greeting), #11696
+  (noindex member pages), #11626 (/pricing/→/membership-pricing/); CSS-only
+  #11612 (hide sidebar) + #11582 (caps-lock) moved into `site.css`. Verified
+  live (home healthy, /pricing/ 301s correctly). Deferred: #11691 support footer
+  (duplicate-output + a staging-specific email to reconcile).
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -73,7 +79,9 @@ screen, re-enable if anything looks off.
   `#11641` (mobile fixes CSS), `#11629` + `#11844` (old Save&Next/progress —
   superseded by the wizard), `#11624` (partial save), `#11621` (gender lock),
   `#11619` (bio plain), `#11611` (age sync), `#11797` (height guard),
-  `#11625` (email lock).
+  `#11625` (email lock); plus the **site** module (v0.14): `#11242` (comments
+  off), `#11638` (WC greeting), `#11696` (noindex member pages), `#11626`
+  (/pricing/ redirect), `#11612` (hide sidebar CSS), `#11582` (caps-lock CSS).
 - **Group B — wizard core, disable + immediately check a profile-edit page**:
   `#12132` (Phase-2 JS — the plugin serves a newer Phase-3 wizard; disabling
   removes a potential double-wizard). `#12124` (Phase-0 reskin CSS) — the plugin
