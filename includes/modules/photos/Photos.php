@@ -54,6 +54,10 @@ final class Photos {
 		// will register here too and compose via the csm_photo_is_hidden filter.
 		if ( Config::photos_enabled() ) {
 			Privacy::register();
+			// Shim the global csm_photo_is_hidden() that the still-active
+			// photo-request snippet (#11798) calls, so it keeps working until
+			// #11798 is migrated too.
+			require_once __DIR__ . '/compat.php';
 		}
 	}
 
