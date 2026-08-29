@@ -49,8 +49,12 @@ final class Photos {
 		add_filter( 'jpeg_quality', array( __CLASS__, 'jpeg_quality' ) );
 		add_filter( 'wp_editor_set_quality', array( __CLASS__, 'jpeg_quality' ) );
 
-		// The gated hard-gate resolver (#11770/#11798/#12119) is added here once built:
-		// if ( Config::photos_enabled() ) { Resolver::register(); }
+		// --- Hard gates (gated by CASHAADI_PHOTOS_ENABLED) ---
+		// Private-photo blur (#11770). Photo-request (#11798) + NSFW mask (#12119)
+		// will register here too and compose via the csm_photo_is_hidden filter.
+		if ( Config::photos_enabled() ) {
+			Privacy::register();
+		}
 	}
 
 	/* ---- default avatar (#11617) --------------------------------------- */
