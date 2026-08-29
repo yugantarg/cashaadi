@@ -142,6 +142,17 @@ WPCode snippets — nothing disabled yet):
   `assets/{css,js}/verification.*`. Gated by CASHAADI_VERIFICATION_ENABLED. First
   real consumer of `Core\Verification`. Deployed + healthy (gated off).
 
+## ALREADY-INACTIVE snippets (do NOT migrate / do NOT re-introduce)
+The export JSON has no active/disabled flag. Per the site owner, exactly these 8
+were already inactive on the LIVE site (superseded or retired) — the plugin must
+NOT replicate them: **`#12132`** (Phase-2 wizard JS — superseded by the plugin's
+wizard), **`#11814`** (avatar HD rebuild tool), **`#11801`** (premium partner
+search), **`#11638`** (WC greeting), **`#11614`** (contact gate — contact is
+hidden from EVERYONE via the phone field's xProfile visibility, not a snippet),
+**`#11252`** (Sign Up HTML), **`#11241`** (post-paragraph message), **`#11242`**
+(disable comments). #11614/#11638/#11242 were mistakenly migrated and have been
+REMOVED (v0.24). Everything else in the export is ACTIVE.
+
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
 replacement yet — leave it active (disabling breaks Discover/photos/verification/
@@ -158,11 +169,10 @@ screen, re-enable if anything looks off.
   `#11581` (membership checkout CSS → `site.css`), `#11617` (local default
   avatar) + `#11813` (HD avatar sizes) — both idempotent avatar filters (photos
   module, v0.19).
-- **Group B — wizard core, disable + immediately check a profile-edit page**:
-  `#12132` (Phase-2 JS — the plugin serves a newer Phase-3 wizard; disabling
-  removes a potential double-wizard). `#12124` (Phase-0 reskin CSS) — the plugin
-  does NOT fully replicate this; try it LAST and re-enable if the edit form looks
-  wrong. tokens.css supplies the CSS variables it defined.
+- **Group B — wizard**: `#12132` (Phase-2 wizard JS) is ALREADY INACTIVE on the
+  live site — no action; the plugin's `profile-wizard.js` (newer Phase-3) is the
+  wizard. `#12124` (Phase-0 reskin CSS) is ACTIVE and NOT migrated — LEAVE IT ON
+  (the wizard builds on it; `tokens.css` only supplies fallback vars).
 - **Group C — analytics, ONLY together with the wp-config flag**: first add
   `define('CASHAADI_ANALYTICS_ENABLED', true);` to wp-config, THEN disable
   `#12084, #12091, #12112, #12073, #11697` (else analytics stops — the module is
