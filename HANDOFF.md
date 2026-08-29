@@ -1,5 +1,38 @@
 # CAShaadi UI — Handoff for local Claude Code
 
+## CURRENT STATUS (updated 2026-08-29)
+Pipeline live: push to `main` → Hostinger auto-deploys to staging in ~20s.
+Design + migration plan: see `docs/ARCHITECTURE.md` (coherent core → modules → UI).
+
+Shipped & deployed to staging (all running SAFELY alongside the still-active
+WPCode snippets — nothing disabled yet):
+- **v0.2.0** — #11641 mobile fixes → `assets/css/profile-edit.css` + `site.css`.
+- **v0.3.0** — core layer: `includes/core/` (Config, Membership, Verification,
+  Secrets, Assets, Migrator) + `CAShaadi\` autoloader.
+- **v0.4.0** — profile-edit field logic module (`includes/modules/profile-edit/
+  FieldLogic.php` + `assets/js|css/profile-forms.*`): #11624/#11621/#11619/
+  #11611/#11797/#11625.
+
+Pending your action on staging (WPCode), each verified-then-disabled:
+- Module-1 UI: **#11641, #11629, #11844**
+- Field logic: **#11624, #11621, #11619, #11611, #11797, #11625**
+(Field-logic UX — email/gender/height — not yet visually confirmed; server
+filters are idempotent so both-active is safe.)
+
+### Operational learnings (do this every deploy)
+- **Verify the actual changed file is live (200) before trusting health** — a
+  "home 200" check passed once on code that had not deployed (a missed webhook),
+  hiding a fatal that only appeared once the file landed. Check the new file.
+- If a push doesn't deploy in ~1 min, the webhook was likely missed: push an
+  empty commit (`git commit --allow-empty`) to re-trigger.
+- No `php` on this Mac → can't `php -l`. Deploy to staging is the real test;
+  the plugin loads on every request, so a parse/class error 500s the site.
+  Autoloader now maps CamelCase namespace → kebab-case dir (ProfileEdit →
+  profile-edit) and `register()` is guarded by `class_exists`.
+
+---
+
+
 You're picking up a WordPress plugin that replaces WPCode snippet bloat with a
 versioned, mobile-first member-area UI for CAShaadi (BuddyPress). Everything you
 need is in this folder.
