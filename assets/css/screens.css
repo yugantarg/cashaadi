@@ -390,14 +390,15 @@ body.csm-cur-discover #csm-discovery-tray .csm-btn {
 	border: 0;
 	transition: background .15s, border-color .15s;
 }
+/* !important so brand colors beat #11602's own button styling */
 body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-pass {
-	background: var(--csm-surface, #fff);
-	color: var(--csm-muted, #5c6a76);
-	border: 1.5px solid var(--csm-hair-2, #d6dfe7);
+	background: var(--csm-surface, #fff) !important;
+	color: var(--csm-muted, #5c6a76) !important;
+	border: 1.5px solid var(--csm-hair-2, #d6dfe7) !important;
 }
-body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-pass:hover { border-color: var(--csm-faint, #93a2ae); color: var(--csm-ink, #16212b); }
+body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-pass:hover { border-color: var(--csm-faint, #93a2ae) !important; color: var(--csm-ink, #16212b) !important; }
 body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-like {
-	background: var(--csm-green, #6f9f2e);
-	color: #fff;
+	background: var(--csm-green, #6f9f2e) !important;
+	color: #fff !important;
 }
-body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-like:hover { background: var(--csm-green-press, #5e8926); }
+body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-like:hover { background: var(--csm-green-press, #5e8926) !important; }
