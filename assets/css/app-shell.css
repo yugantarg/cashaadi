@@ -20,6 +20,12 @@
 	   #subnav (in-section tabs like View/Edit) is intentionally kept. */
 	body.csm-has-appnav #buddypress #object-nav { display: none !important; }
 
+	/* Messages (Better Messages) is a full chat app — hide the redundant profile
+	   card + completion meter above it so it reads as a focused, full-width chat
+	   under our top bar + bottom nav. We don't override Better Messages' own UI. */
+	body.csm-cur-messages #buddypress #item-header,
+	body.csm-cur-messages #buddypress .csm-pc-wrap { display: none !important; }
+
 	/* ---- top bar: screen title + settings + notifications ---- */
 	.csm-topbar {
 		display: flex;

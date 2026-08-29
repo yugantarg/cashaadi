@@ -61,7 +61,9 @@ final class AppShell {
 			if ( bp_is_current_component( 'friends' ) ) {
 				return 'matches';
 			}
-			if ( bp_is_current_component( 'messages' ) ) {
+			// The site uses the Better Messages plugin, whose component is
+			// 'bp-messages' (not the native 'messages').
+			if ( bp_is_current_component( 'messages' ) || bp_is_current_component( 'bp-messages' ) ) {
 				return 'messages';
 			}
 		}
@@ -88,6 +90,10 @@ final class AppShell {
 	public static function body_class( $classes ) {
 		if ( self::active_here() ) {
 			$classes[] = 'csm-has-appnav';
+			$cur = self::current();
+			if ( $cur ) {
+				$classes[] = 'csm-cur-' . $cur; // e.g. csm-cur-messages, for per-screen tweaks
+			}
 		}
 		if ( self::is_member_area() ) {
 			$classes[] = 'csm-screens';
@@ -155,6 +161,7 @@ final class AppShell {
 			'xprofile'      => 'Profile',
 			'friends'       => 'Matches',
 			'messages'      => 'Messages',
+			'bp-messages'   => 'Messages', // Better Messages plugin component
 			'notifications' => 'Notifications',
 			'settings'      => 'Settings',
 			'media'         => 'Photos',
