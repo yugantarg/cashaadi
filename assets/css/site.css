@@ -99,3 +99,10 @@ aside#secondary { display: none !important; }
 .cashaadi-upgrade-btn:hover { background: var(--csm-blue-press, #234a73); }
 .cashaadi-complete-profile-btn { background: var(--csm-green, #6f9f2e); }
 .cashaadi-complete-profile-btn:hover { background: var(--csm-green-press, #5e8926); }
+
+/* "already a premium member" label that replaces the buy link (#11795) */
+.cashaadi-already-premium {
+	display: inline-block;
+	font-weight: 700;
+	color: var(--csm-green-press, #5e8926);
+}

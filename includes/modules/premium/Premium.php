@@ -19,6 +19,7 @@ namespace CAShaadi\Modules\Premium;
 
 use CAShaadi\Core\Config;
 use CAShaadi\Core\Membership;
+use CAShaadi\Core\Assets;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -35,6 +36,70 @@ final class Premium {
 		// members directory.
 		add_action( 'bp_before_member_header_meta', array( __CLASS__, 'upgrade_on_profile' ) );
 		add_action( 'bp_before_directory_members_content', array( __CLASS__, 'upgrade_on_directory' ) );
+
+		// Checkout hygiene (#11795): stop existing premium members re-buying, and
+		// keep the cart to just the premium product for everyone else.
+		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 20, 2 );
+		add_action( 'template_redirect', array( __CLASS__, 'bounce_premium' ), 5 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'checkout_assets' ) );
+	}
+
+	/* ---- checkout hygiene (#11795) ------------------------------------- */
+
+	/**
+	 * Gate the add-to-cart for the premium product: block a duplicate purchase by
+	 * an existing premium member; otherwise keep the cart to just this one item.
+	 */
+	public static function guard_add_to_cart( $passed, $product_id ) {
+		if ( (int) $product_id !== (int) Config::WC_PREMIUM_PRODUCT ) {
+			return $passed;
+		}
+		if ( ! function_exists( 'WC' ) || ! ( WC()->cart instanceof \WC_Cart ) ) {
+			return $passed;
+		}
+		if ( Membership::is_premium( get_current_user_id() ) ) {
+			if ( function_exists( 'wc_add_notice' ) ) {
+				wc_add_notice( 'You are already a Premium member — no need to buy again.', 'notice' );
+			}
+			return false; // block the duplicate purchase
+		}
+		WC()->cart->empty_cart();
+		return $passed;
+	}
+
+	/** Belt-and-braces: bounce a premium member off the premium add-to-cart URL. */
+	public static function bounce_premium() {
+		if ( is_admin() ) {
+			return;
+		}
+		if ( ! isset( $_GET['add-to-cart'] ) || (int) $_GET['add-to-cart'] !== (int) Config::WC_PREMIUM_PRODUCT ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+		if ( ! Membership::is_premium( get_current_user_id() ) ) {
+			return;
+		}
+		$dest = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : home_url( '/' );
+		wp_safe_redirect( $dest );
+		exit;
+	}
+
+	/**
+	 * On the pricing page, replace the premium add-to-cart link with a label for
+	 * members who are already premium (JS reads window.CASHAADI_PREMIUM).
+	 */
+	public static function checkout_assets() {
+		if ( is_admin() || ! is_user_logged_in() || ! Membership::is_premium() ) {
+			return;
+		}
+		Assets::script( 'premium', 'assets/js/premium.js' );
+		wp_add_inline_script(
+			'cashaadi-premium',
+			'window.CASHAADI_PREMIUM=' . wp_json_encode( array(
+				'isPremium' => true,
+				'productId' => (int) Config::WC_PREMIUM_PRODUCT,
+			) ) . ';',
+			'before'
+		);
 	}
 
 	public static function upgrade_on_profile() {
