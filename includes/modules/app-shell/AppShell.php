@@ -111,7 +111,10 @@ final class AppShell {
 		if ( $shell ) {
 			Assets::style( 'app-shell', 'assets/css/app-shell.css', array( 'cashaadi-tokens' ) );
 		}
-		if ( $area ) {
+		// screens.css carries the member-card + list restyles (scoped to
+		// body.csm-screens) and the Discover card restyle (scoped to
+		// body.csm-cur-discover) — load it on member area AND the Discover screen.
+		if ( $shell || $area ) {
 			Assets::style( 'screens', 'assets/css/screens.css', array( 'cashaadi-tokens' ) );
 		}
 	}
