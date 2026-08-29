@@ -36,8 +36,30 @@ final class Config {
 	const PMPRO_PREMIUM_LEVEL = 2;     // PMPro premium level id (#11795)
 	const WC_PREMIUM_PRODUCT  = 11566; // WooCommerce "Premium Membership (1 Year)"
 
+	/* ---- analytics (public ids) ---------------------------------------- */
+	const FB_PIXEL_ID     = '942856688093538';          // Meta "CA Shaadi Website Pixel" (#12084)
+	const GA4_MEASUREMENT = 'G-VJW0VMS7KC';             // loaded by Site Kit; events push to dataLayer (#12112)
+	const OG_IMAGE_ID     = 12072;                       // default social share image attachment (#12073)
+	const OG_IMAGE_URL    = 'https://staging.cashaadi.in/wp-content/uploads/2026/08/cashaadi-og-share.png';
+
 	/* ---- option keys (owned by their modules; named here for one map) --- */
 	const OPT_AV_OPTIONS = 'csm_av_options'; // AI doc-verify settings incl. OpenAI key (#11815)
+
+	/**
+	 * Analytics master switch. OFF unless wp-config defines
+	 * CASHAADI_ANALYTICS_ENABLED === true. Keeps the plugin's pixels/events from
+	 * double-firing alongside the still-active WPCode analytics snippets — flip
+	 * this on in the SAME change that disables #12084/#12091/#12112/#12073/#11697.
+	 */
+	public static function analytics_enabled() {
+		return defined( 'CASHAADI_ANALYTICS_ENABLED' ) && CASHAADI_ANALYTICS_ENABLED;
+	}
+
+	/** Resolve the OG image URL from the attachment (per-environment), with a fallback. */
+	public static function og_image_url() {
+		$url = function_exists( 'wp_get_attachment_image_url' ) ? wp_get_attachment_image_url( self::OG_IMAGE_ID, 'full' ) : '';
+		return $url ? $url : self::OG_IMAGE_URL;
+	}
 
 	/**
 	 * All field ids keyed by short name — handy for iteration / debugging.

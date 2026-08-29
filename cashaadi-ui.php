@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -18,12 +18,13 @@
 use CAShaadi\Core\Assets;
 use CAShaadi\Core\Migrator;
 use CAShaadi\Modules\ProfileEdit\FieldLogic;
+use CAShaadi\Modules\Analytics\Analytics;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.4.0' );
+define( 'CASHAADI_UI_VER', '0.5.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -43,6 +44,14 @@ add_action( 'init', array( Migrator::class, 'run' ) );
 // the whole site.
 if ( class_exists( 'CAShaadi\\Modules\\ProfileEdit\\FieldLogic' ) ) {
 	FieldLogic::register();
+}
+
+// Analytics & social meta (GA4, Meta Pixel, OG image, avatar alt). Gated OFF by
+// default (Config::analytics_enabled) so it can't double-fire alongside the
+// active WPCode analytics snippets; enable via wp-config in the same change that
+// disables #12084/#12091/#12112/#12073/#11697.
+if ( class_exists( 'CAShaadi\\Modules\\Analytics\\Analytics' ) ) {
+	Analytics::register();
 }
 
 /**
