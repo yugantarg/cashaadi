@@ -25,6 +25,9 @@ final class AppShell {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 22 );
 		add_action( 'wp_footer', array( __CLASS__, 'render' ), 20 );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
+		// Top bar (screen title + settings + notifications) at the top of the
+		// member body. Member pages only; the Discover page has its own heading.
+		add_action( 'bp_before_member_body', array( __CLASS__, 'render_topbar' ) );
 	}
 
 	/** A BuddyPress member screen, or the Discover page. */
@@ -116,6 +119,64 @@ final class AppShell {
 		echo '</nav>';
 	}
 
+	/* ---- top bar (member pages only) ----------------------------------- */
+
+	/** Screen title from the current BuddyPress component. */
+	private static function screen_title() {
+		$c = function_exists( 'bp_current_component' ) ? bp_current_component() : '';
+		$map = array(
+			''              => 'Profile',
+			'profile'       => 'Profile',
+			'xprofile'      => 'Profile',
+			'friends'       => 'Matches',
+			'messages'      => 'Messages',
+			'notifications' => 'Notifications',
+			'settings'      => 'Settings',
+			'media'         => 'Photos',
+			'rtmedia'       => 'Photos',
+		);
+		if ( isset( $map[ $c ] ) ) {
+			return $map[ $c ];
+		}
+		return ucwords( str_replace( array( '-', '_' ), ' ', $c ) );
+	}
+
+	public static function render_topbar() {
+		// bp_before_member_body also fires on the profile-edit wizard — skip it there.
+		if ( ! self::active_here() ) {
+			return;
+		}
+		$base = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : home_url( '/' );
+
+		$notif_slug    = function_exists( 'bp_get_notifications_slug' ) ? bp_get_notifications_slug() : 'notifications';
+		$settings_slug = function_exists( 'bp_get_settings_slug' ) ? bp_get_settings_slug() : 'settings';
+		$notif_url     = trailingslashit( $base . $notif_slug );
+		$settings_url  = trailingslashit( $base . $settings_slug );
+
+		$unread = 0;
+		if ( function_exists( 'bp_notifications_get_unread_notification_count' ) && function_exists( 'bp_loggedin_user_id' ) ) {
+			$unread = (int) bp_notifications_get_unread_notification_count( bp_loggedin_user_id() );
+		}
+
+		echo '<div class="csm-topbar">';
+		echo '<span class="csm-topbar-title">' . esc_html( self::screen_title() ) . '</span>';
+		echo '<span class="csm-topbar-actions">';
+		printf(
+			'<a class="csm-topbar-act" href="%s" aria-label="Settings">%s</a>',
+			esc_url( $settings_url ),
+			self::icon_settings() // trusted inline SVG
+		);
+		$badge = $unread > 0 ? '<i class="csm-topbar-badge">' . esc_html( $unread > 99 ? '99+' : $unread ) . '</i>' : '';
+		printf(
+			'<a class="csm-topbar-act" href="%s" aria-label="Notifications">%s%s</a>',
+			esc_url( $notif_url ),
+			self::icon_bell(), // trusted inline SVG
+			$badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_html above
+		);
+		echo '</span>';
+		echo '</div>';
+	}
+
 	/* ---- inline icons (stroke = currentColor) --------------------------- */
 
 	private static function icon_discover() {
@@ -129,5 +190,11 @@ final class AppShell {
 	}
 	private static function icon_profile() {
 		return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="M5 19a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+	}
+	private static function icon_settings() {
+		return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 13H4.5a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 11 4.6V4.5a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+	}
+	private static function icon_bell() {
+		return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 	}
 }

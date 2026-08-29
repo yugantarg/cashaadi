@@ -9,10 +9,63 @@
    ========================================================================== */
 
 .csm-appnav { display: none; } /* hidden by default; shown on mobile below */
+.csm-topbar { display: none; } /* hidden by default; shown on mobile below */
 
 @media (max-width: 782px) {
 	/* keep page content clear of the fixed bar */
 	body.csm-has-appnav { padding-bottom: calc(var(--csm-appnav-h, 62px) + env(safe-area-inset-bottom, 0px)); }
+
+	/* the bottom nav replaces the vertical BuddyX section nav on mobile; the
+	   top bar (below) carries Settings + Notifications so nothing is lost.
+	   #subnav (in-section tabs like View/Edit) is intentionally kept. */
+	body.csm-has-appnav #buddypress #object-nav { display: none !important; }
+
+	/* ---- top bar: screen title + settings + notifications ---- */
+	.csm-topbar {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		position: sticky;
+		top: 0;
+		z-index: 9997;
+		margin: 0 0 4px;
+		padding: 12px 4px;
+		background: var(--csm-ground, #f4f6f8);
+		font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	}
+	.csm-topbar-title {
+		flex: 1 1 auto;
+		font-family: var(--csm-serif, Georgia, serif);
+		font-size: 25px;
+		font-weight: 500;
+		letter-spacing: -.01em;
+		color: var(--csm-ink, #16212b);
+	}
+	.csm-topbar-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+	.csm-topbar-act {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px; height: 40px;
+		border-radius: 50%;
+		color: var(--csm-ink, #16212b);
+		text-decoration: none;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.csm-topbar-act:active { background: var(--csm-hair, #e4eaf0); }
+	.csm-topbar-act svg { width: 23px; height: 23px; }
+	.csm-topbar-badge {
+		position: absolute;
+		top: 4px; right: 4px;
+		min-width: 16px; height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: var(--csm-green, #6f9f2e);
+		color: #fff;
+		font-size: 10px; font-weight: 700; font-style: normal;
+		line-height: 16px; text-align: center;
+	}
 
 	.csm-appnav {
 		display: flex;
