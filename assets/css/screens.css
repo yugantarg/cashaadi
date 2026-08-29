@@ -183,3 +183,76 @@ body.csm-screens #buddypress table.notifications .notification-actions a[href*="
 	body.csm-screens #buddypress table.notifications tbody td.icon:empty { display: none; }
 	body.csm-screens #buddypress table.notifications td.notification-actions { margin-top: 10px; display: flex; gap: 16px; }
 }
+
+/* ==========================================================================
+   Profile view — xProfile field sections (.bp-widget + table.profile-fields)
+   Plain bordered tables → clean section cards: serif group heading, tidy
+   label/value rows, no boxy cell borders. Scoped to #item-body so it only hits
+   the profile View (csm-screens is not present on the focused edit wizard).
+   ========================================================================== */
+body.csm-screens #buddypress #item-body .bp-widget {
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	padding: 4px 22px 12px;
+	margin: 0 0 16px;
+	box-shadow: 0 1px 2px rgba(22, 33, 43, .04);
+}
+body.csm-screens #buddypress #item-body .bp-widget h3.profile-group-title,
+body.csm-screens #buddypress #item-body .bp-widget .profile-group-title {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 22px;
+	font-weight: 500;
+	color: var(--csm-ink, #16212b);
+	margin: 16px 0 2px;
+	padding: 0;
+	border: 0;
+}
+body.csm-screens #buddypress #item-body table.profile-fields {
+	width: 100%;
+	margin: 0;
+	border: 0;
+	border-collapse: separate;
+	border-spacing: 0;
+	background: transparent;
+}
+body.csm-screens #buddypress #item-body table.profile-fields td {
+	border: 0;
+	border-top: 1px solid var(--csm-hair, #e4eaf0);
+	padding: 13px 0;
+	vertical-align: top;
+	background: transparent;
+}
+body.csm-screens #buddypress #item-body table.profile-fields tr:first-child td { border-top: 0; }
+body.csm-screens #buddypress #item-body table.profile-fields td.label {
+	width: 42%;
+	padding-right: 16px;
+	color: var(--csm-muted, #5c6a76);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 14px;
+	font-weight: 500;
+}
+body.csm-screens #buddypress #item-body table.profile-fields td.data {
+	color: var(--csm-ink, #16212b);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 15px;
+	font-weight: 500;
+}
+
+/* mobile: label above value */
+@media (max-width: 782px) {
+	body.csm-screens #buddypress #item-body .bp-widget { padding: 4px 16px 10px; }
+	body.csm-screens #buddypress #item-body table.profile-fields,
+	body.csm-screens #buddypress #item-body table.profile-fields tbody { display: block; }
+	body.csm-screens #buddypress #item-body table.profile-fields tr { display: block; padding: 12px 0; border-top: 1px solid var(--csm-hair, #e4eaf0); }
+	body.csm-screens #buddypress #item-body table.profile-fields tr:first-child { border-top: 0; }
+	body.csm-screens #buddypress #item-body table.profile-fields td { display: block; width: auto !important; border: 0 !important; padding: 0 !important; }
+	body.csm-screens #buddypress #item-body table.profile-fields td.label {
+		margin-bottom: 3px;
+		color: var(--csm-faint, #93a2ae);
+		font-size: 12.5px;
+		text-transform: uppercase;
+		letter-spacing: .03em;
+	}
+	body.csm-screens #buddypress #item-body table.profile-fields td.data { font-size: 15.5px; }
+}
