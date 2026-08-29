@@ -41,6 +41,11 @@ WPCode snippets — nothing disabled yet):
   completion meter (via `#item-header > *:not(.csm-topbar)`, keeping our top bar)
   so BM reads as a focused full-screen chat. To brand the chat accent color, set
   it in Better Messages' own settings (admin) — not via our CSS.
+- **v0.10.0** — Notifications restyle (in `screens.css`): BuddyPress
+  `table.notifications` → clean rows on desktop (serif text, muted date, blue/red
+  actions) and stacked cards on mobile; bulk-select + Bulk Actions kept. Loads via
+  the existing `csm-screens` body class. Verified live (desktop + mobile).
+  Still to restyle: Settings (grouped list) and the own-Profile screen.
 
 Pending your action on staging (WPCode), each verified-then-disabled:
 - Module-1 UI: **#11641, #11629, #11844**
