@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.13.1
+ * Version:           0.14.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -20,12 +20,13 @@ use CAShaadi\Core\Migrator;
 use CAShaadi\Modules\ProfileEdit\FieldLogic;
 use CAShaadi\Modules\Analytics\Analytics;
 use CAShaadi\Modules\AppShell\AppShell;
+use CAShaadi\Modules\Site\Site;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.13.1' );
+define( 'CASHAADI_UI_VER', '0.14.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -59,6 +60,13 @@ if ( class_exists( 'CAShaadi\\Modules\\Analytics\\Analytics' ) ) {
 // the focused wizard). Net-new, not a snippet migration.
 if ( class_exists( 'CAShaadi\\Modules\\AppShell\\AppShell' ) ) {
 	AppShell::register();
+}
+
+// Site-wide tweaks (comments off, WC greeting, noindex member pages, pricing
+// redirect). Mirrors WPCode #11242/#11638/#11696/#11626; idempotent, so safe
+// alongside them until those snippets are disabled.
+if ( class_exists( 'CAShaadi\\Modules\\Site\\Site' ) ) {
+	Site::register();
 }
 
 /**

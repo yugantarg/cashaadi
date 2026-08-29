@@ -31,3 +31,31 @@
 		transform: none !important;
 	}
 }
+
+/* --------------------------------------------------------------------------
+   Hide the BuddyX widget-area sidebar site-wide + let content span full width.
+   Migrated from WPCode #11612 (which echoed this from wp_head).
+   -------------------------------------------------------------------------- */
+#secondary,
+.primary-sidebar,
+.site-content .widget-area,
+aside#secondary { display: none !important; }
+
+.site-content #primary,
+.site-content .content-area,
+#primary.site-main {
+	width: 100% !important;
+	max-width: 100% !important;
+	flex: 0 0 100% !important;
+	margin-right: 0 !important;
+	margin-left: 0 !important;
+}
+.site-content,
+.site-content .site-wrapper { display: block !important; }
+
+/* --------------------------------------------------------------------------
+   Hide the custom Caps Lock warning on the registration/signup form.
+   Migrated from WPCode #11582.
+   -------------------------------------------------------------------------- */
+#caps-warning,
+.caps-warning { display: none !important; }
