@@ -1,0 +1,24 @@
+/* ==========================================================================
+   CAShaadi UI — Matches: "Requests Sent" screen (#11637)
+   Migrated from the snippet's wp_head inline <style>. Scoped to
+   .csm-requests-sent so it can never affect the Discover tray itself (the
+   requests screen reuses the tray card markup but is a separate page).
+   ========================================================================== */
+.csm-requests-sent .csm-tray { display:flex; flex-wrap:wrap; gap:20px; justify-content:flex-start; max-width:1000px; margin:0 auto; padding:16px 0; }
+.csm-requests-sent .csm-card { position:relative; width:300px; background:#fff; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.1); overflow:hidden; display:flex; flex-direction:column; }
+.csm-requests-sent .csm-card-photo-link { display:block; }
+.csm-requests-sent .csm-card-photo { display:block; width:100%; height:320px; object-fit:cover; background:#eee; }
+.csm-requests-sent .csm-card-body { padding:16px 18px 18px; flex:1 1 0; }
+.csm-requests-sent .csm-card-name { margin:0 0 4px; font-size:20px; color:#222; }
+.csm-requests-sent .csm-card-name-link { color:inherit; text-decoration:none; }
+.csm-requests-sent .csm-card-name-link:hover { text-decoration:underline; }
+.csm-requests-sent .csm-card-age { font-weight:400; color:#555; }
+.csm-requests-sent .csm-card-loc { margin:0 0 8px; font-size:14px; color:#777; }
+.csm-requests-sent .csm-card-about { margin:0; font-size:14px; color:#444; line-height:1.45; }
+.csm-requests-sent .csm-badge-new { position:absolute; top:12px; left:12px; z-index:2; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+.csm-requests-sent .csm-badge-pending { background:#9b7b00; color:#fff; }
+.csm-requests-sent .csm-tray-empty { padding:24px 0; color:#555; font-size:15px; }
+@media (max-width:680px) {
+	.csm-requests-sent .csm-tray { justify-content:center; }
+	.csm-requests-sent .csm-card { width:100%; max-width:340px; }
+}

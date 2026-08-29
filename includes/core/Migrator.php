@@ -22,13 +22,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Migrator {
 
+	/** Legacy global-version option (pre per-handle tracking; kept for reference). */
 	const OPTION = 'cashaadi_db_version';
 
+	/** Per-handle install ledger: handle => VERSION last installed at. */
+	const OPTION_INSTALLED = 'cashaadi_schemas_installed';
+
 	/**
-	 * Bump this string whenever a registered schema changes. Modules register
-	 * their schemas at load (when enabled); run() installs them on version change.
+	 * Bump this string whenever an EXISTING registered schema's columns change —
+	 * it forces every registered schema to re-run dbDelta (idempotent). NEW
+	 * schemas install on their own the first time their (gated) module registers
+	 * them, regardless of VERSION, because run() tracks each handle separately.
+	 * That decoupling is what lets a module be enabled later, on its own, without
+	 * a coordinated VERSION bump.
 	 */
-	const VERSION = '3';
+	const VERSION = '4';
 
 	/**
 	 * Registered schemas: handle => callable returning the CREATE TABLE SQL for
@@ -52,25 +60,40 @@ final class Migrator {
 	}
 
 	/**
-	 * Install/upgrade all registered tables, but only when VERSION advances.
-	 * Safe to call on every request; it early-returns once up to date.
+	 * Install/upgrade registered tables. Each schema handle is tracked separately
+	 * in OPTION_INSTALLED, so a table installs the first time its (gated) module
+	 * registers it, and re-runs dbDelta only when VERSION advances. Safe to call
+	 * on every request; it early-returns once every registered handle is current.
 	 */
 	public static function run() {
 		if ( empty( self::$schemas ) ) {
-			return; // nothing owned yet — inert.
+			return; // nothing registered this request (all owning modules gated off).
 		}
-		if ( get_option( self::OPTION ) === self::VERSION ) {
-			return; // already current.
+
+		$installed = get_option( self::OPTION_INSTALLED, array() );
+		if ( ! is_array( $installed ) ) {
+			$installed = array();
+		}
+
+		$pending = array();
+		foreach ( self::$schemas as $handle => $provider ) {
+			if ( ! isset( $installed[ $handle ] ) || $installed[ $handle ] !== self::VERSION ) {
+				$pending[ $handle ] = $provider;
+			}
+		}
+		if ( empty( $pending ) ) {
+			return; // every registered handle is at the current VERSION.
 		}
 
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		foreach ( self::$schemas as $provider ) {
+		foreach ( $pending as $handle => $provider ) {
 			$sql = (string) call_user_func( $provider, $wpdb );
 			if ( '' !== $sql ) {
 				dbDelta( $sql );
 			}
+			$installed[ $handle ] = self::VERSION;
 		}
-		update_option( self::OPTION, self::VERSION );
+		update_option( self::OPTION_INSTALLED, $installed );
 	}
 }

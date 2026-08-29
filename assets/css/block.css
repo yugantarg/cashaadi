@@ -1,0 +1,27 @@
+/**
+ * Block module (#11810) — profile-header Block button + Settings -> Blocked list.
+ * Extracted verbatim from the snippet's inline <style> blocks; visuals unchanged.
+ */
+
+.csm-bl-btn { cursor: pointer; }
+
+.csm-bl-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid #ece2da;
+}
+
+.csm-bl-row img {
+	border-radius: 50%;
+	width: 44px;
+	height: 44px;
+}
+
+.csm-bl-row a {
+	font-weight: 600;
+	color: #7a1220;
+	text-decoration: none;
+	flex: 1;
+}

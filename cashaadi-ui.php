@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.24.0
+ * Version:           0.25.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -23,13 +23,27 @@ use CAShaadi\Modules\AppShell\AppShell;
 use CAShaadi\Modules\Site\Site;
 use CAShaadi\Modules\Premium\Premium;
 use CAShaadi\Modules\Photos\Photos;
+use CAShaadi\Modules\Photos\Gallery;
+use CAShaadi\Modules\Photos\PhotoOnboarding;
+use CAShaadi\Modules\Photos\LegacyImport;
 use CAShaadi\Modules\Verification\Verification;
+use CAShaadi\Modules\Discover\Discover;
+use CAShaadi\Modules\Matches\Matches;
+use CAShaadi\Modules\Block\Block;
+use CAShaadi\Modules\Emails\Queue;
+use CAShaadi\Modules\Emails\Monitor;
+use CAShaadi\Modules\Admin\Dashboard;
+use CAShaadi\Modules\CaVerify\CaVerify;
+use CAShaadi\Modules\CaVerify\CaCron;
+use CAShaadi\Modules\Otp\Otp;
+use CAShaadi\Modules\ProfileTools\ProfileTools;
+use CAShaadi\Modules\Signup\Signup;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.24.0' );
+define( 'CASHAADI_UI_VER', '0.25.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -37,8 +51,10 @@ define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 // its own — core is a library that modules call; requiring it changes no behaviour.
 require_once CASHAADI_UI_DIR . 'includes/autoload.php';
 
-// Install/upgrade custom tables in one place. Inert until a module registers a
-// schema (none yet), so this is a safe no-op today.
+// Install/upgrade custom tables in one place. Schemas are registered by the
+// table-owning modules (premium, photos, block, emails) only when their flag is
+// on, and each handle installs independently — so this is a no-op until a gated
+// module is enabled, then installs just that module's table(s).
 add_action( 'init', array( Migrator::class, 'run' ) );
 
 // --- Modules ------------------------------------------------------------
@@ -65,9 +81,9 @@ if ( class_exists( 'CAShaadi\\Modules\\AppShell\\AppShell' ) ) {
 	AppShell::register();
 }
 
-// Site-wide tweaks (comments off, WC greeting, noindex member pages, pricing
-// redirect). Mirrors WPCode #11242/#11638/#11696/#11626; idempotent, so safe
-// alongside them until those snippets are disabled.
+// Site-wide tweaks (noindex member pages, pricing redirect, support footer).
+// Mirrors WPCode #11696/#11626/#11691; idempotent, so safe alongside them until
+// those snippets are disabled. (#11242/#11638 were NOT migrated — already off.)
 if ( class_exists( 'CAShaadi\\Modules\\Site\\Site' ) ) {
 	Site::register();
 }
@@ -92,12 +108,93 @@ if ( class_exists( 'CAShaadi\\Modules\\Verification\\Verification' ) ) {
 	Verification::register();
 }
 
+// Photo gallery / onboarding / legacy import (#11822/#11771, #11838/#11690,
+// #11861). Each gated by Config::photos_enabled(); dormant until cutover.
+if ( class_exists( 'CAShaadi\\Modules\\Photos\\Gallery' ) ) {
+	Gallery::register();
+}
+if ( class_exists( 'CAShaadi\\Modules\\Photos\\PhotoOnboarding' ) ) {
+	PhotoOnboarding::register();
+}
+if ( class_exists( 'CAShaadi\\Modules\\Photos\\LegacyImport' ) ) {
+	LegacyImport::register();
+}
+
+// Discover — weekly like/pass tray + engine (#11599/#11600/#11601/#11602/#11605/
+// #11630/#11675/#11681/#11680). Depends on the cashaadi() mu-plugin. Gated OFF
+// (Config::discover_enabled); enable in the same change that disables those.
+if ( class_exists( 'CAShaadi\\Modules\\Discover\\Discover' ) ) {
+	Discover::register();
+}
+
+// Matches — Requests-Sent sub-tab (#11637) + match emails (#11694). Gated OFF
+// (Config::matches_enabled); enable alongside Discover at cutover.
+if ( class_exists( 'CAShaadi\\Modules\\Matches\\Matches' ) ) {
+	Matches::register();
+}
+
+// Block user (#11810): mutual-hiding block list + guards; owns wp_csm_blocks.
+// Gated OFF (Config::block_enabled); enable in the same change that disables #11810.
+if ( class_exists( 'CAShaadi\\Modules\\Block\\Block' ) ) {
+	Block::register();
+}
+
+// Reminder email queue (#11732 engine + #11733 monitor); owns wp_csm_email_queue
+// + the hourly csm_remail_cron event. Gated OFF (Config::emails_enabled); enable
+// in the same change that disables #11732/#11733. Needs the Admin dashboard
+// (csm_profile_pending_label) active.
+if ( class_exists( 'CAShaadi\\Modules\\Emails\\Queue' ) ) {
+	Queue::register();
+}
+if ( class_exists( 'CAShaadi\\Modules\\Emails\\Monitor' ) ) {
+	Monitor::register();
+}
+
+// Sales admin dashboard (#11688), read-only. Gated OFF (Config::admin_enabled);
+// enable in the same change that disables #11688. Provides the global
+// csm_profile_pending_label the reminder engine calls by name.
+if ( class_exists( 'CAShaadi\\Modules\\Admin\\Dashboard' ) ) {
+	Dashboard::register();
+}
+
+// CA document AI verification (#11815 engine/admin + #12113 cron/email). Gated
+// OFF (Config::ca_verify_enabled); OpenAI key via Secrets (falls back to the
+// csm_av_options option). Enable in the same change that disables #11815/#12113.
+if ( class_exists( 'CAShaadi\\Modules\\CaVerify\\CaVerify' ) ) {
+	CaVerify::register();
+}
+if ( class_exists( 'CAShaadi\\Modules\\CaVerify\\CaCron' ) ) {
+	CaCron::register();
+}
+
+// Phone OTP verification (#11618). Gated OFF (Config::otp_enabled) AND needs the
+// MSG91 constants in wp-config (Core\Secrets). Enable in the same change that
+// disables #11618.
+if ( class_exists( 'CAShaadi\\Modules\\Otp\\Otp' ) ) {
+	Otp::register();
+}
+
+// Profile tools — completion meter (#11560), monthly age refresh (#11760),
+// "Created For" field (#11812). Gated OFF (Config::profile_tools_enabled).
+if ( class_exists( 'CAShaadi\\Modules\\ProfileTools\\ProfileTools' ) ) {
+	ProfileTools::register();
+}
+
+// Signup — email activation + auto-login (#11583), skip username (#11842). Gated
+// OFF (Config::signup_enabled).
+if ( class_exists( 'CAShaadi\\Modules\\Signup\\Signup' ) ) {
+	Signup::register();
+}
+
 /**
  * Site-wide front-end fixes (all pages, not just member screens).
  * Currently: the BuddyX off-canvas mobile-menu fix migrated from WPCode #11641.
  */
 add_action( 'wp_enqueue_scripts', function () {
 	Assets::style( 'site', 'assets/css/site.css' );
+	// Mobile-menu double-toggle fix (#11674). Idempotent JS, safe site-wide
+	// alongside the still-active snippet until it is disabled.
+	Assets::script( 'site-menu', 'assets/js/site-menu.js' );
 }, 20 );
 
 /**

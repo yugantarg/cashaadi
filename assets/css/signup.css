@@ -1,0 +1,9 @@
+/* ==========================================================================
+   CAShaadi UI — Signup
+   --------------------------------------------------------------------------
+   Hide the redundant Username field + its label on the BuddyPress register
+   page. Extracted verbatim from WPCode #11842 (username is derived from the
+   email hash, so this field is always overwritten on account creation).
+   ========================================================================== */
+#basic-details-section > label[for="signup_username"],
+#signup_username { display: none !important; }

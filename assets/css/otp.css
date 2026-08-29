@@ -1,0 +1,5 @@
+/* CAShaadi UI — OTP widget on the profile-edit screen (migrated from #11618). */
+#csm-otp-box { margin:10px 0 4px; padding:12px 14px; border:1px solid #e0c200; background:#fffbe6; border-radius:8px; max-width:520px; }
+#csm-otp-box.csm-verified { border-color:#46b450; background:#edfaef; }
+#csm-otp-box .csm-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+#csm-otp-status { margin-left:6px; font-size:13px; }

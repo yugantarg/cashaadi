@@ -1,0 +1,61 @@
+/**
+ * Photo gallery / onboarding styles.
+ * Extracted verbatim from WPCode #11822 (member photos uploader + profile
+ * gallery + lightbox), #11771 (privacy notice + zoom overlay) and #11838
+ * (hide the classic single-photo avatar tool on the onboarding screen).
+ * Class names and values match the snippets exactly.
+ */
+
+/* ---- Uploader ( [csm_photos] / #11822 ) ---------------------------------- */
+.csm-ph{max-width:640px}
+.csm-ph-head h3{margin:0 0 4px}
+.csm-ph-head p{color:#6b615b;font-size:14px;margin:0 0 14px}
+.csm-ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.csm-ph-item{position:relative;aspect-ratio:7/8;border-radius:12px;overflow:hidden;border:1px solid #e7dcd3;background:#f4ede7}
+.csm-ph-item img{width:100%;height:100%;object-fit:cover;display:block}
+.csm-ph-item.is-main{outline:3px solid #7a1220;outline-offset:-3px}
+.csm-ph-badge{position:absolute;top:8px;left:8px;background:#7a1220;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.csm-ph-setmain{position:absolute;bottom:8px;left:8px;background:rgba(255,255,255,.92);border:0;color:#7a1220;font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px;cursor:pointer}
+.csm-ph-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+.csm-ph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:7/8;border:2px dashed #cbb9ad;border-radius:12px;color:#7a1220;cursor:pointer;background:#fbf8f5}
+.csm-ph-add span{font-size:34px;line-height:1}
+.csm-ph-add small{font-size:12px;margin-top:4px}
+.csm-ph.is-busy{opacity:.6;pointer-events:none}
+.csm-ph-msg{margin-top:10px;font-size:13px;color:#b3261e;min-height:18px}
+.csm-ph-msg.ok{color:#137333}
+
+/* ---- Profile gallery under member header ( #11822 ) ---------------------- */
+.csm-ph-gallery{margin:18px 0}
+.csm-ph-gallery h4{margin:0 0 10px}
+.csm-ph-gwrap{display:flex;gap:12px;flex-wrap:wrap}
+.csm-ph-gitem{position:relative;width:100px}
+.csm-ph-gitem img{width:100px;height:120px;object-fit:cover;border-radius:10px;border:1px solid #e7dcd3;display:block;cursor:zoom-in}
+.csm-ph-gitem.is-main img{outline:3px solid #7a1220;outline-offset:-3px}
+.csm-ph-gbadge{position:absolute;top:6px;left:6px;background:#7a1220;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.csm-ph-gmain{position:absolute;bottom:6px;left:6px;right:6px;background:rgba(255,255,255,.94);border:0;color:#7a1220;font-weight:700;font-size:11px;padding:5px 0;border-radius:6px;cursor:pointer}
+.csm-ph-gmanage{display:inline-block;margin-top:12px;color:#1e5e9b;font-weight:600;text-decoration:none;font-size:13px}
+
+/* ---- Gallery lightbox ( #11822, was inline on #csm-ph-lb ) ---------------- */
+#csm-ph-lb{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.9);align-items:center;justify-content:center;cursor:zoom-out}
+#csm-ph-lb img{max-width:94vw;max-height:94vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#csm-ph-lb .csm-ph-lb-close{position:fixed;top:18px;right:22px;background:none;border:0;color:#fff;font-size:34px;line-height:1;cursor:pointer}
+
+/* ---- Privacy notice + zoom overlay ( #11771 ) ---------------------------- */
+.csm-photo-notice{margin:12px 0;padding:10px 14px;border:1px solid #e6d9a8;background:#fffbe8;border-radius:6px;font-size:14px;line-height:1.55}
+.csm-photo-notice-link{font-weight:600;text-decoration:underline;white-space:nowrap}
+.csm-pn-zoom{cursor:zoom-in}
+.csm-pn-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.82);z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}
+.csm-pn-box{background:#fff;border-radius:10px;padding:16px;max-width:92vw;max-height:92vh;overflow:auto;text-align:center}
+.csm-pn-img{max-width:84vw;max-height:66vh;display:block;margin:0 auto;border-radius:8px}
+.csm-pn-note{margin:14px auto 0;font-size:14px;line-height:1.55;max-width:520px}
+.csm-pn-cta{display:inline-block;margin-top:10px;padding:9px 18px;border-radius:6px;background:#2b6cb0;color:#fff;text-decoration:none;font-weight:600}
+.csm-pn-close{display:inline-block;margin-top:12px;padding:8px 18px;cursor:pointer;border:1px solid #ccc;border-radius:6px;background:#f7f7f7}
+
+/* ---- Hide the classic single-photo avatar tool on onboarding ( #11838 ) -- */
+/* These selectors only ever match on the Change Profile Photo screen. */
+#buddypress .change-avatar > h2.change-avatar-screen,
+#buddypress .change-avatar > p.bp-feedback,
+#buddypress .change-avatar > #avatar-upload-form,
+#buddypress .change-avatar > .bp-avatar-nav,
+#buddypress .change-avatar > .bp-avatar,
+#buddypress .change-avatar > .bp-avatar-status{display:none !important}

@@ -1,0 +1,23 @@
+/* ==========================================================================
+   CAShaadi UI — Profile Tools
+   --------------------------------------------------------------------------
+   Profile Completion Meter styles, extracted verbatim from WPCode #11560's
+   cashaadi_pc_styles(). Class names are load-bearing: verification.js (#11682)
+   patches .csm-pc-wrap / .csm-pc-pct / .csm-pc-bar-full / .csm-pc-msg /
+   .csm-pc-missing — do not rename.
+   ========================================================================== */
+.csm-pc-wrap{background:#fff;border:1px solid #EAF0F5;border-radius:10px;padding:16px 18px;margin:0 0 20px;font-size:14px;}
+.csm-pc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.csm-pc-pct{font-weight:700;color:#1E5E9B;}
+.csm-pc-track{background:#EAF0F5;border-radius:6px;height:10px;overflow:hidden;margin-bottom:10px;}
+.csm-pc-bar{background:#1E5E9B;height:100%;border-radius:6px;transition:width .4s;}
+.csm-pc-bar-full{background:#1E5E9B;height:100%;border-radius:6px;}
+.csm-pc-msg{margin:6px 0 10px;color:#555;}
+.csm-pc-groups{list-style:none;margin:0;padding:0;}
+.csm-pc-g{margin:0 0 6px;padding:0;}
+.csm-pc-g-link{text-decoration:none;color:#333;display:inline-flex;align-items:center;gap:6px;}
+.csm-pc-g.done .csm-pc-g-link{color:#1E5E9B;}
+.csm-pc-g.todo .csm-pc-ic{color:#1E5E9B;}
+.csm-pc-ic{font-weight:700;}
+.csm-pc-missing{list-style:disc;margin:4px 0 8px 28px;padding:0;color:#b00;font-size:13px;}
+.csm-pc-missing li{margin:2px 0;}

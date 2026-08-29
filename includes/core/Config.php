@@ -101,6 +101,52 @@ final class Config {
 		return defined( 'CASHAADI_PREMIUM_ENABLED' ) && CASHAADI_PREMIUM_ENABLED;
 	}
 
+	/**
+	 * Cutover flags for the larger feature modules. Each is OFF unless wp-config
+	 * defines the matching constant === true. Every module below is a faithful
+	 * migration of still-active WPCode snippets, so its flag must be flipped ON in
+	 * the SAME change that disables those snippets (otherwise both run and double
+	 * up — or, for function-defining snippets, fatal on redeclare). The modules
+	 * also guard with function_exists()/class_exists() as a belt-and-braces.
+	 *
+	 * discover     #11599/#11600/#11601/#11602/#11605/#11630/#11675/#11681
+	 * matches      #11637 (requests-sent tab) + #11694 (match emails)
+	 * block        #11810 (block user + own table)
+	 * emails       #11732 (reminder queue engine) + #11733 (admin monitor)
+	 * admin        #11688 (sales dashboard)
+	 * ca_verify    #11815 + #12113 (AI CA-document verification, OpenAI)
+	 * otp          #11618 (phone OTP) — ALSO needs CASHAADI_MSG91_AUTHKEY set
+	 * signup       #11583 (email activation/auto-login) + #11842 (skip username)
+	 * profile_tools#11560 (completion meter) + #11760 (age refresh) + #11812 (created-for)
+	 */
+	public static function discover_enabled() {
+		return defined( 'CASHAADI_DISCOVER_ENABLED' ) && CASHAADI_DISCOVER_ENABLED;
+	}
+	public static function matches_enabled() {
+		return defined( 'CASHAADI_MATCHES_ENABLED' ) && CASHAADI_MATCHES_ENABLED;
+	}
+	public static function block_enabled() {
+		return defined( 'CASHAADI_BLOCK_ENABLED' ) && CASHAADI_BLOCK_ENABLED;
+	}
+	public static function emails_enabled() {
+		return defined( 'CASHAADI_EMAILS_ENABLED' ) && CASHAADI_EMAILS_ENABLED;
+	}
+	public static function admin_enabled() {
+		return defined( 'CASHAADI_ADMIN_ENABLED' ) && CASHAADI_ADMIN_ENABLED;
+	}
+	public static function ca_verify_enabled() {
+		return defined( 'CASHAADI_CA_VERIFY_ENABLED' ) && CASHAADI_CA_VERIFY_ENABLED;
+	}
+	public static function otp_enabled() {
+		return defined( 'CASHAADI_OTP_ENABLED' ) && CASHAADI_OTP_ENABLED;
+	}
+	public static function signup_enabled() {
+		return defined( 'CASHAADI_SIGNUP_ENABLED' ) && CASHAADI_SIGNUP_ENABLED;
+	}
+	public static function profile_tools_enabled() {
+		return defined( 'CASHAADI_PROFILE_TOOLS_ENABLED' ) && CASHAADI_PROFILE_TOOLS_ENABLED;
+	}
+
 	/** Resolve the OG image URL from the attachment (per-environment), with a fallback. */
 	public static function og_image_url() {
 		$url = function_exists( 'wp_get_attachment_image_url' ) ? wp_get_attachment_image_url( self::OG_IMAGE_ID, 'full' ) : '';
