@@ -107,12 +107,15 @@ WPCode snippets — nothing disabled yet):
       panel / free locked teaser). This CLOSES the visitors data chain — #11811
       now reads a table this module owns. Tab JS in `premium.js`, styles in
       `premium.css`.
-  The premium module now covers **6 snippets** (#11579/#11795/#11614/#11811/
-  #11796/#11807). Cutover = flip `CASHAADI_PREMIUM_ENABLED` + disable all six
-  together. The Migrator creates the tables on enable (dbDelta no-ops on the
-  snippet-made tables). MUST be tested with a free + a premium account first.
+    - #11821 view-email (v0.18): email the owner (max 1/day, user_meta
+      `csm_pve_last`) when someone views their profile. Runs after log_view.
+  The premium module is now **COMPLETE — 7 gated snippets**: #11579, #11795,
+  #11614, #11811, #11796, #11807, #11821. Cutover = flip `CASHAADI_PREMIUM_ENABLED`
+  + disable all seven together. The Migrator creates the 3 tables on enable
+  (dbDelta no-ops on the snippet-made tables). MUST be tested with a free + a
+  premium account first (contact gate, visitors, insights, view-email, leads).
+  (#11581 checkout CSS is NOT gated — it's in `site.css` as a Group-A item.)
   NOTE: **#11620 "Profile Gate" is NOT premium** (completion/phone gate) — left in WPCode.
-  Still to migrate (premium): #11821 view-email, #11581 checkout CSS (small).
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -127,7 +130,8 @@ screen, re-enable if anything looks off.
   `#11625` (email lock); plus the **site** module (v0.14): `#11242` (comments
   off), `#11638` (WC greeting), `#11696` (noindex member pages), `#11626`
   (/pricing/ redirect), `#11612` (hide sidebar CSS), `#11582` (caps-lock CSS),
-  `#11691` (support footer — plugin's copy dedupes the snippet's via CSS).
+  `#11691` (support footer — plugin's copy dedupes the snippet's via CSS),
+  `#11581` (membership checkout CSS → `site.css`).
 - **Group B — wizard core, disable + immediately check a profile-edit page**:
   `#12132` (Phase-2 JS — the plugin serves a newer Phase-3 wizard; disabling
   removes a potential double-wizard). `#12124` (Phase-0 reskin CSS) — the plugin
