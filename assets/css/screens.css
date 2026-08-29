@@ -256,3 +256,75 @@ body.csm-screens #buddypress #item-body table.profile-fields td.data {
 	}
 	body.csm-screens #buddypress #item-body table.profile-fields td.data { font-size: 15.5px; }
 }
+
+/* ==========================================================================
+   Settings forms (BuddyPress .standard-form: General / Email / Visibility …)
+   Wrap in a card; brand-styled labels, inputs and submit. We leave WordPress's
+   own show/generate-password buttons (type=button) alone. The locked Account
+   Email (readonly, from #11625) stays visually muted.
+   ========================================================================== */
+body.csm-screens #buddypress #item-body form.standard-form {
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	padding: 8px 22px 24px;
+	margin: 0;
+	box-shadow: 0 1px 2px rgba(22, 33, 43, .04);
+}
+body.csm-screens #buddypress #item-body form.standard-form label,
+body.csm-screens #buddypress #item-body form.standard-form legend {
+	display: block;
+	margin: 20px 0 8px;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--csm-ink, #16212b);
+}
+body.csm-screens #buddypress #item-body form.standard-form input[type="text"],
+body.csm-screens #buddypress #item-body form.standard-form input[type="email"],
+body.csm-screens #buddypress #item-body form.standard-form input[type="password"],
+body.csm-screens #buddypress #item-body form.standard-form input[type="tel"],
+body.csm-screens #buddypress #item-body form.standard-form input[type="url"],
+body.csm-screens #buddypress #item-body form.standard-form select,
+body.csm-screens #buddypress #item-body form.standard-form textarea {
+	width: 100%;
+	max-width: 440px;
+	font-size: 16px;
+	color: var(--csm-ink, #16212b);
+	background: var(--csm-surface, #fff);
+	border: 1.5px solid var(--csm-hair-2, #d6dfe7);
+	border-radius: 12px;
+	padding: 12px 14px;
+	box-shadow: none;
+	transition: border-color .16s, box-shadow .16s;
+}
+body.csm-screens #buddypress #item-body form.standard-form input:focus,
+body.csm-screens #buddypress #item-body form.standard-form select:focus,
+body.csm-screens #buddypress #item-body form.standard-form textarea:focus {
+	outline: none;
+	border-color: var(--csm-blue, #2c5b8c);
+	box-shadow: 0 0 0 3px var(--csm-blue-tint, #e9f1f8);
+}
+body.csm-screens #buddypress #item-body form.standard-form input[readonly],
+body.csm-screens #buddypress #item-body form.standard-form input:disabled {
+	background: var(--csm-ground, #f4f6f8);
+	color: var(--csm-muted, #5c6a76);
+	cursor: not-allowed;
+}
+body.csm-screens #buddypress #item-body form.standard-form input[type="submit"],
+body.csm-screens #buddypress #item-body form.standard-form button[type="submit"],
+body.csm-screens #buddypress #item-body form.standard-form .submit input {
+	margin-top: 22px;
+	padding: 13px 28px;
+	border: 0;
+	border-radius: 12px;
+	background: var(--csm-blue, #2c5b8c);
+	color: #fff !important;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 15px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background .15s;
+}
+body.csm-screens #buddypress #item-body form.standard-form input[type="submit"]:hover,
+body.csm-screens #buddypress #item-body form.standard-form button[type="submit"]:hover { background: var(--csm-blue-press, #234a73); }
