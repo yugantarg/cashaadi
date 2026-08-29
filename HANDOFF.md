@@ -72,12 +72,23 @@ WPCode snippets — nothing disabled yet):
   rule (`.csm-support-footer ~ .csm-support-footer{display:none}`) hides the
   still-active snippet's duplicate, so both-active shows exactly one (verified: 2
   in HTML, 1 visible).
-- **v0.15.0** — Premium module started (`includes/modules/premium/Premium.php`):
-  migrates #11579 (upgrade button on own profile + directory; "complete profile"
-  CTA fallback), built on `Membership::is_premium()`. GATED OFF behind
-  `CASHAADI_PREMIUM_ENABLED` (see Group D). Button styles in `site.css`. Verified
-  deployed + gated off (no behaviour change). Checkout hygiene + viewing gates to
-  follow behind the same flag.
+- **v0.15.x** — Premium module (`includes/modules/premium/Premium.php`), all
+  GATED behind `CASHAADI_PREMIUM_ENABLED` (see Group D), built on core
+  Membership/Config:
+    - #11579 upgrade button (own profile + directory; "complete profile" fallback)
+    - #11795 checkout hygiene (block re-purchase, cart cleanup, pricing label —
+      label JS in `assets/js/premium.js`)
+    - #11614 contact gate (phone field 277 + injected Email row visible only to
+      owner/admin/premium; upgrade nudge otherwise)
+  Button/contact styles in `site.css`. Deployed + verified healthy (gated off, no
+  behaviour change). NOT visually verified (needs the flag on + a free-vs-premium
+  test account) — do that before cutover.
+  NOTE: **#11620 "Profile Gate" is NOT premium** — it's a *completion/phone-verify*
+  gate (blur incomplete profiles) with child-theme deps (`csm_user_profile_is_complete`,
+  `cashaadi_has_missing_required_fields`). It belongs in a completion/profile
+  concern, not the premium flag; left in WPCode for now.
+  Still to migrate (premium, stateful, need the Migrator + care): #11796 leads,
+  #11807 rejection insights, #11811 visitors, #11821 view-email, #11581 checkout CSS.
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
