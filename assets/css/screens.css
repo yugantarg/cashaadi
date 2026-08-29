@@ -110,3 +110,76 @@ body.csm-screens #buddypress ul.members-list .members-meta.action button:hover {
    above and any theme button styling. */
 body.csm-screens #buddypress ul.members-list .members-meta.action .friendship-button button { background: var(--csm-green, #6f9f2e) !important; }
 body.csm-screens #buddypress ul.members-list .members-meta.action .friendship-button button:hover { background: var(--csm-green-press, #5e8926) !important; }
+
+/* ==========================================================================
+   Notifications (BuddyPress table.notifications)
+   Clean rows on desktop; stacked cards on mobile. Bulk-select kept; the
+   Read/Delete actions stay text links to avoid the " | " separator problem.
+   ========================================================================== */
+body.csm-screens #buddypress table.notifications {
+	width: 100%;
+	border: 0;
+	border-collapse: separate;
+	border-spacing: 0;
+	background: transparent;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+body.csm-screens #buddypress table.notifications thead th {
+	background: transparent;
+	border: 0;
+	padding: 0 12px 8px;
+	color: var(--csm-faint, #93a2ae);
+	font-size: 11.5px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	text-align: left;
+}
+body.csm-screens #buddypress table.notifications tbody tr { background: var(--csm-surface, #fff); }
+body.csm-screens #buddypress table.notifications tbody td {
+	border: 0;
+	border-top: 1px solid var(--csm-hair, #e4eaf0);
+	padding: 15px 12px;
+	vertical-align: middle;
+}
+body.csm-screens #buddypress table.notifications .notification-description a {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 16px;
+	font-weight: 500;
+	line-height: 1.3;
+	color: var(--csm-ink, #16212b);
+	text-decoration: none;
+}
+body.csm-screens #buddypress table.notifications .notification-description a:hover { color: var(--csm-blue, #2c5b8c); }
+body.csm-screens #buddypress table.notifications .notification-since {
+	color: var(--csm-muted, #5c6a76);
+	font-size: 13px;
+	white-space: nowrap;
+}
+body.csm-screens #buddypress table.notifications .notification-actions a {
+	color: var(--csm-blue, #2c5b8c) !important;
+	font-size: 13px;
+	font-weight: 600;
+	text-decoration: none;
+}
+body.csm-screens #buddypress table.notifications .notification-actions a:hover { text-decoration: underline; }
+body.csm-screens #buddypress table.notifications .notification-actions a.delete-notification,
+body.csm-screens #buddypress table.notifications .notification-actions a[href*="action=delete"] { color: #b23b3b !important; }
+
+/* mobile: stack the table into cards */
+@media (max-width: 782px) {
+	body.csm-screens #buddypress table.notifications,
+	body.csm-screens #buddypress table.notifications tbody { display: block; }
+	body.csm-screens #buddypress table.notifications thead { display: none; }
+	body.csm-screens #buddypress table.notifications tbody tr {
+		display: block;
+		margin: 0 0 12px;
+		padding: 14px 16px;
+		border: 1px solid var(--csm-hair, #e4eaf0);
+		border-radius: 14px;
+		background: var(--csm-surface, #fff);
+	}
+	body.csm-screens #buddypress table.notifications tbody td { display: block; border: 0; padding: 2px 0; }
+	body.csm-screens #buddypress table.notifications tbody td.icon:empty { display: none; }
+	body.csm-screens #buddypress table.notifications td.notification-actions { margin-top: 10px; display: flex; gap: 16px; }
+}
