@@ -1,0 +1,38 @@
+/* ==========================================================================
+   CAShaadi UI — Premium
+   --------------------------------------------------------------------------
+   Styles for premium member-area features (gated by the premium module).
+   Profile Visitors ("who viewed me") — migrated from WPCode #11811 (its inline
+   <style>). Colours kept close to the original premium panel.
+   ========================================================================== */
+
+.csm-pv { max-width: 760px; }
+.csm-pv h2 { font-family: var(--csm-serif, Georgia, serif); font-weight: 500; }
+.csm-pv-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #ece2da; }
+.csm-pv-row img { border-radius: 50%; width: 56px; height: 56px; object-fit: cover; }
+.csm-pv-main { flex: 1; min-width: 0; }
+.csm-pv-name { font-weight: 700; color: #7a1220; text-decoration: none; font-size: 15px; }
+.csm-pv-when { color: #7a6f68; font-size: 13px; margin-top: 2px; }
+.csm-pv-count { color: #9a8f88; font-size: 12px; }
+.csm-pv-empty { color: #7a6f68; }
+
+.csm-pv-lock { position: relative; border: 1px solid #ece2da; border-radius: 12px; overflow: hidden; background: #fff; min-height: 0; }
+.csm-pv-lock-blur { filter: blur(6px); padding: 22px; opacity: .55; position: absolute; inset: 0; margin: 0; }
+.csm-pv-lock-blur .r { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+.csm-pv-lock-blur .r i { width: 56px; height: 56px; border-radius: 50%; background: #eadfd7; display: block; }
+.csm-pv-lock-blur .r span { flex: 1; height: 38px; background: #eadfd7; border-radius: 8px; }
+.csm-pv-lock-cta { position: relative; min-height: 240px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; background: rgba(255,255,255,.62); }
+.csm-pv-lock-cta h3 { margin: 0 0 4px; color: #7a1220; }
+.csm-pv-lock-cta .big { font-size: 30px; font-weight: 800; color: #7a1220; line-height: 1; }
+.csm-pv-lock-cta p { margin: 8px 0 16px; color: #5b514b; max-width: 100%; }
+.csm-pv-upgrade { display: inline-block; background: #d9a441; color: #3a2a06; font-weight: 700; padding: 12px 26px; border-radius: 8px; text-decoration: none; }
+.csm-pv-lock-icon { font-size: 30px; margin-bottom: 4px; }
+.csm-pv-ph { width: 56px; height: 56px; border-radius: 50%; background: #e7dcd3; flex: 0 0 auto; }
+.csm-pv-mask { font-weight: 700; color: #7a1220; font-size: 15px; letter-spacing: 1px; }
+
+@media (max-width: 600px) {
+	.csm-pv-lock-cta { min-height: 200px; padding: 22px 16px; }
+	.csm-pv-lock-cta .big { font-size: 24px; }
+	.csm-pv-lock-cta p { font-size: 14px; }
+	.csm-pv-upgrade { padding: 11px 20px; }
+}

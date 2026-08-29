@@ -47,6 +47,163 @@ final class Premium {
 		// premium; everyone else sees an upgrade nudge.
 		add_filter( 'bp_get_the_profile_field_value', array( __CLASS__, 'gate_phone_field' ), 20, 3 );
 		add_action( 'bp_after_member_header', array( __CLASS__, 'contact_email_row' ) );
+
+		// Profile Visitors (#11811): "who viewed me". Read-only over the
+		// wp_csm_profile_views table (created/logged by #11807, which stays
+		// active). Premium sees the full list; free sees a locked teaser + count.
+		add_shortcode( 'csm_profile_visitors', array( __CLASS__, 'pv_shortcode' ) );
+		add_action( 'bp_setup_nav', array( __CLASS__, 'pv_subnav' ), 20 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'premium_assets' ) );
+	}
+
+	public static function premium_assets() {
+		if ( function_exists( 'bp_is_user' ) && bp_is_user() ) {
+			Assets::style( 'premium', 'assets/css/premium.css' );
+		}
+	}
+
+	/* ---- profile visitors (#11811) ------------------------------------- */
+
+	private static function pv_view_table() {
+		global $wpdb;
+		return $wpdb->prefix . 'csm_profile_views';
+	}
+
+	/** Visitor rows for $uid (newest first), blocked users + admins excluded. */
+	private static function pv_rows( $uid, $limit = 200 ) {
+		global $wpdb;
+		$t = self::pv_view_table();
+		// The table is owned by #11807; guard in case it isn't present.
+		$exists = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
+			$t
+		) );
+		if ( ! $exists ) {
+			return array();
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT viewer_id, hits, last_at FROM {$t} WHERE viewed_id = %d ORDER BY last_at DESC LIMIT %d",
+			(int) $uid,
+			(int) $limit
+		) );
+		if ( empty( $rows ) ) {
+			return array();
+		}
+		$hidden = function_exists( 'csm_bl_hidden_ids' ) ? array_flip( csm_bl_hidden_ids( $uid ) ) : array();
+		$out    = array();
+		foreach ( $rows as $r ) {
+			$vid = (int) $r->viewer_id;
+			if ( isset( $hidden[ $vid ] ) || user_can( $vid, 'manage_options' ) ) {
+				continue;
+			}
+			$out[] = $r;
+		}
+		return $out;
+	}
+
+	public static function pv_list_html( $uid ) {
+		$rows    = self::pv_rows( $uid );
+		$premium = Membership::is_premium( $uid );
+
+		$html = '<div class="csm-pv"><h2>Profile visitors</h2>';
+
+		if ( ! $premium ) {
+			return $html . self::pv_teaser_html( $rows ) . '</div>';
+		}
+		if ( empty( $rows ) ) {
+			return $html . '<p class="csm-pv-empty">No one has viewed your profile yet. Complete your profile and start matching to get noticed.</p></div>';
+		}
+
+		$now = current_time( 'timestamp' );
+		foreach ( $rows as $r ) {
+			$vid   = (int) $r->viewer_id;
+			$name  = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $vid ) : get_the_author_meta( 'display_name', $vid );
+			$link  = function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $vid ) : '';
+			$av    = get_avatar( $vid, 56 );
+			$ts    = strtotime( (string) $r->last_at );
+			$ago   = $ts ? human_time_diff( $ts, $now ) . ' ago' : '';
+			$exact = $ts ? esc_attr( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) ) : '';
+			$hits  = (int) $r->hits;
+
+			$html .= '<div class="csm-pv-row">';
+			$html .= '<a href="' . esc_url( $link ) . '">' . $av . '</a>';
+			$html .= '<div class="csm-pv-main">';
+			$html .= '<a class="csm-pv-name" href="' . esc_url( $link ) . '">' . esc_html( $name ) . '</a>';
+			$html .= '<div class="csm-pv-when" title="' . $exact . '">Viewed you ' . esc_html( $ago ) . '</div>';
+			if ( $hits > 1 ) {
+				$html .= '<div class="csm-pv-count">Visited ' . (int) $hits . ' times</div>';
+			}
+			$html .= '</div></div>';
+		}
+		return $html . '</div>';
+	}
+
+	/** Blurred teaser for free members: real count + timing, identities masked. */
+	private static function pv_teaser_html( $rows ) {
+		$count = count( $rows );
+		if ( 0 === $count ) {
+			return '<p class="csm-pv-empty">No one has viewed your profile yet. Complete your profile and start matching to get noticed.</p>';
+		}
+		$upgrade = site_url( '/membership-pricing/' );
+		$now     = current_time( 'timestamp' );
+		$show    = array_slice( $rows, 0, 6 );
+
+		$h = '<div class="csm-pv-lock"><div class="csm-pv-lock-blur">';
+		foreach ( $show as $r ) {
+			$vid  = (int) $r->viewer_id;
+			$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $vid ) : get_the_author_meta( 'display_name', $vid );
+			$init = strtoupper( mb_substr( trim( (string) $name ), 0, 1 ) );
+			if ( '' === $init ) {
+				$init = 'C';
+			}
+			$ts  = strtotime( (string) $r->last_at );
+			$ago = $ts ? human_time_diff( $ts, $now ) . ' ago' : '';
+			$h  .= '<div class="csm-pv-row"><span class="csm-pv-ph" aria-hidden="true"></span><div class="csm-pv-main">'
+				. '<div class="csm-pv-mask">' . esc_html( $init ) . '&bull;&bull;&bull;&bull;&bull;&bull;</div>'
+				. '<div class="csm-pv-when">Viewed you ' . esc_html( $ago ) . '</div></div></div>';
+		}
+		$h .= '</div><div class="csm-pv-lock-cta"><div class="csm-pv-lock-icon">&#128064;</div>'
+			. '<div class="big">' . (int) $count . '</div>'
+			. '<h3>' . ( 1 === $count ? 'member viewed your profile' : 'members viewed your profile' ) . '</h3>'
+			. '<p>Upgrade to Premium to see exactly who visited you, their photos, and when.</p>'
+			. '<a class="csm-pv-upgrade" href="' . esc_url( $upgrade ) . '">Upgrade to Premium</a></div></div>';
+		return $h;
+	}
+
+	public static function pv_shortcode() {
+		if ( ! is_user_logged_in() ) {
+			return '';
+		}
+		return self::pv_list_html( get_current_user_id() );
+	}
+
+	public static function pv_subnav() {
+		if ( ! function_exists( 'bp_is_active' ) || ! bp_is_active( 'friends' ) || ! is_user_logged_in() ) {
+			return;
+		}
+		$slug       = function_exists( 'bp_get_friends_slug' ) ? bp_get_friends_slug() : 'friends';
+		$user_url   = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : '';
+		$parent_url = $user_url ? trailingslashit( $user_url . $slug ) : '';
+		bp_core_new_subnav_item( array(
+			'name'            => 'Visitors',
+			'slug'            => 'visitors',
+			'parent_slug'     => $slug,
+			'parent_url'      => $parent_url,
+			'screen_function' => array( __CLASS__, 'pv_screen' ),
+			'position'        => 40,
+			'user_has_access' => bp_is_my_profile(),
+		) );
+	}
+
+	public static function pv_screen() {
+		add_action( 'bp_template_content', array( __CLASS__, 'pv_screen_content' ) );
+		bp_core_load_template( apply_filters( 'bp_core_template_plugin', 'members/single/plugins' ) );
+	}
+
+	public static function pv_screen_content() {
+		// Built from escaped values + trusted static markup above.
+		echo self::pv_list_html( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/* ---- contact gate (#11614) ----------------------------------------- */
