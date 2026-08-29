@@ -128,7 +128,15 @@ WPCode snippets — nothing disabled yet):
   #11617 local default avatar (attachment 11616, resolved per-env) + #11813 HD
   avatar sizes (896x1024 full / 448x512 thumb, jpeg q92). Both idempotent avatar
   filters, NOT gated (safe both-active → Group A). Verified deployed + healthy.
-  The 3-filter privacy/NSFW resolver is Group E (gated, not built).
+  The 3-filter privacy/NSFW resolver is Group E (gated).
+- **v0.20–0.22** — Photos hard gates (all gated by CASHAADI_PHOTOS_ENABLED):
+  `Photos\Privacy` (#11770 blur, GD/Imagick derivative, fail-safe to default),
+  `Photos\PhotoRequest` (#11798 ask/approve, reveal composed into
+  csm_photo_is_hidden, table via Migrator, assets in photos.css/js + a
+  csm_photo_is_hidden() shim in compat.php for the transition), `Photos\Nsfw`
+  (#12119 OpenAI moderation sweep + mask@21 + admin queue). Deployed + healthy
+  (gated off). Composed chain verified structurally; behaviour test pending the
+  flag-on cutover.
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -161,14 +169,19 @@ screen, re-enable if anything looks off.
   `#11579` (upgrade button). DON'T flip the premium flag yet — wait until the
   module also covers the gates/checkout (#11620/#11614/#11795/…), then cut the
   whole premium set over together (flip flag + disable them all at once).
-- **Group E — photos hard-gates (gated, NOT started yet)**: `#11770` (private
-  blur), `#11798` (photo request), `#12119` (NSFW mask) all filter
-  `bp_core_fetch_avatar_url` and fight each other — the flagship consolidation.
-  They'll be one composed Resolver gated behind `CASHAADI_PHOTOS_ENABLED`
-  (Config::photos_enabled), cutover = flip flag + disable the three together,
-  tested (match vs non-match viewer) like premium. NOT built yet. Also un-migrated
-  in photos: `#11822` gallery/upload, `#11771` lightbox, and the one-off tools
-  `#11814`/`#11861`.
+- **Group E — photos hard-gates (BUILT, gated, ready to test)**: `#11770` private
+  blur (`Photos\Privacy`), `#11798` photo request (`Photos\PhotoRequest`, owns
+  `wp_csm_photo_requests` via Migrator v3), `#12119` NSFW (`Photos\Nsfw`) — the
+  three fighting `bp_core_fetch_avatar_url` filters are now ONE composed chain:
+  Privacy blur at prio 20 (revealed for an approved request via the
+  `csm_photo_is_hidden` filter) then NSFW mask at prio 21 (absolute — wins over
+  blur AND reveal). Gated behind `CASHAADI_PHOTOS_ENABLED`. **Cutover = flip flag
+  + disable ALL THREE together** (`#11770/#11798/#12119`) — NOT one at a time (the
+  plugin now provides all three, so a lone snippet would double). Test like
+  premium (match vs non-match viewer; a flagged avatar masks). NSFW reuses the
+  shared OpenAI key (Secrets) + the `csm_pm_sweep_event` cron + `csm_pm_*` meta.
+  Still un-migrated in photos: `#11822` gallery/upload, `#11771` lightbox, one-off
+  tools `#11814`/`#11861`, and `#11838`/`#11690` onboarding photo bits.
 - **Do NOT disable (not migrated):** all the rest — Discover engine, the photos
   items above, verification, matches, email queue, block, completion meter
   `#11560`, mobile-menu `#11674`.
