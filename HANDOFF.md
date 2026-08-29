@@ -87,8 +87,22 @@ WPCode snippets — nothing disabled yet):
   gate (blur incomplete profiles) with child-theme deps (`csm_user_profile_is_complete`,
   `cashaadi_has_missing_required_fields`). It belongs in a completion/profile
   concern, not the premium flag; left in WPCode for now.
-  Still to migrate (premium, stateful, need the Migrator + care): #11796 leads,
-  #11807 rejection insights, #11811 visitors, #11821 view-email, #11581 checkout CSS.
+    - #11811 Profile Visitors ("who viewed me": premium full list / free locked
+      teaser; subnav under Matches + `[csm_profile_visitors]`). READ-ONLY over the
+      `wp_csm_profile_views` table, which is owned/logged by #11807 — so #11807
+      must stay active (or be migrated) for visitors to have data. CSS in
+      `assets/css/premium.css`.
+    - #11796 Premium Intent Leads (`wp_csm_intent` table via the **Migrator** —
+      the first real schema; Migrator VERSION now `1`, created only when the flag
+      is on). Tracks upgrade-clicks not yet paid; Users → Intent Leads admin page
+      + CSV export.
+  Deployed + verified healthy (all gated off). NOT visually verified (need flag on
+  + free-vs-premium accounts) — do before cutover.
+  NOTE: **#11620 "Profile Gate" is NOT premium** — it's a *completion/phone-verify*
+  gate (blur incomplete profiles) with child-theme deps; left in WPCode.
+  Still to migrate (premium, stateful): #11807 rejection insights (owns the
+  profile-views table + rejection tables + view logging — the big one), #11821
+  view-email, #11581 checkout CSS.
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
