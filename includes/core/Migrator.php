@@ -28,7 +28,7 @@ final class Migrator {
 	 * Bump this string whenever a registered schema changes. Modules register
 	 * their schemas at load (when enabled); run() installs them on version change.
 	 */
-	const VERSION = '2';
+	const VERSION = '3';
 
 	/**
 	 * Registered schemas: handle => callable returning the CREATE TABLE SQL for

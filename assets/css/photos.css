@@ -1,0 +1,20 @@
+/* ==========================================================================
+   CAShaadi UI — Photos
+   --------------------------------------------------------------------------
+   Photo-request UI (migrated from WPCode #11798's inline <style>): the
+   "Request Photo" button on a profile and the owner's approve/deny inbox.
+   Loaded on member screens when the photos gates are enabled.
+   ========================================================================== */
+
+.csm-pr-wrap { margin: 10px 0; }
+.csm-pr-btn,
+.csm-pr-approve,
+.csm-pr-deny { cursor: pointer; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; font-size: 14px; }
+.csm-pr-btn { background: #7a1220; color: #fff; }
+.csm-pr-approve { background: #2f7d4f; color: #fff; margin-left: 8px; }
+.csm-pr-deny { background: #eee; color: #333; margin-left: 6px; }
+.csm-pr-pending { color: #b9822b; font-weight: 600; }
+.csm-pr-msg { font-weight: 600; }
+.csm-pr-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
+.csm-pr-name { font-weight: 600; text-decoration: none; margin-right: auto; }
+.csm-pr-item img { border-radius: 50%; }
