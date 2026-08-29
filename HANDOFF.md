@@ -137,6 +137,11 @@ WPCode snippets — nothing disabled yet):
   (#12119 OpenAI moderation sweep + mask@21 + admin queue). Deployed + healthy
   (gated off). Composed chain verified structurally; behaviour test pending the
   flag-on cutover.
+- **v0.23.0** — Verification display module (`Modules\Verification`): #11701
+  verified-CA badge (REST `csm/v1/verified` → `Core\Verification::ca_verified/
+  ca_level`, injected client-side) + #11682 OTP checklist item; CSS/JS in
+  `assets/{css,js}/verification.*`. Gated by CASHAADI_VERIFICATION_ENABLED. First
+  real consumer of `Core\Verification`. Deployed + healthy (gated off).
 
 ## SNIPPETS SAFE TO DISABLE (cutover list)
 Everything the plugin has REPLACED. Everything NOT listed here has no plugin
@@ -182,9 +187,17 @@ screen, re-enable if anything looks off.
   shared OpenAI key (Secrets) + the `csm_pm_sweep_event` cron + `csm_pm_*` meta.
   Still un-migrated in photos: `#11822` gallery/upload, `#11771` lightbox, one-off
   tools `#11814`/`#11861`, and `#11838`/`#11690` onboarding photo bits.
+- **Group F — verification display (gated, ready to test)**: `#11701` verified-CA
+  badge + `#11682` OTP checklist item → `Modules\Verification\Verification`, built
+  on `Core\Verification`. Gated behind `CASHAADI_VERIFICATION_ENABLED`; cutover =
+  flip flag + disable `#11701` and `#11682` together (they inject via JS/REST so
+  both-active doubles). The OTP itself (`#11618`, MSG91) is NOT here — deferred
+  until its key moves to a wp-config constant.
 - **Do NOT disable (not migrated):** all the rest — Discover engine, the photos
-  items above, verification, matches, email queue, block, completion meter
-  `#11560`, mobile-menu `#11674`.
+  gallery/lightbox/onboarding items, OTP `#11618` + CA-doc `#11815`/`#12113`,
+  matches, email queue, block `#11810`, admin dashboard `#11688`, completion
+  meter `#11560`, mobile-menu `#11674`, and misc site (`#11583` email activation,
+  `#11842` skip username, `#11812` created-for).
 
 ### Operational learnings (do this every deploy)
 - **CDN caches static assets for 7 days.** Staging serves assets via Hostinger
