@@ -68,32 +68,43 @@ body.csm-screens #buddypress ul.members-list .item-meta {
 	line-height: 1.5;
 }
 
-/* --- action buttons (Add Match / friendship) ----------------------------- */
+/* --- action buttons ------------------------------------------------------
+   The friendship request ("Add Match") is a <button>; other actions (e.g. the
+   admin-only "Switch To") are <a> inside .generic-button. Both live in
+   ul.members-meta.action. Style all of them, request = green, rest = blue. */
 body.csm-screens #buddypress ul.members-list .members-meta.action {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	gap: 8px;
 }
-body.csm-screens #buddypress ul.members-list .members-meta.action li { margin: 0; }
+body.csm-screens #buddypress ul.members-list .members-meta.action > li,
+body.csm-screens #buddypress ul.members-list .members-meta.action > div { margin: 0; list-style: none; }
+
+body.csm-screens #buddypress ul.members-list .members-meta.action button,
 body.csm-screens #buddypress ul.members-list .members-meta.action a {
 	display: inline-block;
+	width: auto !important;
+	margin: 0;
 	padding: 9px 16px;
 	border: 0;
 	border-radius: 10px;
 	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
 	font-size: 13.5px;
 	font-weight: 600;
+	line-height: 1.2;
 	text-decoration: none;
 	cursor: pointer;
 	background: var(--csm-blue, #2c5b8c);
 	color: #fff !important;
 	transition: background .15s;
 }
-body.csm-screens #buddypress ul.members-list .members-meta.action a:hover { background: var(--csm-blue-press, #234a73); }
+body.csm-screens #buddypress ul.members-list .members-meta.action a:hover,
+body.csm-screens #buddypress ul.members-list .members-meta.action button:hover { background: var(--csm-blue-press, #234a73); }
 
 /* the friendship request ("Add Match") is the primary action → green */
-body.csm-screens #buddypress ul.members-list .friendship-button a { background: var(--csm-green, #6f9f2e); }
-body.csm-screens #buddypress ul.members-list .friendship-button a:hover { background: var(--csm-green-press, #5e8926); }
+body.csm-screens #buddypress ul.members-list .friendship-button button { background: var(--csm-green, #6f9f2e); }
+body.csm-screens #buddypress ul.members-list .friendship-button button:hover { background: var(--csm-green-press, #5e8926); }
