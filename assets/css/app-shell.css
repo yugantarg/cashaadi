@@ -1,0 +1,52 @@
+/* ==========================================================================
+   CAShaadi UI — App shell (mobile bottom navigation)
+   --------------------------------------------------------------------------
+   A Hinge/Bumble-style fixed bottom nav on member screens (Discover · Matches ·
+   Messages · Profile). Progressive + additive: it does NOT yet remove the
+   existing BuddyX chrome (that is a separate, higher-risk step). Mobile-first —
+   shown at <=782px (WP's mobile breakpoint); hidden on desktop where the
+   existing top nav is fine for now.
+   ========================================================================== */
+
+.csm-appnav { display: none; } /* hidden by default; shown on mobile below */
+
+@media (max-width: 782px) {
+	/* keep page content clear of the fixed bar */
+	body.csm-has-appnav { padding-bottom: calc(var(--csm-appnav-h, 62px) + env(safe-area-inset-bottom, 0px)); }
+
+	.csm-appnav {
+		display: flex;
+		position: fixed;
+		left: 0; right: 0; bottom: 0;
+		z-index: 9998; /* below the off-canvas mobile menu (9999) */
+		height: var(--csm-appnav-h, 62px);
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+		background: var(--csm-surface, #fff);
+		border-top: 1px solid var(--csm-hair, #e4eaf0);
+		box-shadow: 0 -2px 14px -8px rgba(22, 33, 43, .28);
+		font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	}
+
+	.csm-appnav a {
+		flex: 1 1 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		text-decoration: none;
+		color: var(--csm-faint, #93a2ae);
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: .01em;
+		padding: 8px 4px 6px;
+		-webkit-tap-highlight-color: transparent;
+		transition: color .15s;
+	}
+
+	.csm-appnav a svg { width: 24px; height: 24px; display: block; }
+	.csm-appnav a span { line-height: 1; }
+
+	.csm-appnav a.is-active { color: var(--csm-blue, #2c5b8c); }
+	.csm-appnav a:active { color: var(--csm-blue-press, #234a73); }
+}

@@ -1,0 +1,34 @@
+/* ==========================================================================
+   CAShaadi UI — Design tokens
+   --------------------------------------------------------------------------
+   The one place the design system lives. These are the same values the profile
+   wizard currently carries as var() fallbacks (blue/green + Newsreader/Hanken);
+   defining them here means every module — wizard, app-shell, future screens —
+   shares one palette instead of repeating it. The WPCode Phase-0 reskin (#12124)
+   sets the same values, so both agree during the migration.
+   ========================================================================== */
+
+:root {
+	/* brand */
+	--csm-blue:        #2c5b8c;
+	--csm-blue-tint:   #e9f1f8;
+	--csm-blue-press:  #234a73;
+	--csm-green:       #6f9f2e;
+	--csm-green-press: #5e8926;
+
+	/* ink & surfaces */
+	--csm-ink:    #16212b;
+	--csm-muted:  #5c6a76;
+	--csm-faint:  #93a2ae;
+	--csm-surface:#ffffff;
+	--csm-ground: #f4f6f8;
+	--csm-hair:   #e4eaf0;
+	--csm-hair-2: #d6dfe7;
+
+	/* type */
+	--csm-serif: "Newsreader", Georgia, "Times New Roman", serif;
+	--csm-sans:  "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+	/* app-shell metrics */
+	--csm-appnav-h: 62px;
+}
