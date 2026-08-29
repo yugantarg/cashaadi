@@ -22,8 +22,10 @@
 
 	/* Messages (Better Messages) is a full chat app — hide the redundant profile
 	   card + completion meter above it so it reads as a focused, full-width chat
-	   under our top bar + bottom nav. We don't override Better Messages' own UI. */
-	body.csm-cur-messages #buddypress #item-header,
+	   under our top bar + bottom nav. We don't override Better Messages' own UI.
+	   NB: our top bar renders inside #item-header, so hide the header's OTHER
+	   children (avatar/name/cover), never the whole header. */
+	body.csm-cur-messages #buddypress #item-header > *:not(.csm-topbar) { display: none !important; }
 	body.csm-cur-messages #buddypress .csm-pc-wrap { display: none !important; }
 
 	/* ---- top bar: screen title + settings + notifications ---- */
