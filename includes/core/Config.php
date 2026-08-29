@@ -45,6 +45,27 @@ final class Config {
 	/* ---- misc site config ---------------------------------------------- */
 	const SUPPORT_EMAIL = 'support@cashaadi.in'; // shown in the support footer (#11691)
 
+	/* ---- photos -------------------------------------------------------- */
+	const DEFAULT_AVATAR_ID  = 11616; // local default avatar attachment (#11617)
+	const DEFAULT_AVATAR_URL = 'https://staging.cashaadi.in/wp-content/uploads/2026/06/abstract-user-flat-4.png';
+
+	/**
+	 * Photos "hard gates" master switch (private-photo blur / photo-request /
+	 * NSFW mask — the three that filter bp_core_fetch_avatar_url). OFF unless
+	 * wp-config sets CASHAADI_PHOTOS_ENABLED === true. Flip it on in the SAME
+	 * change that disables #11770/#11798/#12119. The plain avatar filters
+	 * (default avatar #11617, HD sizes #11813) are NOT gated by this.
+	 */
+	public static function photos_enabled() {
+		return defined( 'CASHAADI_PHOTOS_ENABLED' ) && CASHAADI_PHOTOS_ENABLED;
+	}
+
+	/** Local default avatar URL, resolved from the attachment (per-env) with a fallback. */
+	public static function default_avatar_url() {
+		$url = function_exists( 'wp_get_attachment_url' ) ? wp_get_attachment_url( self::DEFAULT_AVATAR_ID ) : '';
+		return $url ? $url : self::DEFAULT_AVATAR_URL;
+	}
+
 	/* ---- option keys (owned by their modules; named here for one map) --- */
 	const OPT_AV_OPTIONS = 'csm_av_options'; // AI doc-verify settings incl. OpenAI key (#11815)
 
