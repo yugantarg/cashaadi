@@ -1,6 +1,6 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-29)
+## CURRENT STATUS (updated 2026-08-30 — full build complete, v0.25.0)
 Pipeline live: push to `main` → Hostinger auto-deploys to staging in ~20s.
 Design + migration plan: see `docs/ARCHITECTURE.md` (coherent core → modules → UI).
 
@@ -141,6 +141,22 @@ WPCode snippets — nothing disabled yet):
   ca_level`, injected client-side) + #11682 OTP checklist item; CSS/JS in
   `assets/{css,js}/verification.*`. Gated by CASHAADI_VERIFICATION_ENABLED. First
   real consumer of `Core\Verification`. Deployed + healthy (gated off).
+- **v0.24.0** — audit correction: removed 3 mistakenly-migrated snippets that were
+  already inactive on the live site (#11614 contact gate, #11638 WC greeting,
+  #11242 comments-off). See the "ALREADY-INACTIVE" section.
+- **v0.25.0 — FULL BUILD**: every remaining ACTIVE snippet migrated into gated
+  modules (all OFF by default, dormant alongside their live snippets). New modules:
+  **Discover** (`Modules\Discover` — engine.php globals + tray/quota/entry-points,
+  depends on the `cashaadi()` mu-plugin), **Matches** (`Modules\Matches`), **Block**
+  (`Modules\Block`, owns `wp_csm_blocks`), **Emails** (`Modules\Emails\{Queue,
+  Monitor}`, owns `wp_csm_email_queue` + `csm_remail_cron`), **Admin**
+  (`Modules\Admin\Dashboard`), **CaVerify** (`Modules\CaVerify\{CaVerify,CaCron}`,
+  OpenAI via Secrets), **Otp** (`Modules\Otp` — needs MSG91 creds), **Photos gallery**
+  (`Modules\Photos\{Gallery,PhotoOnboarding,LegacyImport}`), **ProfileTools**
+  (`Modules\ProfileTools`), **Signup** (`Modules\Signup`), plus `#11674` mobile-menu
+  fix (`site-menu.js`, ungated). Config gains 9 cutover flags; `Migrator` now tracks
+  installs per-handle. See Groups G–P for the cutover checklist. Deployed + healthy
+  at v0.25.0 (home 200, premium already enabled → Migrator refactor exercised live).
 
 ## ALREADY-INACTIVE snippets (do NOT migrate / do NOT re-introduce)
 The export JSON has no active/disabled flag. Per the site owner, exactly these 8
@@ -193,19 +209,80 @@ screen, re-enable if anything looks off.
   plugin now provides all three, so a lone snippet would double). Test like
   premium (match vs non-match viewer; a flagged avatar masks). NSFW reuses the
   shared OpenAI key (Secrets) + the `csm_pm_sweep_event` cron + `csm_pm_*` meta.
-  Still un-migrated in photos: `#11822` gallery/upload, `#11771` lightbox, one-off
-  tools `#11814`/`#11861`, and `#11838`/`#11690` onboarding photo bits.
+  The photo GALLERY set is now migrated too — see Group G.
 - **Group F — verification display (gated, ready to test)**: `#11701` verified-CA
   badge + `#11682` OTP checklist item → `Modules\Verification\Verification`, built
   on `Core\Verification`. Gated behind `CASHAADI_VERIFICATION_ENABLED`; cutover =
   flip flag + disable `#11701` and `#11682` together (they inject via JS/REST so
   both-active doubles). The OTP itself (`#11618`, MSG91) is NOT here — deferred
   until its key moves to a wp-config constant.
-- **Do NOT disable (not migrated):** all the rest — Discover engine, the photos
-  gallery/lightbox/onboarding items, OTP `#11618` + CA-doc `#11815`/`#12113`,
-  matches, email queue, block `#11810`, admin dashboard `#11688`, completion
-  meter `#11560`, mobile-menu `#11674`, and misc site (`#11583` email activation,
-  `#11842` skip username, `#11812` created-for).
+All of the following were BUILT + deployed in v0.25.0 as gated modules (OFF by
+default, dormant alongside their live snippets). Each cutover = add the wp-config
+flag AND disable the listed snippets in the SAME change, then browser-test on
+staging. All PHP/JS was validated (php-parser via node, `node --check`); the site
+loaded healthy at v0.25.0 with premium already enabled.
+
+- **Group G — photo gallery** (`CASHAADI_PHOTOS_ENABLED`, the SAME flag as Group
+  E — so cutting over photos means E **and** G together): disable `#11822`
+  (multi-upload gallery), `#11771` (lightbox + privacy notice), `#11838` +
+  `#11690` (avatar-screen onboarding + Next button), `#11861` (legacy avatar/cover
+  import). Stores photos in the `csm_photos` user-meta array — no table. Test on
+  the Change-Profile-Photo screen: multi-upload/no-crop, delete, set-main,
+  lightbox, Next button, and a blurred profile's notice/zoom overlay.
+- **Group H — Discover** (`CASHAADI_DISCOVER_ENABLED`): disable `#11599/#11600/
+  #11601/#11602/#11605/#11630/#11675/#11681/#11680`. Depends on the `cashaadi()`
+  mu-plugin (tray/likes tables, week id) — that stays. Defines global functions +
+  the `[cashaadi_discovery_tray]` shortcode, so both-active would fatal on
+  redeclare — the flag MUST go on as the snippets go off. Test: /discover/ tray
+  like/pass, quota banner, header compass + profile CTA, post-login redirect.
+- **Group I — Matches** (`CASHAADI_MATCHES_ENABLED`, enable WITH Discover):
+  disable `#11637` (Requests-Sent sub-tab) + `#11694` (match emails). Test the
+  owner-only Requests-Sent tab and that a like → match-request email fires once.
+- **Group J — Block** (`CASHAADI_BLOCK_ENABLED`): disable `#11810`. Owns
+  `wp_csm_blocks` (installed via the per-handle Migrator at cutover). Re-exposes
+  `csm_bl_hidden_ids` / `csm_bl_is_blocked_pair` (called by premium + #11811/
+  #11821 + tray). Test block/unblock + that blocked users vanish from discover/
+  messages/visitors.
+- **Group K — Reminder emails** (`CASHAADI_EMAILS_ENABLED`): disable `#11732`
+  (engine) + `#11733` (monitor). Owns `wp_csm_email_queue` + the hourly
+  `csm_remail_cron` (hook name preserved, so the live event carries over). REQUIRES
+  the Admin dashboard active (Group L) — it calls `csm_profile_pending_label()`.
+  Sends real mail: keep `csm_remail_master`/dry-run as the snippet had them and
+  watch the monitor before flipping the master switch.
+- **Group L — Sales admin dashboard** (`CASHAADI_ADMIN_ENABLED`): disable `#11688`.
+  Read-only admin page (`csm-sales-dashboard`). Provides the global
+  `csm_profile_pending_label` that Group K depends on — enable Admin before/with
+  Emails.
+- **Group M — CA-document AI verify** (`CASHAADI_CA_VERIFY_ENABLED`): disable
+  `#11815` (AI verify engine/admin) + `#12113` (auto-check cron `csm_avc_sweep_event`
+  + verified email). OpenAI key read via `Core\Secrets` — works with the key
+  already in the `csm_av_options` option, so NO wp-config secret is needed just to
+  test (only the gating flag). Test on a member with an uploaded CA doc.
+- **Group N — Phone OTP** (`CASHAADI_OTP_ENABLED`) — ⚠️ **NEEDS CREDENTIALS**:
+  disable `#11618`. Unlike every other module this one ALSO needs
+  `CASHAADI_MSG91_AUTHKEY`, `CASHAADI_MSG91_WIDGET_ID`, `CASHAADI_MSG91_TOKEN_AUTH`
+  in wp-config (read via `Core\Secrets`; the snippet's literals were NOT copied).
+  Cannot be tested until those are set. The snippet's already-disabled browsing
+  gate was intentionally NOT migrated.
+- **Group O — Profile tools** (`CASHAADI_PROFILE_TOOLS_ENABLED`): disable `#11560`
+  (completion meter — keeps the `csm-pc-*` classes the verification OTP item
+  patches), `#11760` (monthly age refresh cron `csm_age_refresh` + `csm_monthly`
+  schedule), `#11812` ("Created For" field).
+- **Group P — Signup** (`CASHAADI_SIGNUP_ENABLED`) — auth-sensitive: disable
+  `#11583` (one-click email activation + auto-login) + `#11842` (skip username).
+  Test the activation → auto-login redirect and the hidden/auto-filled username on
+  the register page.
+- **`#11674` mobile-menu fix** — already migrated to `assets/js/site-menu.js` and
+  enqueued site-wide UNGATED (idempotent, dedupes toggle handlers), live now in
+  v0.25.0. Disable `#11674` whenever (belt-and-braces; harmless both-active).
+
+### Migrator note (per-handle installs)
+`Core\Migrator` now tracks installs **per schema handle** (`cashaadi_schemas_installed`
+option), not one global version. So a table-owning module (block, emails, plus the
+existing premium/photos) installs its table the first time its flag turns on —
+you can cut modules over **independently**, in any order, without a coordinated
+`VERSION` bump. `VERSION` now only forces a re-`dbDelta` (idempotent) when an
+existing table's columns change.
 
 ### Operational learnings (do this every deploy)
 - **CDN caches static assets for 7 days.** Staging serves assets via Hostinger
@@ -218,10 +295,13 @@ screen, re-enable if anything looks off.
   cache for real users.
 - For PHP/loader changes, still grep the home HTML for a fatal (it executes
   fresh); the FieldLogic autoloader fatal was real and this catches that class.
-- No `php` on this Mac → can't `php -l`. Deploy to staging is the real test;
-  the plugin loads on every request, so a parse/class error 500s the site.
-  Autoloader now maps CamelCase namespace → kebab-case dir (ProfileEdit →
-  profile-edit) and `register()` is guarded by `class_exists`.
+- No `php` on this Mac → can't `php -l`, but there IS a node-based parser:
+  `scratchpad/phpcheck/check.mjs` (glayzzle **php-parser**). Run
+  `node scratchpad/phpcheck/check.mjs $(find includes -name '*.php')` before every
+  deploy; `node --check` for JS. Deploy to staging is still the real test (the
+  plugin loads every request, so a parse/class error 500s the site). Autoloader
+  maps CamelCase namespace → kebab-case dir (ProfileEdit → profile-edit, CaVerify
+  → ca-verify) and every `register()` is guarded by `class_exists`.
 
 ---
 
@@ -276,7 +356,10 @@ Settings, Notifications, Wizard) with a Hinge/Bumble bottom nav. Build UI to mat
 - No snippet is deleted until its plugin replacement is verified on staging.
 - Validate before commit: `php -l` on PHP, `node --check` on JS.
 
-## Next module to build
-Module 1 = profile-edit: fold in the mobile-fix CSS (#11641), then retire the
-redundant "Save & Next + progress" snippets (#11629 and #11844) that overlap the
-wizard and caused the earlier double progress bar. See SNIPPET-MIGRATION.md.
+## Next steps
+**All active snippets are now migrated** (v0.25.0). What's left is not building —
+it's CUTOVER: for each module in Groups A–P above, add its wp-config flag and
+disable its snippets in the same change, then browser-test on staging. Order is
+flexible (Migrator installs per-handle); the only hard pairings are Discover+Matches,
+Admin-before-Emails, and photos Groups E+G together. Group N (OTP) also needs the
+three MSG91 constants set. Nothing else is waiting to be written.
