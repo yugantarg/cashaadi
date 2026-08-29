@@ -46,6 +46,12 @@ WPCode snippets — nothing disabled yet):
   actions) and stacked cards on mobile; bulk-select + Bulk Actions kept. Loads via
   the existing `csm-screens` body class. Verified live (desktop + mobile).
   Still to restyle: Settings (grouped list) and the own-Profile screen.
+- **v0.11.0** — Profile view field sections (in `screens.css`): the xProfile
+  `.bp-widget` groups (Basic Details, Professional details, …) → clean section
+  cards (serif group heading, muted label / ink value rows, no boxy borders);
+  stacks label-over-value on mobile. Verified live. Header card + photo grid +
+  completion meter (#11560) already look reasonable; align later if wanted.
+  Still to restyle: Settings.
 
 Pending your action on staging (WPCode), each verified-then-disabled:
 - Module-1 UI: **#11641, #11629, #11844**
@@ -55,11 +61,16 @@ Pending your action on staging (WPCode), each verified-then-disabled:
 filters are idempotent so both-active is safe.)
 
 ### Operational learnings (do this every deploy)
-- **Verify the actual changed file is live (200) before trusting health** — a
-  "home 200" check passed once on code that had not deployed (a missed webhook),
-  hiding a fatal that only appeared once the file landed. Check the new file.
-- If a push doesn't deploy in ~1 min, the webhook was likely missed: push an
-  empty commit (`git commit --allow-empty`) to re-trigger.
+- **CDN caches static assets for 7 days.** Staging serves assets via Hostinger
+  CDN (`server: hcdn`, `max-age=604800`); edges hold inconsistent copies, so
+  curling a BARE asset URL shows stale/flapping content even when the deploy
+  succeeded. WordPress enqueues `?ver=<plugin version>` (fresh each bump), so
+  verify with `...css?ver=<CASHAADI_UI_VER>` or, better, visually in a browser.
+  Do NOT diagnose "stuck deploy" from bare-URL curls (it's just the CDN cache).
+- Keep bumping the plugin version each deploy so the `?ver` busts CDN + browser
+  cache for real users.
+- For PHP/loader changes, still grep the home HTML for a fatal (it executes
+  fresh); the FieldLogic autoloader fatal was real and this catches that class.
 - No `php` on this Mac → can't `php -l`. Deploy to staging is the real test;
   the plugin loads on every request, so a parse/class error 500s the site.
   Autoloader now maps CamelCase namespace → kebab-case dir (ProfileEdit →
