@@ -57,13 +57,35 @@ WPCode snippets — nothing disabled yet):
   Changes button; WP's own show/generate-password buttons left alone. Verified
   live. **All member screens are now restyled** (Directory/Matches, Messages,
   Notifications, Profile, Settings).
+- **v0.13.x** — Discover restyle (in `screens.css`): the #11602 tray cards
+  (`#csm-discovery-tray > .csm-card`) enhanced to match the design — serif names,
+  consistent portrait photos, neutral Pass + green Like buttons; interior only,
+  tray layout + like/pass JS (#11601) untouched. screens.css now also loads on
+  the Discover page (scoped via `body.csm-cur-discover`). Verified live.
 
-Pending your action on staging (WPCode), each verified-then-disabled:
-- Module-1 UI: **#11641, #11629, #11844**
-- Field logic: **#11624, #11621, #11619, #11611, #11797, #11625**
-- Analytics (with the wp-config flag): **#12084, #12091, #12112, #12073, #11697**
-(Field-logic UX — email/gender/height — not yet visually confirmed; server
-filters are idempotent so both-active is safe.)
+## SNIPPETS SAFE TO DISABLE (cutover list)
+Everything the plugin has REPLACED. Everything NOT listed here has no plugin
+replacement yet — leave it active (disabling breaks Discover/photos/verification/
+premium/emails/etc.). Method: toggle off in WPCode, check the relevant staging
+screen, re-enable if anything looks off.
+
+- **Group A — safe now** (verified, tested both-active):
+  `#11641` (mobile fixes CSS), `#11629` + `#11844` (old Save&Next/progress —
+  superseded by the wizard), `#11624` (partial save), `#11621` (gender lock),
+  `#11619` (bio plain), `#11611` (age sync), `#11797` (height guard),
+  `#11625` (email lock).
+- **Group B — wizard core, disable + immediately check a profile-edit page**:
+  `#12132` (Phase-2 JS — the plugin serves a newer Phase-3 wizard; disabling
+  removes a potential double-wizard). `#12124` (Phase-0 reskin CSS) — the plugin
+  does NOT fully replicate this; try it LAST and re-enable if the edit form looks
+  wrong. tokens.css supplies the CSS variables it defined.
+- **Group C — analytics, ONLY together with the wp-config flag**: first add
+  `define('CASHAADI_ANALYTICS_ENABLED', true);` to wp-config, THEN disable
+  `#12084, #12091, #12112, #12073, #11697` (else analytics stops — the module is
+  gated off by default).
+- **Do NOT disable (not migrated):** all the rest — Discover engine, photos,
+  verification, premium/gating, matches, email queue, block, completion meter
+  `#11560`, mobile-menu `#11674`, and the other site snippets.
 
 ### Operational learnings (do this every deploy)
 - **CDN caches static assets for 7 days.** Staging serves assets via Hostinger
