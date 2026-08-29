@@ -107,23 +107,6 @@ aside#secondary { display: none !important; }
 	color: var(--csm-green-press, #5e8926);
 }
 
-/* Contact gate rows + locked state (migrated from #11614) */
-.csm-contact-email-row {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	margin: 8px 0;
-	padding: 8px 12px;
-	background: var(--csm-surface, #fff);
-	border: 1px solid var(--csm-hair, #e4eaf0);
-	border-radius: 10px;
-	font-size: 14px;
-}
-.csm-contact-label { font-weight: 600; color: var(--csm-ink, #16212b); min-width: 60px; }
-.csm-contact-value { color: var(--csm-ink, #16212b); }
-.csm-contact-locked a { color: var(--csm-blue, #2c5b8c); text-decoration: none; font-weight: 600; }
-.csm-contact-locked a:hover { text-decoration: underline; }
-
 /* --------------------------------------------------------------------------
    Membership checkout styling (migrated from WPCode #11581). Pure CSS on the
    WooCommerce block checkout; safe alongside the snippet (idempotent).

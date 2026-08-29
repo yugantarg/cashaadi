@@ -12,7 +12,8 @@
  *   #11579 Upgrade to Premium button (own profile + members directory)
  *
  * Still to migrate here (later, still behind this flag): #11795 checkout
- * hygiene, #11620 profile gate, #11614 contact gate, #11807/#11811/#11821, etc.
+ * hygiene, #11807/#11811/#11821, etc. (#11614 contact gate and #11620 profile
+ * gate are NOT migrated — already disabled on the live site.)
  */
 
 namespace CAShaadi\Modules\Premium;
@@ -43,10 +44,8 @@ final class Premium {
 		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 20, 2 );
 		add_action( 'template_redirect', array( __CLASS__, 'bounce_premium' ), 5 );
 
-		// Contact gate (#11614): phone + email visible only to owner / admin /
-		// premium; everyone else sees an upgrade nudge.
-		add_filter( 'bp_get_the_profile_field_value', array( __CLASS__, 'gate_phone_field' ), 20, 3 );
-		add_action( 'bp_after_member_header', array( __CLASS__, 'contact_email_row' ) );
+		// (#11614 contact gate intentionally NOT migrated — it was already
+		// disabled on the live site; contact details are no longer gated.)
 
 		// Profile Visitors (#11811): "who viewed me". Read-only over the
 		// wp_csm_profile_views table (created/logged by #11807, which stays
@@ -243,59 +242,6 @@ final class Premium {
 		echo self::pv_list_html( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
-	/* ---- contact gate (#11614) ----------------------------------------- */
-
-	/** Owner, admin, or premium member may see another member's contact info. */
-	private static function can_see_contact( $displayed_user_id ) {
-		$viewer = get_current_user_id();
-		if ( ! $viewer ) {
-			return false;
-		}
-		if ( (int) $viewer === (int) $displayed_user_id ) {
-			return true; // owner
-		}
-		if ( current_user_can( 'manage_options' ) ) {
-			return true; // admin
-		}
-		return Membership::is_premium( $viewer ); // premium
-	}
-
-	private static function contact_nudge() {
-		return '<span class="csm-contact-locked">🔒 <a href="'
-			. esc_url( home_url( '/membership-pricing/' ) )
-			. '">Upgrade to Premium to view contact details</a></span>';
-	}
-
-	/** Gate the phone xProfile field (277) value in place. */
-	public static function gate_phone_field( $value, $type, $field_id ) {
-		if ( (int) $field_id !== Config::FIELD_PHONE ) {
-			return $value;
-		}
-		$displayed = function_exists( 'bp_displayed_user_id' ) ? bp_displayed_user_id() : 0;
-		return self::can_see_contact( $displayed ) ? $value : self::contact_nudge();
-	}
-
-	/** Inject a gated Email row into the member header. */
-	public static function contact_email_row() {
-		if ( ! function_exists( 'bp_displayed_user_id' ) ) {
-			return;
-		}
-		$displayed = bp_displayed_user_id();
-		if ( ! $displayed ) {
-			return;
-		}
-		if ( self::can_see_contact( $displayed ) ) {
-			$user = get_userdata( $displayed );
-			if ( ! $user || empty( $user->user_email ) ) {
-				return;
-			}
-			$email_html = '<a href="mailto:' . esc_attr( $user->user_email ) . '">' . esc_html( $user->user_email ) . '</a>';
-		} else {
-			$email_html = self::contact_nudge();
-		}
-		// $email_html is built from esc_attr/esc_html + a trusted static nudge.
-		echo '<div class="csm-contact-email-row"><span class="csm-contact-label">Email</span><span class="csm-contact-value">' . $email_html . '</span></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	}
 
 	/* ---- checkout hygiene (#11795) ------------------------------------- */
 

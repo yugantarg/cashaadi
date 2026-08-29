@@ -63,7 +63,7 @@ WPCode snippets — nothing disabled yet):
   tray layout + like/pass JS (#11601) untouched. screens.css now also loads on
   the Discover page (scoped via `body.csm-cur-discover`). Verified live.
 - **v0.14.0** — `site` module (`includes/modules/site/Site.php`): idempotent
-  site-wide snippets #11242 (comments off), #11638 (WC greeting), #11696
+  site-wide snippets #11696
   (noindex member pages), #11626 (/pricing/→/membership-pricing/); CSS-only
   #11612 (hide sidebar) + #11582 (caps-lock) moved into `site.css`. Verified
   live (home healthy, /pricing/ 301s correctly).
@@ -78,8 +78,7 @@ WPCode snippets — nothing disabled yet):
     - #11579 upgrade button (own profile + directory; "complete profile" fallback)
     - #11795 checkout hygiene (block re-purchase, cart cleanup, pricing label —
       label JS in `assets/js/premium.js`)
-    - #11614 contact gate (phone field 277 + injected Email row visible only to
-      owner/admin/premium; upgrade nudge otherwise)
+    - (#11614 contact gate NOT migrated — already disabled on the live site)
   Button/contact styles in `site.css`. Deployed + verified healthy (gated off, no
   behaviour change). NOT visually verified (needs the flag on + a free-vs-premium
   test account) — do that before cutover.
@@ -109,9 +108,9 @@ WPCode snippets — nothing disabled yet):
       `premium.css`.
     - #11821 view-email (v0.18): email the owner (max 1/day, user_meta
       `csm_pve_last`) when someone views their profile. Runs after log_view.
-  The premium module is now **COMPLETE — 7 gated snippets**: #11579, #11795,
-  #11614, #11811, #11796, #11807, #11821. Cutover = flip `CASHAADI_PREMIUM_ENABLED`
-  + disable all seven together. The Migrator creates the 3 tables on enable
+  The premium module is now **COMPLETE — 6 gated snippets**: #11579, #11795,
+  #11811, #11796, #11807, #11821. Cutover = flip `CASHAADI_PREMIUM_ENABLED`
+  + disable all six together. The Migrator creates the 3 tables on enable
   (dbDelta no-ops on the snippet-made tables). MUST be tested with a free + a
   premium account first (contact gate, visitors, insights, view-email, leads).
   (#11581 checkout CSS is NOT gated — it's in `site.css` as a Group-A item.)
@@ -153,8 +152,7 @@ screen, re-enable if anything looks off.
   `#11641` (mobile fixes CSS), `#11629` + `#11844` (old Save&Next/progress —
   superseded by the wizard), `#11624` (partial save), `#11621` (gender lock),
   `#11619` (bio plain), `#11611` (age sync), `#11797` (height guard),
-  `#11625` (email lock); plus the **site** module (v0.14): `#11242` (comments
-  off), `#11638` (WC greeting), `#11696` (noindex member pages), `#11626`
+  `#11625` (email lock); plus the **site** module (v0.14): `#11696` (noindex member pages), `#11626`
   (/pricing/ redirect), `#11612` (hide sidebar CSS), `#11582` (caps-lock CSS),
   `#11691` (support footer — plugin's copy dedupes the snippet's via CSS),
   `#11581` (membership checkout CSS → `site.css`), `#11617` (local default
@@ -169,11 +167,11 @@ screen, re-enable if anything looks off.
   `define('CASHAADI_ANALYTICS_ENABLED', true);` to wp-config, THEN disable
   `#12084, #12091, #12112, #12073, #11697` (else analytics stops — the module is
   gated off by default).
-- **Group D — premium (gated, NOT ready to cut over yet)**: the premium module
-  (v0.15) is gated behind `CASHAADI_PREMIUM_ENABLED` and so far migrates only
-  `#11579` (upgrade button). DON'T flip the premium flag yet — wait until the
-  module also covers the gates/checkout (#11620/#11614/#11795/…), then cut the
-  whole premium set over together (flip flag + disable them all at once).
+- **Group D — premium (COMPLETE, cut over + tested on staging)**: 6 snippets
+  (`#11579/#11795/#11811/#11796/#11807/#11821`) behind `CASHAADI_PREMIUM_ENABLED`,
+  already flag-on + snippets-disabled on staging and verified. `#11614` contact
+  gate and `#11620` profile gate are NOT part of it — both were already disabled
+  on the live site. For production: same steps (flag + disable the 6).
 - **Group E — photos hard-gates (BUILT, gated, ready to test)**: `#11770` private
   blur (`Photos\Privacy`), `#11798` photo request (`Photos\PhotoRequest`, owns
   `wp_csm_photo_requests` via Migrator v3), `#12119` NSFW (`Photos\Nsfw`) — the
