@@ -23,8 +23,16 @@ WPCode snippets — nothing disabled yet):
   hidden on mobile (top bar carries Settings/Notifications; `#subnav` kept). Top
   bar rendered via `bp_before_member_header`. NET-NEW UI, no snippet to disable.
   Mobile-only (<=782px); desktop unchanged. Verified live on staging.
-  Next app-shell ideas: per-screen restyles (Profile/Matches/Messages), and
-  deciding whether to also slim the `#item-header` profile card per screen.
+  Next app-shell ideas: deciding whether to also slim the `#item-header` profile
+  card per screen.
+- **v0.8.x** — member-list restyle (`assets/css/screens.css`): premium portrait
+  photo cards for the shared BuddyPress member markup — covers Directory,
+  Matches, Requests, Visitors at once. Serif names, muted meta (height/age/city),
+  green "Add Match" (friendship) + blue secondary actions. Scoped to
+  `body.csm-screens`; enqueued on member screens + members directory. 2-up grid
+  on mobile; card interior at all widths. NET-NEW UI. Verified live on staging.
+  Still to restyle: Messages (inbox/thread), Settings (grouped list),
+  Notifications, and the own-Profile screen (completion ring / photo grid).
 
 Pending your action on staging (WPCode), each verified-then-disabled:
 - Module-1 UI: **#11641, #11629, #11844**
