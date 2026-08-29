@@ -1,0 +1,99 @@
+/* ==========================================================================
+   CAShaadi UI — Member-list screens (Directory · Matches · Requests · Visitors)
+   --------------------------------------------------------------------------
+   Restyles the shared BuddyPress member-card markup (ul.members-list .item-entry
+   › .list-wrap › .item-avatar / .member-name / .item-meta / friendship button)
+   into premium photo cards in the design language. Scoped to body.csm-screens so
+   it only touches our member-area screens. Card interior applies at all widths;
+   the grid is tightened to 2-up on mobile only (desktop keeps the theme grid).
+   ========================================================================== */
+
+/* --- grid: 2-up on mobile ------------------------------------------------ */
+@media (max-width: 782px) {
+	body.csm-screens #buddypress ul.members-list.bp-list {
+		display: grid !important;
+		grid-template-columns: 1fr 1fr !important;
+		gap: 14px !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		list-style: none !important;
+	}
+}
+
+/* --- card ---------------------------------------------------------------- */
+body.csm-screens #buddypress ul.members-list .item-entry { list-style: none; }
+
+body.csm-screens #buddypress ul.members-list .item-entry .list-wrap {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	overflow: hidden;
+	box-shadow: 0 1px 2px rgba(22, 33, 43, .04), 0 18px 40px -28px rgba(22, 33, 43, .30);
+}
+
+/* --- photo (portrait) ---------------------------------------------------- */
+body.csm-screens #buddypress ul.members-list .item-avatar { margin: 0; }
+body.csm-screens #buddypress ul.members-list .item-avatar a { display: block; line-height: 0; }
+body.csm-screens #buddypress ul.members-list .item-avatar img {
+	width: 100% !important;
+	height: auto !important;
+	aspect-ratio: 4 / 5;
+	object-fit: cover;
+	display: block;
+	margin: 0 !important;
+	border-radius: 0 !important;
+	background: var(--csm-ground, #f4f6f8);
+}
+
+/* --- text block ---------------------------------------------------------- */
+body.csm-screens #buddypress ul.members-list .item { padding: 12px 14px 14px; }
+
+body.csm-screens #buddypress ul.members-list .list-title.member-name { margin: 0 0 4px; }
+body.csm-screens #buddypress ul.members-list .list-title.member-name a {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 18px;
+	font-weight: 500;
+	line-height: 1.15;
+	color: var(--csm-ink, #16212b);
+	text-decoration: none;
+}
+
+body.csm-screens #buddypress ul.members-list .item-meta {
+	margin: 0 0 12px;
+	color: var(--csm-muted, #5c6a76);
+	font-size: 13.5px;
+	line-height: 1.5;
+}
+
+/* --- action buttons (Add Match / friendship) ----------------------------- */
+body.csm-screens #buddypress ul.members-list .members-meta.action {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+body.csm-screens #buddypress ul.members-list .members-meta.action li { margin: 0; }
+body.csm-screens #buddypress ul.members-list .members-meta.action a {
+	display: inline-block;
+	padding: 9px 16px;
+	border: 0;
+	border-radius: 10px;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 13.5px;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+	background: var(--csm-blue, #2c5b8c);
+	color: #fff !important;
+	transition: background .15s;
+}
+body.csm-screens #buddypress ul.members-list .members-meta.action a:hover { background: var(--csm-blue-press, #234a73); }
+
+/* the friendship request ("Add Match") is the primary action → green */
+body.csm-screens #buddypress ul.members-list .friendship-button a { background: var(--csm-green, #6f9f2e); }
+body.csm-screens #buddypress ul.members-list .friendship-button a:hover { background: var(--csm-green-press, #5e8926); }

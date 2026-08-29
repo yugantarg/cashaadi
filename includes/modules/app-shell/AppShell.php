@@ -71,19 +71,43 @@ final class AppShell {
 		return '';
 	}
 
+	/** Screens that show member-card lists (directory + friends/matches). */
+	private static function is_member_area() {
+		if ( ! is_user_logged_in() || self::is_focused() ) {
+			return false;
+		}
+		if ( function_exists( 'bp_is_user' ) && bp_is_user() ) {
+			return true;
+		}
+		if ( function_exists( 'bp_is_members_directory' ) && bp_is_members_directory() ) {
+			return true;
+		}
+		return false;
+	}
+
 	public static function body_class( $classes ) {
 		if ( self::active_here() ) {
 			$classes[] = 'csm-has-appnav';
+		}
+		if ( self::is_member_area() ) {
+			$classes[] = 'csm-screens';
 		}
 		return $classes;
 	}
 
 	public static function assets() {
-		if ( ! self::active_here() ) {
+		$shell = self::active_here();
+		$area  = self::is_member_area();
+		if ( ! $shell && ! $area ) {
 			return;
 		}
 		Assets::style( 'tokens', 'assets/css/tokens.css' );
-		Assets::style( 'app-shell', 'assets/css/app-shell.css', array( 'cashaadi-tokens' ) );
+		if ( $shell ) {
+			Assets::style( 'app-shell', 'assets/css/app-shell.css', array( 'cashaadi-tokens' ) );
+		}
+		if ( $area ) {
+			Assets::style( 'screens', 'assets/css/screens.css', array( 'cashaadi-tokens' ) );
+		}
 	}
 
 	public static function render() {
