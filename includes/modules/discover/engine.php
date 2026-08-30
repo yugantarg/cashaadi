@@ -103,6 +103,17 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			}
 		}
 
+		// Blocked pairs — hide anyone this viewer has blocked (or been blocked by).
+		// Mirrors the original #11599 refill. Guarded so it works whether the global
+		// comes from the #11810 snippet or the Block module's compat.php (either may
+		// be the live source during/after the Block cutover); no-op if neither.
+		if ( function_exists( 'csm_bl_hidden_ids' ) ) {
+			$blocked = csm_bl_hidden_ids( $viewer_id );
+			if ( ! empty( $blocked ) && is_array( $blocked ) ) {
+				$exclude = array_merge( $exclude, array_map( 'intval', $blocked ) );
+			}
+		}
+
 		$exclude     = array_unique( $exclude );
 		$exclude_csv = implode( ',', $exclude ); // safe — every value intval'd
 
