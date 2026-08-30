@@ -334,6 +334,16 @@ final class Gallery {
 			return;
 		}
 
+		// Render at most once per request: some themes (BuddyX here) fire
+		// bp_after_member_header twice, which would otherwise print two galleries.
+		// Guarded AFTER the bail-outs so a first call that legitimately returns
+		// early doesn't suppress a later real render.
+		static $rendered = false;
+		if ( $rendered ) {
+			return;
+		}
+		$rendered = true;
+
 		$nonce = $is_owner ? wp_create_nonce( 'csm_ph' ) : '';
 		echo '<div class="csm-ph-gallery" data-nonce="' . esc_attr( $nonce ) . '" data-ajax="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '">';
 		echo '<h4>Photos</h4><div class="csm-ph-gwrap">';
@@ -372,6 +382,12 @@ final class Gallery {
 		if ( ! self::pn_is_hidden( $owner, $viewer ) ) {
 			return;
 		}
+		// Render at most once (bp_after_member_header can fire twice — see profile_gallery).
+		static $rendered = false;
+		if ( $rendered ) {
+			return;
+		}
+		$rendered = true;
 		echo '<div class="csm-photo-notice"><span>';
 		echo esc_html( self::pn_notice_text( $owner, $viewer ) );
 		echo '</span> <a class="csm-photo-notice-link" href="' . esc_url( self::pn_pricing_url() ) . '">Upgrade to Premium';
