@@ -47,7 +47,15 @@ final class Block {
 		add_action( 'wp_ajax_csm_bl_toggle', array( __CLASS__, 'ajax' ) );
 
 		// Hide blocked ids from EVERY BP_User_Query (directory, BP search, and the
-		// Premium Partner Search #11801, which also uses BP_User_Query).
+		// Premium Partner Search #11801, which also uses BP_User_Query). We filter
+		// the final SQL clauses (bp_user_query_uid_clauses) rather than only setting
+		// query_vars['exclude'] on bp_pre_user_query: that action fires AFTER
+		// BP_User_Query::prepare_user_ids_query() has already extract()-ed 'exclude'
+		// and built the WHERE, so the query-var alone doesn't take effect for the
+		// members directory (the original #11810 had this latent gap). The clause
+		// filter is applied while the SQL is assembled, so it always wins. The
+		// query-var hook is kept as belt-and-braces for any path that reads it early.
+		add_filter( 'bp_user_query_uid_clauses', array( __CLASS__, 'filter_uid_clauses' ), 10, 2 );
 		add_action( 'bp_pre_user_query', array( __CLASS__, 'filter_user_query' ) );
 
 		// Redirect away from a blocked member's profile.
@@ -242,6 +250,39 @@ final class Block {
 			$existing = array_filter( array_map( 'trim', explode( ',', (string) $existing ) ) );
 		}
 		$query->query_vars['exclude'] = array_unique( array_merge( array_map( 'intval', $existing ), $hidden ) );
+	}
+
+	/**
+	 * Exclude blocked ids by editing the assembled BP_User_Query SQL clauses.
+	 * This is the authoritative hide: it runs while the WHERE is built, so it works
+	 * for the members directory (where the query-var 'exclude' set on
+	 * bp_pre_user_query lands too late to matter).
+	 *
+	 * @param array         $clauses SQL clause parts (select/where/orderby/...); 'where' is a string.
+	 * @param \BP_User_Query $query   The query object (for uid_name / table alias 'u').
+	 * @return array
+	 */
+	public static function filter_uid_clauses( $clauses, $query ) {
+		if ( ! is_user_logged_in() ) {
+			return $clauses;
+		}
+		$hidden = self::hidden_ids( get_current_user_id() );
+		if ( empty( $hidden ) ) {
+			return $clauses;
+		}
+		$ids = implode( ',', array_map( 'intval', $hidden ) );
+		if ( '' === $ids ) {
+			return $clauses;
+		}
+		$uid    = ! empty( $query->uid_name ) ? preg_replace( '/[^a-zA-Z0-9_]/', '', $query->uid_name ) : 'ID';
+		$clause = "u.{$uid} NOT IN ({$ids})";
+		if ( ! empty( $clauses['where'] ) ) {
+			// BP passes 'where' as a string already prefixed with "WHERE ".
+			$clauses['where'] .= " AND {$clause}";
+		} else {
+			$clauses['where'] = "WHERE {$clause}";
+		}
+		return $clauses;
 	}
 
 	/* ---- block direct profile access ------------------------------------ */
