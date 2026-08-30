@@ -1,7 +1,54 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-30 — full build complete, v0.25.0)
-Pipeline live: push to `main` → Hostinger auto-deploys to staging in ~20s.
+## CURRENT STATUS (updated 2026-08-30 — env moved to staging2, v0.25.2)
+
+> ⚠️ **ENVIRONMENT CHANGED: work on `staging2.cashaadi.in` now.** The old
+> `staging.cashaadi.in` was left in a broken 500 state (see INCIDENT below) and is
+> abandoned. `staging2` is a fresh clone: healthy, BuddyPress member profiles
+> resolve, all WPCode snippets active, and the `cashaadi-ui` plugin v0.25.2 is
+> **installed + active but fully DORMANT** (no wp-config flags → every feature
+> module gated OFF; only the idempotent site/app-shell/field-logic bits run). This
+> is the clean pre-cutover baseline — nothing is cut over on staging2 yet.
+>
+> **Deploy to staging2:** the old push→auto-deploy pointed at `staging`. For
+> staging2 either (a) wire Hostinger Git for the staging2 site (repo
+> `github.com/yugantarg/cashaadi`, branch `main`, path
+> `…/staging2/wp-content/plugins/cashaadi-ui/`), or (b) build a zip and upload it:
+> `git archive --format=zip --prefix=cashaadi-ui/ HEAD cashaadi-ui.php includes assets -o cashaadi-ui.zip`
+> then Plugins → Add New → Upload Plugin. All code is in git (repo == the plugin).
+
+### INCIDENT 2026-08-30 — the "member area redirects to home" saga (root cause + lessons)
+The long redirect hunt was NOT our code. Root cause: BuddyPress single member
+**profile** pages (`/members/{user}/`) fell into a 404 state on old-staging, and
+the **"404 to 301" plugin** (set to "redirect all 404s") 301'd every one of them
+to the homepage — which looked like a universal member-area gate (it even caught
+admin). Removing our flags never helped because it was never our modules.
+Pinpointed with a temporary `wp_redirect`-filter tracer snippet that dumped the
+backtrace → `404-to-301/…/class-jj4t3-404-actions.php`. **Hard rules:**
+- **NEVER deactivate BuddyPress.** BP add-ons (e.g. BuddyPress Xprofile Custom
+  Field Types) declare `class X extends BP_XProfile_Field_Type` at load; with BP
+  off that's a fatal on every request → whole-site 500, and wp-admin 500s too so
+  you can't fix it from the UI. Recovery needs WP Recovery-Mode email / File
+  Manager / a backup restore. (This is what forced the move to staging2.)
+- **Leave "404 to 301" alone.** It only bit us because member profiles were
+  404ing on old-staging; on a healthy site they resolve and it never fires. To
+  debug a "redirects to home" symptom, first check whether the target is really a
+  404 (deactivate 404-to-301 briefly, or check the page's is_404()).
+- **To find a mystery server redirect:** a WPCode snippet hooking `wp_redirect`
+  (priority 1) that `wp_die()`s the `debug_backtrace()` names the exact file/line.
+
+### PRODUCT DECISION 2026-08-30 (owner) — retire the completion gate + meter
+The app is now a standard forced-onboarding flow: the pending step shows on login
+and users can't proceed without completing (skip only for non-mandatory fields).
+So the separate completion machinery is redundant and should be RETIRED, not
+migrated:
+- **#11560 completion meter — DO NOT migrate/cut over.** Drop it. (The
+  `ProfileTools` module's meter is therefore dead weight — cut ProfileTools down
+  to age-refresh #11760 / created-for #11812 only, or drop it entirely.)
+- **#11620 profile blur gate — retire** (disable the snippet; the onboarding
+  wizard is the single completion enforcement). No plugin replacement needed.
+- Treat these like the already-inactive list: not features to preserve.
+
 Design + migration plan: see `docs/ARCHITECTURE.md` (coherent core → modules → UI).
 
 Shipped & deployed to staging (all running SAFELY alongside the still-active
@@ -222,8 +269,16 @@ flag AND disable the listed snippets in the SAME change, then browser-test on
 staging. All PHP/JS was validated (php-parser via node, `node --check`); the site
 loaded healthy at v0.25.0 with premium already enabled.
 
-> **CUT OVER + VERIFIED so far (2026-08-30):** Groups **E+G photos**, **H Discover**,
-> **I Matches**, **N OTP** are LIVE on staging and browser-tested.
+> **NOTE (staging2 reset):** the cutovers below were done + verified on the now-
+> ABANDONED old-staging. On **staging2 nothing is cut over yet** (plugin dormant).
+> These modules are BUILT and were browser-verified once, so redoing each cutover
+> on staging2 is mechanical (flip the wp-config flag + disable its snippets) — the
+> notes below are the proof they work, not the current staging2 state. Also: the
+> "/settings/ redirects to home" I saw during Block testing was NOT a profile-gate
+> — it was the 404-to-301 / BuddyPress-404 issue (see INCIDENT above).
+>
+> **CUT OVER + VERIFIED on OLD-STAGING (2026-08-30):** Groups **E+G photos**, **H Discover**,
+> **I Matches**, **N OTP** were LIVE on old-staging and browser-tested.
 > - Discover: free vs premium quota (5/10), opposite-gender tray, Pass persistence,
 >   Like→match-request→email chain (Requests-Sent shows Pending card, owner-only).
 > - OTP: widget renders + reads verified state.
