@@ -2,29 +2,27 @@
 /**
  * Profile Tools module.
  *
- * Consolidates three still-active WPCode snippets, all touching the member's own
- * profile / xProfile data:
- *   #11560 Profile Completion Meter (weighted, grouped) — the %-meter + checklist
+ * Two still-active WPCode snippets that touch the member's own xProfile data:
  *   #11760 Monthly Age refresh (cron) + DOB visibility admin tools
  *   #11812 "Created for" xProfile field (self/son/daughter/…)
  *
- * Gated behind Config::profile_tools_enabled() (off unless wp-config sets
- * CASHAADI_PROFILE_TOOLS_ENABLED = true). The snippets stay live in WPCode until
- * a coordinated cutover: flip the flag ON in the SAME change that disables
- * #11560/#11760/#11812. While gated OFF this module does nothing — in particular
- * it does NOT schedule the age-refresh cron, so it can't double-run alongside the
- * still-active #11760.
+ * NOTE: #11560 Profile Completion Meter is intentionally NOT migrated. Per the
+ * owner (2026-08-30) the app now forces completion through the onboarding wizard
+ * (the pending step on login; skip only for non-mandatory fields), so the separate
+ * completion meter — and the #11620 profile blur gate — are being RETIRED, not
+ * migrated. Do not re-introduce the meter here.
  *
- * Note on the completion meter markup: the Verification module (#11682, via
- * verification.js) injects an OTP item into this meter's checklist and re-reads
- * its percentage by the class names .csm-pc-wrap / .csm-pc-pct / .csm-pc-bar-full
- * / .csm-pc-msg / .csm-pc-missing — those class names are preserved verbatim.
+ * Gated behind Config::profile_tools_enabled() (off unless wp-config sets
+ * CASHAADI_PROFILE_TOOLS_ENABLED = true). The snippets stay live in WPCode until a
+ * coordinated cutover: flip the flag ON in the SAME change that disables
+ * #11760/#11812 (and, separately, retire #11560/#11620). While gated OFF this
+ * module does nothing — in particular it does NOT schedule the age-refresh cron,
+ * so it can't double-run alongside the still-active #11760.
  */
 
 namespace CAShaadi\Modules\ProfileTools;
 
 use CAShaadi\Core\Config;
-use CAShaadi\Core\Assets;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,10 +41,6 @@ final class ProfileTools {
 			return; // gated OFF until the coordinated cutover
 		}
 
-		/* ---- #11560 completion meter ---------------------------------- */
-		add_action( 'bp_before_member_body', array( __CLASS__, 'render_meter' ) );
-		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'meter_assets' ) );
-
 		/* ---- #11760 age refresh cron + DOB visibility tools ----------- */
 		add_filter( 'cron_schedules', array( __CLASS__, 'cron_schedule' ) );
 		add_action( 'init', array( __CLASS__, 'cron_setup' ) );
@@ -56,217 +50,6 @@ final class ProfileTools {
 
 		/* ---- #11812 "Created for" field ------------------------------- */
 		add_action( 'bp_init', array( __CLASS__, 'created_for_install' ), 20 );
-	}
-
-	/* ===================================================================
-	 * #11560 — Profile Completion Meter (weighted, grouped)
-	 * =================================================================== */
-
-	/** Enqueue the meter stylesheet (and inline-script host) on member pages. */
-	public static function meter_assets() {
-		if ( is_admin() || ! function_exists( 'bp_is_user' ) || ! bp_is_user() ) {
-			return;
-		}
-		Assets::style( 'profile-tools', 'assets/css/profile-tools.css' );
-		Assets::script( 'profile-tools', 'assets/js/profile-tools.js' );
-	}
-
-	/** Higher weight = bigger contribution to the percentage. */
-	private static function pc_group_weight( $group_name ) {
-		$name = strtolower( trim( $group_name ) );
-		if ( strpos( $name, 'verification' ) !== false ) { return 3; } // ICAI ID
-		if ( strpos( $name, 'basic' ) !== false )        { return 2; } // sign-up core
-		return 1;
-	}
-
-	private static function pc_field_filled( $field_id, $user_id ) {
-		$val = xprofile_get_field_data( $field_id, $user_id );
-		if ( is_array( $val ) ) { return ! empty( $val ); }
-		return ( $val !== '' && $val !== null && $val !== false );
-	}
-
-	public static function completion_data( $user_id ) {
-		if ( ! function_exists( 'bp_xprofile_get_groups' ) ) { return false; }
-
-		$groups = bp_xprofile_get_groups( array(
-			'fetch_fields'     => true,
-			'hide_empty_groups' => false,
-		) );
-		if ( empty( $groups ) ) { return false; }
-
-		$base = trailingslashit( bp_core_get_user_domain( $user_id ) ) . 'profile/edit/group/';
-
-		$out          = array();
-		$score        = 0.0;  // weighted points earned
-		$score_max    = 0.0;  // weighted points possible
-
-		// --- Profile photo as its own weighted item (weight 3, like Verification). ---
-		$photo_weight = 3;
-		$has_avatar   = function_exists( 'bp_get_user_has_avatar' ) ? bp_get_user_has_avatar( $user_id ) : false;
-		$score_max   += $photo_weight;
-		if ( $has_avatar ) { $score += $photo_weight; }
-
-		foreach ( $groups as $group ) {
-			if ( empty( $group->fields ) ) { continue; }
-
-			$g_weight       = self::pc_group_weight( $group->name );
-			$g_total        = 0;   // all fields in group
-			$g_filled       = 0;   // all filled fields
-			$missing_req    = array(); // required-but-empty (shown when in this group)
-
-			foreach ( $group->fields as $field ) {
-				// Additional/optional documents must not count toward the meter.
-				if ( in_array( (int) $field->id, array( 579, 485 ), true ) ) { continue; }
-				$g_total++;
-				$filled = self::pc_field_filled( $field->id, $user_id );
-				if ( $filled ) { $g_filled++; }
-
-				$is_required = false;
-				if ( isset( $field->is_required ) ) { $is_required = (bool) $field->is_required; }
-				if ( $is_required && ! $filled ) {
-					$missing_req[] = array( 'name' => $field->name, 'id' => (int) $field->id );
-				}
-			}
-
-			if ( $g_total < 1 ) { continue; }
-
-			// Weighted contribution: fraction filled * group weight.
-			$frac        = $g_filled / $g_total;
-			$score      += $frac * $g_weight;
-			$score_max  += $g_weight;
-
-			// Option A: skip the generic Verification group row in the checklist.
-			// (It still counts toward $pct above; the optional badge item below
-			//  is the single, clear representation of CA verification.)
-			if ( strtolower( trim( (string) $group->name ) ) === 'verification' ) { continue; }
-			$out[] = array(
-				'id'       => (int) $group->id,
-				'name'     => $group->name,
-				'url'      => $base . (int) $group->id . '/',
-				'complete' => empty( $missing_req ),
-				'missing'  => $missing_req,
-			);
-		}
-
-		// Add the Profile Photo pseudo-group so it appears in the checklist.
-		array_unshift( $out, array(
-			'id'       => 0,
-			'name'     => 'Profile Photo',
-			'url'      => trailingslashit( bp_core_get_user_domain( $user_id ) ) . 'profile/change-avatar/',
-			'complete' => (bool) $has_avatar,
-			'missing'  => $has_avatar ? array() : array( array( 'name' => 'Profile Photo', 'id' => 0 ) ),
-		) );
-
-		// Sign-up fields guarantee a baseline: if the core Basic Details (sign-up)
-		// fields are all filled, the meter never reads below 30%.
-		$basic_done = true;
-		foreach ( $out as $go ) {
-			if ( strtolower( $go['name'] ) === 'basic details' && ! empty( $go['missing'] ) ) { $basic_done = false; }
-		}
-		$pct = ( $score_max > 0 ) ? (int) round( ( $score / $score_max ) * 100 ) : 0;
-		if ( $basic_done && $pct < 30 ) { $pct = 30; }
-		if ( $pct > 100 ) { $pct = 100; }
-		// Optional, non-blocking prompt: shows how to earn the Verified CA badge.
-		// Purely informational — does NOT affect $pct or any gate.
-		if ( function_exists( 'csm_user_is_verified_ca' ) ) {
-			$csm_ca_verified = csm_user_is_verified_ca( $user_id );
-			$out[] = array(
-				'id'       => 0,
-				'name'     => $csm_ca_verified
-					? 'Verified CA badge earned'
-					: 'Get your Verified CA badge (optional) — upload your ICAI details',
-				'url'      => bp_loggedin_user_url( bp_members_get_path_chunks( array( bp_get_profile_slug(), 'edit', 'group', 10 ) ) ),
-				'complete' => (bool) $csm_ca_verified,
-				'missing'  => array(),
-			);
-		}
-		// GA4: fire profile_complete once per user when 100% reached
-		if ( $pct >= 100 && get_current_user_id() ) {
-			$csm_uid = get_current_user_id();
-			if ( ! get_user_meta( $csm_uid, 'csm_pc_ga_fired', true ) ) {
-				update_user_meta( $csm_uid, 'csm_pc_ga_fired', 1 );
-				// Emitted via the enqueued profile-tools handle (no inline <script>
-				// echoed from PHP); same one-time dataLayer push as #11560.
-				wp_add_inline_script(
-					'cashaadi-profile-tools',
-					"window.dataLayer=window.dataLayer||[];dataLayer.push({event:'profile_complete'});"
-				);
-			}
-		}
-
-		return array(
-			'pct'      => $pct,
-			'groups'   => $out,
-		);
-	}
-
-	private static function current_edit_group_id() {
-		if ( function_exists( 'bp_get_current_profile_group_id' ) ) {
-			$gid = (int) bp_get_current_profile_group_id();
-			if ( $gid > 0 ) { return $gid; }
-		}
-		if ( function_exists( 'bp_action_variable' ) ) {
-			$gid = (int) bp_action_variable( 1 );
-			if ( $gid > 0 ) { return $gid; }
-		}
-		return 0;
-	}
-
-	/** Render the meter — only on the profile owner's own profile (Issue 9). */
-	public static function render_meter() {
-		if ( ! function_exists( 'bp_is_user' ) || ! bp_is_user() ) {
-			return;
-		}
-		// CSM: only render the completion meter on the profile owner's own profile (Issue 9)
-		if ( ! is_user_logged_in() ) { return; }
-		if ( function_exists( 'bp_displayed_user_id' ) && bp_displayed_user_id() && bp_displayed_user_id() !== bp_loggedin_user_id() ) { return; }
-		$user_id = bp_displayed_user_id();
-		if ( ! $user_id ) { $user_id = get_current_user_id(); }
-		if ( ! $user_id ) { return; }
-
-		$data = self::completion_data( $user_id );
-		if ( ! $data ) { return; }
-
-		$pct        = (int) $data['pct'];
-		$complete   = ( $pct >= 100 );
-		$bar_class  = $complete ? 'csm-pc-bar-full' : 'csm-pc-bar';
-		$cur_group  = self::current_edit_group_id();
-
-		echo '<div class="csm-pc-wrap">';
-		echo '<div class="csm-pc-head">';
-		echo '<strong>Profile completion</strong>';
-		echo '<span class="csm-pc-pct">' . intval( $pct ) . '%</span>';
-		echo '</div>';
-
-		echo '<div class="csm-pc-track"><div class="' . esc_attr( $bar_class ) . '" style="width:' . intval( $pct ) . '%"></div></div>';
-
-		if ( $complete ) {
-			echo '<p class="csm-pc-msg">Your profile is complete — great job!</p>';
-			echo '</div>';
-			return;
-		}
-
-		echo '<p class="csm-pc-msg">Complete the sections below to unlock browsing.</p>';
-		echo '<ul class="csm-pc-groups">';
-		foreach ( $data['groups'] as $g ) {
-			$is_done   = ! empty( $g['complete'] );
-			$li_class  = $is_done ? 'csm-pc-g done' : 'csm-pc-g todo';
-			echo '<li class="' . esc_attr( $li_class ) . '">';
-			$icon = $is_done ? '✓' : '○';
-			echo '<a class="csm-pc-g-link" href="' . esc_url( $g['url'] ) . '"><span class="csm-pc-ic">' . $icon . '</span> ' . esc_html( $g['name'] ) . '</a>';
-
-			// Only expand missing required fields for the group currently being viewed.
-			if ( ! $is_done && (int) $g['id'] === (int) $cur_group && ! empty( $g['missing'] ) ) {
-				echo '<ul class="csm-pc-missing">';
-				foreach ( $g['missing'] as $m ) {
-					echo '<li>' . esc_html( $m['name'] ) . '</li>';
-				}
-				echo '</ul>';
-			}
-			echo '</li>';
-		}
-		echo '</ul>';
-		echo '</div>';
 	}
 
 	/* ===================================================================
