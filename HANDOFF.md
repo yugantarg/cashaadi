@@ -222,13 +222,22 @@ flag AND disable the listed snippets in the SAME change, then browser-test on
 staging. All PHP/JS was validated (php-parser via node, `node --check`); the site
 loaded healthy at v0.25.0 with premium already enabled.
 
-> **CUT OVER + VERIFIED so far (2026-08-30):** Group H **Discover**, Group I
-> **Matches**, Group N **OTP** are LIVE on staging and browser-tested:
-> free vs premium quota (5/10), opposite-gender tray, Pass persistence, the
-> Like→match-request→email chain (Requests-Sent shows the Pending card,
-> owner-only gating confirmed), and the OTP widget rendering its verified state.
-> Still gated OFF (pending cutover): Groups E+G photos, J block, K emails,
-> L admin, M ca-verify, O profile-tools, P signup, and Group C analytics.
+> **CUT OVER + VERIFIED so far (2026-08-30):** Groups **E+G photos**, **H Discover**,
+> **I Matches**, **N OTP** are LIVE on staging and browser-tested.
+> - Discover: free vs premium quota (5/10), opposite-gender tray, Pass persistence,
+>   Like→match-request→email chain (Requests-Sent shows Pending card, owner-only).
+> - OTP: widget renders + reads verified state.
+> - Photos (E+G): single gallery, onboarding uploader (Step 1/8, multi-upload no-crop,
+>   Add-photos, privacy control), legacy-photo data continuity, no fatal. Fixed a
+>   pre-existing double-render (bp_after_member_header fires twice in BuddyX) with a
+>   static render-once guard in Gallery — **v0.25.1**. NOTE: the private-photo BLUR
+>   render for a free non-match was NOT visually confirmable via User Switching —
+>   `Privacy::privacy_save()` correctly refuses to write a member's preference while
+>   an admin is switched into their account, logged-out users can't view profiles,
+>   and premium/admin viewers bypass blur. To fully confirm blur, view a
+>   blur-enabled member as a FREE, logged-in non-match (a second free test account).
+> Still gated OFF (pending cutover): J block, K emails, L admin, M ca-verify,
+> O profile-tools, P signup, and Group C analytics.
 
 - **Group G — photo gallery** (`CASHAADI_PHOTOS_ENABLED`, the SAME flag as Group
   E — so cutting over photos means E **and** G together): disable `#11822`
