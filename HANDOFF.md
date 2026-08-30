@@ -1,6 +1,6 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-31 — Discover+Matches cut over on staging2, v0.25.5)
+## CURRENT STATUS (updated 2026-08-31 — Discover+Matches+Block cut over on staging2, v0.25.8)
 
 > ⚠️ **ENVIRONMENT CHANGED: work on `staging2.cashaadi.in` now.** The old
 > `staging.cashaadi.in` was left in a broken 500 state (see INCIDENT below) and is
@@ -45,9 +45,30 @@
 > (after the `MSG91_AUTHKEY` line, before `require_once ABSPATH.'wp-settings.php'`),
 > never below the "stop editing" line. Reach it: hPanel → Websites → cashaadi.in →
 > Dashboard → File manager → public_html → staging2 → wp-config.php.
+> - ✅ **Block (J) DONE & verified (2026-08-31), v0.25.8:** snippet **#11810 CSM —
+>   Block User** disabled FIRST (safe order — external callers #11811/#11821 are
+>   function_exists-guarded, so the brief globals-undefined window is safe), then
+>   `CASHAADI_BLOCK_ENABLED` added to staging2 wp-config. Verified end-to-end:
+>   header **Block** button, block AJAX writes+persists, **guard_profile** redirects
+>   away from a blocked member's profile, **Settings→Blocked** lists + **Unblock**,
+>   and blocked users are **hidden from the members directory** (459→458). Two bugs
+>   fixed during this cutover:
+>     • **Discover (v0.25.6):** the migrated engine had dropped #11599's
+>       `csm_bl_hidden_ids()` exclusion → blocked users could reappear in the tray.
+>       Re-added (function_exists-guarded).
+>     • **Block directory-hide (v0.25.7 broke it, v0.25.8 fixed):** the original
+>       #11810 (and my first migration) hid via `bp_pre_user_query` + query-var
+>       'exclude', which fires AFTER BP_User_Query extracts 'exclude' → never took
+>       effect for the directory (latent gap in the snippet too). A v0.25.7
+>       `bp_user_query_uid_clauses` SQL-clause filter 500'd the members AJAX on BP
+>       14.4.0. **v0.25.8** uses `bp_pre_user_query_construct` (fires in __construct
+>       BEFORE prepare_user_ids_query) — clean, honored, no SQL surgery.
+>   NOTE: the Block/Unblock button uses a native `confirm()` — when driving via
+>   claude-in-chrome, override `window.confirm=()=>true` first or the CDP renderer
+>   freezes on the dialog.
 > - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
->   analytics (C), signup (P), admin (L), emails (K), ca-verify (M), block (J),
->   otp (N) remain to cut over.
+>   analytics (C), signup (P), admin (L), emails (K), ca-verify (M), otp (N) remain
+>   to cut over.
 
 ### INCIDENT 2026-08-30 — the "member area redirects to home" saga (root cause + lessons)
 The long redirect hunt was NOT our code. Root cause: BuddyPress single member
