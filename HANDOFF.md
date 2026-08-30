@@ -1,6 +1,6 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-30 — env moved to staging2, v0.25.2)
+## CURRENT STATUS (updated 2026-08-31 — Discover+Matches cut over on staging2, v0.25.5)
 
 > ⚠️ **ENVIRONMENT CHANGED: work on `staging2.cashaadi.in` now.** The old
 > `staging.cashaadi.in` was left in a broken 500 state (see INCIDENT below) and is
@@ -24,7 +24,30 @@
 >   with the meter removed in v0.25.4, stays dormant/unused). The "Created for"
 >   xProfile field PERSISTS and works. Trade-off accepted: the monthly Age auto-
 >   refresh no longer runs — re-enable snippet **#11760** if Age staleness matters.
-> - Everything else on staging2 is still at baseline (plugin dormant, snippets on).
+> - ✅ **Discover (H) + Matches (I) DONE & verified (2026-08-31), v0.25.5:** flags
+>   `CASHAADI_DISCOVER_ENABLED` + `CASHAADI_MATCHES_ENABLED` = true in staging2
+>   wp-config; snippets **#11599/11600/11601/11602/11605/11630/11675/11680/11681**
+>   (Discover) + **#11637/11694** (Matches) disabled FIRST (safe order — no redeclare
+>   fatal). Verified from the plugin: `/discover/` tray renders, Premium 10/wk quota
+>   banner, opposite-gender cards, weekly-reset date, Pass AJAX writes + persists +
+>   logs event, "Discover Matches →" profile CTA on member header, and the
+>   **Requests Sent** sub-tab (`/matches/requests-sent/`, `csm_requests_sent_screen`).
+>   Match emails **#11694** hooks are registered (`friends_friendship_requested/
+>   accepted`) but were NOT triggered — deliberately avoided sending real email to
+>   cloned member addresses. Discover depends on the `cashaadi()` mu-plugin (present).
+>
+> **🔑 ROOT CAUSE of the recurring "flags never take effect" (SOLVED 2026-08-31):**
+> earlier flag edits were going into the OLD `public_html/staging/wp-config.php` out
+> of habit — NOT staging2. The correct file is **`public_html/staging2/wp-config.php`**
+> (DB_NAME `u671281642_q43jb`; both folders exist under `public_html`). v0.25.5 added
+> a flag-status readout to the plugins-page admin notice ("flags ON: …") that makes
+> this diagnosable at a glance. Put flag defines near the TOP of the staging2 file
+> (after the `MSG91_AUTHKEY` line, before `require_once ABSPATH.'wp-settings.php'`),
+> never below the "stop editing" line. Reach it: hPanel → Websites → cashaadi.in →
+> Dashboard → File manager → public_html → staging2 → wp-config.php.
+> - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
+>   analytics (C), signup (P), admin (L), emails (K), ca-verify (M), block (J),
+>   otp (N) remain to cut over.
 
 ### INCIDENT 2026-08-30 — the "member area redirects to home" saga (root cause + lessons)
 The long redirect hunt was NOT our code. Root cause: BuddyPress single member
