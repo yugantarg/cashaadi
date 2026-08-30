@@ -1,6 +1,6 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-31 — Discover+Matches+Block+Signup cut over on staging2, v0.25.8)
+## CURRENT STATUS (updated 2026-08-31 — Discover+Matches+Block+Signup+Analytics+Admin cut over on staging2, v0.25.8)
 
 > ⚠️ **ENVIRONMENT CHANGED: work on `staging2.cashaadi.in` now.** The old
 > `staging.cashaadi.in` was left in a broken 500 state (see INCIDENT below) and is
@@ -79,8 +79,32 @@
 >   a real new registration (avoided: don't create accounts / no real signup on
 >   staging). The success path is a verbatim copy of #11583; sanity-check it with a
 >   real test signup before/at production cutover.
+> - ✅ **Analytics (C) DONE & verified (2026-08-31), v0.25.8:** snippets **#12084
+>   Meta Pixel+CompleteRegistration, #12091 Meta Pixel Purchase, #12112 GA4 events,
+>   #12073 OG/Twitter share image, #11697 Avatar alt** disabled FIRST (double-count
+>   hazard), then `CASHAADI_ANALYTICS_ENABLED` added. Verified on anonymous homepage:
+>   Meta Pixel `fbq('init','942856688093538')` (single init — no double-fire), GA4
+>   `gtag/js?id=GT-M6QBRJT`, `og:image → cashaadi-og-share.png`. Avatar-alt is a
+>   filter (registered, not spot-checked — no avatars on homepage).
+> - ✅ **Admin (L) DONE & verified (2026-08-31), v0.25.8:** snippet **#11688 Sales
+>   Admin Dashboard** disabled FIRST — it DEFINES the global `csm_profile_pending_label`
+>   UNGUARDED, and the plugin's `global-functions.php` is required SYNCHRONOUSLY in
+>   Dashboard::register() (loads at bootstrap, before WPCode snippets) → enabling the
+>   flag while #11688 active WOULD redeclare-fatal. So admin is effectively
+>   function-defining; snippets-first is mandatory. #11732 (emails engine, still
+>   active) calls csm_profile_pending_label but bails gracefully if undefined
+>   (early-return) + is cron-driven, so the window is safe. Verified: `Sales Dashboard`
+>   admin page renders (542 users, full table), Profile column shows "Complete" (so
+>   csm_profile_pending_label works from the plugin → #11732 keeps working).
 > - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
->   analytics (C), admin (L), emails (K), ca-verify (M), otp (N) remain to cut over.
+>   emails (K), ca-verify (M), otp (N) remain to cut over.
+>
+> **⚠️ FileBrowser gotcha (2026-08-31):** the Hostinger File Manager (FileBrowser at
+> srv1946-files.hstgr.io) session EXPIRES; a Save after expiry silently redirects to
+> its /login page and the edit is LOST (no error). After editing wp-config, VERIFY
+> the flag landed via the plugins-page notice; if the save tab shows "Login", re-open
+> File Manager from hPanel (Dashboard → File manager → Open gives a fresh token) and
+> redo. Editing via the Ace API (window.ace.edit) + clicking the disk icon works.
 
 ### INCIDENT 2026-08-30 — the "member area redirects to home" saga (root cause + lessons)
 The long redirect hunt was NOT our code. Root cause: BuddyPress single member
