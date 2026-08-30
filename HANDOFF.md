@@ -222,6 +222,14 @@ flag AND disable the listed snippets in the SAME change, then browser-test on
 staging. All PHP/JS was validated (php-parser via node, `node --check`); the site
 loaded healthy at v0.25.0 with premium already enabled.
 
+> **CUT OVER + VERIFIED so far (2026-08-30):** Group H **Discover**, Group I
+> **Matches**, Group N **OTP** are LIVE on staging and browser-tested:
+> free vs premium quota (5/10), opposite-gender tray, Pass persistence, the
+> Like→match-request→email chain (Requests-Sent shows the Pending card,
+> owner-only gating confirmed), and the OTP widget rendering its verified state.
+> Still gated OFF (pending cutover): Groups E+G photos, J block, K emails,
+> L admin, M ca-verify, O profile-tools, P signup, and Group C analytics.
+
 - **Group G — photo gallery** (`CASHAADI_PHOTOS_ENABLED`, the SAME flag as Group
   E — so cutting over photos means E **and** G together): disable `#11822`
   (multi-upload gallery), `#11771` (lightbox + privacy notice), `#11838` +
