@@ -230,12 +230,18 @@ loaded healthy at v0.25.0 with premium already enabled.
 > - Photos (E+G): single gallery, onboarding uploader (Step 1/8, multi-upload no-crop,
 >   Add-photos, privacy control), legacy-photo data continuity, no fatal. Fixed a
 >   pre-existing double-render (bp_after_member_header fires twice in BuddyX) with a
->   static render-once guard in Gallery — **v0.25.1**. NOTE: the private-photo BLUR
->   render for a free non-match was NOT visually confirmable via User Switching —
->   `Privacy::privacy_save()` correctly refuses to write a member's preference while
->   an admin is switched into their account, logged-out users can't view profiles,
->   and premium/admin viewers bypass blur. To fully confirm blur, view a
->   blur-enabled member as a FREE, logged-in non-match (a second free test account).
+>   static render-once guard in Gallery — **v0.25.1**.
+>   BLUR: the private-photo setting SAVES correctly (verified via admin user-edit;
+>   `Privacy::privacy_save()` also correctly refuses to write while an admin is
+>   switched into the member — same guard as OTP). The `Privacy::is_hidden()` logic
+>   is a faithful migration of #11770 (reveal for owner / admin / premium /
+>   confirmed-friend / owner-liked-viewer, else blur). A clean BLURRED render was
+>   NOT captured because every yugantargupta+ test account is entangled with
+>   leftover match/pending/photo-request relationships that hit the (correct)
+>   reveal branch, and logged-out users can't view profiles at all. To get a
+>   positive blur screenshot, use a FREE logged-in viewer with ZERO relationship to
+>   a blur-enabled member. Not evidence of a leak — just untestable with the
+>   current entangled accounts.
 > Still gated OFF (pending cutover): J block, K emails, L admin, M ca-verify,
 > O profile-tools, P signup, and Group C analytics.
 
