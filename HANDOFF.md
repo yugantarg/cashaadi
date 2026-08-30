@@ -10,12 +10,21 @@
 > module gated OFF; only the idempotent site/app-shell/field-logic bits run). This
 > is the clean pre-cutover baseline — nothing is cut over on staging2 yet.
 >
-> **Deploy to staging2:** the old push→auto-deploy pointed at `staging`. For
-> staging2 either (a) wire Hostinger Git for the staging2 site (repo
-> `github.com/yugantarg/cashaadi`, branch `main`, path
-> `…/staging2/wp-content/plugins/cashaadi-ui/`), or (b) build a zip and upload it:
-> `git archive --format=zip --prefix=cashaadi-ui/ HEAD cashaadi-ui.php includes assets -o cashaadi-ui.zip`
-> then Plugins → Add New → Upload Plugin. All code is in git (repo == the plugin).
+> **Deploy to staging2 (WIRED):** Hostinger Git auto-deploy is connected for
+> staging2 (repo `github.com/yugantarg/cashaadi`, branch `main`) — push to `main`
+> now deploys to staging2 (verified: v0.25.3/0.25.4 landed in seconds). Fallback
+> zip: `git archive --format=zip --prefix=cashaadi-ui/ HEAD cashaadi-ui.php includes assets -o cashaadi-ui.zip`.
+>
+> **staging2 cutover progress:**
+> - ✅ **profile-tools DONE (2026-08-30):** meter **#11560** + blur gate **#11620**
+>   DISABLED = retired (verified: meter gone from profiles, no completion redirect,
+>   member/discover healthy). Age-refresh **#11760** + created-for **#11812** were
+>   also disabled but the `CASHAADI_PROFILE_TOOLS_ENABLED` flag was **skipped** by
+>   owner choice — so those two are simply OFF (the plugin's ProfileTools module,
+>   with the meter removed in v0.25.4, stays dormant/unused). The "Created for"
+>   xProfile field PERSISTS and works. Trade-off accepted: the monthly Age auto-
+>   refresh no longer runs — re-enable snippet **#11760** if Age staleness matters.
+> - Everything else on staging2 is still at baseline (plugin dormant, snippets on).
 
 ### INCIDENT 2026-08-30 — the "member area redirects to home" saga (root cause + lessons)
 The long redirect hunt was NOT our code. Root cause: BuddyPress single member
