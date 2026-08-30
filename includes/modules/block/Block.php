@@ -67,7 +67,21 @@ final class Block {
 		// Front-end CSS/JS (replaces the snippet's wp_footer inline style+script).
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ) );
 
-		// Re-expose the global helpers other still-active snippets call by name.
+		// Re-expose the global helpers other still-active snippets call by name
+		// (csm_bl_hidden_ids / csm_bl_is_blocked_pair). Loaded on wp_loaded — NOT
+		// synchronously here — so that during a cutover window where the #11810
+		// snippet is still active, the snippet (which runs by 'init' at the latest)
+		// defines these globals FIRST and compat's function_exists guard then skips
+		// them. Requiring compat at plugins_loaded would define them before the
+		// snippet, making the snippet's UNGUARDED copies fatal on redeclare (this
+		// took staging down once). wp_loaded is still well before the callers
+		// (template_redirect / admin_init), so nothing that needs these globals
+		// runs before they are defined.
+		add_action( 'wp_loaded', array( __CLASS__, 'load_compat' ) );
+	}
+
+	/** Late-load the global-helper shims (see register()). */
+	public static function load_compat() {
 		require_once __DIR__ . '/compat.php';
 	}
 
