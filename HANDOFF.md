@@ -242,8 +242,25 @@ loaded healthy at v0.25.0 with premium already enabled.
 >   positive blur screenshot, use a FREE logged-in viewer with ZERO relationship to
 >   a blur-enabled member. Not evidence of a leak — just untestable with the
 >   current entangled accounts.
-> Still gated OFF (pending cutover): J block, K emails, L admin, M ca-verify,
+> **Group J Block** is also LIVE + verified (2026-08-30): block button, block
+> AJAX, blocked user removed from the Discover tray, blocked profile guarded
+> (redirect), and unblock restores access — all confirmed with the test accounts.
+> (The Settings→Blocked *screen* couldn't be reached for the test account because
+> /settings/ redirects to home under a pre-existing profile-gate — not a block
+> bug.) Still gated OFF (pending cutover): K emails, L admin, M ca-verify,
 > O profile-tools, P signup, and Group C analytics.
+>
+> ⚠️ **CUTOVER ORDER for function-defining modules (block / discover / matches /
+> otp) — READ BEFORE PRODUCTION.** These define global functions that their
+> still-active snippet ALSO defines. Adding the flag while the snippet is still on
+> opens a both-active window where the plugin can define the globals first and the
+> snippet's UNGUARDED copies then FATAL on redeclare — this took staging down once
+> (block). **Safe order: disable the snippet FIRST, then add the wp-config flag**
+> (brief window where the feature is simply off — no fatal). Block is additionally
+> hardened (v0.25.2: its compat shims load on `wp_loaded`, after the snippet, so
+> the guard wins), but the OTHER three still rely on the disable-first order.
+> Non-function-defining modules (photos, premium, analytics, admin, emails,
+> ca-verify, profile-tools, signup) don't have this hazard.
 
 - **Group G — photo gallery** (`CASHAADI_PHOTOS_ENABLED`, the SAME flag as Group
   E — so cutting over photos means E **and** G together): disable `#11822`
