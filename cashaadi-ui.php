@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.25.4
+ * Version:           0.25.5
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -43,7 +43,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.25.4' );
+define( 'CASHAADI_UI_VER', '0.25.5' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -241,7 +241,23 @@ add_action( 'admin_notices', function () {
 		// Confirm the core layer autoloaded (walking-skeleton signal for the
 		// migration; harmless if the classes are somehow missing).
 		$core = class_exists( 'CAShaadi\\Core\\Config' ) ? 'core loaded' : 'core MISSING';
+
+		// Cutover-flag status — shows exactly which module flags PHP actually sees,
+		// so a wp-config flag that didn't take is obvious at a glance.
+		$flags = array(
+			'ANALYTICS', 'PREMIUM', 'PHOTOS', 'VERIFICATION', 'DISCOVER', 'MATCHES',
+			'BLOCK', 'EMAILS', 'ADMIN', 'CA_VERIFY', 'OTP', 'PROFILE_TOOLS', 'SIGNUP',
+		);
+		$on = array();
+		foreach ( $flags as $f ) {
+			$c = 'CASHAADI_' . $f . '_ENABLED';
+			if ( defined( $c ) && constant( $c ) ) {
+				$on[] = strtolower( $f );
+			}
+		}
+		$flag_txt = $on ? ( 'flags ON: ' . implode( ', ', $on ) ) : 'no cutover flags set';
+
 		echo '<div class="notice notice-info is-dismissible"><p><strong>CAShaadi UI</strong> is active — member-area UI is served from this plugin (v'
-			. esc_html( CASHAADI_UI_VER ) . ' · ' . esc_html( $core ) . ').</p></div>';
+			. esc_html( CASHAADI_UI_VER ) . ' · ' . esc_html( $core ) . ' · ' . esc_html( $flag_txt ) . ').</p></div>';
 	}
 } );
