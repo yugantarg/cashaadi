@@ -1,6 +1,6 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-31 — Discover+Matches+Block cut over on staging2, v0.25.8)
+## CURRENT STATUS (updated 2026-08-31 — Discover+Matches+Block+Signup cut over on staging2, v0.25.8)
 
 > ⚠️ **ENVIRONMENT CHANGED: work on `staging2.cashaadi.in` now.** The old
 > `staging.cashaadi.in` was left in a broken 500 state (see INCIDENT below) and is
@@ -66,9 +66,21 @@
 >   NOTE: the Block/Unblock button uses a native `confirm()` — when driving via
 >   claude-in-chrome, override `window.confirm=()=>true` first or the CDP renderer
 >   freezes on the dialog.
+> - ✅ **Signup (P) DONE & verified (2026-08-31), v0.25.8:** snippets **#11583
+>   One-Click Email Activation + Auto-Login** and **#11842 CSM — Skip Username at
+>   Signup** disabled first, then `CASHAADI_SIGNUP_ENABLED` added to staging2
+>   wp-config (not function-defining; but both hook the front-end request so both-
+>   active would double the activation flow → snippets-first). Verified: flag notice
+>   shows "signup"; anonymous `/register/` serves the plugin's `signup.js`+`signup.css`
+>   (v0.25.8) with `#signup_username` present → verbatim JS hides/auto-fills it (#11842);
+>   `/activate/<invalidkey>/` → 302 `/login/?activation=failed`, proving the plugin's
+>   #11583 `activate_and_login` handler runs. CAVEAT: the SUCCESS path (activate a
+>   real pending signup + auto-login cookie) was NOT exercised end-to-end — it needs
+>   a real new registration (avoided: don't create accounts / no real signup on
+>   staging). The success path is a verbatim copy of #11583; sanity-check it with a
+>   real test signup before/at production cutover.
 > - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
->   analytics (C), signup (P), admin (L), emails (K), ca-verify (M), otp (N) remain
->   to cut over.
+>   analytics (C), admin (L), emails (K), ca-verify (M), otp (N) remain to cut over.
 
 ### INCIDENT 2026-08-30 — the "member area redirects to home" saga (root cause + lessons)
 The long redirect hunt was NOT our code. Root cause: BuddyPress single member
