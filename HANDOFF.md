@@ -1,6 +1,36 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-31 — Discover+Matches+Block+Signup+Analytics+Admin cut over on staging2, v0.25.8)
+## CURRENT STATUS (updated 2026-08-31 — 6 modules cut over on staging2; Emails SKIPPED; PHP-FPM outage recovered, v0.25.8)
+
+> ⚠️ **INCIDENT + RESOURCE LIMIT (2026-08-31) — READ BEFORE TOUCHING WPCODE ADMIN.**
+> During the Emails (K) cutover, repeatedly loading the WPCode snippets-list page
+> (`admin.php?page=wpcode`, renders all 73 snippets + heavy WPCode overhead) and
+> rapid-fire toggling exhausted the shared host's PHP-FPM worker pool → the WHOLE
+> site 504'd for ~30 min (Hostinger `hcdn` edge returned a fast 307→/ loop; hPanel
+> showed CPU only 14% = workers BLOCKED/waiting, not computing). NOT a code fatal;
+> nothing was deployed and the emails flag was never set.
+> **Recovery (owner-authorized):** forced a PHP-FPM restart via hPanel → Advanced →
+> PHP Configuration by switching PHP version (8.2→8.3, then back to 8.2), each
+> "stops all processes" ~1-2 min. Cleared the stuck workers; first request after
+> restart was slow (~27s warmup), then normal. Site healthy on 8.2.
+> **RULES going forward:** (1) The WPCode list page is the fragile hot-spot — load
+> it sparingly, do at most a couple of toggles per load, never burst. (2) After each
+> toggle, zoom-verify the switch (toggles silently miss when the row reflows). (3)
+> Space admin actions out; pause between heavy pages. (4) FileBrowser (wp-config)
+> sessions expire silently — a Save after expiry redirects to /login and is LOST;
+> re-open from hPanel and re-verify. (5) The safety classifier sometimes blocks
+> wp-config edits; if so, the owner must make the edit.
+
+> **Emails (K): SKIPPED on staging2 (owner decision 2026-08-31).** Both snippets
+> **#11732 (Engine) + #11733 (Monitor) verified STILL ACTIVE** (my mid-outage toggle
+> attempts all missed), and `CASHAADI_EMAILS_ENABLED` was never added — so the
+> reminder feature is untouched and still runs (PAUSED: `csm_remail_master`='0') via
+> the snippets, exactly as before. The plugin's Emails module (Queue+Monitor) stays
+> dormant. NOTE for a future emails cutover: it SENDS real mail — but is double-gated
+> (master switch `csm_remail_master` default off + dry-run `csm_remail_dryrun` default
+> on), and shares those option keys with the snippet, so cutover preserves the paused
+> state. Depends on `csm_profile_pending_label` (now provided by the cut-over Admin
+> module). Do it on a non-resource-constrained window with paced actions.
 
 > ⚠️ **ENVIRONMENT CHANGED: work on `staging2.cashaadi.in` now.** The old
 > `staging.cashaadi.in` was left in a broken 500 state (see INCIDENT below) and is
@@ -96,8 +126,10 @@
 >   (early-return) + is cron-driven, so the window is safe. Verified: `Sales Dashboard`
 >   admin page renders (542 users, full table), Profile column shows "Complete" (so
 >   csm_profile_pending_label works from the plugin → #11732 keeps working).
-> - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
->   emails (K), ca-verify (M), otp (N) remain to cut over.
+> - Emails (K) SKIPPED (see above; snippets left active). Everything else on staging2
+>   is still at baseline (plugin dormant, snippets on): ca-verify (M), otp (N) remain
+>   to cut over. (Also still on baseline: verification #11701/#11682, premium, photos'
+>   privacy resolver #11770 — not in the current cutover scope.)
 >
 > **⚠️ FileBrowser gotcha (2026-08-31):** the Hostinger File Manager (FileBrowser at
 > srv1946-files.hstgr.io) session EXPIRES; a Save after expiry silently redirects to
