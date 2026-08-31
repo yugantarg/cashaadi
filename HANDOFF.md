@@ -168,11 +168,26 @@
 >   send real SMS (cost/real numbers), and the owner had said "ignore the msg91 token".
 >   The verify widget needs `widgetId`+`tokenAuth`, so a creds-less cutover leaves the
 >   UI broken — hence full skip.
-> - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
->   **ca-verify (M)** remains — but NOTE it has the SAME credential blocker: it needs
->   `CASHAADI_OPENAI_API_KEY` in wp-config (an API key the assistant can't enter; owner
->   must). (Also baseline, out of current scope: verification #11701/#11682, premium,
->   photos' privacy resolver #11770.)
+> - **ca-verify (M): PARTIALLY STARTED, PAUSED (2026-08-31).** Owner approved full
+>   cutover (cron ON). KEY IS ALREADY SOLVED: the OpenAI key is already saved in
+>   `csm_av_options` (CA Verify → Settings shows "A key is currently saved") → the
+>   plugin's `Secrets::openai_api_key()` reads it via the DB fallback, so **NO
+>   wp-config key needed** (the `CASHAADI_OPENAI_API_KEY` constant would only override
+>   it). Remaining steps (NOT done): disable snippets **#11815** (CA Document AI
+>   Verification, page 2) + **#12113** (CA Verify Auto-Check Cron; shows as "Untitled
+>   Snippet" on live but ID-matches the export's csm_avc cron — toggle by the ID 12113
+>   row, not the other "Untitled" #12119), then add `CASHAADI_CA_VERIFY_ENABLED`, then
+>   verify (queue renders + one manual "Check" = 1 OpenAI call). NOT function-defining
+>   (no redeclare) but snippet-first avoids double admin-menu/cron/OpenAI-calls/emails.
+>   BLOCKER: the **WPCode admin list/edit pages currently 503** ("temporarily busy")
+>   on this resource-tight host — the front-end is 100% healthy (all 200), it's only
+>   the heavy WPCode admin that's rejected. Retry when the host is calmer, or the owner
+>   disables #11815+#12113 via WPCode when it's responsive and the assistant adds the
+>   flag + verifies. COST/EMAIL note: enabling starts the `csm_avc_sweep_event` cron
+>   (OpenAI calls on pending members + auto-approve emails to cloned addresses) — owner
+>   accepted this; it already runs via the snippet, so cutover preserves it.
+> - Also baseline, out of current scope: verification #11701/#11682, photos' privacy
+>   resolver #11770.
 >
 > **⚠️ FileBrowser gotcha (2026-08-31):** the Hostinger File Manager (FileBrowser at
 > srv1946-files.hstgr.io) session EXPIRES; a Save after expiry silently redirects to
