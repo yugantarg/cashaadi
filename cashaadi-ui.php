@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.26.0
+ * Version:           0.27.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -38,12 +38,13 @@ use CAShaadi\Modules\CaVerify\CaCron;
 use CAShaadi\Modules\Otp\Otp;
 use CAShaadi\Modules\ProfileTools\ProfileTools;
 use CAShaadi\Modules\Signup\Signup;
+use CAShaadi\Modules\Settings\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.26.0' );
+define( 'CASHAADI_UI_VER', '0.27.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -79,6 +80,15 @@ if ( class_exists( 'CAShaadi\\Modules\\Analytics\\Analytics' ) ) {
 // the focused wizard). Net-new, not a snippet migration.
 if ( class_exists( 'CAShaadi\\Modules\\AppShell\\AppShell' ) ) {
 	AppShell::register();
+}
+
+// Settings screen — the app-style grouped settings hub from the approved design
+// (Account / Privacy & photos / Account status, then Log out + Delete account).
+// Net-new UI, so ungated — but it only ADDS markup on the member's own settings
+// screen and is shown on mobile only; it saves nothing and every row points at
+// an existing verified screen, so it cannot strand anyone.
+if ( class_exists( 'CAShaadi\\Modules\\Settings\\Settings' ) ) {
+	Settings::register();
 }
 
 // Site-wide tweaks (noindex member pages, pricing redirect, support footer).
