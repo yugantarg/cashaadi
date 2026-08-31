@@ -17,12 +17,19 @@
 > wp_csm_profile_views (Migrator; tables pre-existed → dbDelta no-op). NOT function-
 > defining (shortcodes only); disabled-first was for double-injection (2 upgrade
 > buttons / 2 checkout guards / double view-log/email), not redeclare.
-> **CAVEATS (need a real free-vs-premium account, can't be done by the assistant):**
-> the add-to-cart guard behavior (block re-buy for premium / empty-cart for free),
-> the upgrade-button visibility (free vs premium), intent-lead capture (#11796), and
-> the profile-view email (#11821, admin-exempt so my testing sent none) are verbatim
-> migrations but were NOT exercised end-to-end. TEST the real upgrade/checkout flow
-> with a free test account before trusting Premium in production.
+> **FREE-vs-PREMIUM VERIFIED END-TO-END (2026-08-31)** via User Switching into the
+> owner's `yugantargupta+*@gmail.com` test accounts (free: Anshu Agarwal
+> `+anshu`; premium: Himani Sharma `+himani`), no purchase completed:
+>   | Feature | Free (Anshu) | Premium (Himani) |
+>   |---|---|---|
+>   | Upgrade button (#11579) | SHOWN on profile | HIDDEN ✓ |
+>   | Who-viewed-me (#11811) | locked teaser "4 members viewed…" + blurred rows + upgrade CTA | full list (empty state, no teaser) ✓ |
+>   | Checkout guard (#11795) | allowed to add Premium (₹1,499) → reached Checkout ✓ | bounced away from `/checkout/?add-to-cart=…` back to profile (can't re-buy) ✓ |
+>   | Discover quota | (free 5/wk) | 10/wk Premium ✓ |
+>   | Intent lead (#11796) | recorded on the free add-to-cart; admin submenu Users→Intent Leads present ✓ | — |
+> Profile-view email (#11821) is admin-exempt (no test emails sent) and was not
+> force-triggered. NOTE: a Premium product is left in Anshu's cart from the test
+> (harmless — no payment). Premium is fully validated; nothing outstanding.
 
 > ⚠️ **INCIDENT + RESOURCE LIMIT (2026-08-31) — READ BEFORE TOUCHING WPCODE ADMIN.**
 > During the Emails (K) cutover, repeatedly loading the WPCode snippets-list page
