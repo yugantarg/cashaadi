@@ -1,6 +1,18 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-31 — 7 modules cut over on staging2 (incl. Premium); Emails+OTP SKIPPED; PHP-FPM outage recovered, v0.25.8)
+## CURRENT STATUS (updated 2026-08-31 — MIGRATION COMPLETE on staging2: 8 modules cut over; Emails+OTP intentionally skipped; v0.25.8)
+
+> ## 🏁 STAGING2 CUTOVER COMPLETE
+> **Cut over & verified (8):** discover, matches, block, signup, analytics, admin,
+> premium (free-vs-premium tested end-to-end), ca-verify. Plus earlier: photos,
+> profile-tools(#11812), and the always-on site/app-shell/field-logic bits.
+> **Intentionally skipped (2, still running on their WPCode snippets):** emails (K)
+> — #11732/#11733 active & paused; otp (N) — #11618 active (MSG91 creds are a
+> credential entry the assistant can't make).
+> **wp-config flags (8):** DISCOVER, MATCHES, BLOCK, SIGNUP, ANALYTICS, ADMIN,
+> PREMIUM, CA_VERIFY (all `true`, lines 4–11 of staging2 wp-config).
+> Next: production cutover — repeat snippet-disable + flags on live, in the same
+> safe order, ideally in a low-traffic window. Re-test premium checkout on prod.
 
 > ✅ **Premium DONE & verified (2026-08-31), v0.25.8.** Disabled 6 premium snippets
 > (paced, one WPCode page at a time — no 504 this time): **#11579** Upgrade button,
@@ -168,24 +180,26 @@
 >   send real SMS (cost/real numbers), and the owner had said "ignore the msg91 token".
 >   The verify widget needs `widgetId`+`tokenAuth`, so a creds-less cutover leaves the
 >   UI broken — hence full skip.
-> - **ca-verify (M): PARTIALLY STARTED, PAUSED (2026-08-31).** Owner approved full
->   cutover (cron ON). KEY IS ALREADY SOLVED: the OpenAI key is already saved in
->   `csm_av_options` (CA Verify → Settings shows "A key is currently saved") → the
->   plugin's `Secrets::openai_api_key()` reads it via the DB fallback, so **NO
->   wp-config key needed** (the `CASHAADI_OPENAI_API_KEY` constant would only override
->   it). Remaining steps (NOT done): disable snippets **#11815** (CA Document AI
->   Verification, page 2) + **#12113** (CA Verify Auto-Check Cron; shows as "Untitled
->   Snippet" on live but ID-matches the export's csm_avc cron — toggle by the ID 12113
->   row, not the other "Untitled" #12119), then add `CASHAADI_CA_VERIFY_ENABLED`, then
->   verify (queue renders + one manual "Check" = 1 OpenAI call). NOT function-defining
->   (no redeclare) but snippet-first avoids double admin-menu/cron/OpenAI-calls/emails.
->   BLOCKER: the **WPCode admin list/edit pages currently 503** ("temporarily busy")
->   on this resource-tight host — the front-end is 100% healthy (all 200), it's only
->   the heavy WPCode admin that's rejected. Retry when the host is calmer, or the owner
->   disables #11815+#12113 via WPCode when it's responsive and the assistant adds the
->   flag + verifies. COST/EMAIL note: enabling starts the `csm_avc_sweep_event` cron
->   (OpenAI calls on pending members + auto-approve emails to cloned addresses) — owner
->   accepted this; it already runs via the snippet, so cutover preserves it.
+> - ✅ **ca-verify (M) DONE & verified (2026-08-31), v0.25.8 — FINAL MODULE.** No
+>   wp-config key needed: the OpenAI key was already saved in `csm_av_options` (CA
+>   Verify → Settings: "A key is currently saved") and `Secrets::openai_api_key()`
+>   reads it via the DB fallback (the `CASHAADI_OPENAI_API_KEY` constant would only
+>   override it). Disabled snippets **#11815** (CA Document AI Verification, page 1)
+>   + **#12113** (CA Verify Auto-Check Cron — displays as "Untitled Snippet"; the
+>   csm_avc one is ID **12113**, NOT the other "Untitled" **#12119**, which is the
+>   photo/NSFW moderation snippet and was left ON). Then added
+>   `CASHAADI_CA_VERIFY_ENABLED` → notice shows 8 flags. Verified: **CA Verify → Queue
+>   renders from the plugin** (148 members with ICAI docs, existing AI
+>   statuses/results intact from shared user-meta, Run AI check / Approve / Reject
+>   actions present); Settings page reads the saved key. Owner accepted the cron
+>   (`csm_avc_sweep_event`: OpenAI calls on pending members + auto-approve emails) —
+>   it already ran via the snippet, so cutover preserves that behaviour. I did NOT
+>   fire a manual "Run AI check" (would spend OpenAI credit); the queue + stored
+>   results confirm the engine wiring.
+>   **⚠️ FileBrowser save can 403:** the first save attempt was silently rejected with
+>   a **403 Forbidden** toast (expired session) — the flag never landed and the
+>   plugins-notice still showed 7 flags. Fix: open a FRESH File Manager session from
+>   hPanel, re-edit, save with **Ctrl+S**, then ALWAYS re-check the plugins-page notice.
 > - Also baseline, out of current scope: verification #11701/#11682, photos' privacy
 >   resolver #11770.
 >
