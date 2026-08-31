@@ -21,15 +21,26 @@ Approved design reference: the "CAShaadi Member Area" canvas (7 mobile screens).
     It is currently the only route to Edit + Change Photo. The design replaces it
     with the Profile section rows ("About & Basics / Professional / Family &
     Lifestyle") and a Photos "Edit" link → build those (Phase 2) *then* hide it.
-  - ⛔ **Rest of the theme header still shown — BLOCKED.** `.bp-user` account
-    menu is the only route to **Log Out** (and Home/About/Pricing). The design
-    puts Log out + Delete account on the Settings screen → build that (Phase 2)
-    *then* the theme header can go on member screens.
+  - 🔓 **Rest of the theme header — UNBLOCKED (v0.27.x).** `.bp-user` was the only
+    route to **Log Out**; the new Settings hub now carries Log out, so the theme
+    header can be hidden on member screens. Remaining check before doing it:
+    Home / About Us / Pricing also live in that menu — decide whether members
+    still need them from inside the app (the design shows no site header).
 - ✅ `assets/css/app-shell.css`. Mobile-first.
 - ⛔ Desktop: shell is mobile-only (`<=782px`); hiding chrome on desktop needs a
   desktop nav first, otherwise desktop members are stranded.
 
-## Phase 2 — Profile (own) + Settings
+## Phase 2 — Profile (own) + Settings  🔶 partial
+- ✅ **Settings hub (v0.27.x)** — the design's grouped list (Account / Privacy &
+  photos / Account status) + Log out + Delete my account, on the member's own
+  settings screen, mobile only. Replaces the `#subnav` tab strip there (every
+  sub-screen it hid is reachable from a row). Delete row is gated on
+  `bp_disable_account_deletion()` — the route 200s but renders no delete UI when
+  deletion is disabled.
+- ⬜ Profile front: section rows (About & Basics / Professional / Family &
+  Lifestyle) + Photos "Edit" — needed before `#subnav` can go on the Profile
+  screen. Completion ring/progress is a **product decision** (owner retired the
+  old #11560 meter; the design shows an 80% ring + "N steps left").
 - Restyle member front: completion ring, verified badge, rtMedia photo grid,
   section status, entries to wizard + settings.
 - Settings grouped list; Delete-account (native), Membership/Billing → PMPro.
