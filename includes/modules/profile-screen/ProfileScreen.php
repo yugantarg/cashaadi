@@ -81,19 +81,43 @@ final class ProfileScreen {
 	}
 
 	/**
-	 * Required fields still empty in one xProfile group.
+	 * How many fields are still outstanding in one xProfile group.
+	 *
+	 * Only three of this site's seven groups actually carry required fields
+	 * (verified on staging2: Basic Details, Professional details, Community).
+	 * Counting *required*-empty alone would therefore report "Complete" for
+	 * Lifestyle, Family Details, Hobbies and Verification even when the member
+	 * has filled in nothing at all — worse than useless, because it tells them
+	 * there is nothing left to do.
+	 *
+	 * So:
+	 *   - group HAS required fields → count required-but-empty (the real blockers
+	 *     the onboarding wizard enforces)
+	 *   - group has NONE            → count empty fields across the group, so the
+	 *     row still reflects genuine progress
 	 *
 	 * @param  object $group A group from bp_xprofile_get_groups( fetch_fields ).
 	 * @param  int    $uid   User id.
-	 * @return int            Count of required-but-empty fields.
+	 * @return int           Count of outstanding fields (0 = complete).
 	 */
 	private static function missing_in_group( $group, $uid ) {
 		if ( empty( $group->fields ) || ! function_exists( 'xprofile_get_field_data' ) ) {
 			return 0;
 		}
+
+		$has_required = false;
+		foreach ( $group->fields as $field ) {
+			if ( ! empty( $field->is_required ) ) {
+				$has_required = true;
+				break;
+			}
+		}
+
 		$missing = 0;
 		foreach ( $group->fields as $field ) {
-			if ( empty( $field->is_required ) ) {
+			// When the group defines required fields, only those count as
+			// outstanding; otherwise every empty field does.
+			if ( $has_required && empty( $field->is_required ) ) {
 				continue;
 			}
 			$val = xprofile_get_field_data( $field->id, $uid );
