@@ -20,6 +20,19 @@
 	   #subnav (in-section tabs like View/Edit) is intentionally kept. */
 	body.csm-has-appnav #buddypress #object-nav { display: none !important; }
 
+	/* ---- BuddyX header chrome: drop what the app shell now duplicates ----
+	   On a member screen the theme header repeats navigation we already provide:
+	   `.buddypress-icons-wrapper` holds the messages icon (→ our bottom-nav
+	   "Messages") and the notifications bell (→ our top-bar bell). Showing both
+	   is the "half-migrated" double nav.
+
+	   DELIBERATELY KEPT: the site logo, the `.bp-user` account menu and the
+	   mobile menu toggle — the account menu is currently the ONLY route to
+	   **Log Out** (and to Home/About/Pricing). The approved design moves Log Out
+	   onto the Settings screen; once that screen exists the rest of the theme
+	   header can go too. Until then, hiding it would strand members. */
+	body.csm-has-appnav #masthead .buddypress-icons-wrapper { display: none !important; }
+
 	/* Messages (Better Messages) is a full chat app — hide the redundant profile
 	   card + completion meter above it so it reads as a focused, full-width chat
 	   under our top bar + bottom nav. We don't override Better Messages' own UI.
