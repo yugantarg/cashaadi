@@ -1,0 +1,174 @@
+<?php
+/**
+ * Profile screen — the design's profile section rows.
+ *
+ * The approved design replaces BuddyPress's "View / Edit / Change Profile Photo"
+ * tab strip on the member's own profile with a list of profile sections, each
+ * showing its completion state and opening the matching editor:
+ *
+ *     About & Basics          Complete
+ *     Professional            Complete
+ *     Family & Lifestyle      2 left
+ *
+ * The mock showed three illustrative rows; this renders the SEVEN real xProfile
+ * groups in Config::GROUP_ORDER (Basic Details, Professional details, Community,
+ * Lifestyle and Habits, Family Details, Hobbies and Interests, Verification), so
+ * the screen always matches the site's actual field structure.
+ *
+ * Status is derived from REQUIRED fields only — "N left" is the number of
+ * required fields still empty in that group, which is the same notion of
+ * "steps left" the onboarding wizard enforces. Groups with nothing outstanding
+ * read "Complete".
+ *
+ * Conservative by construction, like the Settings hub:
+ *   - renders markup only; saves nothing, changes no field logic
+ *   - mobile only (<= 782px), where the app shell lives — desktop keeps the
+ *     stock BuddyPress profile untouched
+ *   - every row links to /profile/edit/group/{id}/, a real BuddyPress screen
+ *
+ * Because the rows cover Edit, and the photo gallery already links to
+ * /profile/change-avatar/ ("Add or remove photos"), the #subnav strip on this
+ * screen can be hidden without losing a route.
+ */
+
+namespace CAShaadi\Modules\ProfileScreen;
+
+use CAShaadi\Core\Assets;
+use CAShaadi\Core\Config;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+final class ProfileScreen {
+
+	public static function register() {
+		// After the member header (and after the photo gallery, which uses the
+		// default priority on this same hook).
+		add_action( 'bp_after_member_header', array( __CLASS__, 'render' ), 30 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 23 );
+		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
+	}
+
+	/**
+	 * The member's OWN profile *view* screen — never someone else's, and not the
+	 * edit / change-avatar / change-cover sub-screens (those are the editors the
+	 * rows point at).
+	 */
+	private static function is_here() {
+		if ( ! function_exists( 'bp_is_user_profile' ) || ! function_exists( 'bp_is_my_profile' ) ) {
+			return false;
+		}
+		if ( ! bp_is_user_profile() || ! bp_is_my_profile() ) {
+			return false;
+		}
+		$action = function_exists( 'bp_current_action' ) ? (string) bp_current_action() : '';
+		return in_array( $action, array( '', 'public' ), true );
+	}
+
+	public static function body_class( $classes ) {
+		if ( self::is_here() ) {
+			$classes[] = 'csm-prof-screen';
+		}
+		return $classes;
+	}
+
+	public static function assets() {
+		if ( ! self::is_here() ) {
+			return;
+		}
+		Assets::style( 'profile-sections', 'assets/css/profile-sections.css' );
+	}
+
+	/**
+	 * Required fields still empty in one xProfile group.
+	 *
+	 * @param  object $group A group from bp_xprofile_get_groups( fetch_fields ).
+	 * @param  int    $uid   User id.
+	 * @return int            Count of required-but-empty fields.
+	 */
+	private static function missing_in_group( $group, $uid ) {
+		if ( empty( $group->fields ) || ! function_exists( 'xprofile_get_field_data' ) ) {
+			return 0;
+		}
+		$missing = 0;
+		foreach ( $group->fields as $field ) {
+			if ( empty( $field->is_required ) ) {
+				continue;
+			}
+			$val = xprofile_get_field_data( $field->id, $uid );
+			if ( is_array( $val ) ) {
+				$val = implode( '', $val );
+			}
+			if ( '' === trim( (string) $val ) ) {
+				$missing++;
+			}
+		}
+		return $missing;
+	}
+
+	public static function render() {
+		if ( ! self::is_here() ) {
+			return;
+		}
+		if ( ! function_exists( 'bp_xprofile_get_groups' ) || ! function_exists( 'bp_loggedin_user_url' ) ) {
+			return;
+		}
+
+		$uid = get_current_user_id();
+		if ( ! $uid ) {
+			return;
+		}
+
+		$groups = bp_xprofile_get_groups( array( 'fetch_fields' => true ) );
+		if ( empty( $groups ) ) {
+			return;
+		}
+
+		// Index by id so we can present them in the site's canonical order.
+		$by_id = array();
+		foreach ( $groups as $g ) {
+			$by_id[ (int) $g->id ] = $g;
+		}
+
+		$order = Config::GROUP_ORDER;
+		foreach ( array_keys( $by_id ) as $gid ) {
+			if ( ! in_array( $gid, $order, true ) ) {
+				$order[] = $gid; // any group not in the canonical list still shows
+			}
+		}
+
+		$base = trailingslashit( bp_loggedin_user_url() );
+
+		echo '<section class="csm-sec" aria-label="' . esc_attr__( 'Profile sections', 'cashaadi-ui' ) . '">';
+		echo '<h3 class="csm-sec-h">' . esc_html__( 'Your profile', 'cashaadi-ui' ) . '</h3>';
+		echo '<ul class="csm-sec-list">';
+
+		foreach ( $order as $gid ) {
+			$gid = (int) $gid;
+			if ( empty( $by_id[ $gid ] ) ) {
+				continue;
+			}
+			$group   = $by_id[ $gid ];
+			$missing = self::missing_in_group( $group, $uid );
+
+			echo '<li class="csm-sec-row">';
+			echo '<a href="' . esc_url( $base . 'profile/edit/group/' . $gid . '/' ) . '">';
+			echo '<span class="csm-sec-label">' . esc_html( $group->name ) . '</span>';
+			if ( $missing > 0 ) {
+				echo '<span class="csm-sec-state is-todo">'
+					/* translators: %d: number of required fields still empty. */
+					. esc_html( sprintf( _n( '%d left', '%d left', $missing, 'cashaadi-ui' ), $missing ) )
+					. '</span>';
+			} else {
+				echo '<span class="csm-sec-state is-done">' . esc_html__( 'Complete', 'cashaadi-ui' ) . '</span>';
+			}
+			echo '<span class="csm-sec-chev" aria-hidden="true">'
+				. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
+				. '</span>';
+			echo '</a></li>';
+		}
+
+		echo '</ul></section>';
+	}
+}

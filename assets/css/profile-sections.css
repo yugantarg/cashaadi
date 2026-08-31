@@ -1,0 +1,85 @@
+/* ==========================================================================
+   CAShaadi UI — Profile section rows
+   --------------------------------------------------------------------------
+   The design's profile section list: one row per xProfile group with a
+   completion state (green "Complete" / amber "N left") opening that group's
+   editor.
+
+   Mobile-only (<= 782px), matching the app shell. On desktop the stock
+   BuddyPress profile renders unchanged until a desktop layout exists.
+   ========================================================================== */
+
+.csm-sec { display: none; }
+
+@media (max-width: 782px) {
+
+	.csm-sec {
+		display: block;
+		margin: 18px 0 4px;
+		font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	}
+
+	/* The rows cover Edit, and the photo gallery links to change-avatar, so the
+	   View / Edit / Change Profile Photo strip is redundant here. */
+	body.csm-prof-screen #buddypress #subnav { display: none !important; }
+
+	.csm-sec-h {
+		margin: 0 4px 10px;
+		font-family: var(--csm-serif, Georgia, serif);
+		font-size: 19px;
+		font-weight: 500;
+		letter-spacing: -.01em;
+		color: var(--csm-ink, #16212b);
+	}
+
+	.csm-sec-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		background: var(--csm-surface, #fff);
+		border: 1px solid var(--csm-hair, #e4eaf0);
+		border-radius: 14px;
+		overflow: hidden;
+	}
+
+	.csm-sec-row + .csm-sec-row { border-top: 1px solid var(--csm-hair, #e4eaf0); }
+
+	.csm-sec-row > a {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 52px;
+		padding: 12px 14px;
+		text-decoration: none;
+		color: var(--csm-ink, #16212b);
+		-webkit-tap-highlight-color: transparent;
+	}
+	.csm-sec-row > a:active { background: var(--csm-blue-tint, #e9f1f8); }
+
+	.csm-sec-label {
+		flex: 1 1 auto;
+		min-width: 0;
+		font-size: 15px;
+		font-weight: 500;
+		line-height: 1.3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.csm-sec-state {
+		flex: 0 0 auto;
+		font-size: 13px;
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.csm-sec-state.is-done { color: var(--csm-green, #6f9f2e); }
+	.csm-sec-state.is-todo { color: #b8791b; }
+
+	.csm-sec-chev {
+		flex: 0 0 auto;
+		display: inline-flex;
+		color: var(--csm-faint, #93a2ae);
+	}
+	.csm-sec-chev svg { width: 17px; height: 17px; display: block; }
+}
