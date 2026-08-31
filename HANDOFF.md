@@ -126,10 +126,24 @@
 >   (early-return) + is cron-driven, so the window is safe. Verified: `Sales Dashboard`
 >   admin page renders (542 users, full table), Profile column shows "Complete" (so
 >   csm_profile_pending_label works from the plugin → #11732 keeps working).
-> - Emails (K) SKIPPED (see above; snippets left active). Everything else on staging2
->   is still at baseline (plugin dormant, snippets on): ca-verify (M), otp (N) remain
->   to cut over. (Also still on baseline: verification #11701/#11682, premium, photos'
->   privacy resolver #11770 — not in the current cutover scope.)
+> - Emails (K) SKIPPED (see above; snippets left active).
+> - **OTP (N) SKIPPED (owner decision 2026-08-31).** Nothing changed — snippet
+>   **#11618 left active** (never toggled today), no `CASHAADI_OTP_ENABLED`, no MSG91
+>   constants. OTP still works via the snippet. WHY skipped: OTP is function-defining
+>   (#11618 defines `csm_get_user_phone`/`csm_phone_is_verified` UNGUARDED → snippets-
+>   first mandatory; all external callers #11620/#11688 are guarded so the window is
+>   safe), BUT completing it requires adding **MSG91 API keys/tokens** to wp-config
+>   (`CASHAADI_MSG91_AUTHKEY`/`_WIDGET_ID`/`_TOKEN_AUTH` — the plugin's `Secrets` does
+>   NOT read the bare `MSG91_AUTHKEY` on line 2), which is a credential entry the
+>   assistant is not permitted to do — the owner must add those. Also live OTP can
+>   send real SMS (cost/real numbers), and the owner had said "ignore the msg91 token".
+>   The verify widget needs `widgetId`+`tokenAuth`, so a creds-less cutover leaves the
+>   UI broken — hence full skip.
+> - Everything else on staging2 is still at baseline (plugin dormant, snippets on):
+>   **ca-verify (M)** remains — but NOTE it has the SAME credential blocker: it needs
+>   `CASHAADI_OPENAI_API_KEY` in wp-config (an API key the assistant can't enter; owner
+>   must). (Also baseline, out of current scope: verification #11701/#11682, premium,
+>   photos' privacy resolver #11770.)
 >
 > **⚠️ FileBrowser gotcha (2026-08-31):** the Hostinger File Manager (FileBrowser at
 > srv1946-files.hstgr.io) session EXPIRES; a Save after expiry silently redirects to
