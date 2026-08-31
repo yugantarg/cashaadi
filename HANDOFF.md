@@ -1,6 +1,28 @@
 # CAShaadi UI — Handoff for local Claude Code
 
-## CURRENT STATUS (updated 2026-08-31 — 6 modules cut over on staging2; Emails SKIPPED; PHP-FPM outage recovered, v0.25.8)
+## CURRENT STATUS (updated 2026-08-31 — 7 modules cut over on staging2 (incl. Premium); Emails+OTP SKIPPED; PHP-FPM outage recovered, v0.25.8)
+
+> ✅ **Premium DONE & verified (2026-08-31), v0.25.8.** Disabled 6 premium snippets
+> (paced, one WPCode page at a time — no 504 this time): **#11579** Upgrade button,
+> **#11795** Checkout Hygiene, **#11796** Intent Leads, **#11807** Rejection Visibility
+> & Profile Insights, **#11811** Profile Visitors (who-viewed-me), **#11821** Profile-
+> View Email. (#11801 Partner Search was already inactive; #11614/#11620 already
+> retired.) Then added `CASHAADI_PREMIUM_ENABLED` to wp-config (via a FRESH File
+> Manager session — the token expires; re-open from hPanel). Notice now shows 7 flags:
+> analytics, premium, discover, matches, block, admin, signup. Verified: site healthy
+> (all 200); **who-viewed-me "Profile visitors" panel renders from the plugin**
+> (`/matches/visitors/`, `pv_subnav`+`pv_shortcode`); commerce pages (pricing / cart /
+> checkout / shop) all 200 — the `bounce_premium`/`guard_add_to_cart` checkout hooks
+> did not break the upgrade path. Premium owns wp_csm_intent + wp_csm_rejections +
+> wp_csm_profile_views (Migrator; tables pre-existed → dbDelta no-op). NOT function-
+> defining (shortcodes only); disabled-first was for double-injection (2 upgrade
+> buttons / 2 checkout guards / double view-log/email), not redeclare.
+> **CAVEATS (need a real free-vs-premium account, can't be done by the assistant):**
+> the add-to-cart guard behavior (block re-buy for premium / empty-cart for free),
+> the upgrade-button visibility (free vs premium), intent-lead capture (#11796), and
+> the profile-view email (#11821, admin-exempt so my testing sent none) are verbatim
+> migrations but were NOT exercised end-to-end. TEST the real upgrade/checkout flow
+> with a free test account before trusting Premium in production.
 
 > ⚠️ **INCIDENT + RESOURCE LIMIT (2026-08-31) — READ BEFORE TOUCHING WPCODE ADMIN.**
 > During the Emails (K) cutover, repeatedly loading the WPCode snippets-list page
