@@ -17,15 +17,15 @@ Approved design reference: the "CAShaadi Member Area" canvas (7 mobile screens).
   - ✅ `#object-nav` (vertical section nav) hidden on mobile.
   - ✅ v0.26.0 — `.buddypress-icons-wrapper` (theme header's duplicate messages
     icon + notifications bell) hidden on mobile member screens.
-  - ⛔ **`#subnav` (View / Edit / Change Profile Photo) still shown — BLOCKED.**
-    It is currently the only route to Edit + Change Photo. The design replaces it
-    with the Profile section rows ("About & Basics / Professional / Family &
-    Lifestyle") and a Photos "Edit" link → build those (Phase 2) *then* hide it.
-  - 🔓 **Rest of the theme header — UNBLOCKED (v0.27.x).** `.bp-user` was the only
-    route to **Log Out**; the new Settings hub now carries Log out, so the theme
-    header can be hidden on member screens. Remaining check before doing it:
-    Home / About Us / Pricing also live in that menu — decide whether members
-    still need them from inside the app (the design shows no site header).
+  - ✅ **`#subnav` hidden (v0.28.0)** on the member's own Profile and on Settings.
+    Replaced, not covered: profile section rows cover Edit, the gallery's "Add or
+    remove photos" covers Change Photo, and the Settings hub covers every
+    settings tab.
+  - ✅ **Theme header removed (v0.28.0)** — `#masthead` hidden on member screens.
+    Log Out lives in the Settings hub, messages/bell in the app shell, and the
+    owner confirmed Home / About Us / Pricing are intentionally dropped from the
+    member area. `#masthead` is position:static with no compensating padding, so
+    it collapses with no layout gap; marketing pages keep their header.
 - ✅ `assets/css/app-shell.css`. Mobile-first.
 - ⛔ Desktop: shell is mobile-only (`<=782px`); hiding chrome on desktop needs a
   desktop nav first, otherwise desktop members are stranded.
@@ -37,10 +37,15 @@ Approved design reference: the "CAShaadi Member Area" canvas (7 mobile screens).
   sub-screen it hid is reachable from a row). Delete row is gated on
   `bp_disable_account_deletion()` — the route 200s but renders no delete UI when
   deletion is disabled.
-- ⬜ Profile front: section rows (About & Basics / Professional / Family &
-  Lifestyle) + Photos "Edit" — needed before `#subnav` can go on the Profile
-  screen. Completion ring/progress is a **product decision** (owner retired the
-  old #11560 meter; the design shows an 80% ring + "N steps left").
+- ✅ **Profile section rows (v0.28.x)** — one row per real xProfile group in
+  `Config::GROUP_ORDER` with a completion state, each opening
+  `/profile/edit/group/{id}/`. Status logic: groups WITH required fields count
+  required-but-empty; the four groups with none (Lifestyle, Family Details,
+  Hobbies, Verification) count empty fields instead — otherwise they always read
+  "Complete" even when empty.
+- ⬜ Still open: avatar completion ring + "Finish your profile — N steps left"
+  CTA. **Product decision** — owner retired the old #11560 percentage meter; the
+  design shows an 80% ring. The section rows now carry the same information.
 - Restyle member front: completion ring, verified badge, rtMedia photo grid,
   section status, entries to wizard + settings.
 - Settings grouped list; Delete-account (native), Membership/Billing → PMPro.
