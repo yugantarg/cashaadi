@@ -106,7 +106,15 @@ final class Premium {
 	}
 
 	/** Visitor rows for $uid (newest first), blocked users + admins excluded. */
-	private static function pv_rows( $uid, $limit = 200 ) {
+	/**
+	 * Profile-view rows for a member, newest first.
+	 *
+	 * Public so the Requests screen's REST endpoint can reuse it rather than
+	 * re-querying the table and inventing a second definition of "who viewed me".
+	 * Callers MUST apply the premium gate themselves — these rows carry real
+	 * viewer ids, and a free member must never receive them.
+	 */
+	public static function pv_rows( $uid, $limit = 200 ) {
 		global $wpdb;
 		$t = self::pv_view_table();
 		// The table is owned by #11807; guard in case it isn't present.

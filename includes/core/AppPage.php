@@ -37,7 +37,6 @@ final class AppPage {
 			? trailingslashit( bp_members_get_user_url( get_current_user_id() ) )
 			: home_url( '/' );
 
-		$friends  = function_exists( 'bp_get_friends_slug' ) ? bp_get_friends_slug() : 'friends';
 		$messages = function_exists( 'bp_get_messages_slug' ) ? bp_get_messages_slug() : 'messages';
 
 		return array(
@@ -48,7 +47,13 @@ final class AppPage {
 			),
 			'requests' => array(
 				'label' => __( 'Requests', 'cashaadi-ui' ),
-				'url'   => $me . $friends . '/requests/',
+				/*
+				 * Our own /requests/ route, not BuddyPress's member sub-tab. The
+				 * screen consolidates three sources (received, sent, viewers) that
+				 * live in three different BuddyPress/Premium places, so there is no
+				 * single BP URL that shows it.
+				 */
+				'url'   => home_url( '/requests/' ),
 				'icon'  => '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"></path>',
 			),
 			'messages' => array(
