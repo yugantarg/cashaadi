@@ -456,9 +456,12 @@ body.csm-has-appnav #masthead .container {
 body.csm-has-appnav #masthead .custom-logo,
 body.csm-has-appnav #masthead .site-branding img { max-height: 34px; width: auto; }
 
-/* the hamburger is the "options" affordance — make sure it stays visible */
+/* the hamburger is the "options" affordance — make sure it stays visible.
+   NOT .buddyx-mobile-icon: that element is `buddypress-icons-wrapper
+   buddyx-mobile-icon`, i.e. the duplicate Discover/mail/bell strip itself, so
+   forcing it visible here re-showed exactly what the rule above hides. The
+   actual hamburger is a separate .menu-toggle sibling. */
 body.csm-has-appnav #masthead .menu-toggle,
-body.csm-has-appnav #masthead .buddyx-mobile-icon,
 body.csm-has-appnav #masthead .mobile-toggle { display: flex !important; }
 
 /* ---- 2. footer: support email only ----
