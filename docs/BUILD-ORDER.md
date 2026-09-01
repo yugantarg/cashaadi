@@ -29,42 +29,46 @@ Retest end to end now that the blank-page bug and the missing resend are fixed:
 wrong code → inline error, digits retained → resend → new code → activation →
 lands in the app. Makes step 0's hotfix ready to ship.
 
-## 2 — Production cutover of the plugin **as it is**
+## 2 — `/welcome/`
 
-**Do not combine the migration with the redesign.**
+Per WELCOME-SPEC.md. Photo as step 1, no page loads, progress derived from the
+data, and — reported live 2026-09-01 — the member **stays** until photos and the
+mandatory fields are done. Also retires by construction:
 
-The plugin is currently a faithful reimplementation of the snippets — verified
-module by module on staging2, including free-vs-premium end to end. That
-equivalence is what makes cutover safe: anything that breaks is a migration bug
-with a known-good comparison. Once `/welcome/` is in the plugin, a production
-cutover is simultaneously a migration *and* an onboarding redesign, and a drop
-in signups becomes unattributable.
+* the dead Back button (three separate reports; one root cause, the wizard's
+  per-group form POSTs)
+* members reaching Discover with no photo and no details
 
-Also a hard prerequisite: `/welcome/` **is** the plugin, so it cannot exist on
-production until the plugin is installed there.
+## 3 — Conversion tracking
 
-Repeat the staging2 sequence — snippet-disable first for function-defining
-modules, then flags — in a low-traffic window. Re-test premium checkout on prod.
-
-## 3 — `/welcome/`
-
-Per WELCOME-SPEC.md. Highest-stakes funnel and the acute pain. Photo as step 1,
-no page loads, progress derived from the data.
-
-## 4 — Conversion tracking
-
-Ships **with** step 3, not after: the moment onboarding stops doing page loads,
+Ships **with** step 2, not after: the moment onboarding stops doing page loads,
 pageview-based conversions silently go to zero. GA4 + Google Ads + Meta events,
-fired from server-confirmed milestones, deduped per member. The Google Ads tag
-moves out of WPCode into the plugin here.
+fired from server-confirmed milestones, deduped per member.
 
-## 5 — Remaining screens, one at a time
+## 4 — Remaining screens, one at a time
 
 Discover (full scrollable profile card) → Requests (sent / received / viewers)
-→ Messages → Profile. Each ships independently.
+→ Messages → Profile. Each ships independently on staging2.
 
-Accepted cost: a transitional stretch where converted screens look new and the
-rest look old. Chosen over a big-bang cutover deliberately.
+## 5 — Production cutover — LAST, and only when everything is complete
+
+Owner, 2026-09-01: production is not touched until the rebuild is finished.
+
+The earlier plan put this second, arguing that a plugin which faithfully
+reimplements the snippets is the safest thing to cut over. That argument does
+not survive its own premise: "faithful" now means faithfully reproducing a
+funnel that lets members reach the app with no photo and no profile. Cutting
+over now would also mean cutting over **twice**, and the second time — carrying
+the redesign — is the risky one either way.
+
+So: one cutover, at the end, of the finished thing. Snippet-disable first for
+function-defining modules, then flags, in a low-traffic window. Re-test premium
+checkout on prod. The Google Ads tag moves out of WPCode into the plugin here.
+
+> **Step 0 is deliberately NOT part of this.** A broken activation email on
+> production is a live bug, not a migration, and its fix does not need the
+> plugin — the template-free code email can ship as a standalone WPCode snippet,
+> exactly like the Google Ads tag. Do not let it wait on the cutover.
 
 ## 6 — Blocked on credentials (owner adds to `wp-config.php`)
 
