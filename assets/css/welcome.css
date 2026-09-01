@@ -209,3 +209,7 @@
 	.csm-w-card { padding: 30px 28px 24px; }
 	.csm-w-q { font-size: 30px; }
 }
+
+/* advisory note under the photo picker (not an error) */
+.csm-w-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--csm-muted, #5c6a76); }
+.csm-w-note:empty { display: none; }

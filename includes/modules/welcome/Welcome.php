@@ -40,6 +40,16 @@ final class Welcome {
 	/** Marks the member as having finished onboarding (for conversion dedupe). */
 	const DONE_META = 'csm_welcome_done';
 
+	/**
+	 * Field ids pushed to the end of the flow, whatever order they sit in.
+	 *
+	 * Phone (277) is the highest-friction question in onboarding and was being
+	 * asked third — before the member has invested anything and is therefore
+	 * cheapest to lose. Asked last, the same question is answered by someone who
+	 * has already done the work (owner decision, 2026-09-01).
+	 */
+	const ASK_LAST = array( 277 );
+
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
@@ -108,6 +118,9 @@ final class Welcome {
 				'step'     => rest_url( 'csm/v1/welcome/step' ),
 				'complete' => rest_url( 'csm/v1/welcome/complete' ),
 				'avatar'   => rest_url( 'buddypress/v1/members/' . get_current_user_id() . '/avatar' ),
+				'minPhoto' => class_exists( '\\CAShaadi\\Modules\\Media\\MediaQuality' )
+					? \CAShaadi\Modules\Media\MediaQuality::min_dimensions()
+					: array( 'w' => 1080, 'h' => 1350 ),
 				'fallback' => function_exists( 'bp_members_get_user_url' )
 					? trailingslashit( bp_members_get_user_url( get_current_user_id() ) ) . 'profile/change-avatar/'
 					: '',
@@ -277,7 +290,23 @@ final class Welcome {
 			}
 		}
 
-		return $steps;
+		// Move the deferred questions to the end, preserving their relative order.
+		$deferred = array();
+		foreach ( $steps as $i => $s ) {
+			if ( 0 !== strpos( $s['key'], 'field_' ) ) {
+				continue;
+			}
+			$fid = (int) substr( $s['key'], strlen( 'field_' ) );
+			if ( in_array( $fid, self::ASK_LAST, true ) ) {
+				$deferred[] = $s;
+				unset( $steps[ $i ] );
+			}
+		}
+		if ( $deferred ) {
+			$steps = array_merge( array_values( $steps ), $deferred );
+		}
+
+		return array_values( $steps );
 	}
 
 	/**

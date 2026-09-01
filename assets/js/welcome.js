@@ -224,6 +224,10 @@
 		pick.appendChild( file );
 		wrap.appendChild( pick );
 
+		// Advisory, not an error — see the change handler below.
+		var note = el( 'p', 'csm-w-note' );
+		wrap.appendChild( note );
+
 		var uploaded = !! s.done;
 
 		file.addEventListener( 'change', function () {
@@ -236,14 +240,18 @@
 			ph.style.display = 'none';
 			uploaded = false;
 
-			/* Tell them the photo is too small BEFORE they wait for an upload to
-			   fail. BuddyPress requires 896x1024, which a cropped or screenshotted
-			   image can easily miss, and this is a step nobody can skip. */
+			/* Say so if the photo is small, but do not block on it — prepare()
+			   scales it up so BuddyPress accepts it. This is a note, not an error:
+			   a sharper photo is better, and they may have a better one to hand. */
 			var probe = new Image();
 			probe.onload = function () {
-				if ( probe.naturalWidth < 896 || probe.naturalHeight < 1024 ) {
-					err.textContent = 'That photo is a bit small (' + probe.naturalWidth + ' × '
-						+ probe.naturalHeight + '). Please pick one at least 896 × 1024 pixels.';
+				var minW = ( CFG.minPhoto && CFG.minPhoto.w ) || 1080;
+				var minH = ( CFG.minPhoto && CFG.minPhoto.h ) || 1350;
+				if ( probe.naturalWidth < minW || probe.naturalHeight < minH ) {
+					note.textContent = 'This photo is a little small, so it may look soft. '
+						+ 'A larger one will look sharper.';
+				} else {
+					note.textContent = '';
 				}
 			};
 			probe.src = url;
@@ -268,6 +276,46 @@
 			hasFile: function () { return !! ( file.files && file.files[0] ); },
 			alreadyDone: function () { return uploaded; },
 			file: function () { return file.files[0]; },
+			/**
+			 * What we actually upload.
+			 *
+			 * A photo that already clears BuddyPress's floor is sent BYTE FOR
+			 * BYTE — no canvas, no re-encode, so the only compression it ever
+			 * sees is the single resize BuddyPress does server-side.
+			 *
+			 * A photo below the floor would be rejected outright, and this is a
+			 * step nobody can skip, so it is scaled up to just clear it. That is
+			 * soft, and it is meant to be a last resort — but it displays at the
+			 * same size either way, and the alternative for that member is not
+			 * being able to finish signing up at all.
+			 */
+			prepare: function () {
+				var f = file.files[0];
+				var minW = ( CFG.minPhoto && CFG.minPhoto.w ) || 1080;
+				var minH = ( CFG.minPhoto && CFG.minPhoto.h ) || 1350;
+
+				return new Promise( function ( resolve ) {
+					var probe = new Image();
+					probe.onload = function () {
+						var w = probe.naturalWidth, h = probe.naturalHeight;
+						if ( w >= minW && h >= minH ) { return resolve( f ); }
+
+						var scale = Math.max( minW / w, minH / h );
+						var cv = document.createElement( 'canvas' );
+						cv.width  = Math.ceil( w * scale );
+						cv.height = Math.ceil( h * scale );
+						var ctx = cv.getContext( '2d' );
+						ctx.imageSmoothingEnabled = true;
+						ctx.imageSmoothingQuality = 'high';
+						ctx.drawImage( probe, 0, 0, cv.width, cv.height );
+						// 0.95 so our own re-encode costs as little as possible on
+						// top of the server-side one.
+						cv.toBlob( function ( b ) { resolve( b || f ); }, 'image/jpeg', 0.95 );
+					};
+					probe.onerror = function () { resolve( f ); };
+					probe.src = URL.createObjectURL( f );
+				} );
+			},
 			blur: function () { return cb.checked; },
 			markDone: function () { uploaded = true; },
 			showUploaded: function ( url ) {
@@ -303,8 +351,9 @@
 				return;
 			}
 
+			field.prepare().then( function ( upload ) {
 			var fd = new FormData();
-			fd.append( 'file', field.file() );
+			fd.append( 'file', upload, 'photo.jpg' );
 			/* Required by BuddyPress. Its endpoint hands the upload to
 			   wp_handle_upload(), which tests $_POST['action'] against the
 			   attachment's own action name and otherwise rejects the whole thing
@@ -329,6 +378,10 @@
 					return;
 				}
 				offerFallback( err, d );
+			} ).catch( function () {
+				done();
+				offerFallback( err, null );
+			} );
 			} ).catch( function () {
 				done();
 				offerFallback( err, null );
