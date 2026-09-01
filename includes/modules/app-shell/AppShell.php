@@ -53,15 +53,25 @@ final class AppShell {
 	/**
 	 * Back link on the focused profile-edit screens, so changing a section is not
 	 * a one-way trip.
+	 *
+	 * Returns to the /profile/ HUB, not the BuddyPress member page.
+	 *
+	 * The hub is where members arrive from — every "N left" row on it opens one
+	 * of these editors — so sending them to the BuddyPress page instead dropped
+	 * them out of the new app into the old design, on a screen they had not asked
+	 * for and could not get back from. These editors have no bottom nav either
+	 * (deliberately: they are a focused, one-thing-at-a-time screen), which made
+	 * this link the only way out.
 	 */
 	public static function render_back() {
 		if ( ! function_exists( 'bp_is_user_profile_edit' ) || ! bp_is_user_profile_edit() ) {
 			return;
 		}
-		$base = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : home_url( '/' );
+		$dest = class_exists( '\CAShaadi\Core\AppPage' ) ? \CAShaadi\Core\AppPage::nav() : array();
+		$back = isset( $dest['profile']['url'] ) ? $dest['profile']['url'] : home_url( '/profile/' );
 		printf(
 			'<a class="csm-back" href="%s">%s%s</a>',
-			esc_url( $base ),
+			esc_url( $back ),
 			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>',
 			esc_html__( 'Back to profile', 'cashaadi-ui' )
 		);
