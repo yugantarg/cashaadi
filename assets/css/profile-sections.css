@@ -83,3 +83,21 @@
 	}
 	.csm-sec-chev svg { width: 17px; height: 17px; display: block; }
 }
+
+/* ==========================================================================
+   Own profile: section rows replace the raw field dump (v0.36.1)
+   --------------------------------------------------------------------------
+   BuddyPress still rendered its "View Profile" heading and the full
+   .profile-fields table (536px of it) underneath our section rows — the exact
+   "old form" look the redesign is meant to remove. The rows already cover every
+   group and open the editor, so the table is duplicate, not lost.
+
+   Scoped to `csm-prof-screen` — the member's OWN profile — on purpose. On
+   SOMEONE ELSE'S profile those fields are the entire point: they are how you
+   evaluate a match, so they stay.
+   ========================================================================== */
+
+body.csm-prof-screen #buddypress .profile-fields,
+body.csm-prof-screen #buddypress table.profile-fields,
+body.csm-prof-screen #buddypress .screen-heading,
+body.csm-prof-screen #buddypress .bp-widget.base { display: none !important; }
