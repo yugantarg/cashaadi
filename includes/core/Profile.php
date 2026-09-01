@@ -122,8 +122,17 @@ final class Profile {
 				? bp_core_fetch_avatar( array( 'item_id' => $profile_id, 'type' => 'full', 'html' => false ) )
 				: get_avatar_url( $profile_id, array( 'size' => 600 ) ),
 			'url'      => function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $profile_id ) : '',
-			'verified' => class_exists( '\CAShaadi\Modules\Verification\Verification' )
-				&& \CAShaadi\Modules\Verification\Verification::ca_verified( $profile_id ),
+			/*
+			 * Core\Verification, not Modules\Verification.
+			 *
+			 * Both classes exist and are named the same. The module one is the
+			 * ICAI-document REST endpoint and has no ca_verified() at all, so
+			 * calling it there is a fatal error that class_exists() does NOT catch —
+			 * the class is present, the method simply is not. That took down the
+			 * whole Discover queue endpoint on first run.
+			 */
+			'verified' => method_exists( '\CAShaadi\Core\Verification', 'ca_verified' )
+				&& Verification::ca_verified( $profile_id ),
 			'groups'   => array(),
 		);
 
