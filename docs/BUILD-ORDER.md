@@ -239,3 +239,71 @@ runtime code).
   load-bearing while `CASHAADI_PHOTOS_ENABLED` is off. Flag first, then disable.
 * Profile-edit UX (#12124, #12119, #11844, #11629, #11641).
 * Reminder emails #11732/#11733 — paused by choice.
+
+---
+
+## Photos cutover — analysed, NOT executed (needs a wp-config edit)
+
+Eight snippets, all still active because `CASHAADI_PHOTOS_ENABLED` is off.
+
+### Plugin coverage
+
+| Snippet | Plugin equivalent |
+|---|---|
+| #11822 Member Photos (grid, upload/delete/main) | `Photos\Gallery` |
+| #11770 Private Photo (blur) | `Photos\Privacy` |
+| #11771 Photo Lightbox + Privacy Notice | `Photos\Gallery` lightbox |
+| #11798 Photo Request (Ask & Approve) | `Photos\PhotoRequest` |
+| #11813 Photo Resolution (HD Avatars) | `Media\MediaQuality` (already mirrored) |
+| #11838 Photos on Avatar Screen | `Photos\PhotoOnboarding` |
+| #11690 Photo Step Next Button | `PhotoOnboarding::render_next_button` |
+| #11861 Import Legacy Avatar | `Photos\LegacyImport` |
+
+### Order within the batch is NOT free
+
+Two hard dependencies, both on #11822:
+
+* **#11838** calls `csm_ph_uploader_html()`
+* **#11861** calls `csm_ph_get()`, `csm_ph_save()`, `CSM_PH_MAX`
+
+Disabling #11822 while either is active is a **fatal**. Disable #11838 and
+#11861 first, #11822 last.
+
+### Flag first, then disable — and why that reverses the usual rule
+
+The standing rule is snippet-first, because two copies of a *function* is a
+redeclare fatal. It does not apply here: the plugin's photo modules are
+class-based and define no global functions, so nothing can collide.
+
+They do register the same AJAX actions (`csm_ph_upload`, `csm_ph_delete`,
+`csm_ph_main`) and the same shortcodes. That is not double-processing either:
+those handlers end in `wp_send_json_*()`, which calls `wp_die()`, so the first
+callback to run terminates the request and the second never executes. The plugin
+registers at plugin-load, before WPCode's snippets, so the plugin's handler wins.
+
+What flag-first DOES cause is a brief window of **duplicated UI** — two photo
+grids, two privacy toggles — which is cosmetic and ends as soon as the snippets
+are switched off. Snippet-first would instead leave members with **no photo
+functionality at all** until the flag lands. Cosmetic beats broken.
+
+### Why it is not done yet
+
+`Config::photos_enabled()` is checked inside each module's `register()`, which
+runs at plugin load — so the constant must exist **before** the plugin file
+executes. wp-config or an mu-plugin; a WPCode snippet is too late.
+
+That edit sits in a Hostinger File Manager shared with **production**, and a
+wrong-folder edit there is a production outage. The staging2 file is
+`public_html/staging2/wp-config.php` — a previous flag edit went into
+`public_html/staging/` by mistake, and the flags silently never registered.
+
+**Line to add** (beside the existing eight flags):
+
+```php
+define( 'CASHAADI_PHOTOS_ENABLED', true );
+```
+
+**Verify before saving:** the file already contains the other `CASHAADI_*_ENABLED`
+flags. If it does not, it is the wrong wp-config — stop.
+
+Then disable, in order: #11690, #11798, #11771, #11813, #11838, #11861, #11822.
