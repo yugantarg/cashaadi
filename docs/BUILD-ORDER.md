@@ -342,3 +342,46 @@ profiles with real avatars; blur state preserved.
 
 Next candidates are the profile-edit UX group (#12124, #12119, #11844, #11629,
 #11641). Reminder emails #11732/#11733 stay by choice.
+
+---
+
+## Profile-edit snippets — DEFERRED, and why (2026-09-02)
+
+**Not retired. Retiring them would have removed the working half.**
+
+The five (#12124 reskin, #12119, #11844 Save & Next + Progress, #11629 Save &
+Next + Steps, #11641 mobile fixes) render the presentation that profile editing
+actually uses. The PLUGIN's contribution to that screen was
+`assets/js/profile-wizard.js` — whose own header reads:
+
+> Phase 3 (AJAX no-reload wizard) **[STAGING DRAFT]** … ⚠ NOT YET LIVE-TESTED
+
+with two `// VERIFY` markers still unresolved. It was enqueued and live anyway,
+and had taken the form over (verified: `data-csm-ajax="1"` on the edit form).
+
+### It was the cause of a bug reported three times
+
+"When the backend group changes I am not able to go back."
+
+Line 186 advanced groups with `history.replaceState()` instead of
+`pushState()`, so 1 → 2 → 3 **replaced** the single history entry each time and
+Back left profile-edit entirely. The identical defect `/welcome/` hit, where the
+fix was seeding real history entries.
+
+**v0.58.0 stops enqueuing it.** Not repaired, because the flow no longer wants
+it: `/welcome/` owns onboarding, and opening an editor from the `/profile/` hub
+means "change one section and come back" — the native form and the "Back to
+profile" link already do that. A no-reload chain through seven groups solves a
+problem this app no longer has.
+
+Verified after: no `profile-wizard.js`, form free of `data-csm-ajax`, step
+indicator and "Save & Next → Step 3 of 8" still rendered by the snippets, back
+link to `/profile/`, and **Back from group 7 returns to group 1** instead of
+exiting.
+
+The file remains in the repo. To resurrect it: fix the history handling and
+clear both `// VERIFY` markers first.
+
+### Snippet count unchanged at 18
+
+These five stay until a tested replacement exists.
