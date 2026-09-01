@@ -92,6 +92,102 @@ final class Profile {
 	}
 
 	/**
+	 * How much of a member's own profile is still outstanding, per group.
+	 *
+	 * Only three of this site's seven groups actually define required fields
+	 * (Basic Details, Professional details, Community). Counting required-empty
+	 * alone therefore reports "Complete" for Lifestyle, Family, Hobbies and
+	 * Verification even when the member has filled in nothing at all — worse than
+	 * useless, because it tells them there is nothing left to do. So:
+	 *
+	 *   - group HAS required fields → count required-but-empty (the real blockers,
+	 *     the same ones /welcome/ enforces)
+	 *   - group has NONE            → count every empty field, so the row still
+	 *     reflects genuine progress
+	 *
+	 * Shared by the Profile screen and the older BuddyPress-page renderer so the
+	 * headline count and the per-row counts cannot disagree.
+	 *
+	 * @return array{groups:array,outstanding:int,firstGap:int}
+	 */
+	public static function completion( $uid ) {
+		$out = array( 'groups' => array(), 'outstanding' => 0, 'firstGap' => 0 );
+
+		if ( ! function_exists( 'bp_xprofile_get_groups' ) ) {
+			return $out;
+		}
+		$groups = bp_xprofile_get_groups( array( 'fetch_fields' => true ) );
+		if ( empty( $groups ) ) {
+			return $out;
+		}
+
+		$by_id = array();
+		foreach ( $groups as $g ) {
+			$by_id[ (int) $g->id ] = $g;
+		}
+		$order = Config::GROUP_ORDER;
+		foreach ( array_keys( $by_id ) as $gid ) {
+			if ( ! in_array( $gid, $order, true ) ) {
+				$order[] = $gid;
+			}
+		}
+
+		foreach ( $order as $gid ) {
+			$gid = (int) $gid;
+			if ( empty( $by_id[ $gid ] ) ) {
+				continue;
+			}
+			$group   = $by_id[ $gid ];
+			$missing = self::missing_in_group( $group, $uid );
+
+			$out['groups'][] = array(
+				'id'      => $gid,
+				'name'    => (string) $group->name,
+				'missing' => $missing,
+			);
+
+			if ( $missing > 0 ) {
+				$out['outstanding'] += $missing;
+				if ( ! $out['firstGap'] ) {
+					$out['firstGap'] = $gid;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/** Outstanding fields in one group — see completion() for the rule. */
+	public static function missing_in_group( $group, $uid ) {
+		if ( empty( $group->fields ) || ! function_exists( 'xprofile_get_field_data' ) ) {
+			return 0;
+		}
+
+		$has_required = false;
+		foreach ( $group->fields as $field ) {
+			if ( ! empty( $field->is_required ) ) {
+				$has_required = true;
+				break;
+			}
+		}
+
+		$missing = 0;
+		foreach ( $group->fields as $field ) {
+			if ( $has_required && empty( $field->is_required ) ) {
+				continue;
+			}
+			$val = xprofile_get_field_data( $field->id, $uid );
+			if ( is_array( $val ) ) {
+				$val = implode( '', $val );
+			}
+			if ( '' === trim( (string) $val ) ) {
+				$missing++;
+			}
+		}
+		return $missing;
+	}
+
+	/**
 	 * The whole profile, grouped, ready to render.
 	 *
 	 * Hidden and empty fields are dropped, and a group with nothing left in it is

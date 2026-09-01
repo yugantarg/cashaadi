@@ -110,35 +110,16 @@ final class ProfileScreen {
 	 * @param  int    $uid   User id.
 	 * @return int           Count of outstanding fields (0 = complete).
 	 */
+	/**
+	 * Delegates to Core\Profile.
+	 *
+	 * The rule (required-empty where a group defines required fields, otherwise
+	 * every empty field) now lives in one place, shared with the /profile/ hub.
+	 * Two copies would eventually disagree, and the disagreement would show up as
+	 * a headline count that does not match the rows beneath it.
+	 */
 	private static function missing_in_group( $group, $uid ) {
-		if ( empty( $group->fields ) || ! function_exists( 'xprofile_get_field_data' ) ) {
-			return 0;
-		}
-
-		$has_required = false;
-		foreach ( $group->fields as $field ) {
-			if ( ! empty( $field->is_required ) ) {
-				$has_required = true;
-				break;
-			}
-		}
-
-		$missing = 0;
-		foreach ( $group->fields as $field ) {
-			// When the group defines required fields, only those count as
-			// outstanding; otherwise every empty field does.
-			if ( $has_required && empty( $field->is_required ) ) {
-				continue;
-			}
-			$val = xprofile_get_field_data( $field->id, $uid );
-			if ( is_array( $val ) ) {
-				$val = implode( '', $val );
-			}
-			if ( '' === trim( (string) $val ) ) {
-				$missing++;
-			}
-		}
-		return $missing;
+		return \CAShaadi\Core\Profile::missing_in_group( $group, $uid );
 	}
 
 	public static function render() {

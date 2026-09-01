@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.54.0
+ * Version:           0.55.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -46,12 +46,13 @@ use CAShaadi\Modules\Media\MediaQuality;
 use CAShaadi\Modules\Tracking\TrackingSettings;
 use CAShaadi\Modules\Discover\DiscoverScreen;
 use CAShaadi\Modules\Requests\RequestsScreen;
+use CAShaadi\Modules\ProfileScreen\ProfileApp;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.54.0' );
+define( 'CASHAADI_UI_VER', '0.55.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -143,6 +144,12 @@ if ( class_exists( 'CAShaadi\\Modules\\Discover\\DiscoverScreen' ) ) {
 // is premium-gated ON THE SERVER — free members are never sent an identity.
 if ( class_exists( 'CAShaadi\\Modules\\Requests\\RequestsScreen' ) ) {
 	RequestsScreen::register();
+}
+
+// Profile hub at /profile/ — completion first, editors and the public view
+// linked from it.
+if ( class_exists( 'CAShaadi\\Modules\\ProfileScreen\\ProfileApp' ) ) {
+	ProfileApp::register();
 }
 
 // Site-wide tweaks (noindex member pages, pricing redirect, support footer).
