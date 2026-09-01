@@ -42,7 +42,7 @@ custom screens must enforce.
   see my profile" in the hub, pointing at BuddyPress Profile Visibility, rather
   than being mixed into the profile editor.
 
-## Phase 1.5 — 4-digit email activation (NOT started)
+## Phase 1.5 — 4-digit email activation  ✅ built (v0.35.0), pending live test
 
 Replaces the emailed activation *link* with a 4-digit code entered on
 `/activate/`. Feasible, but it modifies the account-activation path, so it must
@@ -56,6 +56,32 @@ ship with these or not at all:
 * Keep `bp_core_activate_signup()` as the activation primitive — only the
   *credential* changes, not the activation logic or the auto-login that follows.
 * Provide a resend path, itself rate-limited.
+
+### Built — how it works
+`Modules\Signup\ActivationCode`. Code issued on `bp_core_signup_user`, injected
+into BuddyPress's **own** registration email via `bp_email_get_property`, entered
+on `/activate/` (rendered on `bp_before_activate_content`, confirmed live), then
+the signup's real `activation_key` is handed to `bp_core_activate_signup()` —
+activation logic unchanged, only the credential differs.
+
+**Fails safe:** the emailed link is never invalidated and BuddyPress's own form is
+untouched, so if the email filter or the render hook stops matching a future
+release the member is degraded to the link flow, never locked out.
+
+All the security requirements above are implemented, plus: attempts are burned
+BEFORE comparison (so dropping the connection cannot bypass the cap), the code is
+stored as an HMAC and compared with `hash_equals()`, and failures are uniform.
+
+**Verified so far:** form renders anonymously on `/activate/`; wrong code returns
+the uniform error, re-renders the form, and leaks nothing about whether the
+address exists; `/`, `/register/`, `/activate/` all 200.
+
+**Still to verify (needs the emailed code, owner-side):** that the code actually
+appears in the received email, and the happy path activates + auto-logs-in.
+Test address: `yugantargupta+Sakshi@gmail.com`.
+
+**⬜ Not built: resend.** Requesting a new code currently means signing up again.
+Worth adding before production.
 
 ## Phase 0 — Walking skeleton  ✅ (this commit)
 - Plugin scaffold + wizard JS migrated from WPCode #12132.
