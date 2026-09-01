@@ -89,16 +89,28 @@ final class Events {
 		return '' !== self::gads_id() || '' !== self::ga4_id() || '' !== self::meta_pixel();
 	}
 
-	/* ---- credentials: screen first, then the long-standing constants ---- */
+	/* ------------------------------------------------------- credentials ---- */
+
+	/*
+	 * NO FALLBACK TO Config::GADS_* HERE, DELIBERATELY.
+	 *
+	 * These first fell back to the hardcoded constants when the field was blank.
+	 * That made the settings screen lie: it says "leave a field empty to switch
+	 * that platform off", but an empty Google Ads field would still have fired
+	 * into the real live account — from staging, from a test signup, from
+	 * anywhere the switch was flipped. Empty now genuinely means off.
+	 *
+	 * The constants remain in Config as the values to paste into the screen, and
+	 * TrackingSettings::get() still honours a CASHAADI_GADS_ID constant in
+	 * wp-config for anyone who wants to pin it.
+	 */
 
 	public static function gads_id() {
-		$v = TrackingSettings::get( 'gads_id' );
-		return '' !== $v ? $v : (string) Config::GADS_CONVERSION_ID;
+		return TrackingSettings::get( 'gads_id' );
 	}
 
 	public static function gads_label() {
-		$v = TrackingSettings::get( 'gads_label' );
-		return '' !== $v ? $v : (string) Config::GADS_LEAD_LABEL;
+		return TrackingSettings::get( 'gads_label' );
 	}
 
 	public static function ga4_id() {
