@@ -49,9 +49,52 @@ final class MediaQuality {
 		add_filter( 'bp_core_avatar_thumb_width',  array( __CLASS__, 'thumb_w' ) );
 		add_filter( 'bp_core_avatar_thumb_height', array( __CLASS__, 'thumb_h' ) );
 
+		/*
+		 * The filters above are not sufficient on their own.
+		 *
+		 * Measured on staging2 after shipping them: an upload still came back
+		 * 896x1024. BuddyPress resolves these dimensions once into
+		 * buddypress()->avatar during setup, and parts of the upload path read
+		 * that object directly instead of calling the filtered accessors — so the
+		 * filter is honoured by some callers and bypassed by others.
+		 *
+		 * Setting the resolved globals too means every caller sees one number,
+		 * whichever route it takes. The filters stay for anything that reads them
+		 * before this runs.
+		 */
+		add_action( 'bp_setup_globals', array( __CLASS__, 'force_globals' ), 20 );
+
 		// Covers both the legacy hook and the one the modern image editors use.
 		add_filter( 'jpeg_quality', array( __CLASS__, 'quality' ), 20 );
 		add_filter( 'wp_editor_set_quality', array( __CLASS__, 'quality' ), 20 );
+	}
+
+	/** Overwrite the dimensions BuddyPress resolved during its own setup. */
+	public static function force_globals() {
+		if ( ! function_exists( 'buddypress' ) ) {
+			return;
+		}
+		$bp = buddypress();
+		if ( empty( $bp->avatar ) ) {
+			return;
+		}
+		if ( ! empty( $bp->avatar->full ) ) {
+			$bp->avatar->full->width  = self::FULL_W;
+			$bp->avatar->full->height = self::FULL_H;
+		}
+		if ( ! empty( $bp->avatar->thumb ) ) {
+			$bp->avatar->thumb->width  = self::THUMB_W;
+			$bp->avatar->thumb->height = self::THUMB_H;
+		}
+		/*
+		 * The original is what BuddyPress keeps before cropping. If it is smaller
+		 * than the full size we are now asking for, every upload gets shrunk on
+		 * the way in and then cannot fill the frame — so raise the ceiling to at
+		 * least match.
+		 */
+		if ( ! empty( $bp->avatar->original_max_width ) && $bp->avatar->original_max_width < self::FULL_W ) {
+			$bp->avatar->original_max_width = self::FULL_W;
+		}
 	}
 
 	public static function full_w() {
@@ -74,8 +117,21 @@ final class MediaQuality {
 		return self::QUALITY;
 	}
 
-	/** Exposed so the client knows the floor it has to clear. */
+	/**
+	 * The floor the client has to clear.
+	 *
+	 * Deliberately asks BuddyPress rather than returning our own constant: the
+	 * constant is what we REQUESTED, and BP_Attachment_Avatar::is_too_small()
+	 * measures against what BuddyPress actually uses. Reporting our own number
+	 * would hide any case where the filter did not take, and the client would
+	 * upscale to a size the server still rejects.
+	 */
 	public static function min_dimensions() {
-		return array( 'w' => self::FULL_W, 'h' => self::FULL_H );
+		$w = function_exists( 'bp_core_avatar_full_width' ) ? (int) bp_core_avatar_full_width() : 0;
+		$h = function_exists( 'bp_core_avatar_full_height' ) ? (int) bp_core_avatar_full_height() : 0;
+		return array(
+			'w' => $w > 0 ? $w : self::FULL_W,
+			'h' => $h > 0 ? $h : self::FULL_H,
+		);
 	}
 }
