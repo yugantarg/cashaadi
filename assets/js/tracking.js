@@ -79,6 +79,16 @@
 	/* --------------------------------------------------------- events ---- */
 
 	/**
+	 * Every GA4 call is scoped with send_to.
+	 *
+	 * Without it, gtag delivers an event to EVERY configured property. Site Kit
+	 * configures the live GA4 property on this site, so an unscoped event from
+	 * staging lands in production analytics no matter what ID is set here — which
+	 * is exactly what happened while testing this file on 2026-09-01. Scoping
+	 * means the configured ID is genuinely the only destination.
+	 */
+
+	/**
 	 * What each milestone means to each platform.
 	 *
 	 * The Google Ads conversion is attached to SIGNUP only — the account being
@@ -109,7 +119,14 @@
 
 		try {
 			if ( T.ga4Id && def.ga4 && typeof window.gtag === 'function' ) {
-				window.gtag( 'event', def.ga4.name, def.ga4.params );
+				var params = {};
+				for ( var k in def.ga4.params ) {
+					if ( Object.prototype.hasOwnProperty.call( def.ga4.params, k ) ) {
+						params[ k ] = def.ga4.params[ k ];
+					}
+				}
+				params.send_to = T.ga4Id;
+				window.gtag( 'event', def.ga4.name, params );
 			}
 			if ( def.ads && T.gadsLabel && typeof window.gtag === 'function' ) {
 				window.gtag( 'event', 'conversion', { send_to: T.gadsLabel } );
@@ -135,6 +152,7 @@
 		var slug = String( label || 'step' ).toLowerCase().replace( /[^a-z0-9]+/g, '-' ).replace( /^-|-$/g, '' );
 		try {
 			window.gtag( 'event', 'page_view', {
+				send_to: T.ga4Id,
 				page_title: 'Onboarding: ' + label,
 				page_location: window.location.origin + '/welcome/step/' + slug,
 				page_path: '/welcome/step/' + slug,

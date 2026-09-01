@@ -28,7 +28,6 @@
 
 namespace CAShaadi\Modules\Tracking;
 
-use CAShaadi\Core\Config;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
