@@ -18,6 +18,51 @@ Practical consequences:
 
 ---
 
+## 🛑 Data safety: never delete groups or fields
+
+**The live site's member data must survive the migration.** staging2 is a stale
+clone — production has taken new registrations since — so **production data is
+the source of truth and must never be recreated from staging.**
+
+The single rule that guarantees this:
+
+> **Restructure the UI by changing PRESENTATION, never the xProfile schema.**
+
+Why it works: member answers live in `wp_bp_xprofile_data`, keyed by `field_id`.
+Groups are only a container for *organising* fields. The UI can ignore groups
+entirely — flatten them, reorder them, hide them, replace them with any structure
+we like — and not one row of member data is touched.
+
+Why the alternative is catastrophic: deleting an xProfile **group** or **field**
+deletes every member's answers for it. On production that is thousands of
+profiles, irreversibly, with no undo. "Remove profile groups" must therefore
+always mean *stop showing groups*, never *delete groups*.
+
+### Audited 2026-09-01 — the plugin is non-destructive
+
+* No `xprofile_delete_field`, no group deletion, no `DROP`/`DELETE` against any
+  xProfile table anywhere in the plugin.
+* The only schema call is `xprofile_insert_field()` in `ProfileTools`
+  (#11812 "Created for"), which is **additive and idempotent** — it checks for
+  the field by name and an option flag, then no-ops.
+* Everything else writes field *data* via `xprofile_set_field_data()`, which is
+  ordinary profile saving.
+
+### What "migrating to production" therefore means
+
+**A code deployment, not a data migration.** The plugin renders member data; it
+does not own it. So:
+
+* Deploy the plugin to production, set the wp-config flags, disable the matching
+  snippets — the same cutover already rehearsed on staging2.
+* **Copy nothing** from staging2. Its members, photos and messages are a stale
+  clone and are irrelevant to production.
+* Production keeps its own users, xProfile data, matches, messages and photos
+  untouched throughout.
+
+The only production data the plugin creates is its own tables (blocks, email
+queue, intent, rejections, profile views), installed by `Core\Migrator`.
+
 ## xProfile groups and fields
 
 Verified live on staging2 (2026-09-01) from the profile-edit screens.
