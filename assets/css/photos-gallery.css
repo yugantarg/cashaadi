@@ -59,3 +59,68 @@
 #buddypress .change-avatar > .bp-avatar-nav,
 #buddypress .change-avatar > .bp-avatar,
 #buddypress .change-avatar > .bp-avatar-status{display:none !important}
+
+/* ==========================================================================
+   Photo manager — app treatment (v0.36.0)
+   --------------------------------------------------------------------------
+   "When we edit photos it takes us back to that old form." Editing photos lands
+   on BuddyPress's stock /profile/change-avatar/ screen, which still looked like
+   the pre-redesign site.
+
+   Same approach as the profile wizard and the signup screens: strip the member
+   chrome, put the uploader on the app's own ground, keep our type and controls.
+   Functionality is untouched — this is the screen the uploader already needs.
+   ========================================================================== */
+
+body.change-avatar #buddypress #object-nav,
+body.change-avatar #buddypress #subnav,
+body.change-avatar #buddypress #item-header > *:not(.csm-topbar) { display: none !important; }
+
+body.change-avatar {
+	background: var(--csm-ground, #f4f6f8);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+
+body.change-avatar #buddypress #item-body {
+	width: 100% !important;
+	max-width: 620px !important;
+	margin: 0 auto !important;
+	padding: 8px 16px 72px !important;
+	float: none !important;
+	border: 0 !important;
+	background: transparent !important;
+}
+
+body.change-avatar #buddypress h2,
+body.change-avatar #buddypress .screen-heading {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 22px;
+	font-weight: 500;
+	letter-spacing: -.01em;
+	color: var(--csm-ink, #16212b);
+	margin: 0 0 14px;
+	border: 0;
+}
+
+/* the uploader itself sits on a card, like every other surface in the app */
+body.change-avatar #buddypress .csm-ph-wrap,
+body.change-avatar #buddypress .bp-avatar,
+body.change-avatar #buddypress form {
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	padding: 18px 16px;
+}
+
+body.change-avatar #buddypress input[type=submit],
+body.change-avatar #buddypress button[type=submit],
+body.change-avatar #buddypress .bp-avatar .avatar-crop-actions button {
+	border: 0;
+	border-radius: 999px;
+	background: var(--csm-green, #6f9f2e);
+	color: #fff;
+	padding: 12px 22px;
+	font-size: 15px;
+	font-weight: 700;
+	cursor: pointer;
+}

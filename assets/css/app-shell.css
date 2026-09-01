@@ -389,3 +389,31 @@ body.csm-has-appnav .csm-topbar-actions { gap: 10px; }
 
 /* the unread badge has to clear the new border */
 body.csm-has-appnav .csm-topbar-badge { top: -3px; right: -3px; box-shadow: 0 0 0 2px var(--csm-surface, #fff); }
+
+/* ==========================================================================
+   Fresh look, not a reskin (v0.36.0)
+   --------------------------------------------------------------------------
+   "It is supposed to be a completely fresh look — retain functionality, not
+   elements" (owner, 2026-09-01). Three carry-overs from the old UI were still
+   showing through. Each is hidden only because the new UI already provides the
+   same capability:
+
+     · "Discover Matches →"  (#11681)  → the bottom nav / rail has Discover
+     · "Complete your profile to browse
+        other profiles →"    (Premium) → the profile section rows show exactly
+                                          which sections are outstanding
+     · the photo gallery on EVERY member screen — it hooks
+       bp_after_member_header, which fires on Matches, Notifications, Settings
+       and the rest, not just the profile. Now scoped to the Profile screen,
+       where the design puts it, while still appearing on other members'
+       profiles so you can actually see their photos.
+   ========================================================================== */
+
+/* legacy header CTAs — superseded, not lost */
+body.csm-has-appnav .csm-discover-cta-wrap,
+body.csm-has-appnav .cashaadi-complete-profile-wrap { display: none !important; }
+
+/* photos: Profile screen only */
+body.csm-has-appnav #buddypress .csm-ph-gallery,
+body.csm-has-appnav #buddypress .csm-ph-notice { display: none !important; }
+body.csm-on-profile #buddypress .csm-ph-gallery { display: block !important; }

@@ -68,7 +68,17 @@ final class ProfileScreen {
 
 	public static function body_class( $classes ) {
 		if ( self::is_here() ) {
-			$classes[] = 'csm-prof-screen';
+			$classes[] = 'csm-prof-screen'; // my own profile
+		}
+		// Any member's profile view, mine or someone else's. Photos belong on this
+		// screen and nowhere else; without this they render on Matches,
+		// Notifications and every other member screen, because the gallery hooks
+		// bp_after_member_header which fires on all of them.
+		if ( function_exists( 'bp_is_user_profile' ) && bp_is_user_profile() ) {
+			$action = function_exists( 'bp_current_action' ) ? (string) bp_current_action() : '';
+			if ( in_array( $action, array( '', 'public' ), true ) ) {
+				$classes[] = 'csm-on-profile';
+			}
 		}
 		return $classes;
 	}
