@@ -50,7 +50,10 @@
 
 /* ---- actions ---- */
 .csm-d-actions {
-	position: sticky; bottom: 0; z-index: 10;
+	/* Offset by the fixed bottom nav's height. `bottom: 0` sticks the bar to the
+	   viewport floor, which is underneath the nav — invisible on any profile long
+	   enough to scroll, which is most of them. */
+	position: sticky; bottom: 72px; z-index: 10;
 	display: flex; gap: 14px; justify-content: center;
 	max-width: 560px; margin: 22px auto 0;
 	padding: 14px 18px 18px;
@@ -86,3 +89,9 @@
 .csm-d-match strong { font-family: var(--csm-serif, Georgia, serif); font-size: 17px; font-weight: 600; }
 .csm-d-match span { font-size: 13px; color: rgba(255,255,255,.9); }
 .csm-d-match.is-out { opacity: 0; transform: translateX(-50%) translateY(8px); }
+
+@media (min-width: 783px) {
+	/* Desktop moves the nav to a left rail, so there is nothing at the foot to
+	   clear. */
+	.csm-d-actions { bottom: 0; }
+}
