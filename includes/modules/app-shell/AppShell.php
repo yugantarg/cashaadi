@@ -140,11 +140,20 @@ final class AppShell {
 	public static function assets() {
 		$shell = self::active_here();
 		$area  = self::is_member_area();
-		if ( ! $shell && ! $area ) {
+
+		// The focused profile-edit flow has no app shell, but render_back() still
+		// prints the exit control there — and without this stylesheet that markup
+		// was completely unstyled, which is why the chevron rendered at 224px and
+		// the control looked broken. Loading app-shell.css here is safe: the nav
+		// and top bar are display:none by default and only appear under
+		// .csm-has-appnav, a class this screen never gets.
+		$edit = function_exists( 'bp_is_user_profile_edit' ) && bp_is_user_profile_edit();
+
+		if ( ! $shell && ! $area && ! $edit ) {
 			return;
 		}
 		Assets::style( 'tokens', 'assets/css/tokens.css' );
-		if ( $shell ) {
+		if ( $shell || $edit ) {
 			Assets::style( 'app-shell', 'assets/css/app-shell.css', array( 'cashaadi-tokens' ) );
 		}
 		// screens.css carries the member-card + list restyles (scoped to
