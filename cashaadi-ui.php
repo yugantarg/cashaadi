@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.60.0
+ * Version:           0.61.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -24,6 +24,7 @@ use CAShaadi\Modules\Site\Site;
 use CAShaadi\Modules\Premium\Premium;
 use CAShaadi\Modules\Photos\Photos;
 use CAShaadi\Modules\Photos\Gallery;
+use CAShaadi\Modules\Photos\Nsfw;
 use CAShaadi\Modules\Photos\PhotoOnboarding;
 use CAShaadi\Modules\Photos\LegacyImport;
 use CAShaadi\Modules\Verification\Verification;
@@ -54,7 +55,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.60.0' );
+define( 'CASHAADI_UI_VER', '0.61.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -203,6 +204,24 @@ if ( class_exists( 'CAShaadi\\Modules\\Photos\\PhotoOnboarding' ) ) {
 }
 if ( class_exists( 'CAShaadi\\Modules\\Photos\\LegacyImport' ) ) {
 	LegacyImport::register();
+}
+
+/*
+ * Photo moderation (NSFW). Migrated from WPCode #12119, which was DISABLED in
+ * the same change that added this line — deliberately in that order.
+ *
+ * Both bind the same cron event name (csm_pm_sweep_event) and the same meta
+ * keys, so verdicts and the existing schedule carry over. But that also means
+ * two live callbacks on one cron tick would sweep twice and bill OpenAI twice
+ * per run, so they must never overlap. The snippet goes off first; an hourly
+ * sweep tolerates the short gap.
+ *
+ * Gated by Config::photos_enabled() inside register(), which is on since the
+ * photos cutover. The key comes from Secrets::openai_api_key(), which falls
+ * back to CA Verify's stored option — the same key the snippet used.
+ */
+if ( class_exists( 'CAShaadi\\Modules\\Photos\\Nsfw' ) ) {
+	Nsfw::register();
 }
 
 // Discover — weekly like/pass tray + engine (#11599/#11600/#11601/#11602/#11605/
