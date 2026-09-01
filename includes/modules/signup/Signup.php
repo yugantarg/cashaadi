@@ -38,6 +38,13 @@ final class Signup {
 		// #11583 — one-click activation + auto-login (priority 1, as in the snippet).
 		add_action( 'template_redirect', array( __CLASS__, 'activate_and_login' ), 1 );
 
+		// 4-digit activation code (owner, 2026-09-01) — lets the member stay on the
+		// activation screen instead of clicking a link. Fails safe: the emailed
+		// link and the stock BuddyPress form both keep working.
+		if ( class_exists( ActivationCode::class ) ) {
+			ActivationCode::register();
+		}
+
 		// #11842 — skip username at signup.
 		add_action( 'bp_signup_validate', array( __CLASS__, 'username_fallback' ), 0 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );

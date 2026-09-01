@@ -110,3 +110,53 @@ body.activate #activation-form button[type=submit] {
 }
 body.register #signup-form input[type=submit]:hover,
 body.activate #activation-form input[type=submit]:hover { background: var(--csm-green-press, #5e8926); }
+
+/* ---- 4-digit activation code form (v0.35.0) ---- */
+.csm-actcode {
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	padding: 24px 20px;
+	margin: 0 0 22px;
+	text-align: center;
+}
+.csm-actcode h2 {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 24px; font-weight: 500;
+	margin: 0 0 8px; color: var(--csm-ink, #16212b);
+}
+.csm-actcode-help { margin: 0 0 18px; color: var(--csm-muted, #5c6a76); font-size: 14px; }
+.csm-actcode-err {
+	margin: 0 0 16px; padding: 10px 12px;
+	background: #fdecea; border: 1px solid #f5c6c2; border-radius: 10px;
+	color: #b3261e; font-size: 13.5px;
+}
+.csm-actcode-form label {
+	display: block; text-align: left;
+	margin: 12px 0 6px; font-size: 13px; font-weight: 600;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-actcode-form input {
+	width: 100%; padding: 13px 14px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 12px;
+	font-size: 16px; color: var(--csm-ink, #16212b);
+}
+/* the code itself: big, spaced, unmistakable */
+.csm-actcode-input {
+	text-align: center;
+	font-size: 30px !important;
+	font-weight: 700;
+	letter-spacing: .5em;
+	text-indent: .5em; /* keeps the glyphs optically centred despite tracking */
+}
+.csm-actcode-form input:focus {
+	outline: none; border-color: var(--csm-blue, #2c5b8c);
+	box-shadow: 0 0 0 3px var(--csm-blue-tint, #e9f1f8);
+}
+.csm-actcode-form button {
+	width: 100%; margin-top: 18px; padding: 14px 18px;
+	border: 0; border-radius: 999px;
+	background: var(--csm-green, #6f9f2e); color: #fff;
+	font-size: 15.5px; font-weight: 700; cursor: pointer;
+}
+.csm-actcode-form button:hover { background: var(--csm-green-press, #5e8926); }
