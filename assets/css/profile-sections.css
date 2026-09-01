@@ -101,3 +101,43 @@ body.csm-prof-screen #buddypress .profile-fields,
 body.csm-prof-screen #buddypress table.profile-fields,
 body.csm-prof-screen #buddypress .screen-heading,
 body.csm-prof-screen #buddypress .bp-widget.base { display: none !important; }
+
+/* ---- incomplete-profile nudge (v0.39.0) ----
+   Members exit the wizard once the compulsory fields are done, so an incomplete
+   profile is the normal state afterwards, not an error. The nudge says what is
+   left and links straight to the first section that needs work. */
+.csm-nudge {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 16px 0 4px;
+	padding: 14px 16px;
+	border: 1px solid #ecdfae;
+	border-radius: 14px;
+	background: #fdf8e9;
+	text-decoration: none;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+.csm-nudge:active { background: #faf1d8; }
+.csm-nudge-text { flex: 1 1 auto; min-width: 0; }
+.csm-nudge-title {
+	display: block;
+	font-size: 15px;
+	font-weight: 700;
+	color: var(--csm-ink, #16212b);
+}
+.csm-nudge-sub {
+	display: block;
+	margin-top: 2px;
+	font-size: 13px;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-nudge-cta {
+	flex: 0 0 auto;
+	padding: 8px 14px;
+	border-radius: 999px;
+	background: var(--csm-green, #6f9f2e);
+	color: #fff;
+	font-size: 13.5px;
+	font-weight: 700;
+}

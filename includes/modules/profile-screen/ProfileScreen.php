@@ -174,6 +174,43 @@ final class ProfileScreen {
 
 		$base = trailingslashit( bp_loggedin_user_url() );
 
+		// ---- nudge -------------------------------------------------------
+		// Members leave the wizard once the compulsory fields are done, so the
+		// profile is deliberately incomplete afterwards. Surface what is left and
+		// jump straight to the first section that needs work, rather than leaving
+		// them to discover it by scrolling the rows.
+		$outstanding = 0;
+		$first_gap   = 0;
+		foreach ( $order as $gid ) {
+			$gid = (int) $gid;
+			if ( empty( $by_id[ $gid ] ) ) {
+				continue;
+			}
+			$n = self::missing_in_group( $by_id[ $gid ], $uid );
+			if ( $n > 0 ) {
+				$outstanding += $n;
+				if ( ! $first_gap ) {
+					$first_gap = $gid;
+				}
+			}
+		}
+
+		if ( $outstanding > 0 && $first_gap ) {
+			echo '<a class="csm-nudge" href="' . esc_url( $base . 'profile/edit/group/' . $first_gap . '/' ) . '">';
+			echo '<span class="csm-nudge-text">';
+			echo '<strong class="csm-nudge-title">' . esc_html(
+				sprintf(
+					/* translators: %d: number of profile details still empty. */
+					_n( '%d detail left', '%d details left', $outstanding, 'cashaadi-ui' ),
+					$outstanding
+				)
+			) . '</strong>';
+			echo '<span class="csm-nudge-sub">' . esc_html__( 'A fuller profile gets more matches.', 'cashaadi-ui' ) . '</span>';
+			echo '</span>';
+			echo '<span class="csm-nudge-cta">' . esc_html__( 'Continue', 'cashaadi-ui' ) . '</span>';
+			echo '</a>';
+		}
+
 		echo '<section class="csm-sec" aria-label="' . esc_attr__( 'Profile sections', 'cashaadi-ui' ) . '">';
 		echo '<h3 class="csm-sec-h">' . esc_html__( 'Your profile', 'cashaadi-ui' ) . '</h3>';
 		echo '<ul class="csm-sec-list">';
