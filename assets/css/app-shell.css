@@ -734,3 +734,37 @@ body.change-avatar #masthead > .main-navigation { flex: 0 0 auto; margin: 0; wid
 body.change-avatar .csm-pe-steps,
 body.change-avatar .csm-pe-bar,
 body.change-avatar .csm-photo-next { display: none !important; }
+
+/* The section buttons are UL.button-tabs inside .csm-ph-onboard — BuddyPress's
+   profile-group nav, rendered by the onboarding snippet as eight blue pills.
+   Same reasoning as the step indicator above: this is the photos screen, not a
+   wizard run, and the hub already lists the sections. */
+body.change-avatar .csm-ph-onboard .button-tabs,
+body.change-avatar .csm-ph-onboard .button-nav { display: none !important; }
+
+/* Retint the snippet's photo grid to the app palette.
+   It ships a maroon-and-beige scheme (badge #7a1220, warm #fbf8f5 panels) that
+   belongs to neither the design tokens nor anything else on screen. Only colour
+   is touched — the markup, the grid and every control stay the snippet's. */
+body.change-avatar .csm-ph-badge {
+	background: var(--csm-blue, #2c5b8c) !important;
+	border-color: var(--csm-surface, #fff) !important;
+}
+body.change-avatar .csm-ph-item {
+	background: var(--csm-ground, #f4f6f8) !important;
+	border-color: var(--csm-hair, #e4eaf0) !important;
+	border-radius: 14px !important;
+	overflow: hidden;
+}
+body.change-avatar .csm-ph-add {
+	background: var(--csm-surface, #fff) !important;
+	border-color: var(--csm-hair-2, #d6dfe7) !important;
+	border-radius: 14px !important;
+	color: var(--csm-blue, #2c5b8c) !important;
+}
+body.change-avatar .csm-ph-add * { color: inherit !important; }
+body.change-avatar .csm-ph-del {
+	border-radius: 999px !important;
+	background: rgba(255, 255, 255, .94) !important;
+	color: var(--csm-ink, #16212b) !important;
+}
