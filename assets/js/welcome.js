@@ -57,7 +57,20 @@
 			blurred = !! d.blurred;
 			idx     = typeof d.current === 'number' ? d.current : 0;
 			if ( idx >= steps.length ) { return finish(); }
-			history.replaceState( { step: idx }, '' );
+
+			/*
+			 * Seed the history stack with one entry per step already behind us.
+			 *
+			 * Only replaceState'ing the CURRENT step left /welcome/ with a single
+			 * history entry, so Back fell straight out of onboarding to whatever
+			 * page came before — the very bug this screen exists to fix,
+			 * reproduced. Resuming at step 7 has to leave six entries behind it
+			 * for Back to walk through.
+			 */
+			history.replaceState( { step: 0 }, '' );
+			for ( var i = 1; i <= idx; i++ ) {
+				history.pushState( { step: i }, '' );
+			}
 			draw();
 		} ).catch( fail );
 	}
