@@ -355,3 +355,37 @@
 
 body.csm-set-screen  #buddypress #item-header > *:not(.csm-topbar),
 body.csm-cur-messages #buddypress #item-header > *:not(.csm-topbar) { display: none !important; }
+
+/* ==========================================================================
+   Top-bar actions: bigger, clearer hit targets (v0.35.2)
+   --------------------------------------------------------------------------
+   Reported as "looks wrong / hard to hit". The gear and bell were 40px with an
+   ink-coloured glyph on the page background and no visible affordance — under
+   the 44px minimum touch target, and reading as plain text rather than buttons.
+
+   Now 44px, on a surface chip with a hairline, so they read as controls and are
+   comfortably tappable. Applies at every width.
+   ========================================================================== */
+
+body.csm-has-appnav .csm-topbar-act {
+	width: 44px;
+	height: 44px;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	color: var(--csm-muted, #5c6a76);
+	transition: background-color .15s, color .15s, border-color .15s;
+}
+body.csm-has-appnav .csm-topbar-act:hover,
+body.csm-has-appnav .csm-topbar-act:focus-visible {
+	background: var(--csm-blue-tint, #e9f1f8);
+	border-color: var(--csm-blue, #2c5b8c);
+	color: var(--csm-blue, #2c5b8c);
+}
+body.csm-has-appnav .csm-topbar-act:active { transform: scale(.94); }
+body.csm-has-appnav .csm-topbar-act svg { width: 21px; height: 21px; }
+
+/* keep the two chips from crowding each other */
+body.csm-has-appnav .csm-topbar-actions { gap: 10px; }
+
+/* the unread badge has to clear the new border */
+body.csm-has-appnav .csm-topbar-badge { top: -3px; right: -3px; box-shadow: 0 0 0 2px var(--csm-surface, #fff); }

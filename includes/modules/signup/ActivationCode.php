@@ -132,6 +132,45 @@ final class ActivationCode {
 		// up without re-issuing (which would invalidate the one just stored).
 		$GLOBALS['csm_activation_code']       = $code;
 		$GLOBALS['csm_activation_code_email'] = $user_email;
+
+		// Send our OWN code email as well.
+		//
+		// The first live test (2026-09-01) produced an activation email with
+		// neither the link nor the code, and BuddyPress's bp-email templates are
+		// not even editable on this install ("not allowed to edit posts in this
+		// post type") — with 154 accounts sitting unactivated. The injection
+		// filter alone therefore cannot be relied on: if BuddyPress's template
+		// renders empty, so does anything we prepend to it.
+		//
+		// This mail is plain wp_mail() and depends on no BuddyPress template, so
+		// the member gets a usable code even when that path is broken.
+		self::send_code_email( $user_email, $code );
+	}
+
+	/**
+	 * Minimal, template-free code email. Deliberately independent of BuddyPress's
+	 * email system so a broken template cannot block activation.
+	 */
+	private static function send_code_email( $email, $code ) {
+		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$subject = sprintf(
+			/* translators: 1: 4-digit code, 2: site name. */
+			__( '%1$s is your %2$s verification code', 'cashaadi-ui' ),
+			$code,
+			$site
+		);
+
+		$msg  = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#16212b;max-width:460px;margin:0 auto;text-align:center">';
+		$msg .= '<p style="margin:0 0 16px">Welcome to ' . esc_html( $site ) . '. Enter this code to activate your account:</p>';
+		$msg .= '<p style="margin:0 0 14px;font-size:36px;font-weight:700;letter-spacing:.22em">' . esc_html( $code ) . '</p>';
+		$msg .= '<p style="margin:0;color:#5c6a76;font-size:13px">This code expires in 15 minutes. If you did not sign up, you can ignore this email.</p>';
+		$msg .= '</div>';
+
+		$ct = function () { return 'text/html'; };
+		add_filter( 'wp_mail_content_type', $ct );
+		wp_mail( $email, $subject, $msg );
+		remove_filter( 'wp_mail_content_type', $ct );
 	}
 
 	/**
