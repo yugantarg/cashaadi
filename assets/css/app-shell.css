@@ -597,3 +597,51 @@ body.profile-edit #buddypress::before { content: ""; display: table; }
 		font-size: 13.5px;
 	}
 }
+
+/* ---- wizard screen: constrain the exit icon, and thin the header (v0.38.1) ----
+   The wizard rebuilds the screen with !important rules, which beat the icon
+   sizing in the shared .csm-back block — the chevron rendered at ~130px. And the
+   wizard screen has no .csm-has-appnav class (no bottom nav on a focused flow),
+   so the thin-header rules never reached it and the duplicate Discover/mail/bell
+   strip was still showing. Restate both for body.profile-edit. */
+
+body.profile-edit .csm-back {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 6px !important;
+	width: auto !important;
+	max-width: max-content !important;
+}
+body.profile-edit .csm-back svg {
+	width: 17px !important;
+	height: 17px !important;
+	flex: 0 0 auto !important;
+}
+
+/* thin header on the wizard too */
+body.profile-edit #masthead .primary-menu-container,
+body.profile-edit #masthead .buddyx-desktop-menu,
+body.profile-edit #masthead .buddypress-icons-wrapper,
+body.profile-edit #masthead .user-link-wrap,
+body.profile-edit #masthead .site-description { display: none !important; }
+
+body.profile-edit #masthead .site-title {
+	position: static !important;
+	clip: auto !important;
+	clip-path: none !important;
+	width: auto !important;
+	height: auto !important;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 19px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+body.profile-edit #masthead .site-title a { color: var(--csm-ink, #16212b); text-decoration: none; }
+body.profile-edit #masthead .container,
+body.profile-edit #masthead .site-header-inner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 52px;
+}
