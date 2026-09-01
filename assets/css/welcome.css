@@ -147,7 +147,7 @@
 	align-items: center;
 	justify-content: center;
 	aspect-ratio: 4 / 5;
-	max-height: 320px;
+	max-height: 230px;
 	margin: 0 auto 14px;
 	border: 1px dashed var(--csm-hair-2, #d6dfe7);
 	border-radius: 16px;

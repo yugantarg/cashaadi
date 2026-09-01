@@ -217,10 +217,23 @@
 			var f = file.files && file.files[0];
 			if ( ! f ) { return; }
 			err.textContent = '';
-			img.src = URL.createObjectURL( f );
+			var url = URL.createObjectURL( f );
+			img.src = url;
 			img.style.display = 'block';
 			ph.style.display = 'none';
 			uploaded = false;
+
+			/* Tell them the photo is too small BEFORE they wait for an upload to
+			   fail. BuddyPress requires 896x1024, which a cropped or screenshotted
+			   image can easily miss, and this is a step nobody can skip. */
+			var probe = new Image();
+			probe.onload = function () {
+				if ( probe.naturalWidth < 896 || probe.naturalHeight < 1024 ) {
+					err.textContent = 'That photo is a bit small (' + probe.naturalWidth + ' × '
+						+ probe.naturalHeight + '). Please pick one at least 896 × 1024 pixels.';
+				}
+			};
+			probe.src = url;
 		} );
 
 		// Blur choice, offered here rather than buried in settings. Default off:
@@ -243,7 +256,13 @@
 			alreadyDone: function () { return uploaded; },
 			file: function () { return file.files[0]; },
 			blur: function () { return cb.checked; },
-			markDone: function () { uploaded = true; }
+			markDone: function () { uploaded = true; },
+			showUploaded: function ( url ) {
+				if ( ! url ) { return; }
+				img.src = url;
+				img.style.display = 'block';
+				ph.style.display = 'none';
+			}
 		};
 	}
 
@@ -273,12 +292,28 @@
 
 			var fd = new FormData();
 			fd.append( 'file', field.file() );
+			/* Required by BuddyPress. Its endpoint hands the upload to
+			   wp_handle_upload(), which tests $_POST['action'] against the
+			   attachment's own action name and otherwise rejects the whole thing
+			   as "Invalid form submission" — verified live, 2026-09-01. */
+			fd.append( 'action', 'bp_avatar_upload' );
+
 			api( CFG.avatar, { method: 'POST', body: fd } ).then( function ( d ) {
 				done();
-				if ( d && ( d.avatar_urls || d.full || d.id ) ) {
+				/* Success is an ARRAY of size variants — [{full, thumb}] — not an
+				   object. Checking for d.full alone silently treated every
+				   successful upload as a failure. */
+				var ok = ( Array.isArray( d ) && d[0] && d[0].full ) || ( d && d.full );
+				if ( ok ) {
 					field.markDone();
+					field.showUploaded( Array.isArray( d ) ? d[0].full : d.full );
 					steps[ idx ].done = true;
 					return go( idx + 1 );
+				}
+				if ( d && 'image_too_small' === ( d.data && d.data.reason ) ) {
+					err.textContent = 'That photo is too small. Please choose one at least '
+						+ ( d.data.min_width || 896 ) + ' × ' + ( d.data.min_height || 1024 ) + ' pixels.';
+					return;
 				}
 				offerFallback( err, d );
 			} ).catch( function () {
