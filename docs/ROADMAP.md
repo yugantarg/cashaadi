@@ -57,9 +57,22 @@ Approved design reference: the "CAShaadi Member Area" canvas (7 mobile screens).
 ## Phase 4 — Messages + Notifications
 - Restyle inbox list + thread; notifications loop behind the bell.
 
-## Phase 5 — Discover
-- Browse/card UI over the Discovery module + xProfile filters.
-- Like/Pass → connection request. (Largest custom piece — verify current logic first.)
+## Phase 5 — Discover  🔶 partial
+- ✅ **Card redesign (v0.29.0)** — photo-first card per the approved design: tall
+  portrait with name + "Job title · City" overlaid on a scrim, ICAI Verified
+  pill, fact chips (Qualification / Company Name / Height, cm → 5′ 6″) and bio,
+  with circular Pass + green Like. `assets/js/discover.js` untouched; Like/Pass
+  re-verified live (200, success, remaining 10 → 9).
+- ✅ **Data bug fixed** — the card queried xProfile for `'Location'` and
+  `'About Me'`, neither of which exists here, so both lines always rendered
+  empty. Real fields are **`City`** and **`Bio`**. `Age` is filtered and can
+  return "27 years old", so the digits are extracted.
+- ⬜ **Prompts** — the design shows a prompt Q&A ("A perfect Sunday looks like —").
+  There is no prompt data model on this site; the card currently shows **Bio** as
+  the closest real content. Adding real prompts is a **product + data decision**
+  (new xProfile fields or a custom table).
+- ⬜ Filter control in the Discover header (design has a filter icon).
+- ⬜ Desktop: cards currently wrap 2-up; a deliberate desktop layout is Phase 6.
 
 ## Phase 6 — Consolidate & harden
 - Fold remaining WPCode helpers into the plugin where sensible; document what stays.
