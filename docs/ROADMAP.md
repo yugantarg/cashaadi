@@ -10,6 +10,27 @@ screen must come from the real backend fields and features. See
 exist (no prompts; no `Location`/`About Me`) and the per-field visibility rule
 custom screens must enforce.
 
+## ⚠️ Pre-existing bug: BuddyPress activation email appears broken
+
+Found during the first live signup test (2026-09-01, `+Sakshi`): the activation
+email arrived containing **neither the activation link nor anything else**.
+
+This is almost certainly NOT caused by the 4-digit code work — that filter only
+*prepends* to the email and cannot remove a link. Corroborating evidence:
+
+* `bp-email` templates are not editable on this install — `edit.php?post_type=bp-email`
+  returns *"Sorry, you are not allowed to edit posts in this post type"* even as
+  an administrator.
+* The Users screen shows **154 accounts pending** — consistent with members never
+  receiving a usable activation email, over a long period.
+* Snippet **#11583** ("One-Click Email Activation") exists, suggesting activation
+  friction was already being worked around before this project.
+
+**Mitigation shipped (v0.35.2):** `ActivationCode` sends its own plain
+`wp_mail()` with the code, depending on no BuddyPress template, so activation
+works regardless. The underlying template problem is still worth fixing — it
+also affects every other BuddyPress email (password reset, notifications).
+
 ## Owner decisions — 2026-09-01
 
 * **OTP must never block anything.** Audited and already true: nothing gates on
