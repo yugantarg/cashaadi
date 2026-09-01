@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.39.0
+ * Version:           0.40.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -40,12 +40,13 @@ use CAShaadi\Modules\ProfileTools\ProfileTools;
 use CAShaadi\Modules\Signup\Signup;
 use CAShaadi\Modules\Settings\Settings;
 use CAShaadi\Modules\ProfileScreen\ProfileScreen;
+use CAShaadi\Modules\Onboarding\PhotoGate;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.39.0' );
+define( 'CASHAADI_UI_VER', '0.40.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -98,6 +99,14 @@ if ( class_exists( 'CAShaadi\\Modules\\Settings\\Settings' ) ) {
 // row points at a real /profile/edit/group/{id}/ screen.
 if ( class_exists( 'CAShaadi\\Modules\\ProfileScreen\\ProfileScreen' ) ) {
 	ProfileScreen::register();
+}
+
+// Photo gate — at least one photo before entering the app, with the blur choice
+// offered on the same screen. Administrators, AJAX/REST/CLI and the photo screen
+// itself are exempt, and logout is on wp-login.php which never reaches
+// template_redirect, so no member can be trapped.
+if ( class_exists( 'CAShaadi\\Modules\\Onboarding\\PhotoGate' ) ) {
+	PhotoGate::register();
 }
 
 // Site-wide tweaks (noindex member pages, pricing redirect, support footer).

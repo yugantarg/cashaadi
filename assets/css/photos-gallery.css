@@ -124,3 +124,32 @@ body.change-avatar #buddypress .bp-avatar .avatar-crop-actions button {
 	font-weight: 700;
 	cursor: pointer;
 }
+
+/* ---- photo gate intro + blur choice (v0.40.0) ---- */
+.csm-photogate {
+	margin: 0 0 16px;
+	padding: 18px 16px;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+.csm-photogate-title {
+	margin: 0 0 6px !important;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 22px; font-weight: 500;
+	color: var(--csm-ink, #16212b);
+}
+.csm-photogate-sub { margin: 0 0 16px; font-size: 14px; color: var(--csm-muted, #5c6a76); }
+.csm-photogate-blur { margin: 0; padding: 14px 0 0; border-top: 1px solid var(--csm-hair, #e4eaf0); background: none; border-radius: 0; }
+.csm-photogate-toggle { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.csm-photogate-toggle input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; }
+.csm-photogate-toggle strong { display: block; font-size: 14px; font-weight: 600; color: var(--csm-ink, #16212b); }
+.csm-photogate-toggle em { display: block; margin-top: 2px; font-size: 12.5px; font-style: normal; color: var(--csm-muted, #5c6a76); }
+.csm-photogate-save {
+	margin-top: 12px; padding: 10px 18px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 999px;
+	background: var(--csm-surface, #fff); color: var(--csm-ink, #16212b);
+	font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.csm-photogate-save:hover { background: var(--csm-ground, #f4f6f8); }
