@@ -70,8 +70,23 @@ custom screens must enforce.
 - ⬜ Accept / Decline / Message behaviour itself is native BuddyPress and
   untouched.
 
-## Phase 4 — Messages + Notifications
-- Restyle inbox list + thread; notifications loop behind the bell.
+## Phase 4 — Messages + Notifications  🔶 partial
+- ✅ **Messages retheme (v0.31.0)** — kept **Better Messages** rather than swapping
+  to native BP messages. It is third-party but exposes ~60 `--bm-*` CSS custom
+  properties, so we drive its own theming API instead of overriding its layout:
+  font, ink/surface/ground/hair, brand blue and softer radii now come from our
+  tokens. Defined on `.bp-messages-wrap-main` — custom properties inherit and the
+  nearest ancestor definition wins, so no `!important` and nothing to re-fix when
+  the plugin updates.
+  - ⚠️ Several `--bm-*` values are **bare RGB triplets** (`44, 91, 140`) because
+    the plugin composes them as `rgba(var(--bm-x), .5)`. A hex value there breaks
+    every rule that uses it.
+  - Verified: all overridden properties resolve on the live app, and inner chat
+    elements (`.bm-side-content`) compute to Hanken Grotesk.
+- ⬜ On **desktop** the BuddyPress profile card + photos still sit above the chat;
+  only the mobile rule hides them. Part of the Phase 6 desktop pass.
+- ⬜ Notifications screen still stock BuddyPress (`Unread | Read` + a filter
+  dropdown). The design shows an icon-chip list.
 
 ## Phase 5 — Discover  🔶 partial
 - ✅ **Card redesign (v0.29.0)** — photo-first card per the approved design: tall
