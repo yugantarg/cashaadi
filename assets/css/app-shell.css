@@ -417,3 +417,113 @@ body.csm-has-appnav .cashaadi-complete-profile-wrap { display: none !important; 
 body.csm-has-appnav #buddypress .csm-ph-gallery,
 body.csm-has-appnav #buddypress .csm-ph-notice { display: none !important; }
 body.csm-on-profile #buddypress .csm-ph-gallery { display: block !important; }
+
+/* ==========================================================================
+   Thin header, minimal footer, no overshooting text (v0.37.0)
+   --------------------------------------------------------------------------
+   Owner feedback, 2026-09-01:
+     · header should be a thin bar: CA Shaadi logo + a hamburger with options
+     · footer should carry only the support email
+     · lines like "Assistant Manager" overshoot their container
+   ========================================================================== */
+
+/* ---- 1. thin header ----
+   v0.28.0 removed #masthead entirely on member screens. It comes back, but
+   stripped to branding + the menu toggle: the duplicated member nav (Discover
+   link, messages icon, bell, account menu) stays hidden because the app shell
+   already provides all of it. */
+body.csm-has-appnav #masthead {
+	display: block !important;
+	min-height: 0;
+	padding: 0;
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+	background: var(--csm-surface, #fff);
+}
+body.csm-has-appnav #masthead .primary-menu-container,
+body.csm-has-appnav #masthead .buddyx-desktop-menu,
+body.csm-has-appnav #masthead .buddypress-icons-wrapper,
+body.csm-has-appnav #masthead .user-link-wrap,
+body.csm-has-appnav #masthead .header-search,
+body.csm-has-appnav #masthead .site-description { display: none !important; }
+
+/* keep the bar genuinely thin */
+body.csm-has-appnav #masthead .site-header-inner,
+body.csm-has-appnav #masthead .container {
+	min-height: 52px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+body.csm-has-appnav #masthead .custom-logo,
+body.csm-has-appnav #masthead .site-branding img { max-height: 34px; width: auto; }
+
+/* the hamburger is the "options" affordance — make sure it stays visible */
+body.csm-has-appnav #masthead .menu-toggle,
+body.csm-has-appnav #masthead .buddyx-mobile-icon,
+body.csm-has-appnav #masthead .mobile-toggle { display: flex !important; }
+
+/* ---- 2. footer: support email only ----
+   Scoped to app screens; the marketing pages keep their full footer, since
+   Terms / Privacy / Refund links belong there. */
+body.csm-has-appnav .site-footer .footer-menu,
+body.csm-has-appnav .site-footer .social-links,
+body.csm-has-appnav .site-footer .footer-social,
+body.csm-has-appnav .site-footer nav,
+body.csm-has-appnav .site-footer ul,
+body.csm-has-appnav .site-footer .site-info { display: none !important; }
+body.csm-has-appnav .site-footer {
+	padding: 14px 16px calc(var(--csm-appnav-h, 62px) + 18px);
+	background: transparent;
+	border: 0;
+	text-align: center;
+	font-size: 13px;
+	color: var(--csm-muted, #5c6a76);
+}
+body.csm-has-appnav .site-footer .csm-support-only { display: block !important; }
+
+/* ---- 3. stop long values overshooting ----
+   "Assistant Manager", long company names and multi-word cities were running
+   past their container instead of ellipsing. */
+.csm-card-sub,
+.csm-card-name,
+.csm-sec-label,
+.csm-set-label,
+.csm-set-value {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* chips wrap as a group but never split a single value awkwardly */
+.csm-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+/* member-list meta (Matches / directory rows) */
+body.csm-screens #buddypress ul.members-list .item-meta,
+body.csm-screens #buddypress ul.members-list .list-title.member-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* back link out of a profile-edit group (v0.37.0) */
+.csm-back {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 14px;
+	padding: 9px 14px 9px 10px;
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 999px;
+	background: var(--csm-surface, #fff);
+	color: var(--csm-ink, #16212b);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+}
+.csm-back:hover { background: var(--csm-blue-tint, #e9f1f8); border-color: var(--csm-blue, #2c5b8c); }
+.csm-back svg { width: 17px; height: 17px; }
+/* the wizard strips member chrome with !important, so re-assert the back link */
+body.profile-edit .csm-back { display: inline-flex !important; position: relative; z-index: 5; }
+
+.csm-support-only { display: none; }
+.csm-support-only a { color: var(--csm-muted, #5c6a76); text-decoration: none; }

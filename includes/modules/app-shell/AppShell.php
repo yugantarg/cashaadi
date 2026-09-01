@@ -29,6 +29,42 @@ final class AppShell {
 		// header, so it sits at the very top of the content. Member pages only;
 		// the Discover page has its own heading.
 		add_action( 'bp_before_member_header', array( __CLASS__, 'render_topbar' ) );
+
+		// Support email in the (now minimal) app footer.
+		add_action( 'wp_footer', array( __CLASS__, 'render_support' ), 25 );
+
+		// A way back out of a profile-edit group. Editing a group replaces the
+		// screen and BuddyPress offers no route back to the profile, so the member
+		// gets stuck — reported 2026-09-01.
+		add_action( 'bp_before_member_body', array( __CLASS__, 'render_back' ), 1 );
+	}
+
+	/** The app footer carries the support address and nothing else. */
+	public static function render_support() {
+		if ( ! self::active_here() ) {
+			return;
+		}
+		printf(
+			'<div class="csm-support-only"><a href="mailto:%1$s">%1$s</a></div>',
+			esc_attr( \CAShaadi\Core\Config::SUPPORT_EMAIL )
+		);
+	}
+
+	/**
+	 * Back link on the focused profile-edit screens, so changing a section is not
+	 * a one-way trip.
+	 */
+	public static function render_back() {
+		if ( ! function_exists( 'bp_is_user_profile_edit' ) || ! bp_is_user_profile_edit() ) {
+			return;
+		}
+		$base = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : home_url( '/' );
+		printf(
+			'<a class="csm-back" href="%s">%s%s</a>',
+			esc_url( $base ),
+			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+			esc_html__( 'Back to profile', 'cashaadi-ui' )
+		);
 	}
 
 	/** A BuddyPress member screen, or the Discover page. */
@@ -128,9 +164,16 @@ final class AppShell {
 		$friends_slug  = function_exists( 'bp_get_friends_slug' ) ? bp_get_friends_slug() : 'friends';
 		$messages_slug = function_exists( 'bp_get_messages_slug' ) ? bp_get_messages_slug() : 'messages';
 
+		// Information architecture (owner, 2026-09-01):
+		//   Discover — another member's full profile as a scrollable card
+		//   Requests — requests sent, received, and profile viewers
+		//   Messages — current matches (the conversation list IS the match list)
+		//   Profile  — my own profile
+		// So this tab points at the Requests sub-screen rather than the component
+		// root, which was "My Matches" — that now lives under Messages.
 		$items = array(
 			'discover' => array( 'Discover', home_url( '/discover/' ), self::icon_discover() ),
-			'matches'  => array( 'Matches', trailingslashit( $base . $friends_slug ), self::icon_matches() ),
+			'matches'  => array( 'Requests', trailingslashit( $base . $friends_slug ) . 'requests/', self::icon_matches() ),
 			'messages' => array( 'Messages', trailingslashit( $base . $messages_slug ), self::icon_messages() ),
 			'profile'  => array( 'Profile', $base, self::icon_profile() ),
 		);
