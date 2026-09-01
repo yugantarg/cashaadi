@@ -242,7 +242,7 @@ runtime code).
 
 ---
 
-## Photos cutover — analysed, NOT executed (needs a wp-config edit)
+## Photos cutover — DONE (2026-09-02)
 
 Eight snippets, all still active because `CASHAADI_PHOTOS_ENABLED` is off.
 
@@ -307,3 +307,38 @@ define( 'CASHAADI_PHOTOS_ENABLED', true );
 flags. If it does not, it is the wrong wp-config — stop.
 
 Then disable, in order: #11690, #11798, #11771, #11813, #11838, #11861, #11822.
+
+### Executed and verified
+
+`CASHAADI_PHOTOS_ENABLED` added to `public_html/staging2/wp-config.php`, then all
+eight snippets disabled. **Active snippets: 32 → 18.**
+
+Path verification before writing, because production's `wp-config.php` sits in
+the same `public_html` listing as `staging/` and `staging2/`:
+
+1. breadcrumb read `public_html › staging2 › wp-config`;
+2. the file already contained the other eight `CASHAADI_*_ENABLED` flags;
+3. the edit was computed as a string insert and **length-checked** — abort unless
+   `after.length === before.length + addition.length` and removing the inserted
+   line reproduced the original byte-for-byte;
+4. reloaded from disk to confirm: 4210 bytes, 9 flags, DB credentials and salts
+   intact, file still opens with `<?php`.
+
+Disable order was dependents-then-base (#11690, #11798, #11771, #11813, #11838,
+#11861, #11822) because #11838 and #11861 call functions #11822 defines.
+
+**The written order listed only seven of the eight** — #11770 was in the coverage
+table but missing from the order line, so it stayed active through the first
+pass. Caught by verifying state afterwards rather than trusting the HTTP 200s,
+and disabled separately.
+
+Verified after: staging2 and production both healthy, no fatals; the plugin's
+`photos.css`/`photos-gallery.css` now load (they did not before); the photo grid,
+add control and privacy toggle each render once; `profile/me` reports
+`hasPhoto: true` with the member's real avatar; the Discover queue returns five
+profiles with real avatars; blur state preserved.
+
+### Remaining snippets: 18
+
+Next candidates are the profile-edit UX group (#12124, #12119, #11844, #11629,
+#11641). Reminder emails #11732/#11733 stay by choice.
