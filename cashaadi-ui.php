@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.57.4
+ * Version:           0.58.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.57.4' );
+define( 'CASHAADI_UI_VER', '0.58.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -289,7 +289,30 @@ add_action( 'wp_enqueue_scripts', function () {
 		// top of this; these are plain fixes that also apply if the JS no-ops.
 		Assets::style( 'profile-edit', 'assets/css/profile-edit.css' );
 
-		Assets::script( 'profile-wizard', 'assets/js/profile-wizard.js' );
+		/*
+		 * profile-wizard.js is NOT enqueued.
+		 *
+		 * It is the Phase-3 "AJAX no-reload wizard", and its own header says
+		 * "[STAGING DRAFT] ... NOT YET LIVE-TESTED", with two // VERIFY markers
+		 * still unresolved. It was running anyway, and it had taken the form over
+		 * (verified live: form carried data-csm-ajax="1").
+		 *
+		 * It is also the cause of a bug reported three times: "when the backend
+		 * group changes I am not able to go back". Line 186 advanced groups with
+		 * history.replaceState() rather than pushState(), so moving 1 -> 2 -> 3
+		 * REPLACED the single history entry each time and Back left profile-edit
+		 * altogether. Exactly the defect /welcome/ hit, where the fix was to seed
+		 * real history entries.
+		 *
+		 * It is not repaired here because the flow no longer wants it. /welcome/
+		 * owns onboarding now; reaching an editor from the /profile/ hub means
+		 * "change one section and come back", which the native form plus the
+		 * "Back to profile" link already do. A no-reload chain through all seven
+		 * groups solves a problem this app no longer has.
+		 *
+		 * The file stays in the repo. To resurrect it, fix the history handling
+		 * first and clear both // VERIFY markers.
+		 */
 	}
 
 	// Future increments enqueue here:
