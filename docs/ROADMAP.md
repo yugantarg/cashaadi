@@ -111,9 +111,27 @@ custom screens must enforce.
 - ⬜ Filter control in the Discover header (design has a filter icon).
 - ⬜ Desktop: cards currently wrap 2-up; a deliberate desktop layout is Phase 6.
 
-## Phase 6 — Consolidate & harden
-- Fold remaining WPCode helpers into the plugin where sensible; document what stays.
-- Desktop responsive pass; accessibility; QA on staging; promote to live.
+## Phase 6 — Consolidate & harden  🔶 partial
+- ✅ **Desktop pass (v0.32.x)** — desktop now gets the same app instead of stock
+  BuddyPress. A fixed **left rail** (Discover · Matches · Messages · Profile)
+  replaces the bottom bar, the top bar carries title + settings + bell, the theme
+  header and `#object-nav` are gone, and content is held to a 780px column.
+  The rail is introduced BEFORE the chrome is removed — same ordering rule as
+  mobile, so nobody is stranded without navigation.
+  - The Settings hub, profile section rows and Matches row list became
+    `@media all` rather than duplicating rules per breakpoint.
+  - Settings and Messages now open as **focused screens** (profile card + photo
+    gallery hidden), which also closed the logged desktop-Messages gap.
+  - Verified visually: rail, top bar, stacked rows, Discover feed, Settings hub.
+    Marketing pages are untouched (masthead visible, no rail, no body padding).
+- ⚠️ **Two bugs that only a screenshot caught** (recorded as a lesson):
+  1. Top-bar child styles were written inside the mobile media query, so the
+     desktop reveal rendered them unstyled (title 37px, actions 7px wide).
+  2. BuddyX floats `#item-body li`, so the Settings and profile section rows sat
+     side-by-side at 216px instead of stacking — wrong on mobile too, just never
+     seen. DOM/CSSOM checks pass on both; only rendering exposes them.
+- ⬜ Accessibility pass; real-device QA; Notifications screen; promote to live.
+- ⬜ Fold remaining WPCode helpers into the plugin where sensible.
 
 ---
 ### Verify against live before building (from the audit)
