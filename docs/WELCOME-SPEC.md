@@ -139,3 +139,23 @@ client-side tags work without them, just less completely.
 
 Discover, Requests, Messages, Profile — the same pattern, later. `/welcome/`
 first because it's the highest-stakes funnel and the acute pain.
+
+---
+
+## 7. Verified against the live site (2026-09-01)
+
+Built and driven end to end on staging2. What testing changed in this spec:
+
+| Assumption | Reality |
+|---|---|
+| REST calls just work when logged in | Cookie auth returns **401** without an `X-WP-Nonce` header. The page must localize `wp_create_nonce('wp_rest')`. |
+| Avatar upload = POST the file | BuddyPress also requires **`action=bp_avatar_upload`** in the form data; `wp_handle_upload()` otherwise rejects it as "Invalid form submission". |
+| Success returns an object | It returns an **array** of size variants, `[{full, thumb}]`. Checking `d.full` treats every success as a failure. |
+| Any photo will do | BuddyPress enforces a **896 x 1024 minimum**. On a step nobody can skip, this needs saying before the upload, not after. |
+| `history.pushState` per step is enough | Resuming mid-flow leaves a **single** history entry, so Back exits onboarding entirely. The stack must be seeded with one entry per completed step. |
+
+Confirmed working: nine derived steps; resume at the first unanswered one (a
+member who answered five fields at signup lands on step 7); Back walking
+7 → 6 → 5 without leaving `/welcome/`; saves persisting; completion redirecting
+to Discover; and `complete` returning `fireEvents: true` once and `false` on
+every later call, so a refresh cannot double-count the conversion.

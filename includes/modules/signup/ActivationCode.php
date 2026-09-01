@@ -287,23 +287,15 @@ final class ActivationCode {
 		 * brand-new member into the app with no photo and no details, having never
 		 * been asked for either.
 		 *
-		 * So: send them to the start of the existing wizard. /welcome/ replaces
-		 * this target when it lands (see WELCOME-SPEC.md) — one line, here.
+		 * As of v0.49.0 that means /welcome/ — the onboarding route, which holds
+		 * the member until a photo and every required field is done, and cannot be
+		 * walked out of the way the old group-by-group wizard could.
 		 *
-		 * Built from the user id, never bp_loggedin_user_url(): BuddyPress resolves
-		 * the logged-in user at bp_setup_current_user, which already ran for this
-		 * request while it was still logged OUT. wp_set_current_user() above does
-		 * not retro-fix that, so the "logged in user" helpers are unreliable here.
+		 * To fall back to the old wizard, point this at
+		 * bp_members_get_user_url( $user_id ) . 'profile/edit/group/1/' — it still
+		 * works, it is just no longer where new members are sent.
 		 */
-		$next = '';
-		if ( function_exists( 'bp_members_get_user_url' ) ) {
-			$next = bp_members_get_user_url( (int) $user_id );
-		} elseif ( function_exists( 'bp_core_get_user_domain' ) ) {
-			$next = bp_core_get_user_domain( (int) $user_id );
-		}
-		$next = $next
-			? trailingslashit( $next ) . 'profile/edit/group/1/'
-			: home_url( '/discover/' );
+		$next = home_url( '/welcome/' );
 
 		return array(
 			'ok'       => true,
