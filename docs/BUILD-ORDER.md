@@ -148,3 +148,48 @@ or it is lost.
   delivers to *every* configured property, so staging events reach live
   analytics whatever IDs the plugin holds.
 * "Enable tracking" is OFF on staging2 and should stay off.
+
+---
+
+## Status — 2026-09-01 (end of session)
+
+| Screen | State |
+|---|---|
+| `/welcome/` onboarding | ✅ own document, 9 derived steps, real Back, conversions wired |
+| `/discover/` | ✅ own document, full scrollable profile card, optimistic like/pass |
+| `/requests/` | ✅ own document, received / sent / viewers, premium gate server-side |
+| `/profile/` | ✅ own document, completion-first hub |
+| Messages | ⏸ **left on Better Messages by decision** — see below |
+
+### Messages: assessed, not rebuilt
+
+Desktop is fine (renders inline, header visible, no scroll lock). **On mobile it
+takes the entire viewport** — `position: fixed`, `z-index: 100000`, full height,
+plus `body { overflow: hidden }` — so it covers the header AND the bottom nav,
+and its own header offers no way back. The only exit is the browser back button.
+
+That is now the one screen that traps a member, because the other three all keep
+a persistent nav.
+
+**It is a setting, not code.** Better Messages → Settings → **Mobile**:
+* *Full Screen Mode* — "Open the messages page in full screen on mobile devices"
+* *Auto Open Full Screen* — "Automatically enter full screen when opening the
+  messages page"
+
+Recommended: turn **Auto Open Full Screen OFF**, leave Full Screen Mode ON. The
+list then keeps the app nav; fullscreen stays available for the conversation
+view, where it helps. Not changed — it affects every member, so it is the
+owner's call.
+
+Also seen: Better Messages reports a **Cron Issue**, the dashboard reports 15
+past-due Action Scheduler actions, and WebSocket is not enabled. Without it,
+delivery falls back to polling. Worth investigating separately.
+
+### Remaining seams (accepted transitional state)
+
+These still render in BuddyX chrome and are linked to from the new screens:
+member profile view, profile edit, change-avatar, settings, messages.
+
+Both navs now take their destinations from `Core\AppPage::nav()`, so the same
+tab goes to the same place from anywhere, and "Back to profile" returns to the
+`/profile/` hub rather than the BuddyPress member page.
