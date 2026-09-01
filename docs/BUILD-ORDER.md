@@ -420,3 +420,36 @@ moderation on the site, and switching it off would silently remove it.
 
 Wiring `Nsfw` up is its own task: it shares option keys (`csm_pm_*`) and reads
 the CA-Verify OpenAI key, so both running at once would double-sweep.
+
+---
+
+## Settings — app screen at /settings/ (v0.60.0, 2026-09-02)
+
+The hub rows are not new (Settings.php has rendered them since v0.27). What was
+wrong is where they lived: the hamburger and the profile hub both said
+"Settings" and dropped members into BuddyX chrome.
+
+**It owns the list, not the editors.** Email and password changes stay with
+BuddyPress's own settings forms — they handle re-authentication, the
+email-change confirmation loop and password strength. Re-implementing that over
+REST would mean re-implementing account security for visual consistency, which
+is not a trade worth making.
+
+So those rows link out, and `AppShell::render_back()` now covers BuddyPress's
+settings sub-screens too, saying **"Back to settings"** rather than "Back to
+profile" — verified live on `/settings/notifications/`.
+
+Details worth keeping: rows with no destination render as static readouts rather
+than links, so a status value does not look tappable; and "Delete my account"
+appears only when `bp_disable_account_deletion()` allows it (it is disabled on
+this install, so the row correctly does not render).
+
+### App surface now complete
+
+`/welcome/` · `/discover/` · `/requests/` · `/profile/` · `/profile/edit/` ·
+`/settings/` — all own documents. Messages stays with Better Messages by
+decision.
+
+Still in BuddyX chrome, reached by linking out: another member's profile view,
+the photos screen, and the settings sub-editors — each with a back link into the
+app.
