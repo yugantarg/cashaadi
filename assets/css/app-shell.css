@@ -768,3 +768,10 @@ body.change-avatar .csm-ph-del {
 	background: rgba(255, 255, 255, .94) !important;
 	color: var(--csm-ink, #16212b) !important;
 }
+
+/* The main photo is marked with an OUTLINE, not a border — which is why the
+   border override above left it maroon. */
+body.change-avatar .csm-ph-item.is-main {
+	outline-color: var(--csm-blue, #2c5b8c) !important;
+	outline-offset: 0 !important;
+}
