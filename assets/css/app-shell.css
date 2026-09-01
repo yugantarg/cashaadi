@@ -695,20 +695,30 @@ body.change-avatar .csm-ph-head h3 {
 }
 
 /* ---- header: wordmark and hamburger on ONE row ----
-   BuddyX stacks them because .site-branding is a block at full width, which is
-   why the app screens look right and every BuddyPress screen did not. */
-body.csm-has-appnav #masthead .site-header-inner,
-body.profile-edit #masthead .site-header-inner,
-body.change-avatar #masthead .site-header-inner {
+   The wordmark sat stacked ABOVE the hamburger on every BuddyPress screen,
+   while the app screens rendered them side by side.
+
+   Verified in the DOM rather than guessed: #masthead IS <header.site-header>,
+   and it is display:block with two block children — DIV.site-branding and
+   NAV.main-navigation (which holds .menu-toggle). There is no .site-header-inner
+   or .container inside it on this theme, which is why an earlier attempt at
+   those selectors changed nothing. Making #masthead itself the flex row is what
+   actually puts them on one line.
+
+   !important because an earlier rule in this file already forces
+   `#masthead { display: block !important }` to bring the header back at all. */
+body.csm-has-appnav #masthead,
+body.profile-edit #masthead,
+body.change-avatar #masthead {
 	display: flex !important;
 	align-items: center !important;
 	justify-content: space-between !important;
 	flex-wrap: nowrap !important;
 	gap: 12px;
 }
-body.csm-has-appnav #masthead .site-branding,
-body.profile-edit #masthead .site-branding,
-body.change-avatar #masthead .site-branding { flex: 1 1 auto; min-width: 0; margin: 0; }
-body.csm-has-appnav #masthead .menu-toggle,
-body.profile-edit #masthead .menu-toggle,
-body.change-avatar #masthead .menu-toggle { flex: 0 0 auto; margin: 0; }
+body.csm-has-appnav #masthead > .site-branding,
+body.profile-edit #masthead > .site-branding,
+body.change-avatar #masthead > .site-branding { flex: 1 1 auto; min-width: 0; margin: 0; }
+body.csm-has-appnav #masthead > .main-navigation,
+body.profile-edit #masthead > .main-navigation,
+body.change-avatar #masthead > .main-navigation { flex: 0 0 auto; margin: 0; width: auto; }
