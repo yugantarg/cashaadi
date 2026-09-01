@@ -26,6 +26,7 @@ namespace CAShaadi\Modules\Discover;
 
 use CAShaadi\Core\Config;
 use CAShaadi\Core\Assets;
+use CAShaadi\Core\Verification;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -173,6 +174,28 @@ final class Discover {
 
 	/* ---- #11602 tray shortcode ----------------------------------------- */
 
+	/**
+	 * Height chip: the site stores Height in centimetres, the design shows
+	 * imperial ("5′ 4″"). Mirrors the conversion the profile wizard already does
+	 * in JS (round to whole inches, then split into feet + inches).
+	 *
+	 * @param  string $cm Raw field value.
+	 * @return string     e.g. "5′ 4″", or '' when not a usable number.
+	 */
+	private static function height_label( $cm ) {
+		if ( ! is_numeric( $cm ) ) {
+			return '';
+		}
+		$cm = (int) round( (float) $cm );
+		if ( $cm < 100 || $cm > 260 ) {
+			return ''; // outside the wizard's own slider range — treat as unset
+		}
+		$inches = (int) round( $cm / 2.54 );
+		// Literal prime / double-prime — \u{} escapes are NOT interpreted inside
+		// single-quoted PHP strings.
+		return intdiv( $inches, 12 ) . '′ ' . ( $inches % 12 ) . '″';
+	}
+
 	public static function tray() {
 		if ( ! is_user_logged_in() ) {
 			return '<div class="csm-tray-msg">Please log in to discover matches.</div>';
@@ -218,38 +241,81 @@ final class Discover {
 						? bp_core_fetch_avatar( array( 'item_id' => $pid, 'type' => 'full', 'html' => false ) )
 						: get_avatar_url( $pid, array( 'size' => 300 ) );
 
-					$age      = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( 'Age', $pid )      : '';
-					$location = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( 'Location', $pid ) : '';
-					$about    = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( 'About Me', $pid ) : '';
+					// NOTE: the field names here are the site's REAL xProfile labels.
+					// This card previously asked for 'Location' and 'About Me', which
+					// do not exist on this install — so both lines always rendered
+					// empty. The real fields are 'City' and 'Bio' (group 1).
+					$f = function( $label ) use ( $pid ) {
+						return function_exists( 'xprofile_get_field_data' )
+							? trim( (string) xprofile_get_field_data( $label, $pid ) )
+							: '';
+					};
+
+					$age = $f( 'Age' );
+					// 'Age' is filtered on this site and can come back as "27 years
+					// old"; the card wants the bare number.
+					if ( $age && preg_match( '/\d+/', $age, $m ) ) {
+						$age = $m[0];
+					}
+
+					$city    = $f( 'City' );
+					$bio     = $f( 'Bio' );
+					$title   = $f( 'Current Job Title' );
+					$company = $f( 'Company Name' );
+					$qual    = $f( 'Qualification' );
+					$height  = self::height_label( $f( 'Height' ) );
+
+					// "Chartered Accountant · Mumbai"
+					$sub = implode( ' · ', array_filter( array( $title, $city ) ) );
+
+					$chips = array_filter( array( $qual, $company, $height ) );
+
+					$verified = class_exists( Verification::class ) && Verification::ca_verified( $pid );
 
 					$profile_url = function_exists( 'bp_core_get_user_domain' ) ? bp_core_get_user_domain( $pid ) : get_author_posts_url( $pid );
 					$is_new      = ( isset( $row->week_assigned ) && $row->week_assigned === $current_week );
 				?>
-					<div class="csm-card" data-profile-id="<?php echo esc_attr( $pid ); ?>">
-						<?php if ( $is_new ) : ?>
-							<span class="csm-badge-new">&#10024; NEW</span>
+					<article class="csm-card" data-profile-id="<?php echo esc_attr( $pid ); ?>">
+						<a class="csm-card-media" href="<?php echo esc_url( $profile_url ); ?>">
+							<div class="csm-card-photo" style="background-image:url('<?php echo esc_url( $avatar ); ?>');"></div>
+							<?php if ( $verified ) : ?>
+								<span class="csm-card-verified"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>ICAI Verified</span>
+							<?php endif; ?>
+							<?php if ( $is_new ) : ?>
+								<span class="csm-badge-new">&#10024; NEW</span>
+							<?php endif; ?>
+							<div class="csm-card-overlay">
+								<h3 class="csm-card-name"><?php echo esc_html( $name ); ?><?php if ( $age ) : ?><span class="csm-card-age">, <?php echo esc_html( $age ); ?></span><?php endif; ?></h3>
+								<?php if ( $sub ) : ?>
+									<p class="csm-card-sub"><?php echo esc_html( $sub ); ?></p>
+								<?php endif; ?>
+							</div>
+						</a>
+
+						<?php if ( $chips || $bio ) : ?>
+							<div class="csm-card-body">
+								<?php if ( $chips ) : ?>
+									<ul class="csm-chips">
+										<?php foreach ( $chips as $chip ) : ?>
+											<li class="csm-chip"><?php echo esc_html( $chip ); ?></li>
+										<?php endforeach; ?>
+									</ul>
+								<?php endif; ?>
+								<?php if ( $bio ) : ?>
+									<p class="csm-card-bio"><?php echo esc_html( wp_trim_words( $bio, 28 ) ); ?></p>
+								<?php endif; ?>
+							</div>
 						<?php endif; ?>
 
-						<a class="csm-card-photo-link" href="<?php echo esc_url( $profile_url ); ?>"><div class="csm-card-photo" style="background-image:url('<?php echo esc_url( $avatar ); ?>');"></div></a>
-
-						<div class="csm-card-body">
-							<h3 class="csm-card-name">
-								<a class="csm-card-name-link" href="<?php echo esc_url( $profile_url ); ?>"><?php echo esc_html( $name ); ?></a>
-								<?php if ( $age ) : ?><span class="csm-card-age">, <?php echo esc_html( $age ); ?></span><?php endif; ?>
-							</h3>
-							<?php if ( $location ) : ?>
-								<p class="csm-card-loc"><?php echo esc_html( $location ); ?></p>
-							<?php endif; ?>
-							<?php if ( $about ) : ?>
-								<p class="csm-card-about"><?php echo esc_html( wp_trim_words( $about, 28 ) ); ?></p>
-							<?php endif; ?>
-						</div>
-
 						<div class="csm-card-actions">
-							<button type="button" class="csm-btn csm-pass" data-profile-id="<?php echo esc_attr( $pid ); ?>">Pass</button>
-							<button type="button" class="csm-btn csm-like" data-profile-id="<?php echo esc_attr( $pid ); ?>">Like</button>
+							<button type="button" class="csm-btn csm-act csm-pass" data-profile-id="<?php echo esc_attr( $pid ); ?>" aria-label="<?php esc_attr_e( 'Pass', 'cashaadi-ui' ); ?>">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+							</button>
+							<button type="button" class="csm-btn csm-act csm-like" data-profile-id="<?php echo esc_attr( $pid ); ?>" aria-label="<?php esc_attr_e( 'Like', 'cashaadi-ui' ); ?>">
+								<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.7-9.6-9A5.4 5.4 0 0 1 12 6.2 5.4 5.4 0 0 1 21.6 12c-2.1 4.3-9.6 9-9.6 9z"></path></svg>
+							</button>
 						</div>
-					</div>
+					</article>
 				<?php endforeach; ?>
 			<?php endif; ?>
 

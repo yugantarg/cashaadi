@@ -71,3 +71,155 @@
 	#primary-menu .menu-item-11511 > a:focus,
 	.mobile-user-profile-menu .menu-item-11511 > a:hover { background-color:#184E82; color:#fff !important; }
 }
+
+/* ==========================================================================
+   Discover card — approved design (v0.29.0)
+   --------------------------------------------------------------------------
+   Photo-first card: a tall portrait with the name/profession overlaid on a
+   gradient scrim, fact chips + bio beneath, and circular Pass/Like actions.
+   Mobile-first; one card fills the viewport width so the feed reads like the
+   design instead of a grid of tiles.
+
+   These rules come after the legacy block above and intentionally override it.
+   The DOM contract used by assets/js/discover.js is preserved: .csm-card,
+   .csm-btn, .csm-like, .csm-pass and data-profile-id are unchanged.
+   ========================================================================== */
+
+.csm-tray { gap: 18px; padding: 4px 0 12px; }
+
+.csm-card {
+	width: 100%;
+	max-width: 460px;
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	box-shadow: 0 6px 22px -14px rgba(22, 33, 43, .3);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+
+/* ---- media ---- */
+.csm-card-media { position: relative; display: block; }
+.csm-card .csm-card-photo {
+	height: auto;
+	aspect-ratio: 4 / 5;
+	background-color: var(--csm-hair, #e4eaf0);
+}
+/* scrim so the overlaid name stays legible on any photo */
+.csm-card-media::after {
+	content: "";
+	position: absolute;
+	inset: auto 0 0 0;
+	height: 58%;
+	background: linear-gradient(to top, rgba(10, 16, 22, .82), rgba(10, 16, 22, .35) 45%, transparent);
+	pointer-events: none;
+}
+
+.csm-card-verified {
+	position: absolute;
+	top: 12px; left: 12px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 5px 10px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, .94);
+	color: var(--csm-blue, #2c5b8c);
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: .01em;
+}
+.csm-card-verified svg { width: 12px; height: 12px; }
+
+.csm-card .csm-badge-new { top: 12px; left: auto; right: 12px; }
+
+.csm-card-overlay {
+	position: absolute;
+	left: 0; right: 0; bottom: 0;
+	z-index: 2;
+	padding: 16px 16px 14px;
+	color: #fff;
+}
+.csm-card .csm-card-name {
+	margin: 0;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 25px;
+	font-weight: 500;
+	line-height: 1.15;
+	color: #fff;
+	text-shadow: 0 1px 10px rgba(0, 0, 0, .35);
+}
+.csm-card .csm-card-age { font-weight: 400; color: rgba(255, 255, 255, .88); }
+.csm-card-sub {
+	margin: 5px 0 0;
+	font-size: 13.5px;
+	color: rgba(255, 255, 255, .9);
+	text-shadow: 0 1px 8px rgba(0, 0, 0, .35);
+}
+
+/* ---- facts + bio ---- */
+.csm-card .csm-card-body { padding: 14px 16px 4px; }
+
+.csm-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; }
+.csm-chip {
+	padding: 5px 11px;
+	border-radius: 999px;
+	background: var(--csm-blue-tint, #e9f1f8);
+	color: var(--csm-blue, #2c5b8c);
+	font-size: 12.5px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.csm-card-bio {
+	margin: 12px 0 0;
+	font-size: 14.5px;
+	line-height: 1.5;
+	color: var(--csm-muted, #5c6a76);
+}
+
+/* ---- circular actions ---- */
+.csm-card .csm-card-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 26px;
+	border-top: 0;
+	padding: 16px 0 20px;
+}
+.csm-card .csm-btn.csm-act {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 58px; height: 58px;
+	padding: 0;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: transform .12s ease, background-color .15s ease;
+	-webkit-tap-highlight-color: transparent;
+}
+.csm-card .csm-btn.csm-act:active { transform: scale(.93); }
+.csm-card .csm-btn.csm-act svg { width: 25px; height: 25px; }
+
+.csm-card .csm-btn.csm-pass {
+	background: var(--csm-surface, #fff) !important;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-card .csm-btn.csm-pass:hover { background: var(--csm-ground, #f4f6f8) !important; }
+
+.csm-card .csm-btn.csm-like,
+.csm-card .csm-btn.csm-like:hover,
+.csm-card .csm-btn.csm-like:focus {
+	background: var(--csm-green, #6f9f2e) !important;
+	background-color: var(--csm-green, #6f9f2e) !important;
+	border: 0;
+	color: #fff !important;
+	box-shadow: 0 6px 16px -8px rgba(111, 159, 46, .9);
+}
+.csm-card .csm-btn.csm-like:hover { background: var(--csm-green-press, #5e8926) !important; }
+
+@media (max-width: 782px) {
+	.csm-tray { padding: 0 0 10px; }
+	.csm-card { max-width: none; border-radius: 16px; }
+}
