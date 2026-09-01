@@ -169,22 +169,39 @@ final class AppShell {
 			return;
 		}
 
-		$base = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : home_url( '/' );
-		$friends_slug  = function_exists( 'bp_get_friends_slug' ) ? bp_get_friends_slug() : 'friends';
+		/*
+		 * DESTINATIONS COME FROM Core\AppPage, NOT FROM HERE.
+		 *
+		 * This nav renders on the BuddyPress screens (profile edit, photos,
+		 * settings, another member's profile); Core\AppPage renders the one on
+		 * Discover, Requests and Profile. They were pointing at different places:
+		 * this copy still sent Requests to BuddyPress's friends sub-tab and
+		 * Profile to the BuddyPress member page, while the app screens send both
+		 * to /requests/ and /profile/.
+		 *
+		 * The effect was that the SAME tab took you somewhere different depending
+		 * on which screen you happened to be standing on — tap "3 left" on the
+		 * Profile hub, land on profile-edit, tap Requests, and get the old
+		 * requests tab instead of the consolidated one. One definition fixes it,
+		 * and keeps them aligned as more screens move across.
+		 *
+		 * Icons and markup stay local: this shell has to sit inside BuddyX's DOM,
+		 * which AppPage never does.
+		 */
+		$dest = class_exists( '\CAShaadi\Core\AppPage' ) ? \CAShaadi\Core\AppPage::nav() : array();
+
+		$base          = function_exists( 'bp_loggedin_user_url' ) ? bp_loggedin_user_url() : home_url( '/' );
 		$messages_slug = function_exists( 'bp_get_messages_slug' ) ? bp_get_messages_slug() : 'messages';
 
-		// Information architecture (owner, 2026-09-01):
-		//   Discover — another member's full profile as a scrollable card
-		//   Requests — requests sent, received, and profile viewers
-		//   Messages — current matches (the conversation list IS the match list)
-		//   Profile  — my own profile
-		// So this tab points at the Requests sub-screen rather than the component
-		// root, which was "My Matches" — that now lives under Messages.
+		$url = function ( $key, $fallback ) use ( $dest ) {
+			return isset( $dest[ $key ]['url'] ) ? $dest[ $key ]['url'] : $fallback;
+		};
+
 		$items = array(
-			'discover' => array( 'Discover', home_url( '/discover/' ), self::icon_discover() ),
-			'matches'  => array( 'Requests', trailingslashit( $base . $friends_slug ) . 'requests/', self::icon_matches() ),
-			'messages' => array( 'Messages', trailingslashit( $base . $messages_slug ), self::icon_messages() ),
-			'profile'  => array( 'Profile', $base, self::icon_profile() ),
+			'discover' => array( 'Discover', $url( 'discover', home_url( '/discover/' ) ), self::icon_discover() ),
+			'matches'  => array( 'Requests', $url( 'requests', home_url( '/requests/' ) ), self::icon_matches() ),
+			'messages' => array( 'Messages', $url( 'messages', trailingslashit( $base . $messages_slug ) ), self::icon_messages() ),
+			'profile'  => array( 'Profile', $url( 'profile', home_url( '/profile/' ) ), self::icon_profile() ),
 		);
 		$current = self::current();
 
