@@ -583,12 +583,14 @@ body.profile-edit .csm-back {
 	position: sticky;
 	top: 8px;
 	z-index: 60;
-	float: left;
+	/* NOT float:left — the wizard card then flows around it and gets squeezed
+	   into a ~85px column with its heading and Save button clipped. A sticky
+	   block on its own line leaves the card full width. */
+	float: none;
+	clear: both;
 	margin: 8px 0 12px;
 	box-shadow: 0 4px 14px -8px rgba(22, 33, 43, .4);
 }
-/* keep the wizard card clear of the floated control */
-body.profile-edit #buddypress::before { content: ""; display: table; }
 
 @media (max-width: 782px) {
 	body.profile-edit .csm-back {
@@ -611,6 +613,7 @@ body.profile-edit .csm-back {
 	gap: 6px !important;
 	width: auto !important;
 	max-width: max-content !important;
+	float: none !important;
 }
 body.profile-edit .csm-back svg {
 	width: 17px !important;
