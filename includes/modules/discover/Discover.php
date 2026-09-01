@@ -87,13 +87,26 @@ final class Discover {
 
 	/* ---- #11601 like / pass AJAX --------------------------------------- */
 
-	public static function like() {
-		check_ajax_referer( 'csm_tray_nonce', 'nonce' );
+	/**
+	 * Record a like or a pass.
+	 *
+	 * Extracted from like()/pass() so the admin-ajax handlers and the REST
+	 * endpoint the new Discover screen uses cannot drift apart — the mutual-match
+	 * detection below is subtle enough that two copies would eventually disagree
+	 * about whether two people had matched.
+	 *
+	 * @param  int    $viewer_id  Acting member.
+	 * @param  int    $profile_id Member acted on.
+	 * @param  string $status     'liked' or 'passed'.
+	 * @return array{ok:bool,is_mutual:bool,remaining:int}
+	 */
+	public static function act( $viewer_id, $profile_id, $status ) {
+		$viewer_id  = (int) $viewer_id;
+		$profile_id = (int) $profile_id;
+		$status     = ( 'liked' === $status ) ? 'liked' : 'passed';
 
-		$viewer_id  = get_current_user_id();
-		$profile_id = isset( $_POST['profile_id'] ) ? absint( $_POST['profile_id'] ) : 0;
-		if ( ! $viewer_id || ! $profile_id ) {
-			wp_send_json_error( array( 'message' => 'Invalid request.' ) );
+		if ( ! $viewer_id || ! $profile_id || $viewer_id === $profile_id ) {
+			return array( 'ok' => false, 'is_mutual' => false, 'remaining' => 0 );
 		}
 
 		global $wpdb;
@@ -103,73 +116,68 @@ final class Discover {
 
 		$wpdb->update(
 			$tray,
-			array( 'status' => 'liked', 'acted_at' => $now ),
+			array( 'status' => $status, 'acted_at' => $now ),
 			array( 'viewer_id' => $viewer_id, 'profile_id' => $profile_id ),
 			array( '%s', '%s' ),
 			array( '%d', '%d' )
 		);
 
-		// Mutual-like detection (tray current-week OR likes history). No write to
-		// wp_csm_likes here; the weekly reset (#11600) owns like archival.
 		$is_mutual = false;
-		$reverse   = (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT (
-				EXISTS( SELECT 1 FROM {$tray}  WHERE viewer_id = %d AND profile_id = %d AND status = 'liked' )
-				OR
-				EXISTS( SELECT 1 FROM {$likes} WHERE viewer_id = %d AND profile_id = %d )
-			)",
-			$profile_id, $viewer_id, $profile_id, $viewer_id
-		) );
-		if ( $reverse > 0 ) {
-			$is_mutual = true;
+		if ( 'liked' === $status ) {
+			// Mutual-like detection (tray current-week OR likes history). No write
+			// to wp_csm_likes here; the weekly reset (#11600) owns like archival.
+			$reverse = (int) $wpdb->get_var( $wpdb->prepare(
+				"SELECT (
+					EXISTS( SELECT 1 FROM {$tray}  WHERE viewer_id = %d AND profile_id = %d AND status = 'liked' )
+					OR
+					EXISTS( SELECT 1 FROM {$likes} WHERE viewer_id = %d AND profile_id = %d )
+				)",
+				$profile_id, $viewer_id, $profile_id, $viewer_id
+			) );
+			$is_mutual = $reverse > 0;
 		}
 
-		$remaining = $wpdb->get_var( $wpdb->prepare(
+		$remaining = (int) $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM {$tray} WHERE viewer_id = %d AND status = 'pending'",
 			$viewer_id
 		) );
 
 		if ( function_exists( 'csm_log_event' ) ) {
-			csm_log_event( 'like', $viewer_id, $profile_id );
+			csm_log_event( 'liked' === $status ? 'like' : 'pass', $viewer_id, $profile_id );
 		}
 
+		return array( 'ok' => true, 'is_mutual' => $is_mutual, 'remaining' => $remaining );
+	}
+
+	public static function like() {
+		check_ajax_referer( 'csm_tray_nonce', 'nonce' );
+
+		$res = self::act(
+			get_current_user_id(),
+			isset( $_POST['profile_id'] ) ? absint( $_POST['profile_id'] ) : 0,
+			'liked'
+		);
+		if ( ! $res['ok'] ) {
+			wp_send_json_error( array( 'message' => 'Invalid request.' ) );
+		}
 		wp_send_json_success( array(
-			'is_mutual' => $is_mutual,
-			'remaining' => (int) $remaining,
+			'is_mutual' => $res['is_mutual'],
+			'remaining' => $res['remaining'],
 		) );
 	}
 
 	public static function pass() {
 		check_ajax_referer( 'csm_tray_nonce', 'nonce' );
 
-		$viewer_id  = get_current_user_id();
-		$profile_id = isset( $_POST['profile_id'] ) ? absint( $_POST['profile_id'] ) : 0;
-		if ( ! $viewer_id || ! $profile_id ) {
+		$res = self::act(
+			get_current_user_id(),
+			isset( $_POST['profile_id'] ) ? absint( $_POST['profile_id'] ) : 0,
+			'passed'
+		);
+		if ( ! $res['ok'] ) {
 			wp_send_json_error( array( 'message' => 'Invalid request.' ) );
 		}
-
-		global $wpdb;
-		$tray = $wpdb->prefix . 'csm_tray';
-		$now  = current_time( 'mysql' );
-
-		$wpdb->update(
-			$tray,
-			array( 'status' => 'passed', 'acted_at' => $now ),
-			array( 'viewer_id' => $viewer_id, 'profile_id' => $profile_id ),
-			array( '%s', '%s' ),
-			array( '%d', '%d' )
-		);
-
-		$remaining = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$tray} WHERE viewer_id = %d AND status = 'pending'",
-			$viewer_id
-		) );
-
-		if ( function_exists( 'csm_log_event' ) ) {
-			csm_log_event( 'pass', $viewer_id, $profile_id );
-		}
-
-		wp_send_json_success( array( 'remaining' => (int) $remaining ) );
+		wp_send_json_success( array( 'remaining' => $res['remaining'] ) );
 	}
 
 	/* ---- #11602 tray shortcode ----------------------------------------- */

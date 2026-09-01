@@ -1,0 +1,99 @@
+/* Shared chrome for every app screen (Discover / Requests / Messages / Profile).
+   These pages render their own document, so nothing here needs !important. */
+
+.csm-app {
+	margin: 0;
+	min-height: 100vh; min-height: 100dvh;
+	background: var(--csm-ground, #f4f6f8);
+	color: var(--csm-ink, #16212b);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+	-webkit-font-smoothing: antialiased;
+}
+.csm-app-wrap { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+
+/* ---- thin header ---- */
+.csm-app-top {
+	position: sticky; top: 0; z-index: 20;
+	display: flex; align-items: center; justify-content: space-between;
+	gap: 12px; padding: 10px 16px;
+	background: var(--csm-surface, #fff);
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+}
+.csm-app-brand {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 19px; font-weight: 600; letter-spacing: -.01em;
+	color: var(--csm-ink, #16212b); text-decoration: none;
+}
+.csm-app-menu-btn {
+	display: flex; flex-direction: column; justify-content: center; gap: 4px;
+	width: 44px; height: 44px; /* full touch target, not a 24px icon */
+	margin: -8px -10px -8px 0; padding: 0 10px;
+	border: 0; background: none; cursor: pointer;
+}
+.csm-app-menu-btn span {
+	display: block; height: 2px; width: 20px; border-radius: 2px;
+	background: var(--csm-blue, #2c5b8c); transition: transform .18s ease, opacity .18s ease;
+}
+.csm-app-menu-btn.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.csm-app-menu-btn.is-open span:nth-child(2) { opacity: 0; }
+.csm-app-menu-btn.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* ---- hamburger panel ---- */
+.csm-app-menu {
+	position: sticky; top: 57px; z-index: 19;
+	background: var(--csm-surface, #fff);
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+	box-shadow: 0 12px 24px -18px rgba(22,33,43,.5);
+}
+.csm-app-menu[hidden] { display: none; }
+.csm-app-menu ul { margin: 0; padding: 6px 0; list-style: none; }
+.csm-app-menu li { margin: 0; }
+.csm-app-menu a {
+	display: block; padding: 13px 18px;
+	color: var(--csm-ink, #16212b); text-decoration: none; font-size: 15px;
+}
+.csm-app-menu a:hover { background: var(--csm-ground, #f4f6f8); }
+
+/* ---- main ---- */
+.csm-app-main { flex: 1; padding: 0 0 96px; } /* room for the fixed bottom nav */
+.csm-app-loading { padding: 32px 18px; color: var(--csm-muted, #5c6a76); font-size: 14px; text-align: center; }
+
+/* ---- support footer: the only thing in the footer, per the owner ---- */
+.csm-app-support {
+	padding: 18px 16px;
+	background: var(--csm-surface, #fff);
+	border-top: 1px solid var(--csm-hair, #e4eaf0);
+	color: var(--csm-muted, #5c6a76);
+	font-size: 13px; text-align: center;
+}
+.csm-app-support a { color: var(--csm-gold, #a9822b); font-weight: 600; text-decoration: none; }
+
+/* ---- bottom nav ---- */
+.csm-app-nav {
+	position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+	display: flex;
+	background: var(--csm-surface, #fff);
+	border-top: 1px solid var(--csm-hair, #e4eaf0);
+	padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.csm-app-nav-item {
+	flex: 1;
+	display: flex; flex-direction: column; align-items: center; gap: 3px;
+	padding: 9px 4px 8px;
+	color: var(--csm-muted, #5c6a76); text-decoration: none;
+	font-size: 11px; font-weight: 600;
+}
+.csm-app-nav-item svg { width: 22px; height: 22px; }
+.csm-app-nav-item.is-on { color: var(--csm-blue, #2c5b8c); }
+
+/* ---- desktop: nav becomes a left rail ---- */
+@media (min-width: 783px) {
+	.csm-app-wrap { padding-left: 92px; }
+	.csm-app-nav {
+		top: 0; right: auto; width: 92px;
+		flex-direction: column; justify-content: center; gap: 6px;
+		border-top: 0; border-right: 1px solid var(--csm-hair, #e4eaf0);
+	}
+	.csm-app-nav-item { flex: 0 0 auto; padding: 14px 4px; }
+	.csm-app-main { padding-bottom: 40px; }
+}
