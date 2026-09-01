@@ -337,3 +337,21 @@
 	width: auto;
 	margin: 0;
 }
+
+/* ==========================================================================
+   Focused screens (v0.32.2)
+   --------------------------------------------------------------------------
+   Settings and Messages are destinations in their own right: in the design they
+   open as their own screen, with the title in the top bar. The profile card and
+   photo gallery belong on Profile, not stacked above them.
+
+   Both are children of #item-header alongside our .csm-topbar, so hide the
+   header's OTHER children — never the header itself, which would take the top
+   bar with it.
+
+   At every width: this also closes the desktop gap where the chat sat below the
+   profile card, since the equivalent Messages rule was mobile-only.
+   ========================================================================== */
+
+body.csm-set-screen  #buddypress #item-header > *:not(.csm-topbar),
+body.csm-cur-messages #buddypress #item-header > *:not(.csm-topbar) { display: none !important; }
