@@ -121,3 +121,30 @@ Also still on snippets by choice: reminder emails #11732/#11733 (paused anyway).
 The tracking screen **stores** credentials; nothing fires yet. `fireConversions()`
 in welcome.js is a single call site waiting for the events slice — that is the
 next piece of work, and it is what decisions 3 and 4 unblock.
+
+---
+
+## Before enabling tracking on production — REQUIRED
+
+**Disable WPCode snippet #12112 "CSM - GA4 events (sign_up + purchase)" first.**
+
+It is active and fires a GA4 `sign_up` on `bp_complete_signup`. The plugin fires
+`sign_up` too, so with both live every signup is counted twice — and since
+Google Ads imports that GA4 event as a conversion, the number it bids against
+inflates. They also disagree on the milestone: the snippet fires at
+**registration**, the plugin at **activation**, and an unactivated signup is not
+a signup.
+
+The snippet's `purchase` event (PMPro checkout) is NOT duplicated by the plugin.
+If #12112 is disabled, that purchase tracking must be re-created in the plugin
+or it is lost.
+
+### Also note
+
+* Site Kit already loads gtag with the live GA4 property **G-VJW0VMS7KC** and
+  Google tag GT-M6QBRJT. That is the Measurement ID to paste into the settings
+  screen. The plugin does not load a second gtag when one is present.
+* Every plugin GA4 event is scoped with `send_to` (v0.52.2). Without that, gtag
+  delivers to *every* configured property, so staging events reach live
+  analytics whatever IDs the plugin holds.
+* "Enable tracking" is OFF on staging2 and should stay off.
