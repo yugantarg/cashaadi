@@ -140,6 +140,14 @@
 		card.appendChild( nav );
 
 		main.appendChild( card );
+
+		/* Report the step as a synthetic pageview. Without this GA4 sees a single
+		   page for all of onboarding and per-step drop-off — the main thing worth
+		   knowing about a signup funnel — is unmeasurable. */
+		if ( typeof window.csmTrack === 'function' ) {
+			window.csmTrack( 'step', s.label, idx + 1, steps.length );
+		}
+
 		if ( field.focus ) { try { field.focus(); } catch ( e ) {} }
 		if ( skipPush ) { /* popstate already moved history */ }
 	}
@@ -437,9 +445,9 @@
 
 		api( CFG.complete, { method: 'POST' } ).then( function ( d ) {
 			if ( d && d.ok ) {
-				// Conversions fire only when the SERVER says this is the first
-				// completion, so a refresh cannot double-count.
-				if ( d.fireEvents ) { fireConversions(); }
+				// The server claims each event exactly once, so a refresh cannot
+				// double-count; this just sends what it was handed.
+				fireConversions( d.events );
 				window.location.href = d.redirect;
 				return;
 			}
@@ -455,14 +463,16 @@
 		} ).catch( fail );
 	}
 
-	/* Placeholder until the tracking slice lands; kept here so `fireEvents` has
-	   exactly one call site to grow into. */
-	function fireConversions() {
-		try {
-			if ( typeof window.gtag === 'function' ) {
-				window.gtag( 'event', 'sign_up', { method: 'welcome' } );
-			}
-		} catch ( e ) {}
+	/**
+	 * Fire whatever the server said this member still owed.
+	 *
+	 * The list comes from the server, which claims each event exactly once — this
+	 * side never decides whether something is a duplicate, because it cannot know
+	 * (a second device has its own JS).
+	 */
+	function fireConversions( events ) {
+		if ( typeof window.csmTrack !== 'function' ) { return; }
+		( events || [] ).forEach( function ( e ) { window.csmTrack( e ); } );
 	}
 
 	boot();

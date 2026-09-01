@@ -103,7 +103,33 @@ final class Welcome {
 	private static function enqueue() {
 		\CAShaadi\Core\Assets::style( 'welcome', 'assets/css/welcome.css', array( 'cashaadi-tokens' ) );
 		\CAShaadi\Core\Assets::style( 'tokens', 'assets/css/tokens.css' );
-		\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js' );
+
+		/*
+		 * Tracking loads BEFORE welcome.js and is its dependency, so window.csmTrack
+		 * exists by the time the first step is drawn. Otherwise the very first step
+		 * view — the top of the funnel, the number that matters most — is the one
+		 * event that never gets sent.
+		 *
+		 * Claiming happens here, at render: reaching this page IS the activation
+		 * and the start of onboarding. Each is claimed once per member, ever.
+		 */
+		if ( class_exists( '\CAShaadi\Modules\Tracking\Events' ) ) {
+			\CAShaadi\Core\Assets::script( 'tracking', 'assets/js/tracking.js' );
+			wp_localize_script(
+				'cashaadi-tracking',
+				'CSM_TRACK',
+				\CAShaadi\Modules\Tracking\Events::config(
+					get_current_user_id(),
+					array(
+						\CAShaadi\Modules\Tracking\Events::SIGNUP,
+						\CAShaadi\Modules\Tracking\Events::ONBOARDING_START,
+					)
+				)
+			);
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking' ) );
+		} else {
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js' );
+		}
 
 		wp_localize_script(
 			'cashaadi-welcome',
@@ -460,21 +486,29 @@ final class Welcome {
 		}
 
 		/*
-		 * Fire the conversion once per member, ever.
+		 * Claim the completion event once per member, ever.
 		 *
-		 * The flag is set server-side and checked here, so a refresh, a back
-		 * button or a second device cannot re-fire it — the failure mode that
-		 * silently inflates the number Google Ads optimises against.
+		 * Claimed here rather than on the page, because completion is the one
+		 * milestone the server can genuinely confirm — every required answer is
+		 * present, checked immediately above. A refresh, a back button or a second
+		 * device cannot produce a second copy.
 		 */
 		$first_time = ! get_user_meta( $uid, self::DONE_META, true );
 		if ( $first_time ) {
 			update_user_meta( $uid, self::DONE_META, time() );
 		}
 
+		$events = array();
+		if ( class_exists( '\CAShaadi\Modules\Tracking\Events' )
+			&& \CAShaadi\Modules\Tracking\Events::claim( $uid, \CAShaadi\Modules\Tracking\Events::ONBOARDING_DONE ) ) {
+			$events[] = \CAShaadi\Modules\Tracking\Events::ONBOARDING_DONE;
+		}
+
 		return new \WP_REST_Response( array(
-			'ok'          => true,
-			'fireEvents'  => $first_time,
-			'redirect'    => home_url( '/discover/' ),
+			'ok'         => true,
+			'fireEvents' => $first_time,
+			'events'     => $events,
+			'redirect'   => home_url( '/discover/' ),
 		), 200 );
 	}
 }
