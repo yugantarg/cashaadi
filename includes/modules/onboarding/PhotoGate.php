@@ -95,6 +95,20 @@ final class PhotoGate {
 			return; // BuddyPress not ready — fail open rather than trap
 		}
 
+		// Loop breaker, independent of BuddyPress.
+		//
+		// The on_photo_screen() check above is the intended exemption, but it
+		// trusts bp_current_action() to report 'change-avatar'. If that ever stops
+		// being true — a BP Rewrites slug change, a template override, a component
+		// renamed — the gate would redirect the photo screen to itself forever and
+		// lock every member out of the site. Comparing the request path to the
+		// target path cannot fail that way: if we are already at the destination,
+		// we never redirect, whatever BuddyPress thinks the action is.
+		$here = strtok( (string) ( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '' ), '?' );
+		if ( untrailingslashit( (string) $here ) === untrailingslashit( (string) wp_parse_url( $target, PHP_URL_PATH ) ) ) {
+			return;
+		}
+
 		wp_safe_redirect( $target );
 		exit;
 	}
