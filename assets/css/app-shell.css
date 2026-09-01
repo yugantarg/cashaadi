@@ -530,3 +530,38 @@ body.profile-edit .csm-back { display: inline-flex !important; position: relativ
 
 .csm-support-only { display: none; }
 .csm-support-only a { color: var(--csm-muted, #5c6a76); text-decoration: none; }
+
+/* ---- thin-header branding (v0.37.2) ----
+   BuddyX clips .site-title to screen-reader-only (position:absolute + clip)
+   because it expects a custom logo image — and none is configured on this site,
+   so the header rendered with only a hamburger. Un-clip the title and set it as
+   a serif wordmark, which needs no asset. If a logo image is uploaded later it
+   renders normally and this simply stops applying. */
+body.csm-has-appnav #masthead .site-branding { height: auto; align-items: center; }
+
+body.csm-has-appnav #masthead .site-title {
+	position: static !important;
+	clip: auto !important;
+	clip-path: none !important;
+	width: auto !important;
+	height: auto !important;
+	margin: 0;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 19px;
+	font-weight: 600;
+	letter-spacing: -.01em;
+	line-height: 1.2;
+	white-space: nowrap;
+}
+body.csm-has-appnav #masthead .site-title a {
+	color: var(--csm-ink, #16212b);
+	text-decoration: none;
+}
+/* logo left, hamburger right */
+body.csm-has-appnav #masthead .container,
+body.csm-has-appnav #masthead .site-header-inner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
