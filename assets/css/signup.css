@@ -177,3 +177,14 @@ body.activate #activation-form input[type=submit]:hover { background: var(--csm-
 .csm-actcode-err:empty { display: none; }
 
 .csm-actcode-form button.is-busy { opacity: .6; cursor: default; }
+
+/* ---- resend (v0.42.0) ---- */
+.csm-actcode-resend { margin: 14px 0 0; text-align: center; }
+.csm-actcode-resend-btn {
+	background: none; border: 0; padding: 6px 4px;
+	color: var(--csm-blue, #2c5b8c);
+	font-size: 13.5px; font-weight: 600;
+	text-decoration: underline; cursor: pointer;
+}
+.csm-actcode-resend-btn[disabled] { color: var(--csm-muted, #5c6a76); text-decoration: none; cursor: default; }
+.csm-actcode-resend-msg { display: block; margin-top: 6px; font-size: 12.5px; color: var(--csm-muted, #5c6a76); }

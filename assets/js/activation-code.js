@@ -101,4 +101,74 @@
 		e.preventDefault();
 		submit();
 	} );
+
+	/* ------------------------------------------------------------- resend */
+
+	var resendBtn = document.querySelector( '.csm-actcode-resend-btn' );
+	var resendMsg = document.querySelector( '.csm-actcode-resend-msg' );
+
+	if ( resendBtn && resendBtn.getAttribute( 'data-endpoint' ) ) {
+		resendBtn.addEventListener( 'click', function () {
+			if ( resendBtn.disabled ) {
+				return;
+			}
+			if ( ! emailEl.value ) {
+				if ( resendMsg ) {
+					resendMsg.textContent = 'Enter your email address first.';
+				}
+				emailEl.focus();
+				return;
+			}
+
+			resendBtn.disabled = true;
+			if ( resendMsg ) {
+				resendMsg.textContent = '';
+			}
+
+			fetch( resendBtn.getAttribute( 'data-endpoint' ), {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify( { email: emailEl.value, nonce: nonceEl.value } )
+			} )
+				.then( function ( r ) { return r.json(); } )
+				.then( function ( data ) {
+					if ( resendMsg ) {
+						resendMsg.textContent = ( data && data.message ) || '';
+					}
+					// Mirror the server's cooldown in the UI so the button cannot be
+					// hammered into an error it already knows the answer to.
+					countdown( 60 );
+					// A new code means the old digits are dead — clear them.
+					codeEl.value = '';
+					if ( errEl ) {
+						errEl.textContent = '';
+					}
+					codeEl.focus();
+				} )
+				.catch( function () {
+					resendBtn.disabled = false;
+					if ( resendMsg ) {
+						resendMsg.textContent = 'Could not send a new code. Please try again.';
+					}
+				} );
+		} );
+	}
+
+	function countdown( secs ) {
+		var label = 'Send me a new code';
+		var left  = secs;
+
+		function tick() {
+			if ( left <= 0 ) {
+				resendBtn.disabled = false;
+				resendBtn.textContent = label;
+				return;
+			}
+			resendBtn.textContent = label + ' (' + left + ')';
+			left--;
+			window.setTimeout( tick, 1000 );
+		}
+		tick();
+	}
 } )();

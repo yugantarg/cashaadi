@@ -43,6 +43,12 @@ final class ActivationCode {
 	/** Attempts allowed per issued code before it is destroyed. */
 	const MAX_TRIES = 5;
 
+	/** Seconds a member must wait between resend requests. */
+	const RESEND_COOLDOWN = 60;
+
+	/** Resends allowed per address per hour. */
+	const RESEND_MAX = 5;
+
 	public static function register() {
 		// Issue a code as soon as the signup row exists.
 		add_action( 'bp_core_signup_user', array( __CLASS__, 'on_signup' ), 20, 5 );
@@ -302,9 +308,91 @@ final class ActivationCode {
 		exit;
 	}
 
+	/* ------------------------------------------------------------ resend */
+
+	/**
+	 * Issue and send a fresh code.
+	 *
+	 * Needed because MAX_TRIES destroys the code after five wrong guesses, which
+	 * previously left the member with no way forward at all.
+	 *
+	 * Deliberately NOT BuddyPress's own signup/resend endpoint: that resends
+	 * BuddyPress's activation email, which is the template that arrived empty on
+	 * this install and is not even editable here. Reissuing through our own
+	 * template-free send_code_email() is the path already proven to deliver.
+	 *
+	 * TWO ABUSE CONCERNS, both handled:
+	 *   - email bombing — a cooldown plus an hourly cap, applied to the address
+	 *     *before* we look at whether it exists, so the limit cannot be sidestepped
+	 *   - address enumeration — the reply is identical whether or not the address
+	 *     is awaiting activation, so this cannot be used to test who is registered
+	 *
+	 * @return array{ok:bool,message:string}
+	 */
+	private static function resend( $email ) {
+		$generic = array(
+			'ok'      => true,
+			'message' => __( 'If that address is awaiting activation, a new code is on its way.', 'cashaadi-ui' ),
+		);
+
+		if ( ! $email ) {
+			return $generic;
+		}
+
+		// Rate limit FIRST — before any lookup — so the response timing and the
+		// limit itself are the same for real and made-up addresses.
+		$k    = 'csm_actrs_' . sha1( strtolower( trim( $email ) ) );
+		$rate = get_transient( $k );
+		$now  = time();
+
+		if ( is_array( $rate ) ) {
+			if ( $now - (int) $rate['last'] < self::RESEND_COOLDOWN ) {
+				return array(
+					'ok'      => false,
+					'message' => __( 'Please wait a minute before asking for another code.', 'cashaadi-ui' ),
+				);
+			}
+			if ( (int) $rate['count'] >= self::RESEND_MAX ) {
+				return array(
+					'ok'      => false,
+					'message' => __( 'Too many codes requested. Please try again later.', 'cashaadi-ui' ),
+				);
+			}
+			$rate['count'] = (int) $rate['count'] + 1;
+			$rate['last']  = $now;
+		} else {
+			$rate = array( 'count' => 1, 'last' => $now );
+		}
+		// Fixed one-hour window from the first request, so the cap cannot be reset
+		// by simply continuing to request.
+		set_transient( $k, $rate, HOUR_IN_SECONDS );
+
+		// Only actually send for an address with a pending signup — but say the
+		// same thing either way.
+		if ( '' !== self::activation_key_for( $email ) ) {
+			self::send_code_email( $email, self::issue( $email ) );
+		}
+
+		return $generic;
+	}
+
 	/* -------------------------------------------------------------- REST */
 
 	public static function rest_routes() {
+		register_rest_route(
+			'csm/v1',
+			'/resend-code',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'rest_resend' ),
+				'permission_callback' => '__return_true', // member is logged out
+				'args'                => array(
+					'email' => array( 'required' => true ),
+					'nonce' => array( 'required' => true ),
+				),
+			)
+		);
+
 		register_rest_route(
 			'csm/v1',
 			'/activate-code',
@@ -341,6 +429,21 @@ final class ActivationCode {
 		// Always HTTP 200: the JS reads `ok`, and a 4xx here would be logged as a
 		// server problem when a mistyped code is entirely expected.
 		return new \WP_REST_Response( $res, 200 );
+	}
+
+	public static function rest_resend( $request ) {
+		$nonce = sanitize_text_field( (string) $request->get_param( 'nonce' ) );
+		if ( ! wp_verify_nonce( $nonce, 'csm_act_code' ) ) {
+			return new \WP_REST_Response(
+				array( 'ok' => false, 'message' => __( 'This page has expired. Please refresh and try again.', 'cashaadi-ui' ) ),
+				200
+			);
+		}
+
+		return new \WP_REST_Response(
+			self::resend( sanitize_email( (string) $request->get_param( 'email' ) ) ),
+			200
+		);
 	}
 
 	/* -------------------------------------------------------------- form */
@@ -423,6 +526,21 @@ final class ActivationCode {
 
 				<button type="submit"><?php esc_html_e( 'Activate my account', 'cashaadi-ui' ); ?></button>
 			</form>
+
+			<?php
+			/*
+			 * Without this a member who mistyped five times had no way forward at
+			 * all: MAX_TRIES destroys the code, and every later attempt fails with
+			 * the same "not valid or expired" message and no remedy.
+			 */
+			?>
+			<p class="csm-actcode-resend">
+				<button type="button" class="csm-actcode-resend-btn"
+					data-endpoint="<?php echo esc_url( rest_url( 'csm/v1/resend-code' ) ); ?>">
+					<?php esc_html_e( 'Send me a new code', 'cashaadi-ui' ); ?>
+				</button>
+				<span class="csm-actcode-resend-msg" role="status" aria-live="polite"></span>
+			</p>
 		</div>
 		<?php
 	}
