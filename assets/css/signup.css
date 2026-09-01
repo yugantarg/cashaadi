@@ -7,3 +7,106 @@
    ========================================================================== */
 #basic-details-section > label[for="signup_username"],
 #signup_username { display: none !important; }
+
+/* ==========================================================================
+   Signup + activation — focused app screens (v0.33.0)
+   --------------------------------------------------------------------------
+   "From the signup wizard onwards the site should feel like an app" (owner,
+   2026-09-01). The profile wizard already rebuilds itself this way
+   (body.profile-edit); these two screens sit BEFORE it in the funnel and were
+   still stock theme pages.
+
+   Same treatment as the wizard and the design's completion screen: no site
+   header, no nav, one centred card, our tokens and type. There is deliberately
+   no bottom nav / rail here — these are pre-account focused flows, exactly like
+   the wizard.
+
+   The site FOOTER is intentionally kept: it carries Terms, Privacy and Refund
+   links, which belong on a screen where someone is creating an account.
+   ========================================================================== */
+
+body.register #masthead,
+body.activate #masthead { display: none !important; }
+
+body.register,
+body.activate {
+	background: var(--csm-ground, #f4f6f8);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+
+/* one centred card */
+body.register #buddypress,
+body.activate #buddypress {
+	max-width: 520px;
+	margin: 0 auto;
+	padding: 34px 16px 56px;
+}
+
+body.register #buddypress h1,
+body.register #buddypress h2,
+body.activate #buddypress h1,
+body.activate #buddypress h2 {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 28px;
+	font-weight: 500;
+	letter-spacing: -.01em;
+	color: var(--csm-ink, #16212b);
+	text-align: center;
+	margin: 0 0 20px;
+}
+
+body.register #signup-form,
+body.activate #activation-form {
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 18px;
+	padding: 22px 20px;
+	box-shadow: 0 6px 22px -16px rgba(22, 33, 43, .35);
+}
+
+body.register #signup-form label,
+body.activate #activation-form label {
+	display: block;
+	margin: 0 0 6px;
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--csm-muted, #5c6a76);
+}
+
+body.register #signup-form input[type=text],
+body.register #signup-form input[type=email],
+body.register #signup-form input[type=password],
+body.register #signup-form input[type=tel],
+body.activate #activation-form input[type=text] {
+	width: 100%;
+	padding: 13px 14px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	border-radius: 12px;
+	background: var(--csm-surface, #fff);
+	font-size: 16px; /* >=16px stops iOS zooming the field on focus */
+	color: var(--csm-ink, #16212b);
+}
+body.register #signup-form input:focus,
+body.activate #activation-form input:focus {
+	outline: none;
+	border-color: var(--csm-blue, #2c5b8c);
+	box-shadow: 0 0 0 3px var(--csm-blue-tint, #e9f1f8);
+}
+
+body.register #signup-form input[type=submit],
+body.register #signup-form button[type=submit],
+body.activate #activation-form input[type=submit],
+body.activate #activation-form button[type=submit] {
+	width: 100%;
+	margin-top: 6px;
+	padding: 14px 18px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--csm-green, #6f9f2e);
+	color: #fff;
+	font-size: 15.5px;
+	font-weight: 700;
+	cursor: pointer;
+}
+body.register #signup-form input[type=submit]:hover,
+body.activate #activation-form input[type=submit]:hover { background: var(--csm-green-press, #5e8926); }

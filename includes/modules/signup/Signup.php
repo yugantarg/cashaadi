@@ -123,10 +123,21 @@ final class Signup {
 	 * register page.
 	 */
 	public static function register_assets() {
-		if ( ! function_exists( 'bp_is_register_page' ) || ! bp_is_register_page() ) {
+		$on_register = function_exists( 'bp_is_register_page' ) && bp_is_register_page();
+		$on_activate = function_exists( 'bp_is_activation_page' ) && bp_is_activation_page();
+
+		if ( ! $on_register && ! $on_activate ) {
 			return;
 		}
+
+		// The stylesheet now also carries the focused app treatment for both
+		// screens ("app-like from the signup wizard onwards"), so it loads on
+		// activation too.
 		Assets::style( 'signup', 'assets/css/signup.css' );
-		Assets::script( 'signup', 'assets/js/signup.js' );
+
+		// The username auto-fill/hide (#11842) only applies to the signup form.
+		if ( $on_register ) {
+			Assets::script( 'signup', 'assets/js/signup.js' );
+		}
 	}
 }
