@@ -241,14 +241,32 @@ final class Discover {
 						? bp_core_fetch_avatar( array( 'item_id' => $pid, 'type' => 'full', 'html' => false ) )
 						: get_avatar_url( $pid, array( 'size' => 300 ) );
 
+					// Every field on this site carries a per-field visibility setting
+					// ("This field may be seen by: Everyone / Only Me / All Members /
+					// My Friends"). xprofile_get_field_data() does NOT enforce it —
+					// BuddyPress applies visibility in its own profile loop — so a
+					// card that reads fields directly would happily print data a
+					// member marked private. Resolve the viewer's hidden-field list
+					// once per profile and skip anything in it.
+					$hidden = function_exists( 'bp_xprofile_get_hidden_fields_for_user' )
+						? array_map( 'intval', (array) bp_xprofile_get_hidden_fields_for_user( $pid, $viewer_id ) )
+						: array();
+
 					// NOTE: the field names here are the site's REAL xProfile labels.
 					// This card previously asked for 'Location' and 'About Me', which
 					// do not exist on this install — so both lines always rendered
 					// empty. The real fields are 'City' and 'Bio' (group 1).
-					$f = function( $label ) use ( $pid ) {
-						return function_exists( 'xprofile_get_field_data' )
-							? trim( (string) xprofile_get_field_data( $label, $pid ) )
-							: '';
+					$f = function( $label ) use ( $pid, $hidden ) {
+						if ( ! function_exists( 'xprofile_get_field_data' ) ) {
+							return '';
+						}
+						if ( $hidden && function_exists( 'xprofile_get_field_id_from_name' ) ) {
+							$fid = (int) xprofile_get_field_id_from_name( $label );
+							if ( $fid && in_array( $fid, $hidden, true ) ) {
+								return ''; // member has restricted this field from this viewer
+							}
+						}
+						return trim( (string) xprofile_get_field_data( $label, $pid ) );
 					};
 
 					$age = $f( 'Age' );
