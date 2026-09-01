@@ -30,7 +30,15 @@ final class Secrets {
 	}
 
 	public static function msg91_authkey() {
-		return self::constant( 'CASHAADI_MSG91_AUTHKEY' );
+		$c = self::constant( 'CASHAADI_MSG91_AUTHKEY' );
+		if ( '' !== $c ) {
+			return $c;
+		}
+		// staging2's wp-config already defines the bare MSG91_AUTHKEY (line 2,
+		// predating this plugin). Falling back to it means enabling OTP only
+		// requires the two values that are NOT yet in wp-config — the widget id
+		// and token auth — rather than re-entering the auth key.
+		return self::constant( 'MSG91_AUTHKEY' );
 	}
 
 	public static function msg91_widget_id() {

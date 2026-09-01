@@ -153,7 +153,10 @@ final class Settings {
 		/* ---- PRIVACY & PHOTOS ---- */
 		self::group_open( __( 'Privacy & photos', 'cashaadi-ui' ) );
 		self::row( __( 'Photos', 'cashaadi-ui' ), $me . 'profile/change-avatar/' );
-		self::row( __( 'Who can see my profile', 'cashaadi-ui' ), $me . 'settings/profile/' );
+		// NOT "who can see my profile": every profile is visible to everyone here.
+		// BuddyPress's settings/profile/ screen sets visibility PER FIELD, which is
+		// the actual control, so the label says so.
+		self::row( __( 'Field visibility', 'cashaadi-ui' ), $me . 'settings/profile/' );
 		self::row( __( 'Blocked members', 'cashaadi-ui' ), $me . 'settings/blocked/' );
 		self::group_close();
 
