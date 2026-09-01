@@ -276,17 +276,30 @@ final class Discover {
 						$age = $m[0];
 					}
 
-					$city    = $f( 'City' );
-					$bio     = $f( 'Bio' );
-					$title   = $f( 'Current Job Title' );
-					$company = $f( 'Company Name' );
-					$qual    = $f( 'Qualification' );
-					$height  = self::height_label( $f( 'Height' ) );
+					$city  = $f( 'City' );
+					$bio   = $f( 'Bio' );
+					$title = $f( 'Current Job Title' );
 
 					// "Chartered Accountant · Mumbai"
 					$sub = implode( ' · ', array_filter( array( $title, $city ) ) );
 
-					$chips = array_filter( array( $qual, $company, $height ) );
+					// Fact chips. This is a MATRIMONIAL profile, so the facts people
+					// actually decide on are qualification, community, language, diet
+					// and family context — not dating-app prompts. Every one of these
+					// is a real xProfile field (see docs/FIELD-INVENTORY.md); each is
+					// visibility-filtered by $f() and simply omitted when unset, so a
+					// sparse profile degrades to a clean card rather than empty chips.
+					$chips = array_filter( array(
+						$f( 'Qualification' ),
+						$f( 'Company Name' ),
+						self::height_label( $f( 'Height' ) ),
+						$f( 'Religion' ),
+						$f( 'Community' ),
+						$f( 'Language (Mother Tongue)' ),
+						$f( 'Diet' ),
+					) );
+					// Keep the card scannable — the profile page carries the full set.
+					$chips = array_slice( $chips, 0, 6 );
 
 					$verified = class_exists( Verification::class ) && Verification::ca_verified( $pid );
 

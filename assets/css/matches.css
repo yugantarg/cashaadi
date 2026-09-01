@@ -22,3 +22,116 @@
 	.csm-requests-sent .csm-tray { justify-content:center; }
 	.csm-requests-sent .csm-card { width:100%; max-width:340px; }
 }
+
+/* ==========================================================================
+   Matches screens — vertical row list (v0.30.0)
+   --------------------------------------------------------------------------
+   The design shows Matches / Requests / Sent as a vertical LIST — avatar left,
+   name + facts right, Accept / Decline beneath — rather than the browsing grid
+   used by the members directory.
+
+   Same BuddyPress markup (li.item-entry › .list-wrap › .item-avatar + .item),
+   presented differently by context: scoped to `body.csm-cur-matches`, which the
+   app shell sets on the Matches component only — the directory keeps its grid.
+
+   Specificity note: screens.css styles the shared card with
+   `body.csm-screens …` and !important on the grid, and loads after this file
+   (priority 22 vs 20). `body.csm-screens.csm-cur-matches` is one class more
+   specific, so these rules win regardless of source order.
+   ========================================================================== */
+
+@media (max-width: 782px) {
+
+	/* one match per row */
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list.bp-list {
+		display: grid !important;
+		grid-template-columns: 1fr !important;
+		gap: 10px !important;
+	}
+
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .item-entry .list-wrap {
+		display: grid;
+		grid-template-columns: 62px 1fr;
+		gap: 12px;
+		align-items: start;
+		padding: 12px;
+	}
+
+	/* square avatar instead of the tall directory portrait */
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .item-avatar img {
+		width: 62px;
+		height: 62px;
+		aspect-ratio: 1 / 1;
+		object-fit: cover;
+		border-radius: 12px;
+	}
+
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .item { padding: 0; }
+
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .list-title.member-name a {
+		font-size: 16.5px;
+	}
+
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .item-meta {
+		margin: 2px 0 0;
+		font-size: 13px;
+		line-height: 1.45;
+	}
+	/* BuddyPress emits <br>-separated meta; keep it compact on one block */
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .item-meta br:first-child { display: none; }
+
+	/* Accept / Decline sit inline under the text, not stretched full width */
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 10px;
+	}
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action a,
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action button {
+		width: auto;
+		padding: 8px 16px;
+		border-radius: 999px;
+		font-size: 13.5px;
+	}
+
+	/* accepting is the primary, affirmative action → green (design) */
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action a.accept,
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action a.friendship-button.accept {
+		background: var(--csm-green, #6f9f2e) !important;
+		border-color: var(--csm-green, #6f9f2e) !important;
+		color: #fff !important;
+	}
+	/* declining stays quiet */
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action a.reject,
+	body.csm-screens.csm-cur-matches #buddypress ul.members-list .members-meta.action a.friendship-button.reject {
+		background: var(--csm-surface, #fff) !important;
+		border: 1px solid var(--csm-hair-2, #d6dfe7) !important;
+		color: var(--csm-muted, #5c6a76) !important;
+	}
+
+	/* pill tabs for the Matches sub-navigation (design) */
+	body.csm-screens.csm-cur-matches #buddypress #subnav ul {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+		border: 0;
+	}
+	body.csm-screens.csm-cur-matches #buddypress #subnav ul li a {
+		display: inline-block;
+		padding: 7px 14px;
+		border: 1px solid var(--csm-hair, #e4eaf0);
+		border-radius: 999px;
+		background: var(--csm-surface, #fff);
+		color: var(--csm-muted, #5c6a76);
+		font-size: 13.5px;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	body.csm-screens.csm-cur-matches #buddypress #subnav ul li.current a,
+	body.csm-screens.csm-cur-matches #buddypress #subnav ul li.selected a {
+		background: var(--csm-blue, #2c5b8c);
+		border-color: var(--csm-blue, #2c5b8c);
+		color: #fff;
+	}
+}
