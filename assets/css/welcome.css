@@ -1,0 +1,211 @@
+/* /welcome/ — onboarding.
+   Self-contained: this page renders its own document, so nothing here has to
+   out-specify BuddyX or BuddyPress. No !important anywhere below, which is the
+   point of owning the template. */
+
+.csm-welcome-page {
+	margin: 0;
+	min-height: 100vh;
+	min-height: 100dvh;
+	background: var(--csm-ground, #f4f6f8);
+	color: var(--csm-ink, #16212b);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+	-webkit-font-smoothing: antialiased;
+}
+
+.csm-w {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+	min-height: 100dvh;
+}
+
+/* ---- thin header + progress ---- */
+.csm-w-top {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	padding: 14px 18px 0;
+	background: var(--csm-surface, #fff);
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+}
+.csm-w-brand {
+	display: block;
+	margin-bottom: 10px;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 19px;
+	font-weight: 600;
+	letter-spacing: -.01em;
+}
+.csm-w-bar {
+	height: 3px;
+	border-radius: 3px;
+	background: var(--csm-hair, #e4eaf0);
+	overflow: hidden;
+}
+.csm-w-bar-fill {
+	display: block;
+	height: 100%;
+	width: 4%;
+	border-radius: 3px;
+	background: var(--csm-green, #6f9f2e);
+	transition: width .28s ease;
+}
+
+/* ---- the one question ---- */
+.csm-w-main {
+	flex: 1;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 22px 16px 40px;
+}
+.csm-w-loading { color: var(--csm-muted, #5c6a76); font-size: 14px; }
+
+.csm-w-card {
+	width: 100%;
+	max-width: 460px;
+	padding: 24px 20px 20px;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	border-radius: 20px;
+	box-shadow: 0 1px 2px rgba(22, 33, 43, .04), 0 18px 40px -30px rgba(22, 33, 43, .35);
+}
+
+.csm-w-count {
+	margin: 0 0 10px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-w-q {
+	margin: 0 0 8px;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.2;
+}
+.csm-w-help { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: var(--csm-muted, #5c6a76); }
+
+.csm-w-err {
+	margin: 0 0 14px;
+	font-size: 13.5px;
+	line-height: 1.45;
+	color: #96262a;
+}
+.csm-w-err:empty { display: none; }
+.csm-w-err a { color: inherit; font-weight: 600; }
+
+/* ---- inputs ---- */
+.csm-w-field { margin: 0 0 20px; }
+.csm-w-input {
+	width: 100%;
+	padding: 13px 14px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	border-radius: 12px;
+	background: var(--csm-surface, #fff);
+	color: var(--csm-ink, #16212b);
+	font-family: inherit;
+	font-size: 16px; /* 16px stops iOS zooming the page on focus */
+	line-height: 1.4;
+}
+.csm-w-input:focus {
+	outline: none;
+	border-color: var(--csm-blue, #2c5b8c);
+	box-shadow: 0 0 0 3px rgba(44, 91, 140, .14);
+}
+
+/* options as tap targets rather than a dropdown */
+.csm-w-opts { display: flex; flex-direction: column; gap: 9px; }
+.csm-w-opt {
+	width: 100%;
+	min-height: 48px; /* comfortably above the 44px touch minimum */
+	padding: 12px 15px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	border-radius: 12px;
+	background: var(--csm-surface, #fff);
+	color: var(--csm-ink, #16212b);
+	font-family: inherit;
+	font-size: 15px;
+	text-align: left;
+	cursor: pointer;
+}
+.csm-w-opt:hover { border-color: var(--csm-faint, #93a2ae); }
+.csm-w-opt.is-on {
+	border-color: var(--csm-green, #6f9f2e);
+	background: rgba(111, 159, 46, .08);
+	font-weight: 600;
+}
+
+/* ---- photo step ---- */
+.csm-w-photo { margin: 0 0 18px; }
+.csm-w-preview {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 4 / 5;
+	max-height: 320px;
+	margin: 0 auto 14px;
+	border: 1px dashed var(--csm-hair-2, #d6dfe7);
+	border-radius: 16px;
+	background: var(--csm-ground, #f4f6f8);
+	overflow: hidden;
+}
+.csm-w-preview-img { width: 100%; height: 100%; object-fit: cover; }
+.csm-w-preview-ph { font-size: 13.5px; color: var(--csm-muted, #5c6a76); }
+
+.csm-w-pick {
+	display: block;
+	padding: 12px 16px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	border-radius: 999px;
+	background: var(--csm-surface, #fff);
+	font-size: 14px;
+	font-weight: 600;
+	text-align: center;
+	cursor: pointer;
+}
+.csm-w-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.csm-w-blur { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; cursor: pointer; }
+.csm-w-blur input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; }
+.csm-w-blur strong { display: block; font-size: 13.5px; font-weight: 600; }
+.csm-w-blur em { display: block; margin-top: 2px; font-size: 12.5px; font-style: normal; color: var(--csm-muted, #5c6a76); }
+
+/* ---- nav ---- */
+.csm-w-nav { display: flex; align-items: center; gap: 12px; }
+.csm-w-back {
+	padding: 12px 4px;
+	border: 0;
+	background: none;
+	color: var(--csm-muted, #5c6a76);
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.csm-w-back:hover { color: var(--csm-ink, #16212b); }
+.csm-w-next {
+	flex: 1;
+	min-height: 50px;
+	padding: 13px 20px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--csm-green, #6f9f2e);
+	color: #fff;
+	font-family: inherit;
+	font-size: 15.5px;
+	font-weight: 700;
+	cursor: pointer;
+}
+.csm-w-next:hover { background: var(--csm-green-press, #5e8926); }
+.csm-w-next[disabled] { opacity: .6; cursor: default; }
+
+@media (min-width: 783px) {
+	.csm-w-main { align-items: center; padding-top: 40px; }
+	.csm-w-card { padding: 30px 28px 24px; }
+	.csm-w-q { font-size: 30px; }
+}

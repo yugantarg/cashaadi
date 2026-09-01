@@ -42,6 +42,115 @@ final class Welcome {
 
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
+	}
+
+	/* ------------------------------------------------------------- route */
+
+	/**
+	 * Is this a request for /welcome/?
+	 *
+	 * Matched off the request path rather than registered as a rewrite rule.
+	 * A rewrite needs flush_rewrite_rules() to take effect, which means an
+	 * activation hook — and this plugin is already active on staging2, so the
+	 * rule would silently never fire until someone re-saved permalinks. Matching
+	 * the path has no such trap and cannot be broken by another plugin's rules.
+	 */
+	private static function is_welcome_request() {
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path = trim( (string) wp_parse_url( (string) $uri, PHP_URL_PATH ), '/' );
+		return 'welcome' === strtolower( $path );
+	}
+
+	public static function maybe_render() {
+		if ( ! self::is_welcome_request() ) {
+			return;
+		}
+
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( wp_login_url( home_url( '/welcome/' ) ) );
+			exit;
+		}
+
+		/*
+		 * WordPress has already decided this is a 404 (there is no page with this
+		 * slug). Say otherwise before anything renders, or the page returns 200-
+		 * looking content under a 404 status — which search engines, uptime checks
+		 * and, more to the point, analytics all treat as an error.
+		 */
+		global $wp_query;
+		if ( $wp_query instanceof \WP_Query ) {
+			$wp_query->is_404 = false;
+		}
+		status_header( 200 );
+		nocache_headers();
+
+		self::enqueue();
+		self::render();
+		exit;
+	}
+
+	private static function enqueue() {
+		\CAShaadi\Core\Assets::style( 'welcome', 'assets/css/welcome.css', array( 'cashaadi-tokens' ) );
+		\CAShaadi\Core\Assets::style( 'tokens', 'assets/css/tokens.css' );
+		\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js' );
+
+		wp_localize_script(
+			'cashaadi-welcome',
+			'CSM_WELCOME',
+			array(
+				/*
+				 * Cookie-authenticated REST returns 401 without this header —
+				 * found the hard way while testing the endpoints (v0.47.0).
+				 */
+				'nonce'    => wp_create_nonce( 'wp_rest' ),
+				'state'    => rest_url( 'csm/v1/welcome/state' ),
+				'step'     => rest_url( 'csm/v1/welcome/step' ),
+				'complete' => rest_url( 'csm/v1/welcome/complete' ),
+				'avatar'   => rest_url( 'buddypress/v1/members/' . get_current_user_id() . '/avatar' ),
+				'fallback' => function_exists( 'bp_members_get_user_url' )
+					? trailingslashit( bp_members_get_user_url( get_current_user_id() ) ) . 'profile/change-avatar/'
+					: '',
+			)
+		);
+	}
+
+	/**
+	 * Our own document, not a theme template.
+	 *
+	 * The whole point of this screen is to stop fighting BuddyX and BuddyPress
+	 * for control of the markup — every layout bug this rebuild has hit came from
+	 * that fight. So the page is rendered directly.
+	 *
+	 * wp_head()/wp_footer() are still called deliberately: analytics and the
+	 * advertising tags live there, and onboarding is exactly where the conversion
+	 * events need to fire. Dropping them would make the funnel unmeasurable.
+	 */
+	private static function render() {
+		?>
+<!doctype html>
+<html <?php language_attributes(); ?>>
+<head>
+	<meta charset="<?php bloginfo( 'charset' ); ?>">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title><?php esc_html_e( 'Set up your profile', 'cashaadi-ui' ); ?></title>
+	<?php wp_head(); ?>
+</head>
+<body class="csm-welcome-page">
+	<div class="csm-w" id="csm-welcome">
+		<header class="csm-w-top">
+			<span class="csm-w-brand"><?php bloginfo( 'name' ); ?></span>
+			<div class="csm-w-bar" aria-hidden="true"><span class="csm-w-bar-fill" id="csm-w-progress"></span></div>
+		</header>
+
+		<main class="csm-w-main" id="csm-w-main">
+			<p class="csm-w-loading"><?php esc_html_e( 'Loading…', 'cashaadi-ui' ); ?></p>
+		</main>
+	</div>
+	<?php wp_footer(); ?>
+</body>
+</html>
+		<?php
 	}
 
 	/* --------------------------------------------------------------- REST */
@@ -271,6 +380,28 @@ final class Welcome {
 				array( 'ok' => false, 'message' => __( 'This one is required.', 'cashaadi-ui' ) ),
 				200
 			);
+		}
+
+		/*
+		 * datebox stores a datetime; the client sends YYYY-MM-DD from a native
+		 * date input. Normalise here rather than in JS, so the browser keeps the
+		 * picker it is good at and the storage format stays a server concern.
+		 */
+		if ( 'datebox' === $allowed[ $key ]['type'] && ! is_array( $value ) ) {
+			if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', trim( $value ), $m ) ) {
+				if ( ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
+					return new \WP_REST_Response(
+						array( 'ok' => false, 'message' => __( 'That date is not valid.', 'cashaadi-ui' ) ),
+						200
+					);
+				}
+				$value = trim( $value ) . ' 00:00:00';
+			} else {
+				return new \WP_REST_Response(
+					array( 'ok' => false, 'message' => __( 'Please pick a date.', 'cashaadi-ui' ) ),
+					200
+				);
+			}
 		}
 
 		$saved = xprofile_set_field_data( $field_id, $uid, $value );
