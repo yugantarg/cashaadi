@@ -10,6 +10,43 @@ screen must come from the real backend fields and features. See
 exist (no prompts; no `Location`/`About Me`) and the per-field visibility rule
 custom screens must enforce.
 
+## Owner decisions — 2026-09-01
+
+* **OTP must never block anything.** Audited and already true: nothing gates on
+  phone verification. The only consumers are *display* — the Sales Dashboard's
+  "SMS pending" label, the verification checklist item, and the Settings row.
+  The browsing gate was retired in the snippet on 2026-08-25, and the onboarding
+  wizard has no OTP dependency (it only styles `#csm-otp-box` as an inline note).
+* **Phone number lives in Settings with a verify option.** The Settings hub has
+  the row with live Verified / Not verified state. Rendering the verify widget
+  *inline* in Settings still depends on the OTP module cutover, which is blocked
+  on the MSG91 credentials (owner-only) — today the widget is served by snippet
+  #11618 on the profile-edit screen, which the row links to.
+* **Email activation → prefer a 4-digit code** so the user stays on the
+  activation screen, instead of the current click-a-link flow (#11583). See the
+  security requirements in Phase 1.5 below before implementing.
+* **App-like interface from the signup wizard onwards.** Home page may stay as
+  it is. Done: register + activation (v0.33.0), wizard (already), whole member
+  area (v0.26–v0.32).
+* **Field visibility is a separate concern in Settings** — surfaced as "Who can
+  see my profile" in the hub, pointing at BuddyPress Profile Visibility, rather
+  than being mixed into the profile editor.
+
+## Phase 1.5 — 4-digit email activation (NOT started)
+
+Replaces the emailed activation *link* with a 4-digit code entered on
+`/activate/`. Feasible, but it modifies the account-activation path, so it must
+ship with these or not at all:
+
+* **Rate limiting is mandatory.** 4 digits is 10,000 combinations — trivially
+  brute-forced without it. Needs an attempt cap per signup (e.g. 5), a lockout,
+  and code expiry (e.g. 15 min), all keyed server-side.
+* Codes must be random (`wp_rand`), single-use, and invalidated on success.
+* Responses must not reveal whether an email is registered.
+* Keep `bp_core_activate_signup()` as the activation primitive — only the
+  *credential* changes, not the activation logic or the auto-login that follows.
+* Provide a resend path, itself rate-limited.
+
 ## Phase 0 — Walking skeleton  ✅ (this commit)
 - Plugin scaffold + wizard JS migrated from WPCode #12132.
 - **Goal: prove the GitHub → Hostinger → staging pipeline end to end.**
