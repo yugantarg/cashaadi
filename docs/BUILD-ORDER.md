@@ -9,7 +9,15 @@ against REST. See WELCOME-SPEC.md for the pattern.
 
 ---
 
-## 0 — Verify production activation email  🔴 URGENT, owner
+## 0 — Production activation email  ✅ CLOSED (owner, 2026-09-01)
+
+Checked on production: activation works via the emailed link. The broken
+templates and the pending backlog are a **staging2** condition, not a live one.
+No hotfix needed, and this no longer blocks or precedes anything.
+
+<details><summary>Original entry</summary>
+
+### Verify production activation email
 
 The broken `bp-email` templates (154 accounts unactivated, post type not even
 editable) were diagnosed **on staging2, which is a clone of production**. If the
@@ -22,6 +30,8 @@ paid ad spend landing on accounts that can never log in.
 * Then decide what to do with the pending backlog — those are real people.
 
 Cannot be checked from the dev side: needs production DB/admin access.
+
+</details>
 
 ## 1 — Close out activation on staging2  ⬅ in progress
 
@@ -92,3 +102,22 @@ Also still on snippets by choice: reminder emails #11732/#11733 (paused anyway).
 * Function-defining modules: disable the snippet **first**, then add the flag,
   or the site fatals on redeclare.
 * Never deactivate BuddyPress.
+
+---
+
+## Owner decisions — 2026-09-01
+
+| # | Decision | Status |
+|---|---|---|
+| 1 | Photo minimum | **Resolved differently.** Snippet #11813 already sets 896x1024 @ q92 with originals kept to 2400px — quality was never unmanaged. Rather than relax BuddyPress's floor (which IS its storage size, so lowering it costs quality), welcome.js upscales undersized photos so nobody is blocked. |
+| 2 | Ask for phone last | ✅ Shipped. `Welcome::ASK_LAST` defers field 277 without hardcoding the rest of the order. |
+| 3 | Google Ads inside the plugin, credentials easy to change | ✅ Screen shipped at **Settings → CA Shaadi Tracking**. |
+| 4 | Server-side keys via UI, not wp-config | ✅ Same screen. Owner to paste the GA4 Measurement Protocol secret and Meta Conversions API token; each field states where to find it. |
+| 5 | "Select": leave stored data, just stop offering it | ✅ Already correct — v0.46.0 hides the option at render and touches no data. Members who saved "Select" keep it. |
+| 6 | Production activation | ✅ Confirmed working via link. Step 0 closed. |
+
+### Still to build
+
+The tracking screen **stores** credentials; nothing fires yet. `fireConversions()`
+in welcome.js is a single call site waiting for the events slice — that is the
+next piece of work, and it is what decisions 3 and 4 unblock.
