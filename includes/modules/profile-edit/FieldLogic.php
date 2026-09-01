@@ -33,6 +33,7 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_is_required_field', array( __CLASS__, 'partial_save' ), 10, 2 );
 		add_filter( 'bp_xprofile_set_field_data_pre_validate', array( __CLASS__, 'gender_lock' ), 5, 3 );
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
+		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
 		add_action( 'xprofile_updated_profile', array( __CLASS__, 'sync_age' ), 10, 1 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ), 21 );
 	}
@@ -105,6 +106,37 @@ final class FieldLogic {
 		 */
 		unset( $field_id );
 		return false;
+	}
+
+	/**
+	 * Hide the stray "Select" choice (owner, 2026-09-01: "retire the 'select'
+	 * option that comes as a separate option in a lot of places").
+	 *
+	 * Three fields were authored with a literal option called "Select" —
+	 * Occupation Status (418), Religion (302), Nuclear/Joint (405) — on top of
+	 * BuddyPress's own "----" placeholder. So the dropdown offered TWO
+	 * placeholders, and unlike "----" this one is a real, selectable value that
+	 * saves as the member's answer.
+	 *
+	 * Hidden at render, NOT deleted from the field. Deleting options edits the
+	 * xProfile schema, which FIELD-INVENTORY.md forbids: it is irreversible and
+	 * the same code will run against production. Filtering costs nothing and can
+	 * be undone by removing one line.
+	 *
+	 * Note for later: any member who already saved "Select" as their answer still
+	 * has it stored, and profile-completion counts it as filled. That is a data
+	 * cleanup, deliberately separate from this presentational fix.
+	 */
+	public static function drop_select_option( $children ) {
+		if ( empty( $children ) || ! is_array( $children ) ) {
+			return $children;
+		}
+		foreach ( $children as $i => $child ) {
+			if ( isset( $child->name ) && 'select' === strtolower( trim( (string) $child->name ) ) ) {
+				unset( $children[ $i ] );
+			}
+		}
+		return array_values( $children );
 	}
 
 	/* ---- #11611 — recompute Age (286) from DOB (586) on every save ------- */
