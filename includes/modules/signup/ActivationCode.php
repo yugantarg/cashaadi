@@ -363,8 +363,11 @@ final class ActivationCode {
 		} else {
 			$rate = array( 'count' => 1, 'last' => $now );
 		}
-		// Fixed one-hour window from the first request, so the cap cannot be reset
-		// by simply continuing to request.
+		// Rolling one-hour window: the TTL is pushed out on every accepted request,
+		// so the hour runs from the LAST send, not the first. That is stricter than
+		// a fixed window — continuing to request extends the block rather than
+		// ageing it out — which is the right direction for a limit whose job is to
+		// stop email bombing.
 		set_transient( $k, $rate, HOUR_IN_SECONDS );
 
 		// Only actually send for an address with a pending signup — but say the
