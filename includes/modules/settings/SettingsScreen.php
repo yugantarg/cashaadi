@@ -1,0 +1,153 @@
+<?php
+/**
+ * Settings — the grouped hub, as an app screen.
+ *
+ * The hub itself is not new: Settings.php has rendered these rows on
+ * BuddyPress's settings page since v0.27. What was wrong is where it lived —
+ * the hamburger and the profile hub both said "Settings" and dropped members
+ * into BuddyX chrome, the same complaint that produced this rebuild.
+ *
+ * WHAT THIS DOES AND DOES NOT OWN
+ * It owns the hub: the grouped list, the status values, and the way in to every
+ * editor. It does NOT own the editors. Changing an email or a password runs
+ * through BuddyPress's own settings forms, which handle re-authentication,
+ * the email-change confirmation loop and password strength. Re-implementing
+ * that over REST would be re-implementing account security, which is a bad
+ * trade for visual consistency — so those rows link out, and AppShell's back
+ * link covers them so they are not dead ends.
+ *
+ * Read-only by design. Every value here is displayed, never written.
+ */
+
+namespace CAShaadi\Modules\Settings;
+
+use CAShaadi\Core\AppPage;
+use CAShaadi\Core\Assets;
+use CAShaadi\Core\Config;
+use CAShaadi\Core\Membership;
+use CAShaadi\Core\Verification;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+final class SettingsScreen {
+
+	public static function register() {
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+	}
+
+	public static function url() {
+		return home_url( '/settings/' );
+	}
+
+	/* -------------------------------------------------------------- route */
+
+	public static function maybe_render() {
+		if ( ! AppPage::claim( 'settings' ) ) {
+			return;
+		}
+
+		AppPage::assets();
+		Assets::style( 'settings-app', 'assets/css/settings-app.css', array( 'cashaadi-app-screens' ) );
+		Assets::script( 'settings-app', 'assets/js/settings-app.js', array( 'cashaadi-app-screens' ) );
+		wp_localize_script( 'cashaadi-settings-app', 'CSM_SETTINGS', array(
+			'nonce' => wp_create_nonce( 'wp_rest' ),
+			'get'   => rest_url( 'csm/v1/settings' ),
+		) );
+
+		AppPage::open( __( 'Settings', 'cashaadi-ui' ), 'profile' );
+		echo '<div id="csm-settings-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
+		AppPage::close( 'profile' );
+		exit;
+	}
+
+	/* --------------------------------------------------------------- REST */
+
+	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/settings', array(
+			'methods'             => 'GET',
+			'callback'            => array( __CLASS__, 'rest_get' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	public static function rest_get( $request ) {
+		unset( $request );
+		$uid  = get_current_user_id();
+		$user = get_userdata( $uid );
+
+		$me = function_exists( 'bp_members_get_user_url' )
+			? trailingslashit( bp_members_get_user_url( $uid ) )
+			: home_url( '/' );
+
+		$phone    = method_exists( '\CAShaadi\Core\Verification', 'user_phone' ) ? Verification::user_phone( $uid ) : '';
+		$phone_ok = method_exists( '\CAShaadi\Core\Verification', 'phone_verified' ) && Verification::phone_verified( $uid );
+		$ca_ok    = method_exists( '\CAShaadi\Core\Verification', 'ca_verified' ) && Verification::ca_verified( $uid );
+
+		$photos = class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
+			? $me . 'profile/change-avatar/'
+			: $me . 'profile/change-avatar/';
+
+		$groups = array(
+			array(
+				'title' => __( 'Account', 'cashaadi-ui' ),
+				'rows'  => array(
+					array( 'label' => __( 'Email', 'cashaadi-ui' ), 'value' => $user ? $user->user_email : '', 'url' => $me . 'settings/general/' ),
+					array(
+						'label' => __( 'Phone number', 'cashaadi-ui' ),
+						'value' => $phone_ok ? __( 'Verified', 'cashaadi-ui' ) : ( $phone ? __( 'Not verified', 'cashaadi-ui' ) : __( 'Add', 'cashaadi-ui' ) ),
+						'ok'    => $phone_ok,
+						'url'   => $me . 'settings/general/',
+					),
+					array( 'label' => __( 'Password', 'cashaadi-ui' ), 'value' => '', 'url' => $me . 'settings/general/' ),
+				),
+			),
+			array(
+				'title' => __( 'Privacy & photos', 'cashaadi-ui' ),
+				'rows'  => array(
+					array( 'label' => __( 'Photos', 'cashaadi-ui' ), 'value' => '', 'url' => $photos ),
+					array(
+						'label' => __( 'Photo blur', 'cashaadi-ui' ),
+						'value' => '1' === (string) get_user_meta( $uid, 'csm_photo_private', true )
+							? __( 'On', 'cashaadi-ui' ) : __( 'Off', 'cashaadi-ui' ),
+						'url'   => $photos,
+					),
+					// FIELD visibility, not profile visibility: every profile is visible
+					// to everyone; this controls who sees each individual field.
+					array( 'label' => __( 'Field visibility', 'cashaadi-ui' ), 'value' => '', 'url' => $me . 'settings/profile/' ),
+					array( 'label' => __( 'Blocked members', 'cashaadi-ui' ), 'value' => '', 'url' => $me . 'settings/blocked/' ),
+				),
+			),
+			array(
+				'title' => __( 'Account status', 'cashaadi-ui' ),
+				'rows'  => array(
+					array(
+						'label' => __( 'ICAI verification', 'cashaadi-ui' ),
+						'value' => $ca_ok ? __( 'Verified', 'cashaadi-ui' ) : __( 'In review', 'cashaadi-ui' ),
+						'ok'    => $ca_ok,
+						'url'   => '',
+					),
+					array(
+						'label' => __( 'Membership', 'cashaadi-ui' ),
+						'value' => ( class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ) )
+							? __( 'Premium', 'cashaadi-ui' ) : __( 'Free', 'cashaadi-ui' ),
+						'url'   => site_url( '/membership-pricing/' ),
+					),
+					array( 'label' => __( 'Email notifications', 'cashaadi-ui' ), 'value' => '', 'url' => $me . 'settings/notifications/' ),
+					array( 'label' => __( 'Help & support', 'cashaadi-ui' ), 'value' => Config::SUPPORT_EMAIL, 'url' => 'mailto:' . Config::SUPPORT_EMAIL ),
+				),
+			),
+		);
+
+		return new \WP_REST_Response( array(
+			'ok'       => true,
+			'groups'   => $groups,
+			'logout'   => wp_logout_url( home_url( '/' ) ),
+			// Only offered when BuddyPress actually allows it, or the row is a lie.
+			'deleteUrl' => ( function_exists( 'bp_disable_account_deletion' ) && ! bp_disable_account_deletion() )
+				? $me . 'settings/delete-account/' : '',
+		), 200 );
+	}
+}

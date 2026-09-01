@@ -71,16 +71,30 @@ final class AppShell {
 		$on_photos = function_exists( 'bp_is_user' ) && bp_is_user()
 			&& function_exists( 'bp_current_action' ) && 'change-avatar' === bp_current_action();
 
-		if ( ! $on_edit && ! $on_photos ) {
+		// Same for BuddyPress's settings sub-screens: /settings/ links out to them
+		// for email, password, field visibility, blocked members and notifications,
+		// and none of them carry the app nav.
+		$on_settings = function_exists( 'bp_is_user_settings' ) && bp_is_user_settings();
+
+		if ( ! $on_edit && ! $on_photos && ! $on_settings ) {
 			return;
 		}
 		$dest = class_exists( '\CAShaadi\Core\AppPage' ) ? \CAShaadi\Core\AppPage::nav() : array();
 		$back = isset( $dest['profile']['url'] ) ? $dest['profile']['url'] : home_url( '/profile/' );
+		$text = __( 'Back to profile', 'cashaadi-ui' );
+
+		// Send them back where they came from: a settings sub-screen belongs to
+		// /settings/, not the profile hub.
+		if ( $on_settings && class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' ) ) {
+			$back = \CAShaadi\Modules\Settings\SettingsScreen::url();
+			$text = __( 'Back to settings', 'cashaadi-ui' );
+		}
+
 		printf(
 			'<a class="csm-back" href="%s">%s%s</a>',
 			esc_url( $back ),
 			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>',
-			esc_html__( 'Back to profile', 'cashaadi-ui' )
+			esc_html( $text )
 		);
 	}
 

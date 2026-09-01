@@ -116,7 +116,12 @@ final class AppPage {
 					: $me . 'profile/edit/group/1/'
 			),
 			array( __( 'My photos', 'cashaadi-ui' ), $me . 'profile/change-avatar/' ),
-			array( __( 'Settings', 'cashaadi-ui' ), $me . 'settings/' ),
+			array(
+				__( 'Settings', 'cashaadi-ui' ),
+				class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+					? \CAShaadi\Modules\Settings\SettingsScreen::url()
+					: $me . 'settings/'
+			),
 			array( __( 'Help & support', 'cashaadi-ui' ), 'mailto:' . Config::SUPPORT_EMAIL ),
 			array( __( 'Log out', 'cashaadi-ui' ), wp_logout_url( home_url( '/' ) ) ),
 		);

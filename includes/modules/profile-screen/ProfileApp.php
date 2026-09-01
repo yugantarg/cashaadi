@@ -129,7 +129,9 @@ final class ProfileApp {
 			'links'       => array(
 				'public'   => $base,
 				'photos'   => $base . 'profile/change-avatar/',
-				'settings' => $base . 'settings/',
+				'settings' => class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+					? \CAShaadi\Modules\Settings\SettingsScreen::url()
+					: $base . 'settings/',
 				'upgrade'  => site_url( '/membership-pricing/' ),
 			),
 		), 200 );
