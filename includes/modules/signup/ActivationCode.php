@@ -53,8 +53,13 @@ final class ActivationCode {
 		// Handle a submitted code before anything renders.
 		add_action( 'bp_template_redirect', array( __CLASS__, 'handle_post' ), 0 );
 
-		// Render the code form on the activation screen.
+		// Render the code form on the activation screen...
 		add_action( 'bp_before_activate_content', array( __CLASS__, 'render_form' ) );
+
+		// ...and immediately after signup, so the member never has to leave the
+		// screen at all. Without this they land on BuddyPress's "check your email
+		// to activate" page, which is exactly the link-hunting the code replaces.
+		add_action( 'bp_after_registration_confirmed', array( __CLASS__, 'render_form_after_signup' ) );
 	}
 
 	/* ------------------------------------------------------------ storage */
@@ -228,10 +233,21 @@ final class ActivationCode {
 
 	/* -------------------------------------------------------------- form */
 
-	public static function render_form() {
-		// Prefill from ?email= (our own emails can carry it) without trusting it
-		// for anything but display.
-		$email = isset( $_GET['email'] ) ? sanitize_email( wp_unslash( $_GET['email'] ) ) : '';
+	/**
+	 * Straight after signup the address is known for this request, so prefill it
+	 * and let the member type the code without navigating anywhere.
+	 */
+	public static function render_form_after_signup() {
+		$email = ! empty( $GLOBALS['csm_activation_code_email'] )
+			? sanitize_email( $GLOBALS['csm_activation_code_email'] )
+			: '';
+		self::render_form( $email );
+	}
+
+	public static function render_form( $prefill = '' ) {
+		// Prefill from the just-completed signup, else from ?email= — neither is
+		// trusted for anything but display; the code is what authenticates.
+		$email = $prefill ? $prefill : ( isset( $_GET['email'] ) ? sanitize_email( wp_unslash( $_GET['email'] ) ) : '' );
 		$err   = ! empty( $GLOBALS['csm_act_error'] ) ? $GLOBALS['csm_act_error'] : '';
 		?>
 		<div class="csm-actcode">
