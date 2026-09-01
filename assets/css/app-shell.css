@@ -565,3 +565,35 @@ body.csm-has-appnav #masthead .site-header-inner {
 	justify-content: space-between;
 	gap: 12px;
 }
+
+/* ==========================================================================
+   Escape hatch on the wizard / profile-edit screens (v0.38.0)
+   --------------------------------------------------------------------------
+   Reported: "when I go to the section for selecting CA/CA Inter I can't go
+   back". Reproduced on /profile/edit/group/7/ — the back link WAS rendering,
+   but at y=466, below the wizard card and off-screen, and the bottom nav is
+   deliberately absent on this focused flow. So there was no visible way out.
+
+   The approved design puts a ✕ at the top-left of the completion screen. This
+   pins the control there: sticky, above the wizard chrome, always reachable.
+   The wizard's own "← Back" still steps between questions; this exits the flow.
+   ========================================================================== */
+
+body.profile-edit .csm-back {
+	position: sticky;
+	top: 8px;
+	z-index: 60;
+	float: left;
+	margin: 8px 0 12px;
+	box-shadow: 0 4px 14px -8px rgba(22, 33, 43, .4);
+}
+/* keep the wizard card clear of the floated control */
+body.profile-edit #buddypress::before { content: ""; display: table; }
+
+@media (max-width: 782px) {
+	body.profile-edit .csm-back {
+		top: 6px;
+		padding: 8px 12px 8px 9px;
+		font-size: 13.5px;
+	}
+}
