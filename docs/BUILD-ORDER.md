@@ -193,3 +193,49 @@ member profile view, profile edit, change-avatar, settings, messages.
 Both navs now take their destinations from `Core\AppPage::nav()`, so the same
 tab goes to the same place from anywhere, and "Back to profile" returns to the
 `/profile/` hub rather than the BuddyPress member page.
+
+---
+
+## Snippet retirement — batch 1 done (2026-09-01)
+
+**Disabled on staging2, verified live.** Active snippets: 32 → 26.
+
+| Snippet | Replaced by |
+|---|---|
+| #11624 Allow Partial Profile Save | `FieldLogic::partial_save` |
+| #11621 Lock Gender After Signup | `FieldLogic::gender_lock` + `genderLocked` |
+| #11619 Bio Plain Textarea | `FieldLogic::bio_plain` (now all fields) |
+| #11611 Sync Age from DOB | `FieldLogic::sync_age` |
+| #11797 Height Input Guard | `profile-forms.js` `heightGuard` |
+| #11625 Lock Account Email | `profile-forms.js` `emailLock` |
+
+Checked before disabling, not after:
+
+* every hook each snippet registered has a `FieldLogic` counterpart;
+* the front-end halves (height guard, gender lock, email lock) are all served by
+  `FieldLogic::enqueue`, which localises `CASHAADI_FORMS` on the edit and
+  settings screens;
+* no other **active** snippet references the helpers these define
+  (`csm_sync_age_for_user`, `csm_get_raw_dob`, `csm_gender_is_locked`,
+  `csm_hg_assets`, `CSM_*_FIELD_ID`) — disabling a snippet other code calls is
+  a fatal, so this was the load-bearing check;
+* the plugin references none of them either.
+
+Verified after: edit screen serves `{heightGuard:1, genderLocked:1}`, settings
+serves `{emailLock:1}`, no rich-text editor, no fatals, all routes 200.
+
+### ⚠️ Before repeating this on production
+
+**#11611 carries a one-time age backfill** (`admin_init`, guarded by the
+`csm_age_dob_backfill_done` option) that gives a DOB to members who have an Age
+but no DOB. It is spent on staging2. **Confirm that option is set on production
+before disabling #11611 there** — otherwise those members never get a DOB, and
+`FieldLogic` does not port the backfill (deliberately: it is a migration, not
+runtime code).
+
+### Still to retire
+
+* Photos (#11822, #11838, #11813, #11771, #11770, #11798, #11861, #11690) —
+  load-bearing while `CASHAADI_PHOTOS_ENABLED` is off. Flag first, then disable.
+* Profile-edit UX (#12124, #12119, #11844, #11629, #11641).
+* Reminder emails #11732/#11733 — paused by choice.
