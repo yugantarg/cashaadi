@@ -1,7 +1,14 @@
 # CAShaadi UI — Build Roadmap
 
 Incremental, staging-first. Each phase is a small, reviewable, deployable step.
-Approved design reference: the "CAShaadi Member Area" canvas (7 mobile screens).
+
+Design reference: the "CAShaadi Member Area" canvas (7 mobile screens) — but per
+the owner (2026-09-01) that canvas is **suggestive**. It defines the visual
+language (tokens, card shape, grouped lists, bottom nav); the *content* of every
+screen must come from the real backend fields and features. See
+**docs/FIELD-INVENTORY.md** for that contract — including the fields that do NOT
+exist (no prompts; no `Location`/`About Me`) and the per-field visibility rule
+custom screens must enforce.
 
 ## Phase 0 — Walking skeleton  ✅ (this commit)
 - Plugin scaffold + wizard JS migrated from WPCode #12132.
@@ -67,10 +74,14 @@ Approved design reference: the "CAShaadi Member Area" canvas (7 mobile screens).
   `'About Me'`, neither of which exists here, so both lines always rendered
   empty. Real fields are **`City`** and **`Bio`**. `Age` is filtered and can
   return "27 years old", so the digits are extracted.
-- ⬜ **Prompts** — the design shows a prompt Q&A ("A perfect Sunday looks like —").
-  There is no prompt data model on this site; the card currently shows **Bio** as
-  the closest real content. Adding real prompts is a **product + data decision**
-  (new xProfile fields or a custom table).
+- ❌ **Prompts — dropped.** The mock's Hinge-style prompt Q&A has no backing
+  field on this site, and the data model is matrimonial rather than dating. The
+  card shows **Bio**, the real equivalent.
+- ✅ **Per-field visibility enforced (v0.29.1)** — the card now skips fields the
+  member restricted (see FIELD-INVENTORY.md).
+- ⬜ Consider surfacing more genuinely useful matrimonial facts on the card
+  (Religion / Community / Mother Tongue / Diet) — all real fields, subject to
+  the same visibility rule.
 - ⬜ Filter control in the Discover header (design has a filter icon).
 - ⬜ Desktop: cards currently wrap 2-up; a deliberate desktop layout is Phase 6.
 
