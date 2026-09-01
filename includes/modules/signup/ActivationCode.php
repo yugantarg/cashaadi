@@ -278,10 +278,37 @@ final class ActivationCode {
 		wp_set_auth_cookie( $user_id, true );
 		do_action( 'wp_login', $user->user_login, $user );
 
+		/*
+		 * Hand off to onboarding, NOT to Discover.
+		 *
+		 * This used to send a freshly activated member straight to /discover/. That
+		 * was survivable only while the photo gate existed to bounce them back into
+		 * setting up a profile; with the gate removed (v0.42.0) it would drop a
+		 * brand-new member into the app with no photo and no details, having never
+		 * been asked for either.
+		 *
+		 * So: send them to the start of the existing wizard. /welcome/ replaces
+		 * this target when it lands (see WELCOME-SPEC.md) — one line, here.
+		 *
+		 * Built from the user id, never bp_loggedin_user_url(): BuddyPress resolves
+		 * the logged-in user at bp_setup_current_user, which already ran for this
+		 * request while it was still logged OUT. wp_set_current_user() above does
+		 * not retro-fix that, so the "logged in user" helpers are unreliable here.
+		 */
+		$next = '';
+		if ( function_exists( 'bp_members_get_user_url' ) ) {
+			$next = bp_members_get_user_url( (int) $user_id );
+		} elseif ( function_exists( 'bp_core_get_user_domain' ) ) {
+			$next = bp_core_get_user_domain( (int) $user_id );
+		}
+		$next = $next
+			? trailingslashit( $next ) . 'profile/edit/group/1/'
+			: home_url( '/discover/' );
+
 		return array(
 			'ok'       => true,
 			'message'  => '',
-			'redirect' => home_url( '/discover/' ),
+			'redirect' => $next,
 		);
 	}
 
@@ -480,6 +507,23 @@ final class ActivationCode {
 	}
 
 	public static function render_form( $prefill = '' ) {
+		/*
+		 * Don't ask for a code that is no longer needed.
+		 *
+		 * The link flow still exists and still works (that redundancy is deliberate
+		 * — see the fail-safe note at the top). But bp_before_activate_content fires
+		 * on the activation page regardless of outcome, so someone arriving via
+		 * /activate/{key} would be shown "Enter your verification code" directly
+		 * above BuddyPress's own "account activated" message, and anyone already
+		 * logged in would be asked to activate an account they are using.
+		 */
+		if ( is_user_logged_in() ) {
+			return;
+		}
+		if ( function_exists( 'bp_account_was_activated' ) && bp_account_was_activated() ) {
+			return;
+		}
+
 		// Prefill from the just-completed signup, else from ?email= — neither is
 		// trusted for anything but display; the code is what authenticates.
 		$email = $prefill ? $prefill : ( isset( $_GET['email'] ) ? sanitize_email( wp_unslash( $_GET['email'] ) ) : '' );
