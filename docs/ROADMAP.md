@@ -18,10 +18,20 @@ custom screens must enforce.
   The browsing gate was retired in the snippet on 2026-08-25, and the onboarding
   wizard has no OTP dependency (it only styles `#csm-otp-box` as an inline note).
 * **Phone number lives in Settings with a verify option.** The Settings hub has
-  the row with live Verified / Not verified state. Rendering the verify widget
-  *inline* in Settings still depends on the OTP module cutover, which is blocked
-  on the MSG91 credentials (owner-only) — today the widget is served by snippet
-  #11618 on the profile-edit screen, which the row links to.
+  the row with live Verified / Not verified state (read from user meta, so it
+  survives the snippet being off).
+  * **Snippet #11618 DISABLED 2026-09-01** — step 1 of the OTP cutover's
+    mandatory safe order (function-defining: disable snippet, *then* add flag).
+    Verified first that nothing breaks: the only external caller
+    (`Dashboard.php:108`, the "SMS pending" label) is `function_exists`-guarded,
+    and `Core\Verification` reads user meta directly. All screens 200 afterwards.
+  * **Currently OTP verification is simply OFF** — expected for this window, and
+    harmless since nothing gates on it.
+  * **Owner to add to staging2 wp-config, then tell the assistant:**
+    `CASHAADI_MSG91_WIDGET_ID`, `CASHAADI_MSG91_TOKEN_AUTH`, `CASHAADI_OTP_ENABLED`.
+    Values are hardcoded in snippet #11618 as `widgetId` / `tokenAuth`. The auth
+    key is NOT needed — `Secrets::msg91_authkey()` now falls back to the bare
+    `MSG91_AUTHKEY` already on line 2 of wp-config (v0.33.1).
 * **Email activation → prefer a 4-digit code** so the user stays on the
   activation screen, instead of the current click-a-link flow (#11583). See the
   security requirements in Phase 1.5 below before implementing.
