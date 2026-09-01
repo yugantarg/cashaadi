@@ -345,7 +345,7 @@ Next candidates are the profile-edit UX group (#12124, #12119, #11844, #11629,
 
 ---
 
-## Profile-edit snippets — DEFERRED, and why (2026-09-02)
+## Profile-edit — rebuilt, snippets retired (2026-09-02)
 
 **Not retired. Retiring them would have removed the working half.**
 
@@ -385,3 +385,38 @@ clear both `// VERIFY` markers first.
 ### Snippet count unchanged at 18
 
 These five stay until a tested replacement exists.
+
+### Rebuilt as an app screen, then retired (v0.59.0)
+
+`/profile/edit/?g=<group>` — its own document, one section at a time.
+
+**Not a wizard, deliberately.** The hub sends members here to change one section
+and go back, so there is no chain, no "Save & Next", no step counter. Sections
+are a switcher, not a sequence — onboarding belongs to `/welcome/`.
+
+Back works by construction: `pushState` per section plus a `popstate` handler.
+Verified live — Lifestyle → Family → Community, then Back → Family → Back →
+Lifestyle, never leaving `/profile/edit/`. That is the bug reported three times.
+
+Saving goes through `xprofile_set_field_data()` per field, the same call the
+native form makes, so visibility and every downstream hook behave identically;
+only fields belonging to the requested group can be written. An emptied field is
+a deletion via `xprofile_delete_field_data()`. `xprofile_updated_profile` still
+fires, so FieldLogic's age-sync survives. Verified: setting Diet = Vegetarian
+persisted and read back from the server.
+
+**Retired: #12124, #11844, #11629, #11641. Active snippets 18 → 14.**
+
+### ⚠️ #12119 is NOT a profile-edit snippet — do not disable it
+
+It is untitled in the list and sits beside #12124, which is why it was filed
+here. It is actually **"CSM — Photo Moderation (NSFW) Sweep + Queue"**: an
+OpenAI-backed cron sweep that masks flagged avatars via
+`bp_core_fetch_avatar_url` and fills an admin review queue.
+
+**The plugin's `Photos\Nsfw` module is never registered** — `cashaadi-ui.php`
+does not reference it at all, flag or no flag. So #12119 is the only photo
+moderation on the site, and switching it off would silently remove it.
+
+Wiring `Nsfw` up is its own task: it shares option keys (`csm_pm_*`) and reads
+the CA-Verify OpenAI key, so both running at once would double-sweep.
