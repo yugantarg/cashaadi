@@ -49,6 +49,10 @@ final class Analytics {
 		add_action( 'bp_complete_signup', array( __CLASS__, 'flag_ga_registered' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'ga4_events' ), 20 );
 
+		// Google Ads: register the conversion ID on the Google tag Site Kit already
+		// loads. Queued through dataLayer, so it is order-independent of gtag.js.
+		add_action( 'wp_head', array( __CLASS__, 'gads_config' ), 99 );
+
 		// Default OG / Twitter share image (#12073).
 		add_action( 'init', array( __CLASS__, 'og_default' ) );
 		add_filter( 'wpseo_opengraph_image', array( __CLASS__, 'og_fallback' ), 20 );
@@ -168,6 +172,25 @@ final class Analytics {
 		$GLOBALS['csm_ga_registered'] = true;
 	}
 
+	/**
+	 * Register the Google Ads conversion ID against the Google tag that is
+	 * already on the page (Site Kit). Deliberately does NOT define gtag() or load
+	 * another gtag.js — commands queued on dataLayer are picked up whenever the
+	 * real tag initialises, so this is safe regardless of load order.
+	 */
+	public static function gads_config() {
+		if ( is_admin() ) {
+			return;
+		}
+		?>
+		<!-- Google Ads conversion ID (CAShaadi) -->
+		<script>
+		window.dataLayer = window.dataLayer || [];
+		(window.gtag || function(){ window.dataLayer.push(arguments); })('config', <?php echo wp_json_encode( Config::GADS_CONVERSION_ID ); ?>);
+		</script>
+		<?php
+	}
+
 	public static function ga4_events() {
 		static $printed = false;
 		if ( $printed ) {
@@ -195,6 +218,8 @@ final class Analytics {
 		function csmGtag(){ (window.gtag ? window.gtag : function(){ window.dataLayer.push(arguments); }).apply(null, arguments); }
 		<?php if ( $reg ) : ?>
 		csmGtag('event', 'sign_up', { method: 'website' });
+		<?php // Google Ads "Submit lead form" conversion — same moment as sign_up. ?>
+		csmGtag('event', 'conversion', { send_to: <?php echo wp_json_encode( Config::GADS_LEAD_LABEL ); ?> });
 		<?php endif; ?>
 		<?php
 		if ( $purchase ) :

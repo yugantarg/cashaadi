@@ -39,6 +39,12 @@ final class Config {
 	/* ---- analytics (public ids) ---------------------------------------- */
 	const FB_PIXEL_ID     = '942856688093538';          // Meta "CA Shaadi Website Pixel" (#12084)
 	const GA4_MEASUREMENT = 'G-VJW0VMS7KC';             // loaded by Site Kit; events push to dataLayer (#12112)
+	// Google Ads conversion tracking (shared by the owner 2026-09-01). The Google
+	// tag itself is already on the site via Site Kit, so we only register the Ads
+	// conversion ID against it — we do NOT add the G-2EYMW7BYEJ property that came
+	// with the tag, which would collect in parallel with GA4_MEASUREMENT above.
+	const GADS_CONVERSION_ID = 'AW-1014629759';
+	const GADS_LEAD_LABEL    = 'AW-1014629759/rXtbCPaksbsDEP-K6OMD'; // "Submit lead form"
 	const OG_IMAGE_ID     = 12072;                       // default social share image attachment (#12073)
 	const OG_IMAGE_URL    = 'https://staging.cashaadi.in/wp-content/uploads/2026/08/cashaadi-og-share.png';
 
