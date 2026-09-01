@@ -57,9 +57,18 @@ custom screens must enforce.
   section status, entries to wizard + settings.
 - Settings grouped list; Delete-account (native), Membership/Billing → PMPro.
 
-## Phase 3 — Matches (Connections)
-- Tabbed Received / Sent / Matches over BuddyPress Friends.
-- Accept / Decline / Message on native friendship actions.
+## Phase 3 — Matches (Connections)  🔶 partial
+- ✅ **Row list + pill tabs (v0.30.0)** — Matches / Requests / Visitors / Sent now
+  render as a vertical list (square avatar left, name + facts right, inline
+  Accept/Decline) with pill sub-nav tabs, instead of the directory's browsing
+  grid. Same BuddyPress markup, presented per context: scoped to
+  `body.csm-cur-matches`, so the members directory keeps its grid (verified).
+  Needs one extra class of specificity to beat `screens.css`, which loads later.
+- ⚠️ **Not visually confirmed with data** — the admin account has no matches or
+  pending requests, so the row layout and Accept/Decline styling were verified by
+  CSSOM/selector matching only. Check on an account that has requests.
+- ⬜ Accept / Decline / Message behaviour itself is native BuddyPress and
+  untouched.
 
 ## Phase 4 — Messages + Notifications
 - Restyle inbox list + thread; notifications loop behind the bell.
@@ -79,9 +88,11 @@ custom screens must enforce.
   card shows **Bio**, the real equivalent.
 - ✅ **Per-field visibility enforced (v0.29.1)** — the card now skips fields the
   member restricted (see FIELD-INVENTORY.md).
-- ⬜ Consider surfacing more genuinely useful matrimonial facts on the card
-  (Religion / Community / Mother Tongue / Diet) — all real fields, subject to
-  the same visibility rule.
+- ✅ **Matrimonial facts on the card (v0.30.0)** — chips now come from the real
+  fields this audience decides on: Qualification, Company Name, Height, Religion,
+  Community, Language (Mother Tongue), Diet. Capped at 6 so rich profiles stay
+  scannable and sparse ones degrade cleanly; all visibility-filtered.
+- ⬜ Filter control — **explicitly deferred by the owner (2026-09-01)**.
 - ⬜ Filter control in the Discover header (design has a filter icon).
 - ⬜ Desktop: cards currently wrap 2-up; a deliberate desktop layout is Phase 6.
 
