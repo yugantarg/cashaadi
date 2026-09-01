@@ -722,3 +722,15 @@ body.change-avatar #masthead > .site-branding { flex: 1 1 auto; min-width: 0; ma
 body.csm-has-appnav #masthead > .main-navigation,
 body.profile-edit #masthead > .main-navigation,
 body.change-avatar #masthead > .main-navigation { flex: 0 0 auto; margin: 0; width: auto; }
+
+/* The wizard's step indicator does not belong on the photos screen.
+   Snippets #11629/#11844 render "Step 1 of 8", a progress bar and a button for
+   every profile section on the profile-edit FLOW — and the avatar screen counts
+   as step 1 of that flow, so it inherited the whole thing. Opening "My photos"
+   from the profile hub is not a wizard run: the member came to manage photos,
+   and the hub already lists the sections with real completion counts.
+
+   Hidden only here; the profile-edit screens keep their indicator. */
+body.change-avatar .csm-pe-steps,
+body.change-avatar .csm-pe-bar,
+body.change-avatar .csm-photo-next { display: none !important; }
