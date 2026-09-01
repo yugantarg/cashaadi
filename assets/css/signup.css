@@ -160,3 +160,20 @@ body.activate #activation-form input[type=submit]:hover { background: var(--csm-
 	font-size: 15.5px; font-weight: 700; cursor: pointer;
 }
 .csm-actcode-form button:hover { background: var(--csm-green-press, #5e8926); }
+
+/* ---- activation code: always-present error region + busy state (v0.41.0) ---- */
+.csm-actcode-err {
+	margin: 0 0 14px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: #fdecec;
+	border: 1px solid #f3c9c9;
+	color: #96262a;
+	font-size: 13.5px;
+	line-height: 1.45;
+}
+/* Rendered unconditionally so JS and screen readers have a target; hidden until
+   it actually says something. :empty is exact — no text, no box. */
+.csm-actcode-err:empty { display: none; }
+
+.csm-actcode-form button.is-busy { opacity: .6; cursor: default; }

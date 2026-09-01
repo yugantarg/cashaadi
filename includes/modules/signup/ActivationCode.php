@@ -53,6 +53,10 @@ final class ActivationCode {
 		// Handle a submitted code before anything renders.
 		add_action( 'bp_template_redirect', array( __CLASS__, 'handle_post' ), 0 );
 
+		// Same check without a page load (see render_form).
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 24 );
+
 		// Render the code form on the activation screen...
 		add_action( 'bp_before_activate_content', array( __CLASS__, 'render_form' ) );
 
@@ -224,6 +228,57 @@ final class ActivationCode {
 		) );
 	}
 
+	/**
+	 * Verify a code and, on success, activate + log the member in.
+	 *
+	 * Shared by the form POST and the REST endpoint so the two can never drift
+	 * apart on the security-relevant details (uniform failure messages, attempt
+	 * burning, single use, auto-login).
+	 *
+	 * @return array{ok:bool,message:string,redirect:string}
+	 */
+	private static function attempt( $email, $code ) {
+		$fail = array(
+			'ok'       => false,
+			'message'  => __( 'That code is not valid or has expired. Please check your email and try again.', 'cashaadi-ui' ),
+			'redirect' => '',
+		);
+
+		// Deliberately uniform failure: never reveal whether the address exists,
+		// whether a code was issued, or whether attempts were exhausted.
+		if ( ! $email || ! self::verify( $email, $code ) ) {
+			return $fail;
+		}
+
+		$key = self::activation_key_for( $email );
+		if ( '' === $key ) {
+			return $fail;
+		}
+
+		$user_id = bp_core_activate_signup( $key );
+		if ( is_wp_error( $user_id ) || empty( $user_id ) ) {
+			$fail['message'] = __( 'We could not activate that account. Please try the link in your email.', 'cashaadi-ui' );
+			return $fail;
+		}
+
+		$user = get_user_by( 'id', (int) $user_id );
+		if ( ! $user ) {
+			$fail['message'] = __( 'We could not activate that account. Please try the link in your email.', 'cashaadi-ui' );
+			return $fail;
+		}
+
+		// Same auto-login as the link flow (#11583).
+		wp_set_current_user( $user_id, $user->user_login );
+		wp_set_auth_cookie( $user_id, true );
+		do_action( 'wp_login', $user->user_login, $user );
+
+		return array(
+			'ok'       => true,
+			'message'  => '',
+			'redirect' => home_url( '/discover/' ),
+		);
+	}
+
 	public static function handle_post() {
 		if ( empty( $_POST['csm_act_code'] ) || empty( $_POST['csm_act_email'] ) ) {
 			return;
@@ -233,41 +288,59 @@ final class ActivationCode {
 			return;
 		}
 
-		$email = sanitize_email( wp_unslash( $_POST['csm_act_email'] ) );
-		$code  = sanitize_text_field( wp_unslash( $_POST['csm_act_code'] ) );
+		$res = self::attempt(
+			sanitize_email( wp_unslash( $_POST['csm_act_email'] ) ),
+			sanitize_text_field( wp_unslash( $_POST['csm_act_code'] ) )
+		);
 
-		// Deliberately uniform failure: never reveal whether the address exists,
-		// whether a code was issued, or whether attempts were exhausted.
-		if ( ! $email || ! self::verify( $email, $code ) ) {
-			$GLOBALS['csm_act_error'] = __( 'That code is not valid or has expired. Please check your email and try again.', 'cashaadi-ui' );
+		if ( ! $res['ok'] ) {
+			$GLOBALS['csm_act_error'] = $res['message'];
 			return;
 		}
 
-		$key = self::activation_key_for( $email );
-		if ( '' === $key ) {
-			$GLOBALS['csm_act_error'] = __( 'That code is not valid or has expired. Please check your email and try again.', 'cashaadi-ui' );
-			return;
-		}
-
-		$user_id = bp_core_activate_signup( $key );
-		if ( is_wp_error( $user_id ) || empty( $user_id ) ) {
-			$GLOBALS['csm_act_error'] = __( 'We could not activate that account. Please try the link in your email.', 'cashaadi-ui' );
-			return;
-		}
-
-		$user = get_user_by( 'id', (int) $user_id );
-		if ( ! $user ) {
-			$GLOBALS['csm_act_error'] = __( 'We could not activate that account. Please try the link in your email.', 'cashaadi-ui' );
-			return;
-		}
-
-		// Same auto-login as the link flow (#11583).
-		wp_set_current_user( $user_id, $user->user_login );
-		wp_set_auth_cookie( $user_id, true );
-		do_action( 'wp_login', $user->user_login, $user );
-
-		wp_safe_redirect( home_url( '/discover/' ) );
+		wp_safe_redirect( $res['redirect'] );
 		exit;
+	}
+
+	/* -------------------------------------------------------------- REST */
+
+	public static function rest_routes() {
+		register_rest_route(
+			'csm/v1',
+			'/activate-code',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'rest_activate' ),
+				// Necessarily public: the member is logged out until this succeeds.
+				// The 4-digit code is the credential, and verify() caps attempts.
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'email' => array( 'required' => true ),
+					'code'  => array( 'required' => true ),
+					'nonce' => array( 'required' => true ),
+				),
+			)
+		);
+	}
+
+	public static function rest_activate( $request ) {
+		$nonce = sanitize_text_field( (string) $request->get_param( 'nonce' ) );
+		if ( ! wp_verify_nonce( $nonce, 'csm_act_code' ) ) {
+			// Not a security leak — says nothing about the code or the address.
+			return new \WP_REST_Response(
+				array( 'ok' => false, 'message' => __( 'This page has expired. Please refresh and try again.', 'cashaadi-ui' ) ),
+				200
+			);
+		}
+
+		$res = self::attempt(
+			sanitize_email( (string) $request->get_param( 'email' ) ),
+			sanitize_text_field( (string) $request->get_param( 'code' ) )
+		);
+
+		// Always HTTP 200: the JS reads `ok`, and a 4xx here would be logged as a
+		// server problem when a mistyped code is entirely expected.
+		return new \WP_REST_Response( $res, 200 );
 	}
 
 	/* -------------------------------------------------------------- form */
@@ -283,6 +356,23 @@ final class ActivationCode {
 		self::render_form( $email );
 	}
 
+	/** The activation screen — the one page that always hosts this form. */
+	private static function activate_url() {
+		if ( function_exists( 'bp_get_activation_page' ) ) {
+			return bp_get_activation_page();
+		}
+		return home_url( '/activate/' );
+	}
+
+	public static function assets() {
+		$on = ( function_exists( 'bp_is_register_page' ) && bp_is_register_page() )
+			|| ( function_exists( 'bp_is_activation_page' ) && bp_is_activation_page() );
+		if ( ! $on ) {
+			return;
+		}
+		\CAShaadi\Core\Assets::script( 'activation-code', 'assets/js/activation-code.js' );
+	}
+
 	public static function render_form( $prefill = '' ) {
 		// Prefill from the just-completed signup, else from ?email= — neither is
 		// trusted for anything but display; the code is what authenticates.
@@ -292,10 +382,36 @@ final class ActivationCode {
 		<div class="csm-actcode">
 			<h2><?php esc_html_e( 'Enter your verification code', 'cashaadi-ui' ); ?></h2>
 			<p class="csm-actcode-help"><?php esc_html_e( 'We emailed you a 4-digit code. Enter it below to activate your account.', 'cashaadi-ui' ); ?></p>
-			<?php if ( $err ) : ?>
-				<p class="csm-actcode-err" role="alert"><?php echo esc_html( $err ); ?></p>
-			<?php endif; ?>
-			<form method="post" class="csm-actcode-form">
+
+			<?php
+			/*
+			 * The error region is ALWAYS rendered, not conditionally.
+			 *
+			 * It used to be printed only when an error existed, which meant the JS
+			 * had nothing to write into and a screen reader announced nothing. It is
+			 * empty and hidden by CSS until it has text.
+			 */
+			?>
+			<p class="csm-actcode-err" role="alert" aria-live="polite"><?php echo esc_html( $err ); ?></p>
+
+			<?php
+			/*
+			 * action="" posted back to whatever page hosted the form. Straight after
+			 * signup that is /register/, where this form is rendered by
+			 * bp_after_registration_confirmed — a hook that ONLY fires in the request
+			 * where a signup just completed. So a wrong code posted back to a page
+			 * that could no longer render the form: the field vanished and the error
+			 * had nowhere to appear (reported live, 2026-09-01: "came back to a blank
+			 * sign up page").
+			 *
+			 * Posting to the activation page fixes that: bp_before_activate_content
+			 * fires there on every request, so the form and its error always survive
+			 * a failed attempt. The JS below means it is normally never used.
+			 */
+			?>
+			<form method="post" class="csm-actcode-form"
+				action="<?php echo esc_url( self::activate_url() ); ?>"
+				data-endpoint="<?php echo esc_url( rest_url( 'csm/v1/activate-code' ) ); ?>">
 				<?php wp_nonce_field( 'csm_act_code', 'csm_act_nonce' ); ?>
 				<label for="csm_act_email"><?php esc_html_e( 'Email address', 'cashaadi-ui' ); ?></label>
 				<input type="email" id="csm_act_email" name="csm_act_email" value="<?php echo esc_attr( $email ); ?>" required autocomplete="email">
