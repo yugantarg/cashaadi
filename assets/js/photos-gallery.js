@@ -100,6 +100,23 @@
 		if ( ! host ) { return; }
 		var img = host.querySelector( 'img' );
 		if ( ! img ) { return; }
+
+		/* Don't offer to enlarge a photo that does not exist.
+		   Reported live 2026-09-01: tapping a blank profile photo opened the
+		   lightbox on the placeholder — a full-screen mystery-man. The zoom was
+		   attached whenever CSM_PN.url was set, and that is set even when the
+		   member has never uploaded anything, because the avatar then falls back
+		   to Gravatar's default (d=mm) or BuddyPress's own mystery-man image. */
+		function isPlaceholder( url ) {
+			if ( ! url ) { return true; }
+			return /gravatar\.com/i.test( url )
+				|| /mystery-?man/i.test( url )
+				|| /\/bp-core\/images\//i.test( url );
+		}
+		if ( isPlaceholder( cfg.url ) && isPlaceholder( img.getAttribute( 'src' ) ) ) {
+			return;
+		}
+
 		img.className = img.className + ' csm-pn-zoom';
 		img.setAttribute( 'title', cfg.hidden ? 'View photo (blurred)' : 'View full photo' );
 		var opener = img.closest( 'a' ) || img;

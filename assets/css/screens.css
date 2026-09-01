@@ -329,76 +329,17 @@ body.csm-screens #buddypress #item-body form.standard-form .submit input {
 body.csm-screens #buddypress #item-body form.standard-form input[type="submit"]:hover,
 body.csm-screens #buddypress #item-body form.standard-form button[type="submit"]:hover { background: var(--csm-blue-press, #234a73); }
 
-/* ==========================================================================
-   Discover cards (#11602 tray: #csm-discovery-tray > .csm-card)
-   Enhance the existing cards to match the design — interior only, leaving the
-   tray layout and the like/pass JS (#11601) untouched. Scoped to the Discover
-   screen via body.csm-cur-discover.
-   ========================================================================== */
-body.csm-cur-discover #csm-discovery-tray .csm-card {
-	background: var(--csm-surface, #fff) !important;
-	border: 1px solid var(--csm-hair, #e4eaf0) !important;
-	border-radius: 20px !important;
-	overflow: hidden;
-	box-shadow: 0 1px 2px rgba(22, 33, 43, .04), 0 20px 44px -30px rgba(22, 33, 43, .35) !important;
-	display: flex;
-	flex-direction: column;
-}
-body.csm-cur-discover #csm-discovery-tray .csm-card-photo-link { display: block; line-height: 0; }
-body.csm-cur-discover #csm-discovery-tray .csm-card-photo-link img {
-	width: 100%;
-	aspect-ratio: 4 / 5;
-	object-fit: cover;
-	display: block;
-	background: var(--csm-ground, #f4f6f8);
-}
-body.csm-cur-discover #csm-discovery-tray .csm-card-body { padding: 12px 15px 4px; }
-body.csm-cur-discover #csm-discovery-tray .csm-card-name {
-	font-family: var(--csm-serif, Georgia, serif) !important;
-	font-size: 19px !important;
-	font-weight: 500 !important;
-	line-height: 1.15;
-	color: var(--csm-ink, #16212b) !important;
-	margin: 0 0 4px !important;
-}
-body.csm-cur-discover #csm-discovery-tray .csm-card-name-link { color: inherit !important; text-decoration: none; }
-body.csm-cur-discover #csm-discovery-tray .csm-card-age { color: var(--csm-muted, #5c6a76); font-weight: 400; }
-/* any secondary meta line (height / city) */
-body.csm-cur-discover #csm-discovery-tray .csm-card-body p,
-body.csm-cur-discover #csm-discovery-tray .csm-card-meta {
-	color: var(--csm-muted, #5c6a76);
-	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
-	font-size: 13.5px;
-	line-height: 1.5;
-	margin: 0;
-}
-/* actions: Pass (neutral) vs Like (primary green) */
-body.csm-cur-discover #csm-discovery-tray .csm-card-actions {
-	display: flex;
-	gap: 10px;
-	padding: 12px 15px 15px;
-	margin-top: auto;
-}
-body.csm-cur-discover #csm-discovery-tray .csm-btn {
-	flex: 1 1 0;
-	padding: 12px 10px;
-	border-radius: 12px;
-	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
-	font-size: 14.5px;
-	font-weight: 700;
-	cursor: pointer;
-	border: 0;
-	transition: background .15s, border-color .15s;
-}
-/* !important so brand colors beat #11602's own button styling */
-body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-pass {
-	background: var(--csm-surface, #fff) !important;
-	color: var(--csm-muted, #5c6a76) !important;
-	border: 1.5px solid var(--csm-hair-2, #d6dfe7) !important;
-}
-body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-pass:hover { border-color: var(--csm-faint, #93a2ae) !important; color: var(--csm-ink, #16212b) !important; }
-body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-like {
-	background: var(--csm-green, #6f9f2e) !important;
-	color: #fff !important;
-}
-body.csm-cur-discover #csm-discovery-tray .csm-btn.csm-like:hover { background: var(--csm-green-press, #5e8926) !important; }
+/* Discover cards: styled entirely by discover.css.
+
+   A block lived here that restyled the tray card — photo on top, name in a
+   white body beneath — from back when Discover rendered snippet #11602's
+   markup. v0.29/0.30 rebuilt the card as a photo with an overlaid name on a
+   gradient scrim, and discover.css covers every class Discover.php now emits
+   (media, photo, overlay, name, sub, bio, actions, buttons).
+
+   The stale rules did not just sit there harmlessly: they set
+   `color: var(--csm-ink) !important` on .csm-card-name, which beat the white
+   text the overlay design needs and rendered the name in near-black over the
+   photo — reported as "the name and other details are not visible clearly".
+   Removed rather than patched; two stylesheets fighting over one component is
+   the bug, not the specificity. */

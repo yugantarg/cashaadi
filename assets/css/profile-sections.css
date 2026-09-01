@@ -141,3 +141,18 @@ body.csm-prof-screen #buddypress .bp-widget.base { display: none !important; }
 	font-size: 13.5px;
 	font-weight: 700;
 }
+
+/* ---- the empty bar below the sections (v0.45.0) ----
+   Reported twice ("there is an unknown bar", on the profile screen and after
+   signup). Identified in the DOM: it is BuddyPress's own #item-body, rendering
+   as a 94px white shell containing .bp-widget.basic-details and
+   .bp-widget.family-details at 16px each with nothing in them.
+
+   On the member's OWN profile the section rows are the profile UI — the stock
+   body underneath is a duplicate at best and, for a new member with no data
+   yet, an empty box that reads as a rendering fault.
+
+   Scoped to body.csm-prof-screen, which ProfileScreen sets only for one's own
+   profile VIEW. Other members' profiles keep #item-body: that is where their
+   actual details are rendered, and hiding it there would blank the page. */
+body.csm-prof-screen #item-body { display: none !important; }
