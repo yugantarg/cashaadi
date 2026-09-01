@@ -453,3 +453,39 @@ decision.
 Still in BuddyX chrome, reached by linking out: another member's profile view,
 the photos screen, and the settings sub-editors — each with a back link into the
 app.
+
+---
+
+## NSFW moderation — module wired, #12119 retired (v0.61.0, 2026-09-02)
+
+`Photos\Nsfw` existed in the repo but `cashaadi-ui.php` never referenced it, so
+it was dead code and snippet #12119 was doing all photo moderation alone. That
+was the last real migration gap.
+
+**Order was the opposite of convenient.** Both bind the same cron event
+(`csm_pm_sweep_event`) and the same meta keys — by design, so verdicts and the
+schedule carry over. But two live callbacks on one cron tick means two sweeps
+and **two OpenAI bills per run**, so they must never overlap. #12119 was disabled
+BEFORE the wiring was deployed; an hourly sweep tolerates the gap.
+
+Checked first that this was not a no-op: CA Verify reports "A key is currently
+saved", and `Secrets::openai_api_key()` falls back to that same option, so the
+module inherits the snippet's key.
+
+Verified after, via the module's own status endpoint
+(`?page=csm-photo-mod&csm_pm_status=1`):
+
+```
+pending_avatars=0  pending_media=1  enforce=off
+key=set  schedule=hourly  next=2026-09-01 18:14:43 UTC
+```
+
+* `key=set` — key found through the CA Verify fallback
+* `schedule=hourly` + a real next run — the snippet's existing schedule carried
+  over rather than being lost or duplicated
+* `pending_avatars=0` — prior verdicts survived; the module is not re-sweeping
+  everything and re-billing for it
+* `enforce=off` — the snippet's safety default preserved; nothing is hidden until
+  the `csm_pm_enforce` option is set
+
+**Active snippets 14 → 13.**
