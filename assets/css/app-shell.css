@@ -126,3 +126,52 @@
 	.csm-appnav a.is-active { color: var(--csm-blue, #2c5b8c); }
 	.csm-appnav a:active { color: var(--csm-blue-press, #234a73); }
 }
+
+/* ==========================================================================
+   Better Messages — retheme to the CAShaadi design system (v0.31.0)
+   --------------------------------------------------------------------------
+   Better Messages is a third-party chat app. Rather than fight its layout with
+   overrides that would break on every plugin update, we drive its OWN theming
+   API: it exposes ~60 `--bm-*` custom properties, so we simply redefine the
+   ones that carry brand.
+
+   Why this selector works: custom properties inherit, and the *nearest*
+   ancestor definition wins. Better Messages defines its defaults higher up
+   (:root / body.bm-messages-light), so defining them on the app root here
+   always takes precedence for this subtree — no !important, no specificity war.
+
+   Not inside the mobile media query on purpose: the chat should look like ours
+   on desktop too, since Better Messages owns that screen at every width.
+
+   Format note: several --bm-* values are BARE RGB TRIPLETS ("33,117,155"),
+   because the plugin composes them as rgba(var(--bm-x), .5). Those must stay
+   triplets — a hex value there would break every rule that uses them.
+   ========================================================================== */
+
+.bp-messages-wrap-main,
+.bp-messages-wrap {
+	/* type */
+	--bm-font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	--bm-message-font-size: 14.5px;
+	--bm-message-line-height: 20px;
+
+	/* brand — RGB triplets (see note above) */
+	--bm-button-bg: 44, 91, 140;        /* --csm-blue  #2c5b8c */
+	--bm-button-color: 255, 255, 255;
+	--bm-text-color: 22, 33, 43;        /* --csm-ink   #16212b */
+	--bm-bg-color: 255, 255, 255;       /* --csm-surface */
+	--bm-bg-secondary: 244, 246, 248;   /* --csm-ground #f4f6f8 */
+	--bm-hover-bg: 233, 241, 248;       /* --csm-blue-tint #e9f1f8 */
+	--bm-border-color: 228, 234, 240;   /* --csm-hair  #e4eaf0 */
+	--bm-border-secondary-color: 238, 242, 246;
+	--bm-border-active: 214, 223, 231;  /* --csm-hair-2 #d6dfe7 */
+
+	/* softer, app-like geometry (plugin defaults are 2–3px) */
+	--bm-border-radius: 12px;
+	--bm-message-border-radius: 14px;
+	--bm-widgets-button-radius: 10px;
+
+	/* misc */
+	--bm-sticky-date-bg: #16212b;
+	--bm-sticky-date-color: #fff;
+}
