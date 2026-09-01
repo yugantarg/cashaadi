@@ -64,7 +64,14 @@ final class AppShell {
 	 * this link the only way out.
 	 */
 	public static function render_back() {
-		if ( ! function_exists( 'bp_is_user_profile_edit' ) || ! bp_is_user_profile_edit() ) {
+		$on_edit = function_exists( 'bp_is_user_profile_edit' ) && bp_is_user_profile_edit();
+
+		// The photos screen is reached the same way (from the hub's "My photos"
+		// row) and is equally a dead end without this.
+		$on_photos = function_exists( 'bp_is_user' ) && bp_is_user()
+			&& function_exists( 'bp_current_action' ) && 'change-avatar' === bp_current_action();
+
+		if ( ! $on_edit && ! $on_photos ) {
 			return;
 		}
 		$dest = class_exists( '\CAShaadi\Core\AppPage' ) ? \CAShaadi\Core\AppPage::nav() : array();

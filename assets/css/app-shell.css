@@ -662,3 +662,53 @@ body.profile-edit #masthead .site-header-inner {
 	gap: 12px;
 	min-height: 52px;
 }
+
+/* ==========================================================================
+   Photos screen (change-avatar) — v0.57.0
+   Reported: "My photos still goes to the old photo page which is not matching
+   the rest of the UI at all."
+
+   The photo GRID itself is fine — snippet #11822 renders it with a heading,
+   help text, add/delete controls and #11770's privacy toggle. What did not
+   match was everything around it: BuddyPress's member header (big avatar, an
+   Upgrade button, "Active today") and the View / Edit / Change Profile Photo
+   sub-tabs, none of which belong on a screen you opened to manage photos.
+
+   Same focused treatment the wizard already gets: strip the surroundings,
+   leave the one job, keep the back link out.
+   ========================================================================== */
+body.change-avatar #item-header,
+body.change-avatar .bp-avatar-nav,
+body.change-avatar #subnav,
+body.change-avatar .item-list-tabs#subnav,
+body.change-avatar .bp-navs.bp-subnavs,
+body.change-avatar #item-header-content,
+body.change-avatar .csm-appnav { display: none !important; }
+
+/* Give the remaining content room and the app's page rhythm. */
+body.change-avatar #item-body { padding: 4px 0 40px; }
+body.change-avatar .csm-ph-head h2,
+body.change-avatar .csm-ph-head h3 {
+	font-family: var(--csm-serif, Georgia, serif) !important;
+	font-size: 22px !important;
+	font-weight: 500 !important;
+}
+
+/* ---- header: wordmark and hamburger on ONE row ----
+   BuddyX stacks them because .site-branding is a block at full width, which is
+   why the app screens look right and every BuddyPress screen did not. */
+body.csm-has-appnav #masthead .site-header-inner,
+body.profile-edit #masthead .site-header-inner,
+body.change-avatar #masthead .site-header-inner {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: space-between !important;
+	flex-wrap: nowrap !important;
+	gap: 12px;
+}
+body.csm-has-appnav #masthead .site-branding,
+body.profile-edit #masthead .site-branding,
+body.change-avatar #masthead .site-branding { flex: 1 1 auto; min-width: 0; margin: 0; }
+body.csm-has-appnav #masthead .menu-toggle,
+body.profile-edit #masthead .menu-toggle,
+body.change-avatar #masthead .menu-toggle { flex: 0 0 auto; margin: 0; }
