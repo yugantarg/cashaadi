@@ -248,3 +248,92 @@
 	/* BuddyPress's own two-column split is redundant once #object-nav is gone */
 	body.csm-has-appnav #buddypress #item-body { margin-left: 0; width: auto; }
 }
+
+/* ==========================================================================
+   Desktop pass, part 2 (v0.32.1) — component styles the reveal missed
+   --------------------------------------------------------------------------
+   The top bar and nav-link *appearance* rules were written inside the mobile
+   media query, because until v0.32.0 those components only ever rendered below
+   782px. Revealing them on desktop therefore showed them unstyled: the title
+   and actions collapsed to ~37px/7px wide and the nav icons rendered at their
+   intrinsic size.
+
+   Restated here for >=783px rather than moved, to leave the proven mobile block
+   untouched.
+   ========================================================================== */
+
+@media (min-width: 783px) {
+
+	/* ---- top bar ---- */
+	body.csm-has-appnav .csm-topbar-title {
+		flex: 1 1 auto;
+		font-family: var(--csm-serif, Georgia, serif);
+		font-size: 27px;
+		font-weight: 500;
+		letter-spacing: -.01em;
+		color: var(--csm-ink, #16212b);
+	}
+	body.csm-has-appnav .csm-topbar-actions {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex: 0 0 auto;
+	}
+	body.csm-has-appnav .csm-topbar-act {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px; height: 40px;
+		border-radius: 50%;
+		color: var(--csm-ink, #16212b);
+		text-decoration: none;
+	}
+	body.csm-has-appnav .csm-topbar-act:hover { background: var(--csm-ground, #f4f6f8); }
+	body.csm-has-appnav .csm-topbar-act svg { width: 23px; height: 23px; }
+	body.csm-has-appnav .csm-topbar-badge {
+		position: absolute;
+		top: 4px; right: 4px;
+		min-width: 16px; height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: var(--csm-green, #6f9f2e);
+		color: #fff;
+		font-size: 10px; font-weight: 700; font-style: normal;
+		line-height: 16px; text-align: center;
+	}
+
+	/* ---- rail links ---- */
+	body.csm-has-appnav .csm-appnav a {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
+		color: var(--csm-faint, #93a2ae);
+		font-weight: 600;
+		letter-spacing: .01em;
+		transition: color .15s, background-color .15s;
+	}
+	body.csm-has-appnav .csm-appnav a svg { width: 24px; height: 24px; display: block; }
+	body.csm-has-appnav .csm-appnav a span { line-height: 1; }
+	body.csm-has-appnav .csm-appnav a.is-active { color: var(--csm-blue, #2c5b8c); }
+}
+
+/* ==========================================================================
+   List rows must stack (v0.32.1)
+   --------------------------------------------------------------------------
+   BuddyX floats `#item-body li`, so the Settings hub and profile section rows
+   rendered side-by-side (216px wide) instead of as a stacked list. Declaring
+   the list/rows as plain blocks defeats the theme's float at any width.
+   ========================================================================== */
+
+.csm-set-list, .csm-sec-list { display: block; }
+
+.csm-set-list > .csm-set-row,
+.csm-sec-list > .csm-sec-row {
+	display: block;
+	float: none;
+	width: auto;
+	margin: 0;
+}
