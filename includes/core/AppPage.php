@@ -109,7 +109,12 @@ final class AppPage {
 			: home_url( '/' );
 
 		$items = array(
-			array( __( 'Edit my profile', 'cashaadi-ui' ), $me . 'profile/edit/group/1/' ),
+			array(
+				__( 'Edit my profile', 'cashaadi-ui' ),
+				class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
+					? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url()
+					: $me . 'profile/edit/group/1/'
+			),
 			array( __( 'My photos', 'cashaadi-ui' ), $me . 'profile/change-avatar/' ),
 			array( __( 'Settings', 'cashaadi-ui' ), $me . 'settings/' ),
 			array( __( 'Help & support', 'cashaadi-ui' ), 'mailto:' . Config::SUPPORT_EMAIL ),

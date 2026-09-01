@@ -84,7 +84,8 @@ final class ProfileApp {
 				'id'      => $g['id'],
 				'name'    => $g['name'],
 				'missing' => $g['missing'],
-				'url'     => $base . 'profile/edit/group/' . $g['id'] . '/',
+				// Our own editor, not BuddyPress's — see ProfileEdit\ProfileEditScreen.
+				'url'     => \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( $g['id'] ),
 			);
 		}
 
@@ -122,7 +123,7 @@ final class ProfileApp {
 			'isPremium'   => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ),
 			'outstanding' => (int) $completion['outstanding'],
 			'firstGap'    => $completion['firstGap']
-				? $base . 'profile/edit/group/' . (int) $completion['firstGap'] . '/'
+				? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( (int) $completion['firstGap'] )
 				: '',
 			'sections'    => $sections,
 			'links'       => array(
