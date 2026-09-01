@@ -5,13 +5,13 @@
    completion state (green "Complete" / amber "N left") opening that group's
    editor.
 
-   Mobile-only (<= 782px), matching the app shell. On desktop the stock
-   BuddyPress profile renders unchanged until a desktop layout exists.
+   Applies at every width (desktop pass, v0.32.0) — the row list works at any
+   size once the app shell constrains the content column.
    ========================================================================== */
 
 .csm-sec { display: none; }
 
-@media (max-width: 782px) {
+@media all {  /* was max-width:782px — desktop pass v0.32.0 */
 
 	.csm-sec {
 		display: block;

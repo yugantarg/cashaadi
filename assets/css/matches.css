@@ -38,9 +38,11 @@
    `body.csm-screens …` and !important on the grid, and loads after this file
    (priority 22 vs 20). `body.csm-screens.csm-cur-matches` is one class more
    specific, so these rules win regardless of source order.
+
+   Applies at every width since the desktop pass (v0.32.0).
    ========================================================================== */
 
-@media (max-width: 782px) {
+@media all {  /* was max-width:782px — desktop pass v0.32.0 */
 
 	/* one match per row */
 	body.csm-screens.csm-cur-matches #buddypress ul.members-list.bp-list {

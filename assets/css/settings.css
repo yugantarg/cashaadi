@@ -4,15 +4,15 @@
    The grouped settings list from the approved design: ACCOUNT / PRIVACY &
    PHOTOS / ACCOUNT STATUS, then Log out and a red "Delete my account".
 
-   Mobile-only (<= 782px), where the app shell lives. On desktop the hub is
-   hidden and stock BuddyPress settings render exactly as before — the desktop
-   layout is a later phase and must not be half-changed here.
+   Applies at every width (desktop pass, v0.32.0). The list is layout-agnostic
+   and the app shell holds content to a readable column, so the same hub serves
+   mobile and desktop.
    ========================================================================== */
 
 /* Hidden by default; revealed on mobile below. */
 .csm-set { display: none; }
 
-@media (max-width: 782px) {
+@media all {  /* was max-width:782px — desktop pass v0.32.0 */
 
 	.csm-set {
 		display: block;

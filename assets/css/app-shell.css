@@ -175,3 +175,76 @@
 	--bm-sticky-date-bg: #16212b;
 	--bm-sticky-date-color: #fff;
 }
+
+/* ==========================================================================
+   Desktop pass (v0.32.0) — the same app, with a left rail
+   --------------------------------------------------------------------------
+   Everything above is mobile-first (<=782px). On wider screens the member area
+   was still stock BuddyPress: theme header, 230px vertical #object-nav, no app
+   screens. This block gives desktop the same app UI.
+
+   Order matters and is deliberate: the rail is introduced FIRST, and only then
+   is the old chrome hidden. `.csm-appnav` renders in wp_footer, so it can only
+   be positioned — hence a fixed left rail plus body padding, rather than trying
+   to reflow it into the theme's markup.
+
+   The design canvas is mobile-only, so desktop is an extrapolation of it: same
+   nav destinations, same tokens, content held to a readable column instead of
+   stretched across the full width.
+   ========================================================================== */
+
+@media (min-width: 783px) {
+
+	/* ---- 1. the rail (must exist before anything is removed) ---- */
+	body.csm-has-appnav { padding-left: var(--csm-rail-w, 92px); }
+
+	body.csm-has-appnav .csm-appnav {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		gap: 2px;
+		position: fixed;
+		top: 0; bottom: 0; left: 0;
+		width: var(--csm-rail-w, 92px);
+		height: auto;
+		padding: 22px 6px;
+		border-top: 0;
+		border-right: 1px solid var(--csm-hair, #e4eaf0);
+		box-shadow: none;
+	}
+	/* clear the WP admin bar when it is present */
+	body.csm-has-appnav.admin-bar .csm-appnav { top: 32px; }
+
+	body.csm-has-appnav .csm-appnav a {
+		flex: 0 0 auto;
+		gap: 5px;
+		padding: 13px 4px;
+		border-radius: 12px;
+		font-size: 11.5px;
+	}
+	body.csm-has-appnav .csm-appnav a:hover { background: var(--csm-ground, #f4f6f8); }
+	body.csm-has-appnav .csm-appnav a.is-active { background: var(--csm-blue-tint, #e9f1f8); }
+
+	/* ---- 2. top bar carries the screen title + settings + bell ---- */
+	body.csm-has-appnav .csm-topbar {
+		display: flex;
+		padding: 14px 0 10px;
+		background: transparent;
+	}
+
+	/* ---- 3. only now remove the chrome the rail replaces ---- */
+	body.csm-has-appnav #masthead { display: none !important; }
+	body.csm-has-appnav #buddypress #object-nav { display: none !important; }
+	body.csm-set-screen #buddypress #subnav,
+	body.csm-prof-screen #buddypress #subnav { display: none !important; }
+
+	/* ---- 4. hold content to a readable column ---- */
+	body.csm-has-appnav #buddypress,
+	body.csm-has-appnav .csm-tray {
+		max-width: 780px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	/* BuddyPress's own two-column split is redundant once #object-nav is gone */
+	body.csm-has-appnav #buddypress #item-body { margin-left: 0; width: auto; }
+}
