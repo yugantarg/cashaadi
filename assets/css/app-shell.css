@@ -439,12 +439,22 @@ body.csm-has-appnav #masthead {
 	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
 	background: var(--csm-surface, #fff);
 }
-body.csm-has-appnav #masthead .primary-menu-container,
 body.csm-has-appnav #masthead .buddyx-desktop-menu,
 body.csm-has-appnav #masthead .buddypress-icons-wrapper,
 body.csm-has-appnav #masthead .user-link-wrap,
 body.csm-has-appnav #masthead .header-search,
 body.csm-has-appnav #masthead .site-description { display: none !important; }
+
+/* .primary-menu-container is NOT in the list above, and must not be.
+   Verified in the DOM (2026-09-01): the off-canvas panel the hamburger opens IS
+   `.primary-menu-container.buddyx-mobile-menu`, inside nav.main-navigation — the
+   same element. Hiding it on app screens meant the hamburger opened an empty
+   dark overlay with no menu in it, which is exactly what was reported.
+   It is only the DESKTOP inline menu that duplicates the left rail, so hide it
+   at desktop widths only and leave BuddyX's mobile behaviour untouched. */
+@media (min-width: 783px) {
+	body.csm-has-appnav #masthead .primary-menu-container { display: none !important; }
+}
 
 /* keep the bar genuinely thin */
 body.csm-has-appnav #masthead .site-header-inner,
@@ -621,12 +631,16 @@ body.profile-edit .csm-back svg {
 	flex: 0 0 auto !important;
 }
 
-/* thin header on the wizard too */
-body.profile-edit #masthead .primary-menu-container,
+/* thin header on the wizard too — same carve-out for the off-canvas panel as
+   above, or the hamburger opens empty here as well. */
 body.profile-edit #masthead .buddyx-desktop-menu,
 body.profile-edit #masthead .buddypress-icons-wrapper,
 body.profile-edit #masthead .user-link-wrap,
 body.profile-edit #masthead .site-description { display: none !important; }
+
+@media (min-width: 783px) {
+	body.profile-edit #masthead .primary-menu-container { display: none !important; }
+}
 
 body.profile-edit #masthead .site-title {
 	position: static !important;

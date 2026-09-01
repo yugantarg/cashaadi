@@ -91,7 +91,20 @@ final class FieldLogic {
 
 	/* ---- #11619 — disable the rich editor for the Bio field -------------- */
 	public static function bio_plain( $enabled, $field_id ) {
-		return ( (int) $field_id === Config::FIELD_BIO ) ? false : $enabled;
+		/*
+		 * Widened from Bio alone to EVERY field (owner, 2026-09-01: "the text
+		 * editor should be simple").
+		 *
+		 * #11619 only ever unhooked TinyMCE from Bio, so Family Details still
+		 * rendered a full WordPress editor — bold/italic/quote/strikethrough,
+		 * lists, alignment, undo/redo, link, fullscreen, a Visual/Code tab pair
+		 * and a character counter — to collect a sentence about someone's family,
+		 * on a phone. Nothing downstream renders that markup as rich text.
+		 *
+		 * $field_id is unused now; the signature stays because it is a filter.
+		 */
+		unset( $field_id );
+		return false;
 	}
 
 	/* ---- #11611 — recompute Age (286) from DOB (586) on every save ------- */
