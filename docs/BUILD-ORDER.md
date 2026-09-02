@@ -33,19 +33,23 @@ contains no `!important` at all.
 Still rendered by BuddyX, reached by linking out — each with a back link into
 the app: another member's profile, the photos screen, the settings sub-editors.
 
-### Snippets: 73 → 4
+### Snippets: 73 → 2
 
 | Snippet | Why it is still on |
 |---|---|
 | #11732 / #11733 Reminder emails | Kept by owner's choice (paused anyway) |
-| #11701 Verified CA Badge | Blocked on one wp-config flag — see §2 |
-| #11682 OTP checklist item | Same flag |
+
+**Nothing else remains.** #11701 (Verified CA badge) and #11682 (OTP checklist)
+were retired on 2026-09-02 once `CASHAADI_VERIFICATION_ENABLED` was added;
+`Modules\Verification` serves both. Verified after: the badge endpoint
+`POST csm/v1/verified` returns `{"383":"ca","386":"ca"}` and the "Verified CA"
+badge still renders on the profile hub.
 
 ### Cutover flags (staging2 `wp-config.php`)
 
-**On (9):** analytics, premium, photos, discover, matches, block, admin,
-ca_verify, signup.
-**Off (4):** verification, emails, otp, profile_tools.
+**On (10):** analytics, premium, photos, verification, discover, matches, block,
+admin, ca_verify, signup.
+**Off (3):** emails, otp, profile_tools.
 
 ### Production
 
@@ -60,7 +64,6 @@ own snippet set.
 
 | Action | Why it matters |
 |---|---|
-| `define( 'CASHAADI_VERIFICATION_ENABLED', true );` in `public_html/staging2/wp-config.php` | Last snippet blocker. Then disable #11701 and #11682 — verified safe: `Modules\Verification` covers both, and nothing calls #11701's globals. |
 | Better Messages → Settings → **Mobile** → turn **Auto Open Full Screen OFF** | Messages is the only screen that traps members. See §4. |
 | Paste tracking credentials at **Settings → CA Shaadi Tracking**, then switch "Enable tracking" on | Nothing is sent until then. |
 | `csm_pm_enforce` option | Photo moderation currently detects and queues but hides nothing. |
