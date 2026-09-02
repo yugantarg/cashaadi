@@ -17,6 +17,7 @@
 
 namespace CAShaadi\Modules\Site;
 
+use CAShaadi\Core\Assets;
 use CAShaadi\Core\Config;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -35,6 +36,9 @@ final class Site {
 
 		// --- /pricing/ -> /membership-pricing/ (#11626) ---
 		add_action( 'template_redirect', array( __CLASS__, 'pricing_redirect' ), 1 );
+
+		// --- Checkout styling (#11581) + BuddyX menu-toggle fix (#11674) ---
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 25 );
 
 		// --- Support-email footer (#11691) ---
 		// Priority 98 (before the snippet's 99) so that while both are active the
@@ -87,5 +91,26 @@ final class Site {
 			esc_attr( $email ),
 			esc_html( $email )
 		);
+	}
+
+	/* ---- checkout styling (#11581) + menu-toggle fix (#11674) ------------ */
+
+	/**
+	 * Two migrated assets, each scoped to where it is actually needed.
+	 *
+	 * The checkout CSS only loads on WooCommerce cart/checkout, so it costs
+	 * nothing on the 99% of pages that are not commerce. The menu-toggle fix
+	 * only loads where BuddyX renders its header — the app screens own their own
+	 * menu and must not be touched by it.
+	 */
+	public static function assets() {
+		if ( function_exists( 'is_checkout' ) && function_exists( 'is_cart' ) && ( is_checkout() || is_cart() ) ) {
+			Assets::style( 'checkout', 'assets/css/checkout.css' );
+		}
+
+		// jQuery is the whole mechanism here; without it the script no-ops anyway.
+		if ( wp_script_is( 'jquery', 'registered' ) || wp_script_is( 'jquery', 'enqueued' ) ) {
+			Assets::script( 'menu-toggle-fix', 'assets/js/menu-toggle-fix.js', array( 'jquery' ) );
+		}
 	}
 }

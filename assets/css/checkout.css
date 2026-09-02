@@ -1,0 +1,42 @@
+/* WooCommerce checkout — migrated verbatim from WPCode #11581.
+   Behaviour preserved exactly, including the magenta Place Order button
+   (#c2185b), which is NOT one of the design tokens. Changing it is a design
+   decision, not a migration one, so it is carried across as-is and flagged. */
+
+/* Center and constrain the checkout for a focused, app-like feel */
+.wc-block-checkout, .wp-block-woocommerce-checkout {
+	max-width: 1100px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* Card-style order summary */
+.wc-block-components-order-summary,
+.wp-block-woocommerce-checkout-order-summary-block {
+	background: #ffffff;
+	border: 1px solid #eee;
+	border-radius: 14px;
+	box-shadow: 0 6px 24px rgba(0, 0, 0, .06);
+	padding: 8px 4px;
+}
+
+/* Hide the quantity badge (membership is always a single subscription) */
+.wc-block-components-order-summary-item__quantity { display: none !important; }
+
+/* Soften product thumbnail */
+.wc-block-components-order-summary-item__image img { border-radius: 10px; }
+
+/* De-emphasise the coupon row to reduce store-like clutter */
+.wc-block-components-totals-coupon { opacity: .85; }
+
+/* Make the Place Order button feel like a subscribe CTA */
+.wc-block-components-checkout-place-order-button,
+.wc-block-components-button.wc-block-cart__submit-button {
+	border-radius: 10px !important;
+	font-weight: 700 !important;
+	letter-spacing: .3px;
+	background: #c2185b !important;
+}
+
+/* Section headings a touch larger and friendlier */
+.wc-block-components-checkout-step__title { font-weight: 700; }
