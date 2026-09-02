@@ -85,22 +85,24 @@
 }
 
 /* ==========================================================================
-   Own profile: section rows replace the raw field dump (v0.36.1)
+   REMOVED (v0.69.0): the rule that hid .profile-fields on your own profile.
    --------------------------------------------------------------------------
-   BuddyPress still rendered its "View Profile" heading and the full
-   .profile-fields table (536px of it) underneath our section rows — the exact
-   "old form" look the redesign is meant to remove. The rows already cover every
-   group and open the editor, so the table is duplicate, not lost.
+   Added in v0.36.1 for a reason that was true then: this page ALSO rendered the
+   hub's section rows, so BuddyPress's field table underneath them was a
+   duplicate.
 
-   Scoped to `csm-prof-screen` — the member's OWN profile — on purpose. On
-   SOMEONE ELSE'S profile those fields are the entire point: they are how you
-   evaluate a match, so they stay.
+   ProfileScreen stopped rendering those rows in v0.65.1 — the hub moved to
+   /profile/. The rule outlived its reason and became the cause of the "empty
+   bars" reported on one's own profile: four .bp-widget shells 16px tall with
+   `table.profile-fields { display: none }` inside them. The data was always
+   there; fetching the page HTML showed Name, Qualification, Religion, Hobbies.
+   Only innerText looked empty, because innerText ignores hidden elements — which
+   is what made it look like a broken BuddyPress loop rather than our own CSS.
+
+   Second stale-rule bug of this rebuild (the first hid the Discover card's name
+   behind pre-v0.29 styling). When a screen's job changes, its old CSS does not
+   announce that it is now wrong.
    ========================================================================== */
-
-body.csm-prof-screen #buddypress .profile-fields,
-body.csm-prof-screen #buddypress table.profile-fields,
-body.csm-prof-screen #buddypress .screen-heading,
-body.csm-prof-screen #buddypress .bp-widget.base { display: none !important; }
 
 /* ---- incomplete-profile nudge (v0.39.0) ----
    Members exit the wizard once the compulsory fields are done, so an incomplete
