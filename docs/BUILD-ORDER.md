@@ -53,8 +53,19 @@ admin, ca_verify, signup.
 
 ### Production
 
-**Untouched. The plugin is not installed there.** Production still runs on its
-own snippet set.
+**Untouched. Verified 2026-09-02 (read-only):** the plugin is not installed —
+`plugins.php` lists no CAShaadi plugin, and the flag notice is absent. A
+"Photo Moderation" admin menu exists there but belongs to snippet #12119, not to
+us.
+
+Production runs the original snippet set: **74 snippets, 66 active** (staging2 is
+at 2). Everything the migration disabled on staging — block, premium, discover,
+photos, field logic — is still live there on its snippets, which is correct and
+expected.
+
+**Production cron is healthy.** Site Health reports no failed scheduled event and
+no PMPro cron-disabled notice. The cron problem investigated on staging2 was
+entirely a clone artifact — now confirmed against production rather than assumed.
 
 ---
 
@@ -97,16 +108,26 @@ The sequence, in a low-traffic window:
 3. Disable the corresponding snippets, in dependency order (§5).
 4. Re-test premium checkout, which touches Woo + PMPro.
 
-### ⚠️ Check before enabling tracking on production
+### ⚠️ Tracking on production — VERIFIED, and worse than one snippet
 
-**#12112 "CSM - GA4 events (sign_up + purchase)".** It is OFF on staging2 but
-its state on production is unverified. If it is on, every signup counts twice:
-it fires GA4 `sign_up` at **registration**, the plugin fires at **activation**,
-and Google Ads imports that event as a conversion — so the number the bidding
-algorithm optimises against inflates.
+Checked directly on cashaadi.in (read-only, 2026-09-02). **Three** tracking
+snippets are ACTIVE there, and the plugin duplicates all three:
 
-Its `purchase` event (PMPro checkout) is **not** duplicated by the plugin. Turn
-#12112 off and that tracking is lost until rebuilt.
+| Snippet | Fires | Plugin also fires |
+|---|---|---|
+| #12112 GA4 events | `sign_up` at **registration** | `sign_up` at **activation** |
+| #12084 Meta Pixel | `CompleteRegistration` | `CompleteRegistration` |
+| #12091 Meta Pixel | `purchase` (PMPro) | — |
+
+So enabling plugin tracking without disabling #12112 and #12084 double-counts
+every signup in **both** GA4 and Meta. Google Ads imports the GA4 event as a
+conversion, so the number the bidding algorithm optimises against inflates.
+
+They also disagree on the milestone: the snippets fire at registration, the
+plugin at activation — and an unactivated signup is not a signup.
+
+**#12091's `purchase` event is NOT duplicated by the plugin.** Leave it on, or
+rebuild purchase tracking first.
 
 Also: Site Kit already loads gtag with the live GA4 property **G-VJW0VMS7KC**.
 That is the Measurement ID for the settings screen. The plugin does not load a
