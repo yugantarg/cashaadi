@@ -489,3 +489,46 @@ key=set  schedule=hourly  next=2026-09-01 18:14:43 UTC
   the `csm_pm_enforce` option is set
 
 **Active snippets 14 → 13.**
+
+---
+
+## Six duplicate snippets retired + a Gravatar leak fixed (v0.62.0, 2026-09-02)
+
+Retired **#11696, #11626, #11691, #11612, #11582, #11617**. All six were running
+alongside plugin code that already did the same job (`Site`, `site.css`,
+`Photos`), none defined functions or constants, and no other active snippet
+referenced them. **Active snippets 13 → 7.**
+
+Behaviour captured before and re-checked after — identical on every point:
+
+| Check | Before | After |
+|---|---|---|
+| `/pricing/` | 301 → `/membership-pricing/` | same |
+| Support footer on home | present | same |
+| `site.css` loaded | yes | same |
+| `/login/` robots | `noindex, follow` | same |
+
+### The Gravatar leak (found while checking #11617's parity)
+
+#11617 is named "Local Default Avatar (Remove Gravatar)". It had never removed
+Gravatar. A member with no photo rendered:
+
+```
+//www.gravatar.com/avatar/<md5-of-email>?s=896&r=g&d=mm
+```
+
+`d=mm` is Gravatar's own mystery-man, so the local default was never reached.
+The snippet and the plugin carried the same four default-avatar filters and got
+the same result — both ineffective, which is why retiring the snippet changed
+nothing.
+
+**Cause:** `bp_core_fetch_avatar()` only consults the default-avatar filters once
+it has decided *not* to use Gravatar, and that decision is a separate filter —
+`bp_core_fetch_avatar_no_grav` — which neither layer touched.
+
+**This was a privacy leak, not a cosmetic one:** every avatar render sent an MD5
+of the member's email address to a third party, for every visitor, on a
+matrimonial site.
+
+Fixed in `Photos::register()`. Verified: members with no photo now serve
+`wp-content/uploads/2026/06/abstract-user-flat-4.png`, zero Gravatar requests.
