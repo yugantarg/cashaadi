@@ -443,6 +443,36 @@ final class Nsfw {
 			self::sweep();
 			wp_die( 'csm_pm sweep done. ' . esc_html( 'enforce=' . ( self::enforce() ? 'on' : 'off' ) ) );
 		}
+		/*
+		 * TEMPORARY (v0.71.3) — threshold test harness. Remove after verification.
+		 *
+		 * The flag branch has never been exercised, and the responsible way to do
+		 * that is to move the THRESHOLD, not to obtain explicit material: a benign
+		 * photo scored against a threshold of ~0 takes the identical path through
+		 * decide(), the meta writes, the review queue, enforcement and the
+		 * exclusion in Core\Profile::photos(). Testing sexual/minors with real
+		 * content is illegal and this is the only legitimate way to cover it.
+		 *
+		 * Targets one attachment id directly, deliberately bypassing
+		 * pending_media_ids() so the test can run against an ADMIN-owned photo and
+		 * never writes a moderation verdict onto a real member's uploads.
+		 *
+		 *   ?csm_pm_test=<attachment id>&t=<threshold>[&write=1]
+		 */
+		if ( ! empty( $_GET['csm_pm_test'] ) ) {
+			$pid = (int) $_GET['csm_pm_test'];
+			$t   = isset( $_GET['t'] ) ? (float) $_GET['t'] : 0.0001;
+			$fn  = function () use ( $t ) { return $t; };
+			add_filter( 'csm_pm_threshold', $fn );
+			$res = self::process_media( $pid, empty( $_GET['write'] ) );
+			remove_filter( 'csm_pm_threshold', $fn );
+			wp_die( 'csm_pm test: pid=' . (int) $pid . ' threshold=' . esc_html( (string) $t )
+				. ' mode=' . ( empty( $_GET['write'] ) ? 'dry' : 'WRITE' )
+				. ' result=' . esc_html( (string) $res )
+				. ' status_meta=' . esc_html( (string) get_post_meta( $pid, '_csm_pm_status', true ) )
+				. ' post_status=' . esc_html( (string) get_post_status( $pid ) )
+				. ' enforce=' . ( self::enforce() ? 'on' : 'off' ) );
+		}
 		if ( ! empty( $_GET['csm_pm_status'] ) ) {
 			$sched = wp_get_schedule( self::CRON );
 			$next  = wp_next_scheduled( self::CRON );
