@@ -37,6 +37,26 @@ final class Photos {
 		add_filter( 'bp_core_default_avatar', array( __CLASS__, 'default_avatar_url' ), 20 );
 		add_filter( 'bp_core_avatar_default', array( __CLASS__, 'default_avatar_url' ), 20 );
 		add_filter( 'bp_core_avatar_default_thumb', array( __CLASS__, 'default_avatar_url' ), 20 );
+
+		/*
+		 * The filters above were never enough on their own.
+		 *
+		 * Measured on staging2 (2026-09-02): a member with no photo still rendered
+		 *   //www.gravatar.com/avatar/<hash>?s=896&r=g&d=mm
+		 * — Gravatar's own mystery-man, not the local default. Snippet #11617 had
+		 * the same four filters and the same result, so "Local Default Avatar
+		 * (Remove Gravatar)" had not actually removed Gravatar for either layer.
+		 *
+		 * Why: bp_core_fetch_avatar() only consults the default-avatar filters when
+		 * it has decided NOT to use Gravatar. That decision is its own filter,
+		 * bp_core_fetch_avatar_no_grav, which neither layer touched — so BuddyPress
+		 * kept building a gravatar.com URL and the local default was never reached.
+		 *
+		 * This matters beyond appearance: every avatar render sent an MD5 of the
+		 * member's email address to a third party, for every visitor, on a
+		 * matrimonial site.
+		 */
+		add_filter( 'bp_core_fetch_avatar_no_grav', '__return_true', 20 );
 		add_filter( 'gettext', array( __CLASS__, 'reword_avatar_help' ), 20, 2 );
 
 		// --- HD avatar sizes (#11813) — pure filters, always on ---
