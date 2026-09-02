@@ -209,3 +209,62 @@ which does not). `class_exists()` does not save you; use `method_exists()`.
 | `ARCHITECTURE.md` | Plugin layout and module conventions |
 | `SNIPPET-MIGRATION.md` | Per-snippet migration record |
 | `ROADMAP.md` | Superseded by this document; kept for history |
+
+---
+
+## Owner review round — v0.64–v0.66 (2026-09-02)
+
+### Two data/privacy faults, both found by looking rather than reasoning
+
+**Profile edit was about to corrupt data.** The editor filled its inputs from
+`xprofile_get_field_data()`, which applies DISPLAY filters:
+
+```
+Phone Number  -> <a href="tel://08697222644" rel="nofollow">08697222644</a>
+Date of birth -> "27 years old"      (the Age filter, not a date)
+```
+
+Saving Basic Details would have written the anchor markup into Phone and a
+non-date into DOB. Editors must read `BP_XProfile_ProfileData::get_value_byid()`.
+
+**Phone numbers were visible to strangers.** The new "how others see me" preview
+surfaced it on its first run. Contact details now never appear on a profile
+another member can see — per-field visibility can express this, but a safe
+default must not depend on every member having configured it. DOB withheld too;
+Age is already in the header.
+
+### Fixed in this round
+
+* Browser `confirm()`/`alert()` — all five replaced with an in-app sheet/toast;
+  unsaved changes is a passive pill.
+* ICAI ID rendered as a text box (`file` is a custom field type) — now links to
+  the classic uploader instead of a control that cannot work.
+* "Other relevant documents" hidden (**hidden, never deleted**).
+* Discover empty state: when new profiles arrive + countdown, and Premium for
+  free members only. Quotes the same reset as the quota banner.
+* Hamburger redesigned: identity, non-tab actions, Log out set apart.
+* Header uses the logo, found by SLUG (ids differ across environments).
+* `/profile/preview/` — the member's own Discover card, since Discover is where
+  others actually see them.
+
+### Click-test result
+
+21 client-rendered destinations plus 8 static links: **zero broken, zero landing
+on home.** Ten leave the app into BuddyX (settings sub-editors, photos, public
+profile) — each has a back link.
+
+> ⚠️ **Never let a link crawler follow the logout URL.** A first pass fetched it
+> with credentials and destroyed its own session mid-audit, which then looked
+> like every screen redirecting to login.
+
+### Still open from this round
+
+* **Blocked members / Email notifications** still open BuddyPress settings
+  sub-screens. Bringing them in-app means building a blocked list and a
+  notifications form — real work, not a link change.
+* **BuddyPress's own profile loop renders empty widget shells** on this install.
+  Unexplained. The preview sidesteps it; `/members/<id>/` for other members may
+  still be affected.
+* The **settings gear** on BuddyPress member screens measured correct (44×44,
+  21px icon) and looked right in screenshots — the reported mangling was not
+  reproducible. Needs a specific screen to chase.
