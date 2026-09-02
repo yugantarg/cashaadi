@@ -241,7 +241,25 @@ final class Profile {
 		 * list — repeating Name and Bio under "Basic Details" makes the card look
 		 * padded rather than informative.
 		 */
-		$skip = array( 'Name', 'Bio', 'Age', 'City' );
+		$skip = array(
+			'Name', 'Bio', 'Age', 'City',
+
+			/*
+			 * Phone Number is NOT shown on a profile anyone else can see.
+			 *
+			 * The "how others see me" preview surfaced it: a stranger's view of a
+			 * member listed their phone number in full. On a matrimonial site that
+			 * is a real safety problem, not a formatting one — contact details
+			 * belong behind a match, and members share them when they choose to.
+			 * Field visibility could do this per member, but the safe default must
+			 * not depend on every member having configured it.
+			 *
+			 * Date of birth is skipped because Age already appears in the header,
+			 * and the stored DOB is a more precise fact than a profile needs to
+			 * give away.
+			 */
+			'Phone Number', 'Date of birth',
+		);
 
 		$groups = bp_xprofile_get_groups( array( 'fetch_fields' => true ) );
 		$order  = Config::GROUP_ORDER;
@@ -272,7 +290,14 @@ final class Profile {
 				if ( is_array( $val ) ) {
 					$val = implode( ', ', array_filter( array_map( 'strval', $val ) ) );
 				}
-				$val = trim( (string) $val );
+				/*
+				 * Strip markup. xprofile_get_field_data() applies DISPLAY filters,
+				 * and some field types return HTML — telephone comes back as
+				 * <a href="tel:...">. Rendered as text (which is correct, so a value
+				 * can never inject markup), that anchor showed literally on the
+				 * profile card.
+				 */
+				$val = trim( wp_strip_all_tags( (string) $val ) );
 				if ( '' === $val ) {
 					continue;
 				}
