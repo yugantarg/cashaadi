@@ -330,9 +330,33 @@ returned 500 until caught. Check visibility before reaching across a module.
 
 ### Still open
 
-* **Email notifications** still opens BuddyPress settings. Needs a notifications
-  form built as an app screen — the last of the settings seams.
 * Messages mobile takeover (one Better Messages setting — owner's call).
 * Tracking credentials, MSG91, `csm_pm_enforce` — all owner-supplied.
 * BuddyPress's own profile loop renders empty widget shells — unexplained.
 * **Nothing has been used by a real member on a real phone.**
+
+---
+
+## v0.68 — Email notifications in-app; settings seams closed
+
+`/settings/notifications/`. The last of the settings seams — Settings, Blocked
+members and Email notifications are now all app screens.
+
+**Settings are discovered, not hardcoded.** BuddyPress exposes no API listing
+them; each component prints its own rows on the `bp_notification_settings`
+action. So the rows are captured by buffering that action and reading the inputs
+back out — if Better Messages or another component adds a preference later it
+appears here on its own, where a written list would silently omit it.
+
+That capture is also the **security boundary on save**: only a key BuddyPress
+just rendered can be written. Verified — a crafted key returns "Unknown
+setting." rather than writing arbitrary user meta.
+
+Toggles save on tap instead of a grid of yes/no radios behind a Save button, and
+each reverts if its save fails, so the switch never shows a state the server
+refused. Verified: toggling persists across a re-read.
+
+### Remaining seams (linked out, each with a back link)
+
+Photos, the settings *editors* for email/password/field-visibility, and another
+member's profile page. Account security stays with BuddyPress deliberately.
