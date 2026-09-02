@@ -111,3 +111,52 @@
 	background: var(--csm-gold, #a9822b); color: #fff;
 	font-size: 14px; font-weight: 700; text-decoration: none;
 }
+
+/* ---- photo stack (v0.71.0) --------------------------------------------
+   Tap zones sit ON the photo, so they must not cover the name overlay or the
+   NEW / Verified badges — hence the explicit z-order: badges and overlay above
+   the taps, taps above the image. The zones are deliberately invisible and
+   unequal: the forward half is wider because advancing is the common gesture,
+   and a mis-tap should more often go forward than back. */
+.csm-d-media.has-stack { position: relative; }
+
+.csm-d-tap {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	z-index: 2;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	appearance: none;
+}
+.csm-d-tap-prev { left: 0; width: 32%; }
+.csm-d-tap-next { right: 0; width: 68%; }
+
+/* the overlay carries the name and must stay clickable-through-free */
+.csm-d-media .csm-d-over,
+.csm-d-media .csm-d-new,
+.csm-d-media .csm-d-verified { z-index: 3; }
+
+.csm-d-pips {
+	position: absolute;
+	top: 8px;
+	left: 8px;
+	right: 8px;
+	z-index: 3;
+	display: flex;
+	gap: 4px;
+	pointer-events: none;
+}
+.csm-d-pip {
+	flex: 1 1 0;
+	height: 3px;
+	border-radius: 999px;
+	/* on a light photo a white pip vanishes, so the off state carries a shadow */
+	background: rgba(255, 255, 255, .38);
+	box-shadow: 0 0 2px rgba(22, 33, 43, .45);
+	transition: background .18s;
+}
+.csm-d-pip.is-on { background: #fff; }

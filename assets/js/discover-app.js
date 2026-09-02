@@ -93,13 +93,69 @@
 		root.innerHTML = '';
 		var card = el( 'article', 'csm-d-card' );
 
-		/* photo + name overlay */
+		/* photo stack + name overlay */
 		var media = el( 'div', 'csm-d-media' );
+		var shots = ( p.photos && p.photos.length ) ? p.photos : [ p.avatar ];
+		var shot  = 0;
+
 		var img = el( 'img', 'csm-d-photo' );
-		img.src = p.avatar;
+		img.src = shots[ 0 ];
 		img.alt = '';
 		img.loading = 'eager';
 		media.appendChild( img );
+
+		/*
+		 * More than one photo turns the image into something you move through.
+		 *
+		 * Tap zones rather than a swipe: this card SCROLLS — it is the whole
+		 * profile, not a poster — and a horizontal swipe handler on a vertically
+		 * scrolling element either steals the scroll or needs an axis-lock
+		 * heuristic that gets it wrong often enough to feel broken. Tap left /
+		 * tap right is what Hinge and Instagram Stories use, it cannot conflict
+		 * with the scroll, and it works one-thumbed.
+		 *
+		 * Only the NEXT image is preloaded. Attaching six full-size photos to a
+		 * card that opens automatically would spend a phone's data on pictures
+		 * most people will never advance to.
+		 */
+		if ( shots.length > 1 ) {
+			media.classList.add( 'has-stack' );
+
+			var pips = el( 'div', 'csm-d-pips' );
+			shots.forEach( function ( _, i ) {
+				var pip = el( 'span', 'csm-d-pip' + ( i === 0 ? ' is-on' : '' ) );
+				pips.appendChild( pip );
+			} );
+			media.appendChild( pips );
+
+			var preload = function ( i ) {
+				if ( i >= 0 && i < shots.length ) { ( new Image() ).src = shots[ i ]; }
+			};
+			preload( 1 );
+
+			var show = function ( i ) {
+				if ( i < 0 || i >= shots.length || i === shot ) { return; }
+				shot    = i;
+				img.src = shots[ i ];
+				Array.prototype.forEach.call( pips.children, function ( pip, n ) {
+					pip.classList.toggle( 'is-on', n === i );
+				} );
+				preload( i + 1 );
+			};
+
+			var prev = el( 'button', 'csm-d-tap csm-d-tap-prev' );
+			prev.type = 'button';
+			prev.setAttribute( 'aria-label', 'Previous photo' );
+			prev.onclick = function () { show( shot - 1 ); };
+
+			var next = el( 'button', 'csm-d-tap csm-d-tap-next' );
+			next.type = 'button';
+			next.setAttribute( 'aria-label', 'Next photo' );
+			next.onclick = function () { show( shot + 1 ); };
+
+			media.appendChild( prev );
+			media.appendChild( next );
+		}
 		if ( p.isNew ) { media.appendChild( el( 'span', 'csm-d-new', 'NEW' ) ); }
 		if ( p.verified ) { media.appendChild( el( 'span', 'csm-d-verified', 'Verified CA' ) ); }
 

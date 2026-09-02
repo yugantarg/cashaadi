@@ -240,6 +240,13 @@ final class Profile {
 			'groups'   => array(),
 		);
 
+		/*
+		 * The photo stack. Always at least the avatar, so a caller can render
+		 * $out['photos'] unconditionally and never has to special-case an empty
+		 * set. See photos() for why it is sometimes ONLY the avatar.
+		 */
+		$out['photos'] = self::photos( $profile_id, $viewer_id, $out['avatar'] );
+
 		if ( ! function_exists( 'bp_xprofile_get_groups' ) ) {
 			return $out;
 		}
@@ -323,5 +330,86 @@ final class Profile {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Every photo this viewer may see of this member, main one first.
+	 *
+	 * Discover showed a single image because Profile::full() only ever returned
+	 * the BuddyPress avatar — so a member with five photos was browsed on the
+	 * strength of one. The other four existed, but only on their profile screen.
+	 *
+	 * THE HARD PART IS NOT LISTING THEM, IT IS NOT LEAKING THEM. The avatar is
+	 * safe by accident: bp_core_fetch_avatar() runs through Privacy::filter_url()
+	 * and Nsfw::mask_avatar_url(), so a blurred or moderated member is already
+	 * handled before this class sees the URL. Gallery attachments go through
+	 * NEITHER — they are ordinary media URLs, and returning them raw would hand a
+	 * blurred member's real photographs to exactly the people they blurred them
+	 * from. So each restriction is re-applied here, explicitly:
+	 *
+	 *   - Private Photo on (and this viewer not entitled) → the avatar alone.
+	 *     Privacy blurs a DERIVATIVE OF THE AVATAR FILE; there is no per-attachment
+	 *     blur to hand back, so the honest answer is one blurred image, which is
+	 *     what the member asked for and what they already get today.
+	 *   - Avatar hidden by moderation → the avatar alone, which the NSFW filter has
+	 *     already replaced with the default. Someone whose face was withheld must
+	 *     not have the rest of their album published beside it.
+	 *   - Individually flagged or removed attachments are dropped. Stricter than
+	 *     the profile gallery, which shows them while csm_pm_enforce is off. A
+	 *     browsing surface that puts a stranger's photo in front of someone
+	 *     unprompted should not wait on an enforcement flag.
+	 *
+	 * The gallery's first entry is skipped: set_avatar() copies the main photo
+	 * into BuddyPress, so it is the same picture as the avatar under a different
+	 * URL, and including it would open every card on a duplicate.
+	 *
+	 * @param int    $profile_id Whose photos.
+	 * @param int    $viewer_id  Who is looking (0 = logged-out stranger).
+	 * @param string $avatar     The already-filtered avatar URL.
+	 * @return string[] At least one URL.
+	 */
+	public static function photos( $profile_id, $viewer_id, $avatar ) {
+		$profile_id = (int) $profile_id;
+		$only       = array_filter( array( (string) $avatar ) );
+
+		if ( ! class_exists( '\CAShaadi\Modules\Photos\Gallery' ) ) {
+			return $only; // photos module flag-gated off
+		}
+
+		$is_owner = ( $viewer_id && (int) $viewer_id === $profile_id );
+
+		if ( ! $is_owner
+			&& class_exists( '\CAShaadi\Modules\Photos\Privacy' )
+			&& \CAShaadi\Modules\Photos\Privacy::is_hidden( $profile_id, (int) $viewer_id ) ) {
+			return $only;
+		}
+
+		if ( get_user_meta( $profile_id, 'csm_pm_av_hidden', true ) ) {
+			return $only;
+		}
+
+		$ids = (array) \CAShaadi\Modules\Photos\Gallery::get( $profile_id );
+		array_shift( $ids ); // the main photo IS the avatar — see above
+
+		$out = $only;
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+			if ( ! $id ) {
+				continue;
+			}
+			$status = (string) get_post_meta( $id, '_csm_pm_status', true );
+			if ( 'flagged' === $status || 'removed' === $status ) {
+				continue;
+			}
+			$url = wp_get_attachment_image_url( $id, 'large' );
+			if ( ! $url ) {
+				$url = wp_get_attachment_url( $id );
+			}
+			if ( $url ) {
+				$out[] = $url;
+			}
+		}
+
+		return array_values( array_unique( $out ) );
 	}
 }
