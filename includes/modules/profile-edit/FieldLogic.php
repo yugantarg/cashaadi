@@ -34,6 +34,7 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_set_field_data_pre_validate', array( __CLASS__, 'gender_lock' ), 5, 3 );
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
+		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'hide_phone_from_others' ), 10, 3 );
 		add_action( 'xprofile_updated_profile', array( __CLASS__, 'sync_age' ), 10, 1 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ), 21 );
 	}
@@ -137,6 +138,39 @@ final class FieldLogic {
 			}
 		}
 		return array_values( $children );
+	}
+
+	/**
+	 * A member's phone number is never shown to anyone but themselves.
+	 *
+	 * Core\Profile already withheld it from the screens this rebuild owns
+	 * (Discover, the preview), but that was only half the surface: BuddyPress's
+	 * OWN member page renders the xProfile loop, and it was still printing the
+	 * number in full to any logged-in member who opened the profile.
+	 *
+	 * Hooking bp_xprofile_get_hidden_fields_for_user fixes it everywhere at once,
+	 * because that is the function BuddyPress consults in its loop AND the one
+	 * Core\Profile filters through — so there is a single answer to "may this
+	 * viewer see this field".
+	 *
+	 * Per-field visibility could express this per member, but a safe default must
+	 * not depend on every member having configured it. Contact details belong
+	 * behind a match, shared when the member chooses.
+	 *
+	 * @param int[] $hidden  Field ids already hidden.
+	 * @param int   $shown   Whose profile is being viewed.
+	 * @param int   $viewer  Who is looking.
+	 */
+	public static function hide_phone_from_others( $hidden, $shown = 0, $viewer = 0 ) {
+		$hidden = (array) $hidden;
+
+		// Looking at your own profile: you may see your own number.
+		if ( $shown && $viewer && (int) $shown === (int) $viewer ) {
+			return $hidden;
+		}
+
+		$hidden[] = (int) Config::FIELD_PHONE;
+		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
 	}
 
 	/* ---- #11611 — recompute Age (286) from DOB (586) on every save ------- */
