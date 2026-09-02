@@ -136,3 +136,22 @@
 	color: var(--csm-faint, #93a2ae);
 	text-decoration: underline;
 }
+
+/* ---- read-only field (Gender) + Age note under DOB (v0.76.0) ---------- */
+.csm-pe-readonly {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 12px 14px;
+	border-radius: 10px;
+	background: var(--csm-ground, #f4f6f8);
+	border: 1px solid var(--csm-hair, #e4eaf0);
+}
+.csm-pe-readonly-val { font-size: 15px; font-weight: 600; color: var(--csm-ink, #16212b); }
+.csm-pe-readonly-note { font-size: 12.5px; color: var(--csm-muted, #5c6a76); }
+
+.csm-pe-agenote {
+	margin: 8px 0 0;
+	font-size: 13px;
+	color: var(--csm-muted, #5c6a76);
+}

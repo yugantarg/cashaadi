@@ -213,6 +213,18 @@ final class ProfileEditScreen {
 	 * resolves every one of those shapes (and falls back to scanning the upload
 	 * folder), so reuse it there; otherwise build the URL from the relative path.
 	 */
+	/** "Age: NN" for display under DOB, from the auto-synced Age field, or ''. */
+	private static function age_note( $uid ) {
+		if ( ! function_exists( 'xprofile_get_field_data' ) ) {
+			return '';
+		}
+		$raw = xprofile_get_field_data( \CAShaadi\Core\Config::FIELD_AGE, (int) $uid );
+		$n   = preg_match( '/\d+/', (string) $raw, $m ) ? $m[0] : '';
+		return $n
+			? sprintf( __( 'Age: %s — calculated automatically from your date of birth.', 'cashaadi-ui' ), $n )
+			: '';
+	}
+
 	/** The accept attribute for a File/Image field, from bpxcftr's own whitelist. */
 	private static function accept_for( $type ) {
 		if ( ! function_exists( 'bpxcftr_get_allowed_file_extensions' ) ) {
@@ -337,6 +349,13 @@ final class ProfileEditScreen {
 					? self::file_url( $field->id, $uid, $raw )
 					: '',
 				'accept' => self::accept_for( (string) $field->type ),
+				// Gender is fixed after sign-up: shown, never editable here.
+				'readonly' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_GENDER ),
+				// Age lives under Date of birth as a read-only note, since it is
+				// derived from it and is not an editable field of its own.
+				'ageNote' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_DOB )
+					? self::age_note( $uid )
+					: '',
 				'value'    => $multi ? array_values( (array) $raw ) : ( is_array( $raw ) ? implode( ', ', $raw ) : (string) $raw ),
 			);
 		}

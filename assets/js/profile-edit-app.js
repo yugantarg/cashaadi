@@ -132,6 +132,17 @@
 			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
 		}
 
+		if ( f.readonly ) {
+			// Shown but not editable (e.g. Gender, fixed after sign-up). Not part of
+			// the submit — read() returns null and the field is skipped.
+			var roBox = el( 'div', 'csm-pe-readonly' );
+			var roVal = f.multi ? ( f.value || [] ).join( ', ' ) : ( f.value || '' );
+			roBox.appendChild( el( 'span', 'csm-pe-readonly-val', roVal || '—' ) );
+			roBox.appendChild( el( 'span', 'csm-pe-readonly-note', 'Set when you signed up — this can\u2019t be changed.' ) );
+			wrap.appendChild( roBox );
+			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
+		}
+
 		if ( f.options && f.options.length ) {
 			node = el( 'div', 'csm-pe-opts' );
 			var chosen = f.multi ? ( f.value || [] ) : [ f.value ];
@@ -175,6 +186,9 @@
 		}
 
 		wrap.appendChild( node );
+		if ( f.ageNote ) {
+			wrap.appendChild( el( 'p', 'csm-pe-agenote', f.ageNote ) );
+		}
 		wrap.appendChild( el( 'p', 'csm-pe-err' ) );
 		return { node: wrap, key: 'field_' + f.id, read: read };
 	}
