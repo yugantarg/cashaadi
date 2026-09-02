@@ -226,8 +226,18 @@ final class Privacy {
 		return bp_core_avatar_url() . '/avatars/' . $owner_id . '/' . $name;
 	}
 
-	/** Fail-safe: blurred derivative, else default avatar, never the real photo. */
-	private static function display_url( $owner_id, $type, $original ) {
+	/**
+	 * Fail-safe: blurred derivative, else default avatar, never the real photo.
+	 *
+	 * Public because Core\Profile needs it for the "how others see me" preview.
+	 * The bp_core_fetch_avatar filters cannot serve that case: they ask
+	 * is_hidden() with no viewer, which resolves to the CURRENT user — and in the
+	 * preview the current user is the owner, who is never hidden from themselves.
+	 * So the preview received the real photograph while telling the member it was
+	 * showing them a stranger's view. Callers that already know the answer to
+	 * "may this viewer see it" ask for the display URL directly.
+	 */
+	public static function display_url( $owner_id, $type, $original ) {
 		$blur = self::blurred_url( $owner_id, $type );
 		if ( '' !== $blur ) {
 			return $blur;

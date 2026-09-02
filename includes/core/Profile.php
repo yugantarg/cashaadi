@@ -381,7 +381,19 @@ final class Profile {
 		if ( ! $is_owner
 			&& class_exists( '\CAShaadi\Modules\Photos\Privacy' )
 			&& \CAShaadi\Modules\Photos\Privacy::is_hidden( $profile_id, (int) $viewer_id ) ) {
-			return $only;
+			/*
+			 * Blur it ourselves rather than trusting the URL we were handed.
+			 *
+			 * bp_core_fetch_avatar() is filtered by Privacy, but that filter asks
+			 * is_hidden() WITHOUT a viewer, so it resolves to the current user. In
+			 * the preview the current user is the owner — never hidden from
+			 * themselves — so the avatar came back unblurred and the screen showed
+			 * a member their real photograph while captioning it as the stranger's
+			 * view. Here the viewer is explicit and already known to be excluded,
+			 * so ask for the display URL directly.
+			 */
+			$blurred = \CAShaadi\Modules\Photos\Privacy::display_url( $profile_id, 'full', (string) $avatar );
+			return array_filter( array( $blurred ? $blurred : (string) $avatar ) );
 		}
 
 		if ( get_user_meta( $profile_id, 'csm_pm_av_hidden', true ) ) {
