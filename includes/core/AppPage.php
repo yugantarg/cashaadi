@@ -90,7 +90,28 @@ final class AppPage {
 <body class="csm-app csm-app-<?php echo esc_attr( $current ); ?>">
 	<div class="csm-app-wrap">
 		<header class="csm-app-top">
-			<a class="csm-app-brand" href="<?php echo esc_url( home_url( '/discover/' ) ); ?>"><?php bloginfo( 'name' ); ?></a>
+			<a class="csm-app-brand" href="<?php echo esc_url( home_url( '/discover/' ) ); ?>">
+				<?php
+				/*
+				 * The real logo when the site has one, the wordmark only as a
+				 * fallback. Owner: "The CA shaadi in header should be our logo not
+				 * the words." custom_logo is WordPress's own setting, so this picks
+				 * up whatever is configured in the Customiser without hardcoding a
+				 * path that could 404 after a media change.
+				 */
+				$logo_id = (int) get_theme_mod( 'custom_logo' );
+				$logo    = $logo_id ? wp_get_attachment_image_src( $logo_id, 'full' ) : false;
+				if ( $logo && ! empty( $logo[0] ) ) {
+					printf(
+						'<img class="csm-app-logo" src="%s" alt="%s">',
+						esc_url( $logo[0] ),
+						esc_attr( get_bloginfo( 'name' ) )
+					);
+				} else {
+					echo esc_html( get_bloginfo( 'name' ) );
+				}
+				?>
+			</a>
 			<button type="button" class="csm-app-menu-btn" id="csm-app-menu-btn" aria-expanded="false" aria-controls="csm-app-menu" aria-label="<?php esc_attr_e( 'Menu', 'cashaadi-ui' ); ?>">
 				<span></span><span></span><span></span>
 			</button>
@@ -176,7 +197,10 @@ final class AppPage {
 	public static function assets() {
 		Assets::style( 'tokens', 'assets/css/tokens.css' );
 		Assets::style( 'app-screens', 'assets/css/app-screens.css', array( 'cashaadi-tokens' ) );
-		Assets::script( 'app-screens', 'assets/js/app-screens.js' );
+		// In-app confirm/toast, replacing browser dialogs. A dependency rather than
+		// an import because the same file is used on BuddyPress screens too.
+		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+		Assets::script( 'app-screens', 'assets/js/app-screens.js', array( 'cashaadi-ui-dialog' ) );
 	}
 
 	/**

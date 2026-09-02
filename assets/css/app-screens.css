@@ -97,3 +97,70 @@
 	.csm-app-nav-item { flex: 0 0 auto; padding: 14px 4px; }
 	.csm-app-main { padding-bottom: 40px; }
 }
+
+/* ==========================================================================
+   In-app confirm + toast (v0.64.0) — replaces browser confirm()/alert().
+   Loaded on app screens AND on the BuddyPress screens that still use them
+   (Block, Photos, CA Verify), so the styles live here and those modules
+   enqueue app-screens.css as a dependency.
+   ========================================================================== */
+.csm-dlg-overlay {
+	position: fixed; inset: 0; z-index: 10000;
+	display: flex; align-items: center; justify-content: center;
+	padding: 20px;
+	background: rgba(10, 16, 22, .55);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+}
+.csm-dlg {
+	width: 100%; max-width: 380px;
+	padding: 22px 20px 18px;
+	background: var(--csm-surface, #fff);
+	border-radius: 18px;
+	box-shadow: 0 24px 60px -20px rgba(10, 16, 22, .5);
+}
+.csm-dlg-title {
+	margin: 0 0 8px;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 19px; font-weight: 600; color: var(--csm-ink, #16212b);
+}
+.csm-dlg-msg { margin: 0 0 18px; font-size: 14.5px; line-height: 1.5; color: var(--csm-muted, #5c6a76); }
+.csm-dlg-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.csm-dlg-btn {
+	min-height: 44px; padding: 11px 18px;
+	border-radius: 999px; border: 1px solid var(--csm-hair-2, #d6dfe7);
+	background: var(--csm-surface, #fff); color: var(--csm-ink, #16212b);
+	font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.csm-dlg-ok { background: var(--csm-blue, #2c5b8c); border-color: transparent; color: #fff; }
+.csm-dlg-ok.is-danger { background: #96262a; }
+.csm-dlg-cancel:hover { border-color: var(--csm-faint, #93a2ae); }
+
+.csm-toast {
+	position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
+	z-index: 10001; max-width: 90vw;
+	padding: 12px 18px; border-radius: 999px;
+	background: var(--csm-ink, #16212b); color: #fff;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 13.5px; text-align: center;
+	box-shadow: 0 14px 34px -18px rgba(10, 16, 22, .8);
+	transition: opacity .4s ease, transform .4s ease;
+}
+.csm-toast.is-ok { background: var(--csm-green-press, #5e8926); }
+.csm-toast.is-bad { background: #96262a; }
+.csm-toast.is-out { opacity: 0; transform: translateX(-50%) translateY(8px); }
+
+/* unsaved-changes pill — a status, not a dialog */
+.csm-unsaved {
+	position: fixed; left: 50%; transform: translateX(-50%);
+	bottom: 84px; z-index: 40;
+	display: none; align-items: center; gap: 8px;
+	padding: 9px 16px; border-radius: 999px;
+	background: var(--csm-gold, #a9822b); color: #fff;
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, sans-serif);
+	font-size: 12.5px; font-weight: 600;
+	box-shadow: 0 10px 26px -14px rgba(22, 33, 43, .7);
+}
+.csm-unsaved.is-on { display: inline-flex; }
+
+/* Header logo (falls back to the wordmark when no custom_logo is set). */
+.csm-app-logo { display: block; max-height: 30px; width: auto; }

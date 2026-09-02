@@ -241,7 +241,10 @@ final class CaVerify {
 		if ( 'toplevel_page_csm-ca-verify' !== $hook ) {
 			return;
 		}
-		Assets::script( 'ca-verify', 'assets/js/ca-verify.js' );
+		// csmToast replaces the browser alert() on error.
+		Assets::style( 'app-screens', 'assets/css/app-screens.css', array( 'cashaadi-tokens' ) );
+		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+		Assets::script( 'ca-verify', 'assets/js/ca-verify.js', array( 'cashaadi-ui-dialog' ) );
 		wp_add_inline_script(
 			'cashaadi-ca-verify',
 			'window.CSM_AV=' . wp_json_encode( array(

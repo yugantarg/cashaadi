@@ -50,7 +50,10 @@
 		if ( d.blurred ) { badges.appendChild( el( 'span', 'csm-p-badge', 'Photo blurred' ) ); }
 		if ( badges.children.length ) { head.appendChild( badges ); }
 
-		head.appendChild( link( 'csm-p-public', d.links.public, 'View my public profile' ) );
+		/* Owner asked for "an option to view my own profile i.e. how it looks to
+		   others". The destination was already right — the label was not: "public
+		   profile" describes a page, not the question being asked. */
+		head.appendChild( link( 'csm-p-public', d.links.public, 'See how my profile looks to others' ) );
 		root.appendChild( head );
 
 		/* ---- what is still missing ---- */

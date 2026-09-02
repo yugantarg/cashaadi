@@ -488,7 +488,10 @@ final class Gallery {
 	/** Enqueue the gallery CSS/JS. Idempotent (WP dedupes by handle). */
 	public static function enqueue() {
 		Assets::style( 'photos-gallery', 'assets/css/photos-gallery.css' );
-		Assets::script( 'photos-gallery', 'assets/js/photos-gallery.js' );
+		// csmConfirm replaces the browser confirm() on photo delete.
+		Assets::style( 'app-screens', 'assets/css/app-screens.css', array( 'cashaadi-tokens' ) );
+		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+		Assets::script( 'photos-gallery', 'assets/js/photos-gallery.js', array( 'cashaadi-ui-dialog' ) );
 	}
 
 	/**

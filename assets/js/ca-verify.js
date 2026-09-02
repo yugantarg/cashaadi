@@ -55,7 +55,7 @@
 					var st = document.querySelector( '#csm-av-row-' + uid2 + ' .csm-av-status' );
 					st.innerHTML = dec === 'approved' ? '<span style="color:#137333;font-weight:600">Approved</span>' : '<span style="color:#b3261e;font-weight:600">Rejected</span>';
 				} else {
-					alert( ( res && res.data && res.data.error ) || 'Error' );
+					window.csmToast( ( res && res.data && res.data.error ) || 'Error', 'bad' );
 				}
 			} );
 		}

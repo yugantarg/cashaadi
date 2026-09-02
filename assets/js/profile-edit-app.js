@@ -48,6 +48,29 @@
 
 		var node, read;
 
+		/*
+		 * Upload fields are handled by BuddyPress's own editor.
+		 *
+		 * `file` is a custom field type whose widget and storage format belong to
+		 * the plugin that defines it. Rendering our own control would either not
+		 * work or write the wrong thing, so we say so and link to the editor that
+		 * does work — rather than showing a text box that looks functional and is
+		 * not, which is what ICAI ID was doing.
+		 */
+		if ( f.native ) {
+			var box = el( 'div', 'csm-pe-native' );
+			box.appendChild( el( 'p', null, 'Uploads are handled on the classic form.' ) );
+			if ( f.nativeUrl ) {
+				var a = document.createElement( 'a' );
+				a.className = 'csm-pe-native-link';
+				a.href = f.nativeUrl;
+				a.textContent = 'Upload ' + f.label + ' →';
+				box.appendChild( a );
+			}
+			wrap.appendChild( box );
+			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
+		}
+
 		if ( f.options && f.options.length ) {
 			node = el( 'div', 'csm-pe-opts' );
 			var chosen = f.multi ? ( f.value || [] ) : [ f.value ];
@@ -63,7 +86,7 @@
 						[].forEach.call( node.children, function ( x ) { x.classList.remove( 'is-on' ); } );
 						b.classList.add( 'is-on' );
 					}
-					dirty = true;
+					setDirty( true );
 				} );
 				node.appendChild( b );
 			} );
@@ -76,7 +99,7 @@
 			node = el( 'textarea', 'csm-pe-input' );
 			node.rows = 4;
 			node.value = f.value || '';
-			node.addEventListener( 'input', function () { dirty = true; } );
+			node.addEventListener( 'input', function () { setDirty( true ); } );
 			read = function () { return node.value; };
 		} else {
 			node = el( 'input', 'csm-pe-input' );
@@ -86,7 +109,7 @@
 				: ( 'url' === f.type ) ? 'url' : 'text';
 			// a stored datetime won't populate a date input; trim to the date part
 			node.value = ( 'datebox' === f.type ) ? String( f.value || '' ).slice( 0, 10 ) : ( f.value || '' );
-			node.addEventListener( 'input', function () { dirty = true; } );
+			node.addEventListener( 'input', function () { setDirty( true ); } );
 			read = function () { return node.value; };
 		}
 
@@ -147,7 +170,12 @@
 		[].forEach.call( root.querySelectorAll( '.csm-pe-err' ), function ( e ) { e.textContent = ''; } );
 
 		var values = {};
-		controls.forEach( function ( c ) { values[ c.key ] = c.read(); } );
+		controls.forEach( function ( c ) {
+			// A native-upload field has no value to send; including it would post
+			// null and be read as "clear this field".
+			if ( c.skip ) { return; }
+			values[ c.key ] = c.read();
+		} );
 
 		api( CFG.save, {
 			method: 'POST',
@@ -156,7 +184,7 @@
 		} ).then( function ( d ) {
 			button.disabled = false;
 			if ( d && d.ok ) {
-				dirty = false;
+				setDirty( false );
 				msg.textContent = 'Saved.';
 				msg.className = 'csm-pe-msg is-ok';
 				return;
@@ -198,11 +226,34 @@
 		} );
 	}
 
+	/* A status pill, not a dialog: it tells you there is something unsaved
+	   without interrupting, which is what the owner asked for. */
+	var pill = null;
+	function setDirty( on ) {
+		dirty = !! on;
+		if ( ! pill ) {
+			pill = document.createElement( 'div' );
+			pill.className = 'csm-unsaved';
+			pill.textContent = 'Unsaved changes';
+			document.body.appendChild( pill );
+		}
+		pill.classList.toggle( 'is-on', dirty );
+	}
+
 	function go( gid ) {
 		if ( gid === current ) { return; }
-		if ( dirty && ! window.confirm( 'You have unsaved changes. Leave this section?' ) ) { return; }
-		dirty = false;
-		load( gid, true );
+		if ( ! dirty ) { setDirty( false ); return load( gid, true ); }
+
+		window.csmConfirm( 'Your changes to this section have not been saved.', {
+			title: 'Leave without saving?',
+			okText: 'Leave',
+			cancelText: 'Stay',
+			danger: true
+		} ).then( function ( leave ) {
+			if ( ! leave ) { return; }
+			setDirty( false );
+			load( gid, true );
+		} );
 	}
 
 	window.addEventListener( 'popstate', function ( e ) {

@@ -8,13 +8,13 @@
 	var CFG = window.CASHAADI_BLOCK || {};
 	var AJAX = CFG.ajax || '';
 
-	document.addEventListener('click', function (e) {
+	document.addEventListener('click', async function (e) {
 		var b = e.target.closest('.csm-bl-btn');
 		if (!b) { return; }
 		e.preventDefault();
 
 		var doAct = b.getAttribute('data-do');
-		if (doAct === 'block' && !window.confirm('Block this member? You will no longer see each other, and any match or messages between you will be removed.')) {
+		if (doAct === 'block' && !(await window.csmConfirm('You will no longer see each other, and any match or messages between you will be removed.', { title: 'Block this member?', okText: 'Block', danger: true }))) {
 			return;
 		}
 
@@ -39,7 +39,7 @@
 					}
 				} else {
 					b.disabled = false;
-					alert((res && res.data && res.data.message) || 'Something went wrong.');
+					window.csmToast((res && res.data && res.data.message) || 'Something went wrong.', 'bad');
 				}
 			})
 			.catch(function () { b.disabled = false; });

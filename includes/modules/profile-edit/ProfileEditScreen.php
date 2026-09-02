@@ -157,9 +157,42 @@ final class ProfileEditScreen {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That section does not exist.', 'cashaadi-ui' ) ), 200 );
 		}
 
+		/*
+		 * Fields hidden from the editor (owner: "we can remove the additional docs
+		 * field - it is irrelevant"). HIDDEN, never deleted: deleting an xProfile
+		 * field deletes every member's answers for it, and this same code will run
+		 * against production. See FIELD-INVENTORY.md.
+		 */
+		$hide = array( 'Other relevant documents' );
+
 		$fields = array();
 		foreach ( (array) $group->fields as $field ) {
-			$raw = xprofile_get_field_data( $field->id, $uid );
+			if ( in_array( (string) $field->name, $hide, true ) ) {
+				continue;
+			}
+			/*
+			 * RAW values, not xprofile_get_field_data().
+			 *
+			 * That function applies DISPLAY filters, which is right for showing a
+			 * profile and catastrophic for editing one. Verified live on staging2:
+			 *   Phone Number -> <a href="tel://08697222644" rel="nofollow">086972...</a>
+			 *   Date of birth -> "27 years old"   (the Age filter, not a date)
+			 * Putting those in the inputs means the next save writes the anchor
+			 * markup back into the phone field and a non-date into the DOB field —
+			 * silent data corruption on a screen whose whole job is editing.
+			 *
+			 * BP_XProfile_ProfileData::get_value_byid() returns what is actually
+			 * stored.
+			 */
+			$raw = class_exists( '\BP_XProfile_ProfileData' )
+				? \BP_XProfile_ProfileData::get_value_byid( $field->id, $uid )
+				: xprofile_get_field_data( $field->id, $uid );
+
+			// Stored multi-values are serialised; unserialise before sending.
+			if ( is_string( $raw ) && is_serialized( $raw ) ) {
+				$raw = maybe_unserialize( $raw );
+			}
+
 			$multi = in_array( (string) $field->type, array( 'checkbox', 'multiselectbox' ), true );
 
 			$fields[] = array(
@@ -170,6 +203,18 @@ final class ProfileEditScreen {
 				'required' => ! empty( $field->is_required ),
 				'options'  => self::options_for( $field ),
 				'multi'    => $multi,
+				/*
+				 * `file` is a custom field type (bp-xprofile-custom-field-types), not
+				 * core BuddyPress. Its upload widget and storage format belong to that
+				 * plugin, so this screen does NOT try to reproduce them — the renderer
+				 * fell through to a plain text box, which is why ICAI ID looked like
+				 * one. Marked so the client offers the native editor for that group
+				 * instead of a control that cannot work.
+				 */
+				'native'   => in_array( (string) $field->type, array( 'file', 'image' ), true ),
+				'nativeUrl' => function_exists( 'bp_members_get_user_url' )
+					? trailingslashit( bp_members_get_user_url( $uid ) ) . 'profile/edit/group/' . $gid . '/'
+					: '',
 				'value'    => $multi ? array_values( (array) $raw ) : ( is_array( $raw ) ? implode( ', ', $raw ) : (string) $raw ),
 			);
 		}

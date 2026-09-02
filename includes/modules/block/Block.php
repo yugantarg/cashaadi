@@ -324,7 +324,10 @@ final class Block {
 			return;
 		}
 		Assets::style( 'block', 'assets/css/block.css' );
-		Assets::script( 'block', 'assets/js/block.js' );
+		// csmConfirm/csmToast replace the browser dialogs this file used to call.
+		Assets::style( 'app-screens', 'assets/css/app-screens.css', array( 'cashaadi-tokens' ) );
+		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+		Assets::script( 'block', 'assets/js/block.js', array( 'cashaadi-ui-dialog' ) );
 		$members = function_exists( 'bp_get_members_directory_permalink' ) ? bp_get_members_directory_permalink() : home_url( '/' );
 		wp_add_inline_script(
 			'cashaadi-block',

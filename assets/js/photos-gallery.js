@@ -47,7 +47,7 @@
 					post( 'csm_ph_upload', fd ).then( function ( d ) { if ( d ) { say( 'Photos updated.', true ); } } );
 				};
 			}
-			root.querySelectorAll( '.csm-ph-del' ).forEach( function ( b ) { b.onclick = function () { if ( ! confirm( 'Remove this photo?' ) ) { return; } post( 'csm_ph_delete', { id: b.getAttribute( 'data-id' ) } ); }; } );
+			root.querySelectorAll( '.csm-ph-del' ).forEach( function ( b ) { b.onclick = async function () { if ( ! ( await window.csmConfirm( 'This cannot be undone.', { title: 'Remove this photo?', okText: 'Remove', danger: true } ) ) ) { return; } post( 'csm_ph_delete', { id: b.getAttribute( 'data-id' ) } ); }; } );
 			root.querySelectorAll( '.csm-ph-setmain' ).forEach( function ( b ) { b.onclick = function () { post( 'csm_ph_main', { id: b.getAttribute( 'data-id' ) } ).then( function ( d ) { if ( d ) { say( 'Main photo updated.', true ); } } ); }; } );
 		}
 		bind();
