@@ -466,6 +466,17 @@ final class Welcome {
 
 		$saved = xprofile_set_field_data( $field_id, $uid, $value );
 
+		/*
+		 * Fire the canonical profile-update hook the classic form and the editor
+		 * both fire. xprofile_set_field_data() by itself does NOT fire it in BP 14,
+		 * so without this the derived Age never recomputed during onboarding (the
+		 * one place it most needs to). sync_age reads only $uid; the other args are
+		 * the standard empty shape.
+		 */
+		if ( $saved ) {
+			do_action( 'xprofile_updated_profile', $uid, array( $field_id ), array(), array(), array() );
+		}
+
 		return new \WP_REST_Response( array(
 			'ok'      => (bool) $saved,
 			'message' => $saved ? '' : __( 'We could not save that. Please try again.', 'cashaadi-ui' ),
