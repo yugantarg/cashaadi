@@ -775,3 +775,26 @@ body.change-avatar .csm-ph-item.is-main {
 	outline-color: var(--csm-blue, #2c5b8c) !important;
 	outline-offset: 0 !important;
 }
+
+/* ---- one brand mark, not two (v0.70.2) ----
+   The v0.37.2 rule above un-clips .site-title into a serif wordmark, written
+   when no custom logo existed. Its own comment predicted that a logo "renders
+   normally and this simply stops applying" — it did not, because the un-clip is
+   unconditional, so BuddyPress screens showed the logo AND the words side by
+   side once Site::custom_logo() supplied one.
+
+   :has() makes it conditional: when the header actually contains a logo image,
+   the text title returns to being screen-reader-only. Where a logo is missing
+   (or :has() is unsupported) nothing matches and the wordmark stays, so neither
+   case can end up with no branding at all. */
+body.csm-has-appnav #masthead:has(img.custom-logo) .site-title,
+body.profile-edit #masthead:has(img.custom-logo) .site-title,
+body.change-avatar #masthead:has(img.custom-logo) .site-title {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	overflow: hidden !important;
+	clip: rect(1px, 1px, 1px, 1px) !important;
+	clip-path: inset(50%) !important;
+	white-space: nowrap !important;
+}
