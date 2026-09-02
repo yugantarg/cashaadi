@@ -45,7 +45,18 @@ final class ProfileScreen {
 	public static function register() {
 		// After the member header (and after the photo gallery, which uses the
 		// default priority on this same hook).
-		add_action( 'bp_after_member_header', array( __CLASS__, 'render' ), 30 );
+		/*
+		 * The hub rows are NOT rendered here any more.
+		 *
+		 * They moved to /profile/ (ProfileApp). Leaving them on the BuddyPress
+		 * member page meant a member's own profile showed the hub a second time —
+		 * completion nudge, section rows, upgrade button — which is exactly what
+		 * "View as others see me" opened. That page must show the PROFILE, because
+		 * that is what other people see.
+		 *
+		 * The body classes stay: other code (and the photo gallery) still keys off
+		 * them.
+		 */
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 23 );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
 	}

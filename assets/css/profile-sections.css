@@ -155,4 +155,8 @@ body.csm-prof-screen #buddypress .bp-widget.base { display: none !important; }
    Scoped to body.csm-prof-screen, which ProfileScreen sets only for one's own
    profile VIEW. Other members' profiles keep #item-body: that is where their
    actual details are rendered, and hiding it there would blank the page. */
-body.csm-prof-screen #item-body { display: none !important; }
+/* NOT hidden any more.
+   Hiding #item-body made sense while this page ALSO rendered the hub rows: the
+   stock body underneath was a duplicate. Now the hub lives at /profile/ and this
+   page is the public view — the one a member opens from "View as others see me".
+   Hiding the body left them staring at an empty page and calling it broken. */
