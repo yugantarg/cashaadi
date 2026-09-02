@@ -29,9 +29,12 @@
 		var card = el( 'article', 'csm-d-card' );
 
 		var media = el( 'div', 'csm-d-media' );
+		var shots = ( p.photos && p.photos.length ) ? p.photos : [ p.avatar ];
 		var img = el( 'img', 'csm-d-photo' );
-		img.src = p.avatar; img.alt = '';
+		img.src = shots[ 0 ]; img.alt = '';
 		media.appendChild( img );
+		// Strangers can page through the whole set, so the preview must too.
+		window.csmPhotoStack( media, shots );
 		if ( p.verified ) { media.appendChild( el( 'span', 'csm-d-verified', 'Verified CA' ) ); }
 		var over = el( 'div', 'csm-d-over' );
 		over.appendChild( el( 'h1', 'csm-d-name', p.name + ( p.age ? ', ' + p.age : '' ) ) );
