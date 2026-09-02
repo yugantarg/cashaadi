@@ -37,6 +37,21 @@ final class Site {
 		// --- /pricing/ -> /membership-pricing/ (#11626) ---
 		add_action( 'template_redirect', array( __CLASS__, 'pricing_redirect' ), 1 );
 
+		/*
+		 * Make the theme's logo work everywhere.
+		 *
+		 * The site has a logo in the media library but `custom_logo` was never set,
+		 * so BuddyX fell back to the text wordmark in every header. AppPage worked
+		 * around that for the app screens, which left BuddyPress screens still
+		 * showing words — the same inconsistency, one layer down.
+		 *
+		 * Filtering theme_mod_custom_logo makes WordPress behave as though the logo
+		 * were configured, without writing the option: the theme, the app and the
+		 * marketing pages all pick it up, and removing this line reverts everything.
+		 * Setting it properly in the Customiser makes this filter redundant.
+		 */
+		add_filter( 'theme_mod_custom_logo', array( __CLASS__, 'custom_logo' ) );
+
 		// --- Checkout styling (#11581) + BuddyX menu-toggle fix (#11674) ---
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 25 );
 
@@ -91,6 +106,26 @@ final class Site {
 			esc_attr( $email ),
 			esc_html( $email )
 		);
+	}
+
+	/**
+	 * The logo attachment, found by SLUG.
+	 *
+	 * Not by id: attachment ids differ between staging and production, so a
+	 * hardcoded one would 404 on the other environment. Cached for a day because
+	 * this runs on every header render.
+	 */
+	public static function custom_logo( $id ) {
+		if ( $id ) {
+			return $id; // a real Customiser setting always wins
+		}
+		$cached = get_transient( 'csm_logo_id' );
+		if ( false === $cached ) {
+			$att    = get_page_by_path( 'cashaadi-logo', OBJECT, 'attachment' );
+			$cached = $att ? (int) $att->ID : 0;
+			set_transient( 'csm_logo_id', $cached, DAY_IN_SECONDS );
+		}
+		return $cached ? (int) $cached : $id;
 	}
 
 	/* ---- checkout styling (#11581) + menu-toggle fix (#11674) ------------ */
