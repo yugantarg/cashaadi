@@ -196,9 +196,17 @@ final class Profile {
 	 *
 	 * @return array{id:int,name:string,age:string,city:string,bio:string,avatar:string,verified:bool,groups:array}
 	 */
-	public static function full( $profile_id, $viewer_id = 0 ) {
+	/**
+	 * @param int|null $viewer_id NULL = the current user. 0 = a logged-out
+	 *                            STRANGER, which is what the "how others see me"
+	 *                            preview needs. Passing 0 used to fall through to
+	 *                            get_current_user_id(), so the preview quietly
+	 *                            showed the member their own visibility while
+	 *                            claiming restricted fields were hidden.
+	 */
+	public static function full( $profile_id, $viewer_id = null ) {
 		$profile_id = (int) $profile_id;
-		$viewer_id  = $viewer_id ? (int) $viewer_id : get_current_user_id();
+		$viewer_id  = ( null === $viewer_id ) ? get_current_user_id() : (int) $viewer_id;
 		$hidden     = self::hidden_for( $profile_id, $viewer_id );
 
 		$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $profile_id ) : '';
