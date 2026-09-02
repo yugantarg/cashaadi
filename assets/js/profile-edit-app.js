@@ -93,22 +93,24 @@
 			input.addEventListener( 'change', function () {
 				if ( ! input.files || ! input.files.length ) { return; }
 				var fd = new FormData();
+				fd.append( 'action', 'csm_pe_file' );
+				fd.append( 'nonce', CFG.uploadNonce );
 				fd.append( 'field', f.id );
 				fd.append( 'file', input.files[0] );
 				pick.classList.add( 'is-busy' );
 				status.textContent = 'Uploading…';
+				// admin-ajax, not REST: the host's WAF blocks file POSTs to /wp-json/.
 				fetch( CFG.upload, {
 					method: 'POST', credentials: 'same-origin',
-					headers: { 'X-WP-Nonce': CFG.nonce },
 					body: fd
 				} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
 					pick.classList.remove( 'is-busy' );
-					if ( d && d.ok ) {
-						showCurrent( d.url );
+					if ( d && d.success && d.data ) {
+						showCurrent( d.data.url );
 						pick.textContent = 'Replace file';
 						pick.appendChild( input );
 					} else {
-						status.textContent = ( d && d.message ) || 'Upload failed. Try a PDF, JPG or PNG.';
+						status.textContent = ( d && d.data && d.data.message ) || 'Upload failed. Try a PDF, JPG or PNG.';
 					}
 					input.value = '';
 				} ).catch( function () {

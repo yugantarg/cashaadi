@@ -42,6 +42,10 @@ final class ProfileEditScreen {
 	public static function register() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+		// File uploads go through admin-ajax, not REST: this host's WAF blocks
+		// multipart file POSTs to /wp-json/ (they return rest_no_route), which is
+		// also why the photo uploader uses admin-ajax. See ajax_file().
+		add_action( 'wp_ajax_csm_pe_file', array( __CLASS__, 'ajax_file' ) );
 	}
 
 	/** Our route, with the group in a query arg. */
@@ -64,7 +68,8 @@ final class ProfileEditScreen {
 			'nonce'  => wp_create_nonce( 'wp_rest' ),
 			'get'    => rest_url( 'csm/v1/profile/group' ),
 			'save'   => rest_url( 'csm/v1/profile/group' ),
-			'upload' => rest_url( 'csm/v1/profile/file' ),
+			'upload'    => admin_url( 'admin-ajax.php' ),
+			'uploadNonce' => wp_create_nonce( 'csm_pe_file' ),
 			'hub'    => home_url( '/profile/' ),
 			'group'  => isset( $_GET['g'] ) ? absint( $_GET['g'] ) : 0, // phpcs:ignore WordPress.Security.NonceVerification
 		) );
@@ -90,15 +95,6 @@ final class ProfileEditScreen {
 				'permission_callback' => 'is_user_logged_in',
 			),
 		) );
-
-		// In-app upload for File / Image xProfile fields (e.g. the ICAI document,
-		// field 484). Multipart, so it is its own route rather than part of the
-		// JSON group save.
-		register_rest_route( 'csm/v1', '/profile/file', array(
-			'methods'             => 'POST',
-			'callback'            => array( __CLASS__, 'rest_upload' ),
-			'permission_callback' => 'is_user_logged_in',
-		) );
 	}
 
 	/**
@@ -119,50 +115,47 @@ final class ProfileEditScreen {
 	 * genuinely a File/Image field, so it can never be pointed at a text field to
 	 * smuggle markup in.
 	 */
-	public static function rest_upload( $request ) {
+	public static function ajax_file() {
+		check_ajax_referer( 'csm_pe_file', 'nonce' );
+
 		$uid   = get_current_user_id();
-		$field = (int) $request->get_param( 'field' );
+		$field = isset( $_POST['field'] ) ? (int) $_POST['field'] : 0;
 
 		if ( ! $uid || ! $field || ! class_exists( '\BP_XProfile_Field' ) ) {
-			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'Bad request.' ), 400 );
+			wp_send_json_error( array( 'message' => 'Bad request.' ) );
 		}
 
 		$obj = \BP_XProfile_Field::get_instance( $field );
 		if ( ! $obj || ! in_array( (string) $obj->type, array( 'file', 'image' ), true ) ) {
-			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'Not an uploadable field.' ), 400 );
+			wp_send_json_error( array( 'message' => 'Not an uploadable field.' ) );
 		}
 
-		$files = $request->get_file_params();
-		if ( empty( $files['file'] ) || empty( $files['file']['tmp_name'] ) ) {
-			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'No file received.' ), 400 );
+		if ( empty( $_FILES['file'] ) || empty( $_FILES['file']['tmp_name'] ) ) {
+			wp_send_json_error( array( 'message' => 'No file received.' ) );
 		}
 
 		/*
 		 * Stage the upload where bpxcftr expects it and trigger a save. The '-' is
 		 * bpxcftr's own placeholder value; its hook overwrites it with the stored
-		 * relative path once the file is moved into place.
+		 * relative path once the file is moved into place. This is byte-identical
+		 * to what the classic form does — we only changed where the file enters.
 		 */
-		$_FILES[ 'field_' . $field ] = $files['file'];
-		if ( ! isset( $_POST['action'] ) ) {
-			$_POST['action'] = 'wp_handle_upload';
-		}
+		$_FILES[ 'field_' . $field ] = $_FILES['file'];
 		xprofile_set_field_data( $field, $uid, '-' );
 		unset( $_FILES[ 'field_' . $field ] );
 
-		// Confirm something actually landed, and hand back a URL to show.
 		$doc = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
 			? \CAShaadi\Modules\CaVerify\CaVerify::doc( $uid )
 			: null;
 
 		if ( empty( $doc['url'] ) ) {
-			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'The upload did not save. Please try a PDF, JPG or PNG under the size limit.' ), 200 );
+			wp_send_json_error( array( 'message' => 'The upload did not save. Please try a PDF, JPG or PNG under the size limit.' ) );
 		}
 
-		return new \WP_REST_Response( array(
-			'ok'   => true,
+		wp_send_json_success( array(
 			'url'  => $doc['url'],
 			'name' => basename( parse_url( $doc['url'], PHP_URL_PATH ) ),
-		), 200 );
+		) );
 	}
 
 	/** All groups, so the screen can offer a section switcher without a reload. */
