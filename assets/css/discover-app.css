@@ -175,3 +175,13 @@
    every other screen keeps them. */
 body.csm-app-discover .csm-app-main { padding-bottom: 0; }
 body.csm-app-discover .csm-app-support { display: none; }
+
+/* The sticky action bar floats over the foot of the scroll, so the last profile
+   fields were disappearing behind it. Reserve exactly the bar's height as scroll
+   clearance INSIDE the white card (so the last field can rise clear of the bar
+   with no grey band reappearing below it). --csm-dact-h is the bar's own height;
+   the padding tracks it so the two can't drift. */
+:root { --csm-dact-h: 96px; }
+body.csm-app-discover .csm-d-card {
+	padding-bottom: calc( var(--csm-dact-h) + env(safe-area-inset-bottom, 0px) );
+}
