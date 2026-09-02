@@ -100,7 +100,29 @@ final class AppPage {
 				 * path that could 404 after a media change.
 				 */
 				$logo_id = (int) get_theme_mod( 'custom_logo' );
-				$logo    = $logo_id ? wp_get_attachment_image_src( $logo_id, 'full' ) : false;
+
+				/*
+				 * The theme's custom_logo is unset on this install, so the header fell
+				 * back to the wordmark everywhere — which is what the owner objected
+				 * to. There IS a logo in the library (cashaadi-logo.png), so fall back
+				 * to it by SLUG rather than by id: ids differ between staging and
+				 * production, a hardcoded one would 404 on the other environment.
+				 *
+				 * Cached for a day because this is a query on every app page render.
+				 * Setting custom_logo in the Customiser makes this branch moot and
+				 * gives the marketing pages the logo too.
+				 */
+				if ( ! $logo_id ) {
+					$cached = get_transient( 'csm_logo_id' );
+					if ( false === $cached ) {
+						$att    = get_page_by_path( 'cashaadi-logo', OBJECT, 'attachment' );
+						$cached = $att ? (int) $att->ID : 0;
+						set_transient( 'csm_logo_id', $cached, DAY_IN_SECONDS );
+					}
+					$logo_id = (int) $cached;
+				}
+
+				$logo = $logo_id ? wp_get_attachment_image_src( $logo_id, 'full' ) : false;
 				if ( $logo && ! empty( $logo[0] ) ) {
 					printf(
 						'<img class="csm-app-logo" src="%s" alt="%s">',
@@ -123,36 +145,65 @@ final class AppPage {
 		<?php
 	}
 
-	/** The hamburger's contents — the options that are not bottom-nav destinations. */
+	/**
+	 * The hamburger.
+	 *
+	 * Redesigned (owner: "the hamburger menu should be redesigned to match our new
+	 * philosophy"). It was a flat list of five links that duplicated the bottom nav's
+	 * neighbourhood and buried Log out among them.
+	 *
+	 * Now it answers "who am I and what can I do that is not a tab": the member's
+	 * own identity at the top, then the things that have no home in the bottom nav,
+	 * then Log out set apart because it is the one destructive action here.
+	 *
+	 * Everything else — Discover, Requests, Messages, Profile — is a tab, and does
+	 * not belong in a menu as well.
+	 */
 	private static function menu() {
-		$me = function_exists( 'bp_members_get_user_url' ) && is_user_logged_in()
-			? trailingslashit( bp_members_get_user_url( get_current_user_id() ) )
+		$uid = get_current_user_id();
+		$me  = function_exists( 'bp_members_get_user_url' ) && $uid
+			? trailingslashit( bp_members_get_user_url( $uid ) )
 			: home_url( '/' );
 
+		$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : '';
+		if ( ! $name ) {
+			$u    = get_userdata( $uid );
+			$name = $u ? $u->display_name : __( 'My account', 'cashaadi-ui' );
+		}
+
+		$edit = class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
+			? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url()
+			: $me . 'profile/edit/group/1/';
+		$settings = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+			? \CAShaadi\Modules\Settings\SettingsScreen::url()
+			: $me . 'settings/';
+
 		$items = array(
-			array(
-				__( 'Edit my profile', 'cashaadi-ui' ),
-				class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
-					? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url()
-					: $me . 'profile/edit/group/1/'
-			),
+			array( __( 'Edit my profile', 'cashaadi-ui' ), $edit ),
 			array( __( 'My photos', 'cashaadi-ui' ), $me . 'profile/change-avatar/' ),
-			array(
-				__( 'Settings', 'cashaadi-ui' ),
-				class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
-					? \CAShaadi\Modules\Settings\SettingsScreen::url()
-					: $me . 'settings/'
-			),
+			// The owner asked to be able to see their profile as others do; the
+			// public view is exactly that, so it belongs here rather than only on
+			// the hub.
+			array( __( 'View as others see me', 'cashaadi-ui' ), $me ),
+			array( __( 'Settings', 'cashaadi-ui' ), $settings ),
 			array( __( 'Help & support', 'cashaadi-ui' ), 'mailto:' . Config::SUPPORT_EMAIL ),
-			array( __( 'Log out', 'cashaadi-ui' ), wp_logout_url( home_url( '/' ) ) ),
 		);
 		?>
 		<nav class="csm-app-menu" id="csm-app-menu" hidden>
+			<div class="csm-app-menu-me">
+				<?php
+				echo get_avatar( $uid, 80, '', '', array( 'class' => 'csm-app-menu-av' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core markup
+				?>
+				<span class="csm-app-menu-name"><?php echo esc_html( $name ); ?></span>
+			</div>
 			<ul>
 				<?php foreach ( $items as $item ) : ?>
 					<li><a href="<?php echo esc_url( $item[1] ); ?>"><?php echo esc_html( $item[0] ); ?></a></li>
 				<?php endforeach; ?>
 			</ul>
+			<a class="csm-app-menu-out" href="<?php echo esc_url( wp_logout_url( home_url( '/' ) ) ); ?>">
+				<?php esc_html_e( 'Log out', 'cashaadi-ui' ); ?>
+			</a>
 		</nav>
 		<?php
 	}

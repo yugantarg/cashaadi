@@ -164,3 +164,27 @@
 
 /* Header logo (falls back to the wordmark when no custom_logo is set). */
 .csm-app-logo { display: block; max-height: 30px; width: auto; }
+
+/* ---- hamburger: identity, then the non-tab actions, then log out ---- */
+.csm-app-menu-me {
+	display: flex; align-items: center; gap: 12px;
+	padding: 16px 18px 14px;
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+}
+.csm-app-menu-av {
+	width: 44px; height: 44px; border-radius: 50%;
+	object-fit: cover; background: var(--csm-hair, #e4eaf0);
+}
+.csm-app-menu-name {
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 16.5px; font-weight: 600; color: var(--csm-ink, #16212b);
+	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.csm-app-menu-out {
+	display: block; margin: 6px 18px 16px;
+	padding: 12px; border-radius: 12px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	color: var(--csm-blue, #2c5b8c);
+	font-size: 14.5px; font-weight: 600; text-align: center; text-decoration: none;
+}
+.csm-app-menu-out:hover { background: var(--csm-ground, #f4f6f8); }

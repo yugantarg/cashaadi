@@ -380,7 +380,8 @@ final class Discover {
 		return '' !== $banner ? $banner . $output : $output;
 	}
 
-	private static function next_monday_ist() {
+	/** Public so DiscoverScreen's empty state can quote the same reset moment. */
+	public static function next_monday_ist() {
 		try {
 			$tz  = new \DateTimeZone( 'Asia/Kolkata' );
 			$now = new \DateTime( 'now', $tz );

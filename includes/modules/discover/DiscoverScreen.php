@@ -123,9 +123,27 @@ final class DiscoverScreen {
 			$profiles[] = $p;
 		}
 
+		/*
+		 * The empty state is a moment worth using, not a dead end.
+		 *
+		 * Owner: "Suggest premium instead of you're all caught up - use the earlier
+		 * thing, how much time remaining". So it now says when the next profiles
+		 * arrive — quoting Discover::next_monday_ist(), the SAME reset the quota
+		 * banner uses, so the two can never disagree — and offers Premium to free
+		 * members, who get a larger weekly quota.
+		 */
+		$next    = method_exists( '\CAShaadi\Modules\Discover\Discover', 'next_monday_ist' )
+			? Discover::next_monday_ist() : null;
+		$premium = class_exists( '\CAShaadi\Core\Membership' )
+			&& \CAShaadi\Core\Membership::is_premium( $viewer_id );
+
 		return new \WP_REST_Response( array(
-			'ok'       => true,
-			'profiles' => $profiles,
+			'ok'        => true,
+			'profiles'  => $profiles,
+			'isPremium' => $premium,
+			'resetOn'   => $next ? $next->format( 'l, j M' ) : '',
+			'resetIso'  => $next ? $next->format( 'c' ) : '',
+			'upgrade'   => site_url( '/membership-pricing/' ),
 		), 200 );
 	}
 

@@ -32,11 +32,57 @@
 		return n;
 	}
 
+	var meta = {};
+
+	/**
+	 * The empty state.
+	 *
+	 * "You are all caught up" told the member nothing actionable. It now answers
+	 * the two questions they actually have — when do more arrive, and can I get
+	 * more now — using the same weekly reset the quota banner quotes.
+	 */
 	function empty( message ) {
 		root.innerHTML = '';
 		var box = el( 'div', 'csm-d-empty' );
-		box.appendChild( el( 'h2', null, 'You are all caught up' ) );
-		box.appendChild( el( 'p', null, message || 'New profiles arrive every week. Check back soon.' ) );
+		box.appendChild( el( 'h2', null, 'You have seen everyone for this week' ) );
+
+		if ( message ) {
+			box.appendChild( el( 'p', null, message ) );
+		} else if ( meta.resetOn ) {
+			var countdown = el( 'p', 'csm-d-countdown' );
+			countdown.textContent = 'New profiles arrive ' + meta.resetOn;
+			box.appendChild( countdown );
+
+			if ( meta.resetIso ) {
+				var left = el( 'p', 'csm-d-left' );
+				var ms = new Date( meta.resetIso ) - new Date();
+				if ( ms > 0 ) {
+					var days = Math.floor( ms / 86400000 );
+					var hrs  = Math.floor( ( ms % 86400000 ) / 3600000 );
+					left.textContent = days > 0
+						? ( days + ( 1 === days ? ' day ' : ' days ' ) + hrs + ( 1 === hrs ? ' hour' : ' hours' ) + ' to go' )
+						: ( hrs + ( 1 === hrs ? ' hour' : ' hours' ) + ' to go' );
+					box.appendChild( left );
+				}
+			}
+		} else {
+			box.appendChild( el( 'p', null, 'New profiles arrive every week.' ) );
+		}
+
+		// Premium raises the weekly quota, so this is the one place it is genuinely
+		// useful rather than nagging. Never shown to members who already pay.
+		if ( ! meta.isPremium && meta.upgrade && ! message ) {
+			var up = el( 'div', 'csm-d-upsell' );
+			up.appendChild( el( 'h3', null, 'Want to see more now?' ) );
+			up.appendChild( el( 'p', null, 'Premium members get a larger weekly set of profiles.' ) );
+			var a = document.createElement( 'a' );
+			a.className = 'csm-d-upsell-cta';
+			a.href = meta.upgrade;
+			a.textContent = 'See Premium';
+			up.appendChild( a );
+			box.appendChild( up );
+		}
+
 		root.appendChild( box );
 	}
 
@@ -135,6 +181,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade };
 		idx = 0;
 		draw();
 	} ).catch( function () {

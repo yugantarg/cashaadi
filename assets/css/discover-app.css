@@ -95,3 +95,19 @@
 	   clear. */
 	.csm-d-actions { bottom: 0; }
 }
+
+/* empty state: when more arrive, and a Premium route for free members */
+.csm-d-countdown { font-size: 15px; color: var(--csm-ink, #16212b); font-weight: 600; }
+.csm-d-left { margin-top: 4px !important; font-size: 13.5px; color: var(--csm-muted, #5c6a76); }
+.csm-d-upsell {
+	margin: 26px auto 0; padding: 20px 18px;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 18px;
+}
+.csm-d-upsell h3 { margin: 0 0 6px; font-family: var(--csm-serif, Georgia, serif); font-size: 17px; font-weight: 600; }
+.csm-d-upsell p { margin: 0 0 14px; font-size: 13.5px; color: var(--csm-muted, #5c6a76); line-height: 1.5; }
+.csm-d-upsell-cta {
+	display: inline-block; padding: 12px 22px; border-radius: 999px;
+	background: var(--csm-gold, #a9822b); color: #fff;
+	font-size: 14px; font-weight: 700; text-decoration: none;
+}
