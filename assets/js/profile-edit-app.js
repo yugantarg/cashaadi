@@ -86,7 +86,7 @@
 			pick.appendChild( document.createTextNode( f.currentUrl ? 'Replace file' : ( 'Upload ' + f.label ) ) );
 			var input = document.createElement( 'input' );
 			input.type = 'file';
-			input.accept = '.pdf,.jpg,.jpeg,.png,image/*,application/pdf';
+			if ( f.accept ) { input.accept = f.accept; }
 			input.hidden = true;
 			pick.appendChild( input );
 

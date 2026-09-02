@@ -213,6 +213,18 @@ final class ProfileEditScreen {
 	 * resolves every one of those shapes (and falls back to scanning the upload
 	 * folder), so reuse it there; otherwise build the URL from the relative path.
 	 */
+	/** The accept attribute for a File/Image field, from bpxcftr's own whitelist. */
+	private static function accept_for( $type ) {
+		if ( ! function_exists( 'bpxcftr_get_allowed_file_extensions' ) ) {
+			return 'image' === $type ? 'image/*' : '.pdf,.doc,.docx';
+		}
+		$exts = (array) bpxcftr_get_allowed_file_extensions( $type );
+		if ( empty( $exts ) ) {
+			return '';
+		}
+		return '.' . implode( ',.', array_map( 'sanitize_key', $exts ) );
+	}
+
 	private static function file_url( $field_id, $uid, $raw ) {
 		if ( (int) $field_id === (int) \CAShaadi\Core\Config::FIELD_CA_DOC
 			&& class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ) {
@@ -318,6 +330,7 @@ final class ProfileEditScreen {
 				'currentUrl' => in_array( (string) $field->type, array( 'file', 'image' ), true )
 					? self::file_url( $field->id, $uid, $raw )
 					: '',
+				'accept' => self::accept_for( (string) $field->type ),
 				'value'    => $multi ? array_values( (array) $raw ) : ( is_array( $raw ) ? implode( ', ', $raw ) : (string) $raw ),
 			);
 		}
