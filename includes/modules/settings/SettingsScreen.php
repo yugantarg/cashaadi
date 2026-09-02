@@ -166,11 +166,18 @@ final class SettingsScreen {
 			// The label is the row's text minus the radio captions.
 			$label = wp_strip_all_tags( $row );
 			$label = preg_replace( '/\s+/', ' ', $label );
-			$label = trim( str_replace(
-				array( 'Yes, send email', 'No, do not send' ),
+			/*
+			 * Strip the radio captions, LONGEST FIRST. Removing 'No, do not send'
+			 * before 'No, do not send email' left a stray "email" on the end of
+			 * every label — observed live as "A member sends you a new message
+			 * email".
+			 */
+			$label = str_replace(
+				array( 'No, do not send email', 'Yes, send email', 'No, do not send' ),
 				'',
 				$label
-			) );
+			);
+			$label = trim( preg_replace( '/\s+/', ' ', $label ) );
 
 			$out[ $key ] = array(
 				'key'   => $key,
