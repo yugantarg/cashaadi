@@ -49,6 +49,10 @@ final class SettingsScreen {
 			self::render_blocked();
 			return;
 		}
+		if ( AppPage::claim( 'settings/notifications' ) ) {
+			self::render_notifications();
+			return;
+		}
 		if ( ! AppPage::claim( 'settings' ) ) {
 			return;
 		}
@@ -125,9 +129,105 @@ final class SettingsScreen {
 		return new \WP_REST_Response( array( 'ok' => true, 'blocked' => $rows ), 200 );
 	}
 
+	/**
+	 * Email notifications, in the app.
+	 *
+	 * The settings are DISCOVERED, not written down. BuddyPress has no API that
+	 * lists them — each component prints its own rows on the
+	 * `bp_notification_settings` action — so the rows are captured by buffering
+	 * that action and reading the inputs back out. A component (or Better
+	 * Messages) adding a preference later therefore appears here on its own,
+	 * where a hardcoded list would silently omit it.
+	 *
+	 * That same capture is the security boundary on save: only keys BuddyPress
+	 * just rendered can be written, so a crafted key cannot set arbitrary user
+	 * meta.
+	 */
+	private static function notification_options() {
+		if ( ! function_exists( 'bp_get_user_meta' ) ) {
+			return array();
+		}
+
+		ob_start();
+		do_action( 'bp_notification_settings' );
+		$html = (string) ob_get_clean();
+
+		$out = array();
+		if ( ! preg_match_all( '#<tr[^>]*>(.*?)</tr>#is', $html, $rows ) ) {
+			return $out;
+		}
+
+		foreach ( $rows[1] as $row ) {
+			if ( ! preg_match( '#name=["\']notifications\[([a-z0-9_]+)\]["\']#i', $row, $m ) ) {
+				continue;
+			}
+			$key = $m[1];
+
+			// The label is the row's text minus the radio captions.
+			$label = wp_strip_all_tags( $row );
+			$label = preg_replace( '/\s+/', ' ', $label );
+			$label = trim( str_replace(
+				array( 'Yes, send email', 'No, do not send' ),
+				'',
+				$label
+			) );
+
+			$out[ $key ] = array(
+				'key'   => $key,
+				'label' => $label ? $label : $key,
+				'on'    => 'no' !== bp_get_user_meta( get_current_user_id(), $key, true ),
+			);
+		}
+		return $out;
+	}
+
+	private static function render_notifications() {
+		AppPage::assets();
+		Assets::style( 'settings-app', 'assets/css/settings-app.css', array( 'cashaadi-app-screens' ) );
+		Assets::script( 'notify-app', 'assets/js/notify-app.js', array( 'cashaadi-app-screens' ) );
+		wp_localize_script( 'cashaadi-notify-app', 'CSM_NOTIFY', array(
+			'nonce'    => wp_create_nonce( 'wp_rest' ),
+			'api'      => rest_url( 'csm/v1/settings/notifications' ),
+			'settings' => self::url(),
+		) );
+
+		AppPage::open( __( 'Email notifications', 'cashaadi-ui' ), 'profile' );
+		echo '<div id="csm-notify-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
+		AppPage::close( 'profile' );
+		exit;
+	}
+
+	public static function rest_notifications( $request ) {
+		$uid     = get_current_user_id();
+		$options = self::notification_options();
+
+		if ( 'POST' === $request->get_method() ) {
+			$key = sanitize_key( (string) $request->get_param( 'key' ) );
+			$on  = (bool) $request->get_param( 'on' );
+
+			// Only a key BuddyPress itself just rendered may be written.
+			if ( ! isset( $options[ $key ] ) ) {
+				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'Unknown setting.', 'cashaadi-ui' ) ), 200 );
+			}
+			bp_update_user_meta( $uid, $key, $on ? 'yes' : 'no' );
+			return new \WP_REST_Response( array( 'ok' => true, 'key' => $key, 'on' => $on ), 200 );
+		}
+
+		return new \WP_REST_Response( array(
+			'ok'      => true,
+			'options' => array_values( $options ),
+		), 200 );
+	}
+
 	/* --------------------------------------------------------------- REST */
 
 	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/settings/notifications', array(
+			'methods'             => array( 'GET', 'POST' ),
+			'callback'            => array( __CLASS__, 'rest_notifications' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+
 		register_rest_route( 'csm/v1', '/settings/blocked', array(
 			'methods'             => array( 'GET', 'POST' ),
 			'callback'            => array( __CLASS__, 'rest_blocked' ),
@@ -223,7 +323,7 @@ final class SettingsScreen {
 							? __( 'Premium', 'cashaadi-ui' ) : __( 'Free', 'cashaadi-ui' ),
 						'url'   => site_url( '/membership-pricing/' ),
 					),
-					array( 'label' => __( 'Email notifications', 'cashaadi-ui' ), 'value' => '', 'url' => $me . 'settings/notifications/' ),
+					array( 'label' => __( 'Email notifications', 'cashaadi-ui' ), 'value' => '', 'url' => home_url( '/settings/notifications/' ) ),
 					array( 'label' => __( 'Help & support', 'cashaadi-ui' ), 'value' => Config::SUPPORT_EMAIL, 'url' => 'mailto:' . Config::SUPPORT_EMAIL ),
 				),
 			),
