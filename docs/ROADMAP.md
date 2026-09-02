@@ -1,5 +1,9 @@
 # CAShaadi UI — Build Roadmap
 
+> **SUPERSEDED (2026-09-02).** This described the snippet migration only and
+> predates the UI rebuild. Current state, remaining work and the production plan
+> live in **BUILD-ORDER.md**. Kept for history.
+
 Incremental, staging-first. Each phase is a small, reviewable, deployable step.
 
 Design reference: the "CAShaadi Member Area" canvas (7 mobile screens) — but per
