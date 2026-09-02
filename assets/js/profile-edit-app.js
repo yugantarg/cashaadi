@@ -123,14 +123,10 @@
 			box.appendChild( pick );
 			box.appendChild( status );
 
-			// Secondary escape hatch to the classic form, de-emphasised.
-			if ( f.nativeUrl ) {
-				var alt = document.createElement( 'a' );
-				alt.className = 'csm-pe-native-link';
-				alt.href = f.nativeUrl;
-				alt.textContent = 'Use the classic form instead';
-				box.appendChild( alt );
-			}
+			// No link back to the classic BuddyPress form: the in-app uploader is
+			// the flow now, and the escape hatch only led members back to the old
+			// uploader this screen replaced. f.nativeUrl stays in the payload in
+			// case it is wanted later; it is simply not rendered.
 
 			wrap.appendChild( box );
 			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
