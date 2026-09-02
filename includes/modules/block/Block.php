@@ -203,7 +203,14 @@ final class Block {
 		return true;
 	}
 
-	private static function do_unblock( $blocker, $blocked ) {
+	/**
+	 * Public so the in-app Blocked members screen can call it.
+	 *
+	 * That screen renders the list and nothing else — unblocking stays here, with
+	 * the cache clearing and whatever else this method does, so there is exactly
+	 * one code path that changes block state.
+	 */
+	public static function do_unblock( $blocker, $blocked ) {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$wpdb->query( $wpdb->prepare(
