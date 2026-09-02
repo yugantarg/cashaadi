@@ -44,7 +44,22 @@ final class Verification {
 		if ( ! $user_id || ! function_exists( 'xprofile_get_field_data' ) ) {
 			return '';
 		}
-		$phone = xprofile_get_field_data( Config::FIELD_PHONE, $user_id );
+		/*
+		 * RAW value, not xprofile_get_field_data().
+		 *
+		 * That applies display filters, and the telephone field type returns
+		 *   <a href="tel://08697222644" rel="nofollow">08697222644</a>
+		 * normalize_phone() then strips non-digits from the whole string and
+		 * harvests the number TWICE — once from the href, once from the link text.
+		 * Observed live: "86972226448697222644".
+		 *
+		 * This is not only a display fault: this method is what an OTP would be
+		 * sent to.
+		 */
+		$phone = class_exists( '\BP_XProfile_ProfileData' )
+			? \BP_XProfile_ProfileData::get_value_byid( Config::FIELD_PHONE, $user_id )
+			: xprofile_get_field_data( Config::FIELD_PHONE, $user_id );
+
 		return self::normalize_phone( $phone );
 	}
 

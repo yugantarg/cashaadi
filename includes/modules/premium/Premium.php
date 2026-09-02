@@ -426,8 +426,16 @@ final class Premium {
 	}
 
 	private static function lead_phone( $uid ) {
-		if ( function_exists( 'xprofile_get_field_data' ) ) {
-			$p = xprofile_get_field_data( Config::FIELD_PHONE, $uid );
+		/*
+		 * Via Verification::user_phone(), which reads the RAW stored value.
+		 *
+		 * This returned xprofile_get_field_data() directly, and the telephone field
+		 * type applies a display filter — so a lead's phone was stored as
+		 *   <a href="tel://08697222644" rel="nofollow">08697222644</a>
+		 * markup in the leads table, on the record a salesperson actually calls.
+		 */
+		if ( method_exists( '\CAShaadi\Core\Verification', 'user_phone' ) ) {
+			$p = \CAShaadi\Core\Verification::user_phone( (int) $uid );
 			if ( $p ) {
 				return $p;
 			}
