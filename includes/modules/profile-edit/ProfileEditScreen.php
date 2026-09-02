@@ -64,6 +64,7 @@ final class ProfileEditScreen {
 			'nonce'  => wp_create_nonce( 'wp_rest' ),
 			'get'    => rest_url( 'csm/v1/profile/group' ),
 			'save'   => rest_url( 'csm/v1/profile/group' ),
+			'upload' => rest_url( 'csm/v1/profile/file' ),
 			'hub'    => home_url( '/profile/' ),
 			'group'  => isset( $_GET['g'] ) ? absint( $_GET['g'] ) : 0, // phpcs:ignore WordPress.Security.NonceVerification
 		) );
@@ -89,6 +90,79 @@ final class ProfileEditScreen {
 				'permission_callback' => 'is_user_logged_in',
 			),
 		) );
+
+		// In-app upload for File / Image xProfile fields (e.g. the ICAI document,
+		// field 484). Multipart, so it is its own route rather than part of the
+		// JSON group save.
+		register_rest_route( 'csm/v1', '/profile/file', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_upload' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	/**
+	 * Upload a file to a File/Image xProfile field, in-app.
+	 *
+	 * The ICAI document is a `file` field owned by bp-xprofile-custom-field-types,
+	 * whose storage format (a relative upload path under bpxcftr-profile-uploads/)
+	 * this screen has no business reproducing. So it does not: the file is handed
+	 * to the SAME code the classic form uses. bpxcftr hooks
+	 * xprofile_data_before_save and, when $_FILES['field_<id>'] is present, moves
+	 * the upload into place and rewrites the field value itself — so triggering an
+	 * ordinary field save with the file staged in $_FILES produces byte-identical
+	 * storage to the old uploader, and the profile display, the classic form and
+	 * CaVerify all keep reading it exactly as before. We only replace the UI.
+	 *
+	 * The heavy lifting (extension whitelist pdf/jpg/jpeg/png, size limit) lives in
+	 * bpxcftr's handle_upload(); this method adds an outer guard that the target is
+	 * genuinely a File/Image field, so it can never be pointed at a text field to
+	 * smuggle markup in.
+	 */
+	public static function rest_upload( $request ) {
+		$uid   = get_current_user_id();
+		$field = (int) $request->get_param( 'field' );
+
+		if ( ! $uid || ! $field || ! class_exists( '\BP_XProfile_Field' ) ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'Bad request.' ), 400 );
+		}
+
+		$obj = \BP_XProfile_Field::get_instance( $field );
+		if ( ! $obj || ! in_array( (string) $obj->type, array( 'file', 'image' ), true ) ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'Not an uploadable field.' ), 400 );
+		}
+
+		$files = $request->get_file_params();
+		if ( empty( $files['file'] ) || empty( $files['file']['tmp_name'] ) ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'No file received.' ), 400 );
+		}
+
+		/*
+		 * Stage the upload where bpxcftr expects it and trigger a save. The '-' is
+		 * bpxcftr's own placeholder value; its hook overwrites it with the stored
+		 * relative path once the file is moved into place.
+		 */
+		$_FILES[ 'field_' . $field ] = $files['file'];
+		if ( ! isset( $_POST['action'] ) ) {
+			$_POST['action'] = 'wp_handle_upload';
+		}
+		xprofile_set_field_data( $field, $uid, '-' );
+		unset( $_FILES[ 'field_' . $field ] );
+
+		// Confirm something actually landed, and hand back a URL to show.
+		$doc = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
+			? \CAShaadi\Modules\CaVerify\CaVerify::doc( $uid )
+			: null;
+
+		if ( empty( $doc['url'] ) ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'The upload did not save. Please try a PDF, JPG or PNG under the size limit.' ), 200 );
+		}
+
+		return new \WP_REST_Response( array(
+			'ok'   => true,
+			'url'  => $doc['url'],
+			'name' => basename( parse_url( $doc['url'], PHP_URL_PATH ) ),
+		), 200 );
 	}
 
 	/** All groups, so the screen can offer a section switcher without a reload. */
@@ -136,6 +210,37 @@ final class ProfileEditScreen {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * A displayable URL for a File/Image field's current value, or ''.
+	 *
+	 * bpxcftr stores the value as a path relative to the uploads dir; older data
+	 * may hold a full URL or an anchor. For the ICAI field CaVerify::doc() already
+	 * resolves every one of those shapes (and falls back to scanning the upload
+	 * folder), so reuse it there; otherwise build the URL from the relative path.
+	 */
+	private static function file_url( $field_id, $uid, $raw ) {
+		if ( (int) $field_id === (int) \CAShaadi\Core\Config::FIELD_CA_DOC
+			&& class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ) {
+			$doc = \CAShaadi\Modules\CaVerify\CaVerify::doc( (int) $uid );
+			if ( ! empty( $doc['url'] ) ) {
+				return (string) $doc['url'];
+			}
+		}
+		$val = is_array( $raw ) ? reset( $raw ) : (string) $raw;
+		$val = trim( (string) $val );
+		if ( '' === $val || '-' === $val ) {
+			return '';
+		}
+		if ( preg_match( '#^https?://#i', $val ) ) {
+			return $val;
+		}
+		if ( preg_match( '/href=["\']([^"\']+)["\']/i', $val, $m ) ) {
+			return $m[1];
+		}
+		$up = wp_get_upload_dir();
+		return trailingslashit( $up['baseurl'] ) . ltrim( $val, '/' );
 	}
 
 	public static function rest_get( $request ) {
@@ -212,8 +317,13 @@ final class ProfileEditScreen {
 				 * instead of a control that cannot work.
 				 */
 				'native'   => in_array( (string) $field->type, array( 'file', 'image' ), true ),
+				// The classic-form URL is kept as a secondary escape hatch only; the
+				// screen now uploads in place. See rest_upload().
 				'nativeUrl' => function_exists( 'bp_members_get_user_url' )
 					? trailingslashit( bp_members_get_user_url( $uid ) ) . 'profile/edit/group/' . $gid . '/'
+					: '',
+				'currentUrl' => in_array( (string) $field->type, array( 'file', 'image' ), true )
+					? self::file_url( $field->id, $uid, $raw )
 					: '',
 				'value'    => $multi ? array_values( (array) $raw ) : ( is_array( $raw ) ? implode( ', ', $raw ) : (string) $raw ),
 			);

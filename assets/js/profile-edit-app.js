@@ -58,15 +58,78 @@
 		 * not, which is what ICAI ID was doing.
 		 */
 		if ( f.native ) {
+			/*
+			 * A File/Image field (e.g. the ICAI document). This used to send members
+			 * out to the old BuddyPress edit form; now the upload happens here. The
+			 * file POSTs to /profile/file, which routes it through the SAME plugin
+			 * handler the classic form used, so nothing about how it is stored
+			 * changes — only where you do it.
+			 */
 			var box = el( 'div', 'csm-pe-native' );
-			box.appendChild( el( 'p', null, 'Uploads are handled on the classic form.' ) );
-			if ( f.nativeUrl ) {
-				var a = document.createElement( 'a' );
-				a.className = 'csm-pe-native-link';
-				a.href = f.nativeUrl;
-				a.textContent = 'Upload ' + f.label + ' →';
-				box.appendChild( a );
+
+			var status = el( 'p', 'csm-pe-file-status' );
+			function showCurrent( url ) {
+				status.textContent = '';
+				if ( url ) {
+					status.appendChild( document.createTextNode( 'Uploaded: ' ) );
+					var v = document.createElement( 'a' );
+					v.href = url; v.target = '_blank'; v.rel = 'noopener';
+					v.textContent = 'view file';
+					status.appendChild( v );
+				} else {
+					status.textContent = 'No file uploaded yet.';
+				}
 			}
+			showCurrent( f.currentUrl );
+
+			var pick = el( 'label', 'csm-pe-file-btn' );
+			pick.appendChild( document.createTextNode( f.currentUrl ? 'Replace file' : ( 'Upload ' + f.label ) ) );
+			var input = document.createElement( 'input' );
+			input.type = 'file';
+			input.accept = '.pdf,.jpg,.jpeg,.png,image/*,application/pdf';
+			input.hidden = true;
+			pick.appendChild( input );
+
+			input.addEventListener( 'change', function () {
+				if ( ! input.files || ! input.files.length ) { return; }
+				var fd = new FormData();
+				fd.append( 'field', f.id );
+				fd.append( 'file', input.files[0] );
+				pick.classList.add( 'is-busy' );
+				status.textContent = 'Uploading…';
+				fetch( CFG.upload, {
+					method: 'POST', credentials: 'same-origin',
+					headers: { 'X-WP-Nonce': CFG.nonce },
+					body: fd
+				} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
+					pick.classList.remove( 'is-busy' );
+					if ( d && d.ok ) {
+						showCurrent( d.url );
+						pick.textContent = 'Replace file';
+						pick.appendChild( input );
+					} else {
+						status.textContent = ( d && d.message ) || 'Upload failed. Try a PDF, JPG or PNG.';
+					}
+					input.value = '';
+				} ).catch( function () {
+					pick.classList.remove( 'is-busy' );
+					status.textContent = 'Network error, please try again.';
+					input.value = '';
+				} );
+			} );
+
+			box.appendChild( pick );
+			box.appendChild( status );
+
+			// Secondary escape hatch to the classic form, de-emphasised.
+			if ( f.nativeUrl ) {
+				var alt = document.createElement( 'a' );
+				alt.className = 'csm-pe-native-link';
+				alt.href = f.nativeUrl;
+				alt.textContent = 'Use the classic form instead';
+				box.appendChild( alt );
+			}
+
 			wrap.appendChild( box );
 			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
 		}

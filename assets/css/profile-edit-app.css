@@ -101,3 +101,38 @@
 	.csm-pe-card { border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 18px; }
 	.csm-pe-save { width: auto; min-width: 200px; }
 }
+
+/* ---- File / Image field uploader (v0.74.0) ----------------------------
+   Replaces the old "go to the classic form" link for the ICAI document and any
+   other File/Image field: the upload happens in place. */
+.csm-pe-native {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 14px;
+	border: 1px dashed var(--csm-hair-2, #d6dfe7);
+	border-radius: 12px;
+	background: var(--csm-ground, #f4f6f8);
+}
+.csm-pe-file-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	border-radius: 999px;
+	background: var(--csm-blue, #2c5b8c);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+.csm-pe-file-btn.is-busy { opacity: .6; pointer-events: none; }
+.csm-pe-file-status { margin: 0; font-size: 13.5px; color: var(--csm-muted, #5c6a76); }
+.csm-pe-file-status a { color: var(--csm-blue, #2c5b8c); }
+.csm-pe-native-link {
+	font-size: 12.5px;
+	color: var(--csm-faint, #93a2ae);
+	text-decoration: underline;
+}
