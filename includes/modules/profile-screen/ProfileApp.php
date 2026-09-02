@@ -40,6 +40,10 @@ final class ProfileApp {
 	/* -------------------------------------------------------------- route */
 
 	public static function maybe_render() {
+		if ( AppPage::claim( 'profile/preview' ) ) {
+			self::render_preview();
+			return;
+		}
 		if ( ! AppPage::claim( 'profile' ) ) {
 			return;
 		}
@@ -58,9 +62,55 @@ final class ProfileApp {
 		exit;
 	}
 
+	/**
+	 * "How my profile looks to others."
+	 *
+	 * Renders the member's OWN Discover card, because Discover is literally where
+	 * other members see them — a preview that showed anything else would be
+	 * answering a different question.
+	 *
+	 * BuddyPress's own member page was the obvious candidate and does not work
+	 * for this: its profile loop emits empty widget shells on this install, so
+	 * "view as others see me" showed four blank bars.
+	 *
+	 * Visibility is resolved as a STRANGER (viewer id 0), not as the member, so
+	 * fields they restricted are correctly absent from the preview. Previewing
+	 * with your own visibility would show you everything and tell you nothing.
+	 */
+	private static function render_preview() {
+		AppPage::assets();
+		Assets::style( 'discover-app', 'assets/css/discover-app.css', array( 'cashaadi-app-screens' ) );
+		Assets::style( 'profile-app', 'assets/css/profile-app.css', array( 'cashaadi-app-screens' ) );
+		Assets::script( 'profile-preview', 'assets/js/profile-preview.js', array( 'cashaadi-app-screens' ) );
+		wp_localize_script( 'cashaadi-profile-preview', 'CSM_PREVIEW', array(
+			'nonce' => wp_create_nonce( 'wp_rest' ),
+			'get'   => rest_url( 'csm/v1/profile/preview' ),
+			'hub'   => home_url( '/profile/' ),
+		) );
+
+		AppPage::open( __( 'How others see me', 'cashaadi-ui' ), 'profile' );
+		echo '<div id="csm-preview-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
+		AppPage::close( 'profile' );
+		exit;
+	}
+
+	public static function rest_preview( $request ) {
+		unset( $request );
+		$uid = get_current_user_id();
+		// viewer 0 = a stranger, so restricted fields are hidden as they would be.
+		$p = Profile::full( $uid, 0 );
+		return new \WP_REST_Response( array( 'ok' => true, 'profile' => $p ), 200 );
+	}
+
 	/* --------------------------------------------------------------- REST */
 
 	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/profile/preview', array(
+			'methods'             => 'GET',
+			'callback'            => array( __CLASS__, 'rest_preview' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+
 		register_rest_route( 'csm/v1', '/profile/me', array(
 			'methods'             => 'GET',
 			'callback'            => array( __CLASS__, 'rest_me' ),
@@ -128,6 +178,7 @@ final class ProfileApp {
 			'sections'    => $sections,
 			'links'       => array(
 				'public'   => $base,
+				'preview'  => home_url( '/profile/preview/' ),
 				'photos'   => $base . 'profile/change-avatar/',
 				'settings' => class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
 					? \CAShaadi\Modules\Settings\SettingsScreen::url()

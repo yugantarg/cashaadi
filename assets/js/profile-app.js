@@ -53,7 +53,7 @@
 		/* Owner asked for "an option to view my own profile i.e. how it looks to
 		   others". The destination was already right — the label was not: "public
 		   profile" describes a page, not the question being asked. */
-		head.appendChild( link( 'csm-p-public', d.links.public, 'See how my profile looks to others' ) );
+		head.appendChild( link( 'csm-p-public', d.links.preview || d.links.public, 'See how my profile looks to others' ) );
 		root.appendChild( head );
 
 		/* ---- what is still missing ---- */

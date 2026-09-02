@@ -184,7 +184,7 @@ final class AppPage {
 			// The owner asked to be able to see their profile as others do; the
 			// public view is exactly that, so it belongs here rather than only on
 			// the hub.
-			array( __( 'View as others see me', 'cashaadi-ui' ), $me ),
+			array( __( 'View as others see me', 'cashaadi-ui' ), home_url( '/profile/preview/' ) ),
 			array( __( 'Settings', 'cashaadi-ui' ), $settings ),
 			array( __( 'Help & support', 'cashaadi-ui' ), 'mailto:' . Config::SUPPORT_EMAIL ),
 		);
