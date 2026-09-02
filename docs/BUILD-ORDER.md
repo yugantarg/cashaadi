@@ -532,3 +532,55 @@ matrimonial site.
 
 Fixed in `Photos::register()`. Verified: members with no photo now serve
 `wp-content/uploads/2026/06/abstract-user-flat-4.png`, zero Gravatar requests.
+
+---
+
+## Snippet migration essentially complete — 4 active (v0.63.0, 2026-09-02)
+
+**73 → 4.**
+
+### This round
+
+* **#11556** gender filtering — was already an inert 723-byte comment
+  ("RETIRED 2026 — Flag 4 consolidation"), no hooks. Disabled as tidying.
+* **#11581** checkout CSS → `assets/css/checkout.css`, loaded only on
+  WooCommerce cart/checkout.
+* **#11674** BuddyX menu-toggle double-fire fix → `assets/js/menu-toggle-fix.js`,
+  loaded only where jQuery is present. The app screens own their own menu and
+  are untouched.
+
+Both migrations are verbatim, so behaviour is unchanged. Verified live: the menu
+fix serves on the home page, the checkout CSS on `/cart/`.
+
+> `/checkout/` 302s to `/cart/` on an empty cart, so a non-following request to
+> `/checkout/` tests the wrong page — use `/cart/`.
+
+⚠️ **Flagged, not silently changed:** the checkout CSS forces the Place Order
+button to `#c2185b`, a magenta that is not one of the design tokens. Recolouring
+is a design decision, not a migration one.
+
+### The 4 that remain
+
+| Snippet | Status |
+|---|---|
+| #11732 / #11733 Reminder emails | Kept **by owner's choice** (paused anyway) |
+| #11701 Verified CA Badge | Blocked on a wp-config flag |
+| #11682 OTP checklist item | Blocked on the same flag |
+
+**#11701 and #11682 are ready to retire.** `Modules\Verification` covers both and
+is gated OFF so it cannot double them. Checked: neither the plugin nor any other
+active snippet calls #11701's globals (`csm_user_is_verified_ca`,
+`csm_user_ca_level`), so disabling cannot fatal.
+
+**Owner action — in `public_html/staging2/wp-config.php`, beside the other flags:**
+
+```php
+define( 'CASHAADI_VERIFICATION_ENABLED', true );
+```
+
+Verify before saving: the file already contains the other `CASHAADI_*_ENABLED`
+flags. If not, it is the wrong wp-config — production's sits in the same
+`public_html` listing. Then disable #11701 and #11682.
+
+(I could not do this edit: the Hostinger session had expired and I do not enter
+credentials.)
