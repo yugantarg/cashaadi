@@ -283,9 +283,6 @@ profile) — each has a back link.
 * **Blocked members / Email notifications** still open BuddyPress settings
   sub-screens. Bringing them in-app means building a blocked list and a
   notifications form — real work, not a link change.
-* **BuddyPress's own profile loop renders empty widget shells** on this install.
-  Unexplained. The preview sidesteps it; `/members/<id>/` for other members may
-  still be affected.
 * The **settings gear** on BuddyPress member screens measured correct (44×44,
   21px icon) and looked right in screenshots — the reported mangling was not
   reproducible. Needs a specific screen to chase.
@@ -332,7 +329,6 @@ returned 500 until caught. Check visibility before reaching across a module.
 
 * Messages mobile takeover (one Better Messages setting — owner's call).
 * Tracking credentials, MSG91, `csm_pm_enforce` — all owner-supplied.
-* BuddyPress's own profile loop renders empty widget shells — unexplained.
 * **Nothing has been used by a real member on a real phone.**
 
 ---
@@ -360,3 +356,41 @@ refused. Verified: toggling persists across a re-read.
 
 Photos, the settings *editors* for email/password/field-visibility, and another
 member's profile page. Account security stays with BuddyPress deliberately.
+
+---
+
+## v0.69 — the "empty profile loop" explained (and it was ours)
+
+**Not a BuddyPress fault.** Fetching the member page HTML showed the loop working
+perfectly: four widgets, 5.6KB, Name / Qualification CA / Religion Hindu /
+Hobbies Yoga. Only the LIVE DOM looked empty — because `innerText` ignores
+hidden elements, which is precisely what made it read as a broken loop.
+
+The cause was `profile-sections.css` hiding `table.profile-fields` under
+`body.csm-prof-screen`. That rule was **correct when added** in v0.36.1: the page
+then also rendered the hub's section rows, so the table beneath them was a
+duplicate. `ProfileScreen` stopped rendering those rows in v0.65.1 when the hub
+moved to `/profile/` — and the rule outlived its reason, leaving four 16px
+shells with their contents `display: none`.
+
+Diagnosed by reproducing the asymmetry deliberately: visible as admin on another
+member's profile, hidden when switched INTO that member viewing their own. That
+own-profile-only behaviour is what pointed at our CSS rather than the loop.
+
+> **Second stale-rule bug of this rebuild.** The first hid the Discover card's
+> name behind pre-v0.29 styling. When a screen changes job, its old CSS does not
+> announce that it has become wrong — worth a grep for rules scoped to a screen
+> whenever that screen's responsibilities move.
+
+### It also exposed a half-applied privacy fix
+
+v0.66.1 withheld phone numbers via `Core\Profile`, which covers Discover and the
+preview. Restoring the field table showed that BuddyPress's own member page
+renders the xProfile loop directly and was **still printing the number in full**
+to any logged-in member.
+
+Now filtered at `bp_xprofile_get_hidden_fields_for_user` — the function
+BuddyPress consults in its loop AND the one `Core\Profile` filters through, so
+there is one answer to "may this viewer see this field" instead of two places to
+keep in step. Verified both ways: hidden from another member, still visible to
+the member themselves.
