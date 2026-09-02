@@ -289,3 +289,50 @@ profile) — each has a back link.
 * The **settings gear** on BuddyPress member screens measured correct (44×44,
   21px icon) and looked right in screenshots — the reported mangling was not
   reproducible. Needs a specific screen to chase.
+
+---
+
+## v0.67 — closing the gaps (2026-09-02)
+
+**Blocked members is now an app screen** at `/settings/blocked/`, no longer a
+jump into BuddyPress settings. Rendering only: the Block module still owns the
+table, the unblock action and its cache invalidation, and now exposes
+`blocked_ids()` so the screen never needs the table name.
+
+**The phone row is no longer a dead end.** It advertised verification that cannot
+happen here — the OTP module is flag-off, snippet #11618 is disabled, and MSG91
+credentials were never supplied, so "Not verified" linked to a form with no
+verification UI. It now checks whether verification is genuinely available
+(module enabled AND credentials present) and, while it is not, shows the number
+as a plain readout. It becomes a working link the moment OTP is enabled.
+
+### One root cause, three symptoms — the rule worth remembering
+
+`xprofile_get_field_data()` applies DISPLAY filters. The telephone field returns
+`<a href="tel://…">…</a>`, and dates come back as "27 years old". This produced
+three separate bugs before the pattern was obvious:
+
+1. **Profile editor** filled its inputs from it, so saving would write anchor
+   markup into Phone and a non-date into DOB.
+2. **Profile display** rendered the anchor as literal text on the card.
+3. **`Verification::user_phone()`** stripped non-digits from the anchor and
+   harvested the number twice — `86972226448697222644`. That is also the number
+   an OTP would be sent to. `Premium::lead_phone()` shared the cause and stored
+   the markup on leads a salesperson calls.
+
+> **Rule:** `xprofile_get_field_data()` is for DISPLAY only. Anything that
+> stores, edits or transmits a value must read
+> `BP_XProfile_ProfileData::get_value_byid()`.
+
+Also worth noting: two methods were called from outside the module that owns
+them (`Block::do_unblock`, `Block::table`) and both were private — the second
+returned 500 until caught. Check visibility before reaching across a module.
+
+### Still open
+
+* **Email notifications** still opens BuddyPress settings. Needs a notifications
+  form built as an app screen — the last of the settings seams.
+* Messages mobile takeover (one Better Messages setting — owner's call).
+* Tracking credentials, MSG91, `csm_pm_enforce` — all owner-supplied.
+* BuddyPress's own profile loop renders empty widget shells — unexplained.
+* **Nothing has been used by a real member on a real phone.**
