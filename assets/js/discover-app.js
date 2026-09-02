@@ -44,7 +44,12 @@
 	function empty( message ) {
 		root.innerHTML = '';
 		var box = el( 'div', 'csm-d-empty' );
-		box.appendChild( el( 'h2', null, 'You have seen everyone for this week' ) );
+		box.appendChild( el( 'h2', null, 'That\u2019s your ' + ( meta.freeQuota || 5 ) + ' for this week' ) );
+
+		if ( ! message && ! meta.isPremium ) {
+			box.appendChild( el( 'p', null,
+				'You\u2019ve seen all ' + ( meta.freeQuota || 5 ) + ' profiles in your free weekly set. Premium members get ' + ( meta.premiumQuota || 10 ) + '.' ) );
+		}
 
 		if ( message ) {
 			box.appendChild( el( 'p', null, message ) );
@@ -74,7 +79,8 @@
 		if ( ! meta.isPremium && meta.upgrade && ! message ) {
 			var up = el( 'div', 'csm-d-upsell' );
 			up.appendChild( el( 'h3', null, 'Want to see more now?' ) );
-			up.appendChild( el( 'p', null, 'Premium members get a larger weekly set of profiles.' ) );
+			up.appendChild( el( 'p', null,
+				'Premium doubles your weekly set to ' + ( meta.premiumQuota || 10 ) + ' profiles.' ) );
 			var a = document.createElement( 'a' );
 			a.className = 'csm-d-upsell-cta';
 			a.href = meta.upgrade;

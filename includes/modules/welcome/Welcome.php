@@ -244,14 +244,35 @@ final class Welcome {
 
 	/** A field's current value as a plain string (arrays flattened for emptiness). */
 	private static function value_of( $field_id, $uid ) {
-		if ( ! function_exists( 'xprofile_get_field_data' ) ) {
+		/*
+		 * RAW value, never xprofile_get_field_data(): that applies display filters,
+		 * and two of them broke the wizard —
+		 *   telephone -> <a href="tel://...">NUMBER</a>  (shown literally in the
+		 *                phone step's input),
+		 *   datebox   -> a formatted date string that a native <input type="date">
+		 *                cannot parse, so DOB looked blank even when it was set.
+		 * get_value_byid() returns exactly what is stored, which is what an editable
+		 * control needs.
+		 */
+		if ( class_exists( '\BP_XProfile_ProfileData' ) ) {
+			$v = \BP_XProfile_ProfileData::get_value_byid( (int) $field_id, (int) $uid );
+		} elseif ( function_exists( 'xprofile_get_field_data' ) ) {
+			$v = xprofile_get_field_data( $field_id, $uid );
+		} else {
 			return '';
 		}
-		$v = xprofile_get_field_data( $field_id, $uid );
+		if ( function_exists( 'maybe_unserialize' ) ) {
+			$v = maybe_unserialize( $v );
+		}
 		if ( is_array( $v ) ) {
 			return implode( ', ', array_filter( array_map( 'strval', $v ) ) );
 		}
-		return trim( (string) $v );
+		$v = trim( wp_strip_all_tags( (string) $v ) );
+		// datebox stores "YYYY-MM-DD 00:00:00"; the date input wants "YYYY-MM-DD".
+		if ( preg_match( '/^(\d{4}-\d{2}-\d{2})[ T]\d{2}:\d{2}/', $v, $m ) ) {
+			$v = $m[1];
+		}
+		return $v;
 	}
 
 	/**

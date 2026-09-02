@@ -320,9 +320,19 @@ final class SettingsScreen {
 				'rows'  => array(
 					array(
 						'label' => __( 'ICAI verification', 'cashaadi-ui' ),
-						'value' => $ca_ok ? __( 'Verified', 'cashaadi-ui' ) : __( 'In review', 'cashaadi-ui' ),
+						/*
+						 * "In review" is only honest once a document actually exists.
+						 * With nothing uploaded it read as if the site were reviewing
+						 * a proof the member never sent. Three real states now: no
+						 * document, a document awaiting a verdict, and verified.
+						 */
+						'value' => $ca_ok
+							? __( 'Verified', 'cashaadi-ui' )
+							: ( ( class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) && \CAShaadi\Modules\CaVerify\CaVerify::doc( $uid ) )
+								? __( 'In review', 'cashaadi-ui' )
+								: __( 'Not uploaded', 'cashaadi-ui' ) ),
 						'ok'    => $ca_ok,
-						'url'   => '',
+						'url'   => home_url( '/profile/edit/?g=10' ),
 					),
 					array(
 						'label' => __( 'Membership', 'cashaadi-ui' ),

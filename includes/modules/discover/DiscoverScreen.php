@@ -143,6 +143,11 @@ final class DiscoverScreen {
 			'isPremium' => $premium,
 			'resetOn'   => $next ? $next->format( 'l, j M' ) : '',
 			'resetIso'  => $next ? $next->format( 'c' ) : '',
+			// The authoritative weekly quota (Discover engine #11599): free 5,
+			// Premium (PMPro level 2) 10. Surfaced so the empty state can name the
+			// number the member just hit and what Premium changes it to.
+			'freeQuota'    => 5,
+			'premiumQuota' => 10,
 			'upgrade'   => site_url( '/membership-pricing/' ),
 		), 200 );
 	}
