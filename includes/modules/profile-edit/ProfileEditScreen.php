@@ -280,6 +280,12 @@ final class ProfileEditScreen {
 			if ( in_array( (string) $field->name, $hide, true ) ) {
 				continue;
 			}
+			// Age is always derived from Date of birth, never entered. Owner:
+			// "I dont want age to be an editable field ... it is always auto
+			// determined." FieldLogic keeps it in sync from DOB.
+			if ( (int) $field->id === \CAShaadi\Core\Config::FIELD_AGE ) {
+				continue;
+			}
 			/*
 			 * RAW values, not xprofile_get_field_data().
 			 *

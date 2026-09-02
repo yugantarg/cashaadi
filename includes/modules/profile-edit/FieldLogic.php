@@ -36,6 +36,12 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
 		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'hide_phone_from_others' ), 10, 3 );
 		add_action( 'xprofile_updated_profile', array( __CLASS__, 'sync_age' ), 10, 1 );
+		// Also recompute on any single DOB save. The onboarding wizard writes
+		// fields with xprofile_set_field_data() and never fires
+		// xprofile_updated_profile, so without this Age would stay empty through
+		// onboarding — and Age is no longer an editable field anywhere, so this is
+		// now the ONLY thing that fills it there.
+		add_action( 'xprofile_data_after_save', array( __CLASS__, 'sync_age_on_dob' ), 10, 1 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ), 21 );
 	}
 
@@ -171,6 +177,17 @@ final class FieldLogic {
 
 		$hidden[] = (int) Config::FIELD_PHONE;
 		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
+	}
+
+	/**
+	 * Recompute Age when the DOB field itself is saved (any code path).
+	 *
+	 * @param \BP_XProfile_ProfileData $data The row just saved.
+	 */
+	public static function sync_age_on_dob( $data ) {
+		if ( is_object( $data ) && (int) $data->field_id === Config::FIELD_DOB ) {
+			self::sync_age( (int) $data->user_id );
+		}
 	}
 
 	/* ---- #11611 — recompute Age (286) from DOB (586) on every save ------- */

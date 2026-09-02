@@ -157,6 +157,17 @@ final class Profile {
 		return $out;
 	}
 
+	/**
+	 * Fields the edit screen deliberately hides, so completion must not count
+	 * them: a field a member cannot reach is a "detail left" they can never
+	 * clear. 'Other relevant documents' is the Verification group's optional
+	 * second upload — ProfileEditScreen hides it, which left Verification stuck
+	 * at "1 detail left" for everyone even once the ICAI ID was uploaded.
+	 *
+	 * Kept in step with ProfileEditScreen::rest_get()'s own $hide list by name.
+	 */
+	const UNCOUNTED_FIELDS = array( 'Other relevant documents' );
+
 	/** Outstanding fields in one group — see completion() for the rule. */
 	public static function missing_in_group( $group, $uid ) {
 		if ( empty( $group->fields ) || ! function_exists( 'xprofile_get_field_data' ) ) {
@@ -173,6 +184,12 @@ final class Profile {
 
 		$missing = 0;
 		foreach ( $group->fields as $field ) {
+			if ( in_array( (string) $field->name, self::UNCOUNTED_FIELDS, true ) ) {
+				continue; // hidden in the editor, so never completable — don't count it
+			}
+			if ( (int) $field->id === Config::FIELD_AGE ) {
+				continue; // auto-derived from DOB, not an editable detail
+			}
 			if ( $has_required && empty( $field->is_required ) ) {
 				continue;
 			}

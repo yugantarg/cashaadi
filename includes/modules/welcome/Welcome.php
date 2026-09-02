@@ -299,6 +299,11 @@ final class Welcome {
 				continue;
 			}
 			foreach ( $by_id[ $gid ]->fields as $field ) {
+				// Age is auto-determined from Date of birth, never asked. Even if it
+				// is flagged required in xProfile, onboarding must not present it.
+				if ( (int) $field->id === Config::FIELD_AGE ) {
+					continue;
+				}
 				// Required-ness is read from the field, never from a list here.
 				if ( empty( $field->is_required ) ) {
 					continue;
