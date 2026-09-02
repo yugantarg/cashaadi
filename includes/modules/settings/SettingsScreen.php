@@ -107,14 +107,10 @@ final class SettingsScreen {
 			return new \WP_REST_Response( array( 'ok' => true ), 200 );
 		}
 
-		global $wpdb;
 		$rows = array();
-		if ( class_exists( '\CAShaadi\Modules\Block\Block' ) ) {
-			$t   = \CAShaadi\Modules\Block\Block::table();
-			$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
-				"SELECT blocked_id FROM {$t} WHERE blocker_id = %d ORDER BY created_at DESC",
-				$uid
-			) ) );
+		if ( method_exists( '\CAShaadi\Modules\Block\Block', 'blocked_ids' ) ) {
+			// The Block module keeps its table name private and hands out ids.
+			$ids = (array) \CAShaadi\Modules\Block\Block::blocked_ids( $uid );
 			foreach ( $ids as $mid ) {
 				$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $mid ) : '';
 				$rows[] = array(

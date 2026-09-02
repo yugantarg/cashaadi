@@ -99,6 +99,24 @@ final class Block {
 		return $wpdb->prefix . 'csm_blocks';
 	}
 
+	/**
+	 * Members this user has blocked, newest first.
+	 *
+	 * Exists so the in-app Blocked members screen does not need the table name —
+	 * that stays private here. Returns ids only; the caller decides what to show.
+	 *
+	 * @return int[]
+	 */
+	public static function blocked_ids( $owner_id ) {
+		global $wpdb;
+		$t = self::table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT blocked_id FROM {$t} WHERE blocker_id = %d ORDER BY created_at DESC",
+			(int) $owner_id
+		) ) );
+	}
+
 	/** CREATE TABLE for the Migrator (exact schema from #11810). */
 	public static function schema( $wpdb ) {
 		$t       = $wpdb->prefix . 'csm_blocks';
