@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.71.4
+ * Version:           0.72.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -46,6 +46,7 @@ use CAShaadi\Modules\Welcome\Welcome;
 use CAShaadi\Modules\Media\MediaQuality;
 use CAShaadi\Modules\Tracking\TrackingSettings;
 use CAShaadi\Modules\Discover\DiscoverScreen;
+use CAShaadi\Modules\MatchIntro\MatchIntro;
 use CAShaadi\Modules\Requests\RequestsScreen;
 use CAShaadi\Modules\ProfileScreen\ProfileApp;
 use CAShaadi\Modules\ProfileEdit\ProfileEditScreen;
@@ -55,7 +56,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.71.4' );
+define( 'CASHAADI_UI_VER', '0.72.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -229,6 +230,14 @@ if ( class_exists( 'CAShaadi\\Modules\\Photos\\Nsfw' ) ) {
 // (Config::discover_enabled); enable in the same change that disables those.
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\Discover' ) ) {
 	Discover::register();
+}
+
+// Match intro — when two members mutually like each other, seed a Better Messages
+// conversation (system greeting, unread for both) so they appear in each other's
+// inbox immediately. Listens on csm_mutual_match, fired by Discover::act(); a
+// no-op if Better Messages is inactive, so it inherits Discover's own gating.
+if ( class_exists( 'CAShaadi\\Modules\\MatchIntro\\MatchIntro' ) ) {
+	MatchIntro::register();
 }
 
 // Matches — Requests-Sent sub-tab (#11637) + match emails (#11694). Gated OFF

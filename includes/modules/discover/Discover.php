@@ -146,6 +146,16 @@ final class Discover {
 			csm_log_event( 'liked' === $status ? 'like' : 'pass', $viewer_id, $profile_id );
 		}
 
+		/*
+		 * A new mutual match just happened. Announce it once, here, where it is
+		 * detected — both the admin-ajax like() and the REST rest_act() reach this
+		 * method, so a single hook covers every entry point and listeners (e.g.
+		 * MatchIntro seeding a conversation) cannot drift from the source of truth.
+		 */
+		if ( $is_mutual ) {
+			do_action( 'csm_mutual_match', $viewer_id, $profile_id );
+		}
+
 		return array( 'ok' => true, 'is_mutual' => $is_mutual, 'remaining' => $remaining );
 	}
 
