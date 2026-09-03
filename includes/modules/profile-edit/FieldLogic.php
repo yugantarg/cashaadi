@@ -192,9 +192,28 @@ final class FieldLogic {
 		 */
 		if ( ! ( $viewer && user_can( (int) $viewer, 'manage_options' ) ) ) {
 			$hidden[] = (int) Config::FIELD_CA_DOC;
+			// "Other relevant documents" is the optional second proof upload in the
+			// Verification group — another member's document, equally admin-only.
+			// Resolved by name (no Config id) and cached, so it stays correct across
+			// environments.
+			$other = self::other_docs_field_id();
+			if ( $other ) {
+				$hidden[] = $other;
+			}
 		}
 
 		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
+	}
+
+	/** Field id for "Other relevant documents", resolved once. */
+	private static function other_docs_field_id() {
+		static $id = null;
+		if ( null === $id ) {
+			$id = function_exists( 'xprofile_get_field_id_from_name' )
+				? (int) xprofile_get_field_id_from_name( 'Other relevant documents' )
+				: 0;
+		}
+		return $id;
 	}
 
 	/**
