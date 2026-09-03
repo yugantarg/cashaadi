@@ -100,3 +100,28 @@ window.csmPhotoStack = function ( media, shots ) {
 	zone( 'csm-d-tap-prev', 'Previous photo', -1 );
 	zone( 'csm-d-tap-next', 'Next photo', 1 );
 };
+
+/**
+ * Member photos: suppress the native save affordances.
+ *
+ * Long-press on mobile and right-click on desktop both hand over the
+ * ORIGINAL file, which carries no watermark (the mark is CSS). Blocking
+ * the menu stops the casual save. It is deliberately not a security
+ * control — the URL is still readable in devtools.
+ */
+( function () {
+	var GUARDED = '.csm-d-photo, .csm-card-photo, .csm-photo, img.avatar';
+
+	function guarded( e ) {
+		var t = e.target;
+		return t && t.closest && t.closest( GUARDED );
+	}
+
+	document.addEventListener( 'contextmenu', function ( e ) {
+		if ( guarded( e ) ) { e.preventDefault(); }
+	} );
+
+	document.addEventListener( 'dragstart', function ( e ) {
+		if ( guarded( e ) ) { e.preventDefault(); }
+	} );
+}() );

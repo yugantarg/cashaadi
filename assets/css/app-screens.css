@@ -188,3 +188,19 @@
 	font-size: 14.5px; font-weight: 600; text-align: center; text-decoration: none;
 }
 .csm-app-menu-out:hover { background: var(--csm-ground, #f4f6f8); }
+
+/* ---- member photos: discourage casual save ----
+   Owner: stop the 95% who long-press → "Save Image" and get an
+   unwatermarked copy. Determined users can still read the URL from
+   devtools; this is friction, not protection. */
+.csm-d-photo,
+.csm-card-photo,
+.csm-photo,
+img.avatar {
+	-webkit-touch-callout: none;
+	touch-callout: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-user-drag: none;
+	user-drag: none;
+}
