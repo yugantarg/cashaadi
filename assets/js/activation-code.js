@@ -20,6 +20,22 @@
 		return; // plain POST fallback handles it
 	}
 
+	/*
+	 * Our REST form is live, so BuddyPress's own activation form beneath it is
+	 * redundant — it rendered as an empty extra "bar" under our card (its inputs
+	 * styled but valueless). Remove it and its unclassed "Please provide a valid
+	 * activation key" note. It survives as the no-JS fallback only when this file
+	 * does not run, which is the whole point of leaving it in the markup.
+	 */
+	var nativeForm = document.getElementById( 'activation-form' );
+	if ( nativeForm ) {
+		var intro = nativeForm.previousElementSibling;
+		if ( intro && 'P' === intro.tagName && ! intro.className ) {
+			intro.parentNode.removeChild( intro );
+		}
+		nativeForm.parentNode.removeChild( nativeForm );
+	}
+
 	var endpoint = form.getAttribute( 'data-endpoint' );
 	var emailEl  = form.querySelector( '#csm_act_email' );
 	var codeEl   = form.querySelector( '#csm_act_code' );
