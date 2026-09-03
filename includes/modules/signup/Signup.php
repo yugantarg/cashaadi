@@ -66,7 +66,7 @@ final class Signup {
 	 * Guarded by an option so it runs once; bump the option key to re-apply.
 	 */
 	public static function ensure_signup_fields() {
-		if ( get_option( 'csm_signup_fields_v1' ) ) {
+		if ( get_option( 'csm_signup_fields_v2' ) ) {
 			return;
 		}
 		if ( ! function_exists( 'bp_xprofile_update_meta' ) ) {
@@ -82,7 +82,22 @@ final class Signup {
 		foreach ( $positions as $field_id => $pos ) {
 			bp_xprofile_update_meta( (int) $field_id, 'field', 'signup_position', (int) $pos );
 		}
-		update_option( 'csm_signup_fields_v1', 1 );
+
+		/*
+		 * Age must NOT be on the registration form. It is derived from Date of
+		 * birth and is not editable anywhere else, so asking for it means a member
+		 * types a number that is immediately overwritten by the DOB sync — and the
+		 * two silently disagree in between. Production's form still carries it
+		 * (staging's never did), which is exactly the kind of thing that only shows
+		 * up when you compare the two, so remove it here rather than by hand.
+		 */
+		if ( function_exists( 'bp_xprofile_delete_meta' ) ) {
+			bp_xprofile_delete_meta( (int) Config::FIELD_AGE, 'field', 'signup_position' );
+		} else {
+			bp_xprofile_update_meta( (int) Config::FIELD_AGE, 'field', 'signup_position', '' );
+		}
+
+		update_option( 'csm_signup_fields_v2', 1 );
 	}
 
 	/* ===================================================================
