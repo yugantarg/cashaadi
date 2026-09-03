@@ -174,23 +174,19 @@ final class Profile {
 			return 0;
 		}
 
-		$has_required = false;
-		foreach ( $group->fields as $field ) {
-			if ( ! empty( $field->is_required ) ) {
-				$has_required = true;
-				break;
-			}
-		}
-
+		/*
+		 * Count EVERY empty field, not only the required ones (owner: "why is Basic
+		 * Details 'Complete' when non-mandatory details are yet to be filled").
+		 * Completion now means the whole section is filled; the wizard offers all
+		 * these fields (with skip), and the profile hub's "N left" reflects the
+		 * same set. Age (auto-derived) and editor-hidden extras never count.
+		 */
 		$missing = 0;
 		foreach ( $group->fields as $field ) {
 			if ( in_array( (string) $field->name, self::UNCOUNTED_FIELDS, true ) ) {
-				continue; // hidden in the editor, so never completable — don't count it
+				continue;
 			}
 			if ( (int) $field->id === Config::FIELD_AGE ) {
-				continue; // auto-derived from DOB, not an editable detail
-			}
-			if ( $has_required && empty( $field->is_required ) ) {
 				continue;
 			}
 			$val = xprofile_get_field_data( $field->id, $uid );

@@ -139,6 +139,14 @@
 		nav.appendChild( next );
 		card.appendChild( nav );
 
+		// Optional field steps can be passed on. The photo step has its own logic.
+		if ( 'photo' !== s.type && s.required === false ) {
+			var skip = el( 'button', 'csm-w-skip', 'Skip for now' );
+			skip.type = 'button';
+			skip.addEventListener( 'click', function () { skipStep( s, next, skip, err ); } );
+			card.appendChild( skip );
+		}
+
 		main.appendChild( card );
 
 		/* Report the step as a synthetic pageview. Without this GA4 sees a single
@@ -337,6 +345,28 @@
 
 	/* ------------------------------------------------------------ submit */
 
+	function skipStep( s, nextBtn, skipBtn, err ) {
+		if ( nextBtn ) { nextBtn.disabled = true; }
+		if ( skipBtn ) { skipBtn.disabled = true; }
+		api( CFG.step, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify( { key: s.key, skip: 1 } )
+		} ).then( function ( d ) {
+			if ( nextBtn ) { nextBtn.disabled = false; }
+			if ( skipBtn ) { skipBtn.disabled = false; }
+			if ( d && d.ok ) {
+				steps[ idx ].done = true;
+				return go( idx + 1 );
+			}
+			if ( err ) { err.textContent = ( d && d.message ) || 'We could not skip that.'; }
+		} ).catch( function () {
+			if ( nextBtn ) { nextBtn.disabled = false; }
+			if ( skipBtn ) { skipBtn.disabled = false; }
+			if ( err ) { err.textContent = 'Network problem. Please try again.'; }
+		} );
+	}
+
 	function submit( s, field, err, button ) {
 		err.textContent = '';
 		button.disabled = true;
@@ -400,6 +430,8 @@
 		var val = field.value();
 		if ( ! val || ! String( val ).trim() ) {
 			done();
+			// Optional: an empty Continue just skips. Required: must answer.
+			if ( s.required === false ) { return skipStep( s, button, null, err ); }
 			err.textContent = 'Please answer this to continue.';
 			return;
 		}

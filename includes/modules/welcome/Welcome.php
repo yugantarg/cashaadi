@@ -248,6 +248,30 @@ final class Welcome {
 	}
 
 	/** A field's current value as a plain string (arrays flattened for emptiness). */
+	/* ---- skip tracking (optional fields a member chose to pass on) ------ */
+
+	private static function skipped_ids( $uid ) {
+		$v = get_user_meta( (int) $uid, 'csm_wiz_skipped', true );
+		return is_array( $v ) ? array_map( 'intval', $v ) : array();
+	}
+
+	public static function is_skipped( $field_id, $uid ) {
+		return in_array( (int) $field_id, self::skipped_ids( $uid ), true );
+	}
+
+	private static function mark_skipped( $field_id, $uid, $on ) {
+		$ids = self::skipped_ids( $uid );
+		$fid = (int) $field_id;
+		if ( $on ) {
+			if ( ! in_array( $fid, $ids, true ) ) {
+				$ids[] = $fid;
+			}
+		} else {
+			$ids = array_values( array_diff( $ids, array( $fid ) ) );
+		}
+		update_user_meta( (int) $uid, 'csm_wiz_skipped', $ids );
+	}
+
 	private static function value_of( $field_id, $uid ) {
 		/*
 		 * RAW value, never xprofile_get_field_data(): that applies display filters,
@@ -325,24 +349,42 @@ final class Welcome {
 				continue;
 			}
 			foreach ( $by_id[ $gid ]->fields as $field ) {
-				// Age is auto-determined from Date of birth, never asked. Even if it
-				// is flagged required in xProfile, onboarding must not present it.
-				if ( (int) $field->id === Config::FIELD_AGE ) {
+				$fid = (int) $field->id;
+
+				// Age is auto-determined from Date of birth, never asked.
+				if ( $fid === Config::FIELD_AGE ) {
 					continue;
 				}
-				// Required-ness is read from the field, never from a list here.
-				if ( empty( $field->is_required ) ) {
+				// Collected on the sign-up form — the wizard must not re-ask it.
+				if ( in_array( $fid, Config::SIGNUP_FIELDS, true ) ) {
 					continue;
 				}
-				$value = self::value_of( $field->id, $uid );
-				$steps[] = array(
-					'key'     => 'field_' . (int) $field->id,
-					'type'    => (string) $field->type,
-					'label'   => (string) $field->name,
-					'help'    => (string) $field->description,
-					'value'   => $value,
-					'options' => self::options_for( $field ),
-					'done'    => ( '' !== $value ),
+				// Fields the profile hides everywhere (e.g. "Other relevant documents").
+				if ( in_array( (string) $field->name, \CAShaadi\Core\Profile::UNCOUNTED_FIELDS, true ) ) {
+					continue;
+				}
+				// File/image fields need their own uploader (photos, ICAI doc) and are
+				// handled outside the wizard's simple controls.
+				if ( in_array( (string) $field->type, array( 'file', 'image' ), true ) ) {
+					continue;
+				}
+
+				// Every remaining field is offered now, required or not (owner: the
+				// wizard should offer ALL fields, skippable when non-mandatory).
+				$required = ! empty( $field->is_required );
+				$value    = self::value_of( $fid, $uid );
+				$steps[]  = array(
+					'key'      => 'field_' . $fid,
+					'type'     => (string) $field->type,
+					'label'    => (string) $field->name,
+					'help'     => (string) $field->description,
+					'value'    => $value,
+					'options'  => self::options_for( $field ),
+					'required' => $required,
+					// Done when answered, or when an optional field was deliberately
+					// skipped — so a skipped step does not trap the "resume where you
+					// left off" pointer.
+					'done'     => ( '' !== $value ) || ( ! $required && self::is_skipped( $fid, $uid ) ),
 				);
 			}
 		}
@@ -449,8 +491,23 @@ final class Welcome {
 			);
 		}
 
-		$field_id = (int) substr( $key, strlen( 'field_' ) );
-		$raw      = $request->get_param( 'value' );
+		$field_id    = (int) substr( $key, strlen( 'field_' ) );
+		$is_required = ! empty( $allowed[ $key ]['required'] );
+
+		// Skip: only optional fields may be passed on. Recorded so onboarding does
+		// not keep landing on it, and left empty.
+		if ( $request->get_param( 'skip' ) ) {
+			if ( $is_required ) {
+				return new \WP_REST_Response(
+					array( 'ok' => false, 'message' => __( 'This one is required.', 'cashaadi-ui' ) ),
+					200
+				);
+			}
+			self::mark_skipped( $field_id, $uid, true );
+			return new \WP_REST_Response( array( 'ok' => true, 'skipped' => true ), 200 );
+		}
+
+		$raw = $request->get_param( 'value' );
 
 		if ( is_array( $raw ) ) {
 			$value = array_map( 'sanitize_text_field', array_map( 'strval', $raw ) );
@@ -461,12 +518,21 @@ final class Welcome {
 				: sanitize_text_field( (string) $raw );
 		}
 
-		if ( ( is_array( $value ) && ! $value ) || ( ! is_array( $value ) && '' === trim( $value ) ) ) {
-			return new \WP_REST_Response(
-				array( 'ok' => false, 'message' => __( 'This one is required.', 'cashaadi-ui' ) ),
-				200
-			);
+		$is_empty = ( is_array( $value ) && ! $value ) || ( ! is_array( $value ) && '' === trim( $value ) );
+		if ( $is_empty ) {
+			// Required -> must answer. Optional submitted empty -> treat as a skip.
+			if ( $is_required ) {
+				return new \WP_REST_Response(
+					array( 'ok' => false, 'message' => __( 'This one is required.', 'cashaadi-ui' ) ),
+					200
+				);
+			}
+			self::mark_skipped( $field_id, $uid, true );
+			return new \WP_REST_Response( array( 'ok' => true, 'skipped' => true ), 200 );
 		}
+
+		// A real answer clears any earlier skip on this field.
+		self::mark_skipped( $field_id, $uid, false );
 
 		/*
 		 * datebox stores a datetime; the client sends YYYY-MM-DD from a native
