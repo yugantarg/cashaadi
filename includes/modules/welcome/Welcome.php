@@ -178,7 +178,12 @@ final class Welcome {
 <body class="csm-welcome-page">
 	<div class="csm-w" id="csm-welcome">
 		<header class="csm-w-top">
-			<span class="csm-w-brand"><?php bloginfo( 'name' ); ?></span>
+			<?php $csm_w_logo = \CAShaadi\Core\AppPage::logo_src(); ?>
+			<?php if ( $csm_w_logo ) : ?>
+				<img class="csm-w-logo" src="<?php echo esc_url( $csm_w_logo ); ?>" alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+			<?php else : ?>
+				<span class="csm-w-brand"><?php bloginfo( 'name' ); ?></span>
+			<?php endif; ?>
 			<div class="csm-w-bar" aria-hidden="true"><span class="csm-w-bar-fill" id="csm-w-progress"></span></div>
 		</header>
 

@@ -34,7 +34,8 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_set_field_data_pre_validate', array( __CLASS__, 'gender_lock' ), 5, 3 );
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
-		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'hide_phone_from_others' ), 10, 3 );
+		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'profile_field_visibility' ), 10, 3 );
+		add_filter( 'bp_get_the_profile_field_value', array( __CLASS__, 'own_dob_as_date' ), 10, 3 );
 		// Age auto-syncs from DOB on every profile-update: the classic form, the
 		// app editor, and the onboarding wizard all fire xprofile_updated_profile
 		// (the wizard was taught to, in Welcome::rest_step). xprofile_set_field_data
@@ -166,16 +167,53 @@ final class FieldLogic {
 	 * @param int   $shown   Whose profile is being viewed.
 	 * @param int   $viewer  Who is looking.
 	 */
-	public static function hide_phone_from_others( $hidden, $shown = 0, $viewer = 0 ) {
-		$hidden = (array) $hidden;
+	public static function profile_field_visibility( $hidden, $shown = 0, $viewer = 0 ) {
+		$hidden   = (array) $hidden;
+		$is_owner = ( $shown && $viewer && (int) $shown === (int) $viewer );
 
-		// Looking at your own profile: you may see your own number.
-		if ( $shown && $viewer && (int) $shown === (int) $viewer ) {
-			return $hidden;
+		if ( $is_owner ) {
+			// Your own profile: you see your Date of birth (the real date, see
+			// own_dob_as_date), so the derived Age row is redundant — hide it.
+			$hidden[] = (int) Config::FIELD_AGE;
+		} else {
+			// Everyone else: Phone stays private, and Date of birth is withheld in
+			// favour of Age. A match-facing profile should give an age, not a
+			// birth date — the precise DOB is the member's to share once matched.
+			$hidden[] = (int) Config::FIELD_PHONE;
+			$hidden[] = (int) Config::FIELD_DOB;
 		}
 
-		$hidden[] = (int) Config::FIELD_PHONE;
 		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
+	}
+
+	/**
+	 * On the owner's own profile, render Date of birth as the real date.
+	 *
+	 * The DOB datebox is configured to display as an age ("27 years old"), which
+	 * is right for other members but wrong for the owner — they set a date and
+	 * should see that date back. Only fires on their own profile; everywhere else
+	 * DOB is hidden from the viewer anyway (see profile_field_visibility).
+	 *
+	 * @param string $value      The filtered display value.
+	 * @param string $field_type The field type slug.
+	 * @param int    $field_id   The field id.
+	 */
+	public static function own_dob_as_date( $value, $field_type, $field_id ) {
+		if ( (int) $field_id !== (int) Config::FIELD_DOB ) {
+			return $value;
+		}
+		if ( ! function_exists( 'bp_is_my_profile' ) || ! bp_is_my_profile() ) {
+			return $value;
+		}
+		if ( ! class_exists( '\BP_XProfile_ProfileData' ) ) {
+			return $value;
+		}
+		$raw = \BP_XProfile_ProfileData::get_value_byid( (int) Config::FIELD_DOB, get_current_user_id() );
+		$ts  = $raw ? strtotime( (string) $raw ) : false;
+		if ( ! $ts ) {
+			return $value;
+		}
+		return esc_html( date_i18n( get_option( 'date_format' ), $ts ) );
 	}
 
 	/* ---- #11611 — recompute Age (286) from DOB (586) on every profile update */

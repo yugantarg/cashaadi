@@ -27,6 +27,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class AppPage {
 
 	/**
+	 * The site logo URL for our headers, or '' when none is configured.
+	 *
+	 * WordPress's custom_logo first; if unset (as on this install) fall back to
+	 * the media item with slug 'cashaadi-logo' — by slug, because attachment ids
+	 * differ between staging and production. Cached for a day.
+	 */
+	public static function logo_src() {
+		$logo_id = (int) get_theme_mod( 'custom_logo' );
+		if ( ! $logo_id ) {
+			$cached = get_transient( 'csm_logo_id' );
+			if ( false === $cached ) {
+				$att    = get_page_by_path( 'cashaadi-logo', OBJECT, 'attachment' );
+				$cached = $att ? (int) $att->ID : 0;
+				set_transient( 'csm_logo_id', $cached, DAY_IN_SECONDS );
+			}
+			$logo_id = (int) $cached;
+		}
+		$logo = $logo_id ? wp_get_attachment_image_src( $logo_id, 'full' ) : false;
+		return ( $logo && ! empty( $logo[0] ) ) ? (string) $logo[0] : '';
+	}
+
+	/**
 	 * Bottom-nav destinations, in the owner's information architecture:
 	 * "discover shows the full profile of the other user, requests shows sent /
 	 * received / viewers, messages shows current matches, profile shows my
