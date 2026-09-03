@@ -48,6 +48,41 @@ final class Signup {
 		// #11842 — skip username at signup.
 		add_action( 'bp_signup_validate', array( __CLASS__, 'username_fallback' ), 0 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
+
+		// Wave 2: the sign-up form collects the identity basics, so onboarding
+		// stops re-asking them. Idempotent (option-guarded), runs once.
+		add_action( 'bp_init', array( __CLASS__, 'ensure_signup_fields' ) );
+	}
+
+	/**
+	 * Put Name, Gender, DOB, City and Phone on the registration form, in that
+	 * order — owner: sign-up should take the basics so the wizard need not.
+	 *
+	 * BuddyPress decides which xProfile fields appear on /register/ from each
+	 * field's `signup_position` meta (an integer; absent = not on sign-up). We set
+	 * it for the five in Config::SIGNUP_FIELDS. Name + Phone were already on the
+	 * form; re-stating their position here just fixes the order (phone last).
+	 *
+	 * Guarded by an option so it runs once; bump the option key to re-apply.
+	 */
+	public static function ensure_signup_fields() {
+		if ( get_option( 'csm_signup_fields_v1' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'bp_xprofile_update_meta' ) ) {
+			return;
+		}
+		$positions = array(
+			Config::FIELD_NAME   => 1,
+			Config::FIELD_GENDER => 2,
+			Config::FIELD_DOB    => 3,
+			Config::FIELD_CITY   => 4,
+			Config::FIELD_PHONE  => 5,
+		);
+		foreach ( $positions as $field_id => $pos ) {
+			bp_xprofile_update_meta( (int) $field_id, 'field', 'signup_position', (int) $pos );
+		}
+		update_option( 'csm_signup_fields_v1', 1 );
 	}
 
 	/* ===================================================================

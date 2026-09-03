@@ -28,6 +28,17 @@ final class Config {
 	const FIELD_DOB           = 586; // datebox (#11611/#11641)
 	const FIELD_CA_DOC        = 484; // ICAI document upload (#11701/#11815)
 	const FIELD_QUALIFICATION = 571; // "CA" / "CA Inter" (#11701)
+	const FIELD_NAME          = 1;   // display name (on the signup form)
+	const FIELD_CITY          = 587; // city (moved onto the signup form, Wave 2)
+
+	/*
+	 * Fields collected on the SIGN-UP form, so onboarding never re-asks them
+	 * (owner: "I dont need to see name, gender and DOB and city in the upload
+	 * wizard again"). Name + Phone were already there; Gender, DOB and City are
+	 * added by Signup::ensure_signup_fields(). The wizard excludes exactly this
+	 * set, so the two lists cannot drift.
+	 */
+	const SIGNUP_FIELDS = array( self::FIELD_NAME, self::FIELD_PHONE, self::FIELD_GENDER, self::FIELD_DOB, self::FIELD_CITY );
 
 	/* ---- xProfile group edit order (photo step handled separately) ----- */
 	const GROUP_ORDER = array( 1, 7, 6, 4, 9, 8, 10 );
