@@ -129,16 +129,3 @@
 	display: block; max-width: 560px; margin: 18px auto 0; padding: 0 18px;
 	font-size: 14px; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none;
 }
-
-/* CAShaadi watermark on the profile-hub avatar (matches the circle). */
-.csm-p-avatar::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	border-radius: 50%;
-	z-index: 1;
-	pointer-events: none;
-	background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27240%27%20height%3D%27150%27%3E%3Ctext%20x%3D%2722%27%20y%3D%2796%27%20transform%3D%27rotate%28-27%20120%2080%29%27%20font-family%3D%27Georgia%2C%20%22Times%20New%20Roman%22%2C%20serif%27%20font-size%3D%2723%27%20font-weight%3D%27700%27%20fill%3D%27%23ffffff%27%20fill-opacity%3D%270.24%27%3ECA%20Shaadi%3C%2Ftext%3E%3C%2Fsvg%3E");
-	background-repeat: repeat;
-	background-size: 150px 94px;
-}
