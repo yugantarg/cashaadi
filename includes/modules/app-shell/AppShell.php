@@ -193,6 +193,11 @@ final class AppShell {
 		if ( $shell || $area ) {
 			Assets::style( 'screens', 'assets/css/screens.css', array( 'cashaadi-tokens' ) );
 		}
+		// The app-menu toggle (and photo-stack helper) live in app-screens.js; the
+		// member-screen top bar now hosts the same hamburger + menu.
+		if ( $shell ) {
+			Assets::script( 'app-screens', 'assets/js/app-screens.js' );
+		}
 	}
 
 	public static function render() {
@@ -296,11 +301,7 @@ final class AppShell {
 		echo '<div class="csm-topbar">';
 		echo '<span class="csm-topbar-title">' . esc_html( self::screen_title() ) . '</span>';
 		echo '<span class="csm-topbar-actions">';
-		printf(
-			'<a class="csm-topbar-act" href="%s" aria-label="Settings">%s</a>',
-			esc_url( $settings_url ),
-			self::icon_settings() // trusted inline SVG
-		);
+		// Notifications stay a one-tap action (they are not in the menu).
 		$badge = $unread > 0 ? '<i class="csm-topbar-badge">' . esc_html( $unread > 99 ? '99+' : $unread ) . '</i>' : '';
 		printf(
 			'<a class="csm-topbar-act" href="%s" aria-label="Notifications">%s%s</a>',
@@ -308,8 +309,19 @@ final class AppShell {
 			self::icon_bell(), // trusted inline SVG
 			$badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_html above
 		);
+		/*
+		 * The hamburger opens OUR app menu — the same one Discover/Settings use —
+		 * instead of BuddyX's off-canvas theme menu (whose hamburger is hidden on
+		 * member screens). The old settings gear is gone: it led to BuddyPress's
+		 * settings, not our app settings hub, and Settings now lives in the menu.
+		 */
+		echo '<button type="button" class="csm-topbar-act csm-app-menu-btn" id="csm-app-menu-btn" aria-expanded="false" aria-controls="csm-app-menu" aria-label="' . esc_attr__( 'Menu', 'cashaadi-ui' ) . '"><span></span><span></span><span></span></button>';
 		echo '</span>';
 		echo '</div>';
+		if ( class_exists( '\CAShaadi\Core\AppPage' ) ) {
+			\CAShaadi\Core\AppPage::render_menu();
+		}
+		unset( $settings_slug, $settings_url );
 	}
 
 	/* ---- inline icons (stroke = currentColor) --------------------------- */
