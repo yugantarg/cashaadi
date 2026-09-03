@@ -37,6 +37,13 @@ final class Site {
 		// --- /pricing/ -> /membership-pricing/ (#11626) ---
 		add_action( 'template_redirect', array( __CLASS__, 'pricing_redirect' ), 1 );
 
+		// --- gendered rectangular placeholder when a member has no photo ---
+		// Priority 30: AFTER Privacy's blur (20) and NSFW's mask (21), so a member
+		// who HAS a photo but has it withheld still gets the blur/mask, and only a
+		// genuinely photo-less member gets the silhouette.
+		add_filter( 'bp_core_fetch_avatar_url', array( __CLASS__, 'gendered_placeholder_url' ), 30, 2 );
+		add_filter( 'bp_core_fetch_avatar', array( __CLASS__, 'gendered_placeholder_html' ), 30, 2 );
+
 		/*
 		 * Make the theme's logo work everywhere.
 		 *
@@ -147,5 +154,84 @@ final class Site {
 		if ( wp_script_is( 'jquery', 'registered' ) || wp_script_is( 'jquery', 'enqueued' ) ) {
 			Assets::script( 'menu-toggle-fix', 'assets/js/menu-toggle-fix.js', array( 'jquery' ) );
 		}
+	}
+
+	/* ---- gendered no-photo placeholder ---------------------------------- */
+
+	/**
+	 * A member's photo display area is a portrait rectangle, so an empty one
+	 * should show a rectangular gendered silhouette, not a circular mystery-man
+	 * (owner: "the image shown in case of no image shouldnt be circle. It should
+	 * be a male/female avatar").
+	 *
+	 * @param int|string $item_id User id from avatar params.
+	 * @return string  Placeholder URL, or '' when we should not swap.
+	 */
+	private static function placeholder_for( $item_id ) {
+		$uid = (int) $item_id;
+		if ( ! $uid ) {
+			return '';
+		}
+		// Only when the member genuinely has no photo of their own.
+		$has = function_exists( 'bp_get_user_has_avatar' ) && bp_get_user_has_avatar( $uid );
+		if ( ! $has ) {
+			$ids = get_user_meta( $uid, 'csm_photos', true );
+			if ( is_array( $ids ) && ! empty( $ids ) ) {
+				$has = true;
+			}
+		}
+		if ( $has ) {
+			return '';
+		}
+		$raw = '';
+		if ( class_exists( '\BP_XProfile_ProfileData' ) ) {
+			$raw = (string) \BP_XProfile_ProfileData::get_value_byid( \CAShaadi\Core\Config::FIELD_GENDER, $uid );
+		}
+		$raw = strtolower( $raw );
+		if ( false !== strpos( $raw, 'female' ) ) {
+			$slug = 'female';
+		} elseif ( false !== strpos( $raw, 'male' ) ) {
+			$slug = 'male';
+		} else {
+			return ''; // gender unknown — leave BuddyPress's own default
+		}
+		return CASHAADI_UI_URL . 'assets/img/avatar-' . $slug . '.svg';
+	}
+
+	/** Only swap when the current URL is a default/placeholder, not a real photo. */
+	private static function is_default_avatar( $url ) {
+		return ( '' === $url )
+			|| (bool) preg_match( '#(gravatar\.com|mystery-?man|/buddypress/images/|/bp-core/images/|/mystery)#i', (string) $url );
+	}
+
+	public static function gendered_placeholder_url( $url, $params = array() ) {
+		if ( ! is_array( $params ) || ( ! empty( $params['object'] ) && 'user' !== $params['object'] ) ) {
+			return $url;
+		}
+		if ( ! self::is_default_avatar( $url ) ) {
+			return $url;
+		}
+		$ph = self::placeholder_for( isset( $params['item_id'] ) ? $params['item_id'] : 0 );
+		return $ph ? $ph : $url;
+	}
+
+	public static function gendered_placeholder_html( $html, $params = array() ) {
+		if ( ! is_string( $html ) || '' === $html ) {
+			return $html;
+		}
+		if ( ! is_array( $params ) || ( ! empty( $params['object'] ) && 'user' !== $params['object'] ) ) {
+			return $html;
+		}
+		// Only when the current src is a default; pull the src out to check.
+		if ( preg_match( '/ src="([^"]*)"/', $html, $m ) && ! self::is_default_avatar( $m[1] ) ) {
+			return $html;
+		}
+		$ph = self::placeholder_for( isset( $params['item_id'] ) ? $params['item_id'] : 0 );
+		if ( ! $ph ) {
+			return $html;
+		}
+		$html = preg_replace( '/ src="[^"]*"/', ' src="' . esc_url( $ph ) . '"', $html, 1 );
+		$html = preg_replace( '/ srcset="[^"]*"/', '', $html, 1 );
+		return $html;
 	}
 }

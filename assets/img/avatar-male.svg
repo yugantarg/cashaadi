@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" role="img" aria-label="No photo">
+  <rect width="400" height="500" fill="#e9eef3"/>
+  <g fill="#cfd8e1">
+    <!-- shoulders -->
+    <path d="M200 300c70 0 128 40 150 100 8 22 12 46 12 72v28H38v-28c0-26 4-50 12-72 22-60 80-100 150-100z"/>
+    <!-- head -->
+    <circle cx="200" cy="192" r="82"/>
+  </g>
+  <g fill="#b6c2ce">
+    <!-- short hair cap -->
+    <path d="M200 96c48 0 84 34 84 86 0 8-1 16-3 23-6-33-33-53-81-53s-75 20-81 53c-2-7-3-15-3-23 0-52 36-86 84-86z"/>
+  </g>
+</svg>
