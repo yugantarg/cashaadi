@@ -26,6 +26,7 @@ namespace CAShaadi\Modules\Discover;
 
 use CAShaadi\Core\Config;
 use CAShaadi\Core\Assets;
+use CAShaadi\Core\Migrator;
 use CAShaadi\Core\Verification;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -42,6 +43,11 @@ final class Discover {
 		// Global engine functions (csm_refill_tray / csm_maybe_weekly_reset /
 		// csm_check_mutual_like / csm_log_event) — each function_exists-guarded.
 		require_once __DIR__ . '/engine.php';
+
+		// The permanent "who was shown to whom" record. The tray is a queue and
+		// cannot serve as history; see Seen for the full reasoning.
+		Migrator::register( 'seen', array( Seen::class, 'schema' ) );
+		add_action( 'init', array( Seen::class, 'backfill' ), 20 );
 
 		// #11600 — lazy weekly reset on every front-end load.
 		add_action( 'template_redirect', 'csm_maybe_weekly_reset' );
@@ -114,13 +120,35 @@ final class Discover {
 		$likes = $wpdb->prefix . 'csm_likes';
 		$now   = current_time( 'mysql' );
 
-		$wpdb->update(
+		/*
+		 * The tray row IS the authorisation.
+		 *
+		 * This update used to match on (viewer, profile) alone and its result was
+		 * ignored, so a member who never had the profile in their tray still got
+		 * ok:true — and the like still went on to create a BuddyPress friend
+		 * request. That let anyone POST an arbitrary profile_id to
+		 * csm/v1/discover/act and message-request the entire site, bypassing the
+		 * weekly quota, the opposite-gender rule and the block list, none of which
+		 * were ever checked here: they are enforced only when the tray is filled.
+		 *
+		 * Requiring status = 'pending' also makes acting twice a no-op, which is
+		 * what stops a second click from re-writing acted_at.
+		 */
+		$claimed = $wpdb->update(
 			$tray,
 			array( 'status' => $status, 'acted_at' => $now ),
-			array( 'viewer_id' => $viewer_id, 'profile_id' => $profile_id ),
+			array( 'viewer_id' => $viewer_id, 'profile_id' => $profile_id, 'status' => 'pending' ),
 			array( '%s', '%s' ),
-			array( '%d', '%d' )
+			array( '%d', '%d', '%s' )
 		);
+
+		if ( ! $claimed ) {
+			return array( 'ok' => false, 'is_mutual' => false, 'remaining' => 0 );
+		}
+
+		// Permanent record of the decision, independent of the tray and of the
+		// weekly reset that deletes acted rows.
+		Seen::record_action( $viewer_id, $profile_id, $status );
 
 		$is_mutual = false;
 		if ( 'liked' === $status ) {

@@ -103,6 +103,28 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			}
 		}
 
+		/*
+		 * Everyone this viewer has ALREADY been shown.
+		 *
+		 * The two lists above cannot answer that. $in_tray only sees 'pending',
+		 * so a profile drops out of it the instant someone likes or passes; the
+		 * likes list is written by the weekly reset, which deletes passes
+		 * outright and does not run on the app screens at all (they claim
+		 * template_redirect at priority 1 and exit before it). Between those two
+		 * gaps, acted-on profiles were invisible to the exclusion and got served
+		 * again — 8 duplicated pairs on staging2, one of them three times.
+		 *
+		 * wp_csm_seen is append-only and never cleared, so this holds whether or
+		 * not the reset has run. The lists above are kept as a belt-and-braces
+		 * fallback for the window before the backfill lands.
+		 */
+		if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
+			$seen = \CAShaadi\Modules\Discover\Seen::ids_for( $viewer_id );
+			if ( $seen ) {
+				$exclude = array_merge( $exclude, $seen );
+			}
+		}
+
 		// Blocked pairs — hide anyone this viewer has blocked (or been blocked by).
 		// Mirrors the original #11599 refill. Guarded so it works whether the global
 		// comes from the #11810 snippet or the Block module's compat.php (either may
@@ -166,6 +188,19 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			);
 			if ( false !== $ok ) {
 				$inserted[] = $pid;
+
+				/*
+				 * The impression record. log_event() below writes to
+				 * wp_csm_event_log, which does not exist on this install — the
+				 * mu-plugin's table_exists() guard turns every call into a silent
+				 * no-op, so no impression has ever been recorded despite the code
+				 * reading as though it were. Kept (harmless, and correct if that
+				 * table is ever created); wp_csm_seen is the real record.
+				 */
+				if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
+					\CAShaadi\Modules\Discover\Seen::record_served( $viewer_id, $pid, $week_id );
+				}
+
 				$csm->log_event( 'profile_served', $viewer_id, $pid, array(
 					'week_id' => $week_id,
 					'source'  => ( 0 === $pending ) ? 'initial' : 'refill',

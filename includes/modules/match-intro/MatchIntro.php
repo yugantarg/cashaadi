@@ -56,6 +56,53 @@ final class MatchIntro {
 	public static function register() {
 		add_action( 'csm_mutual_match', array( __CLASS__, 'seed' ), 10, 2 );
 		add_filter( 'bp_better_messages_display_name', array( __CLASS__, 'brand' ), 10, 2 );
+
+		/*
+		 * The OTHER way two people match — and in practice the only one that has
+		 * ever happened here.
+		 *
+		 * csm_mutual_match fires from Discover::act() when both sides
+		 * independently like. But a member can also accept an incoming request
+		 * from the Requests screen, which BuddyPress confirms directly: no like
+		 * row is written for the accepter, so act() never runs and nothing fires.
+		 * Every confirmed friendship on staging2 was made this way.
+		 *
+		 * Hooking acceptance here — not in Discover — keeps it working when the
+		 * Discover flag is off, and gives every listener ONE definition of
+		 * "matched" rather than two that disagree.
+		 */
+		add_action( 'friends_friendship_accepted', array( __CLASS__, 'on_accept' ), 10, 3 );
+	}
+
+	/**
+	 * Announce a match made by accepting a request.
+	 *
+	 * Re-entry guard: a Discover mutual like reaches friends_accept_friendship
+	 * through csm_log_event(), so this can fire for a pair that act() has already
+	 * announced. seed() is idempotent, but firing the public action twice would
+	 * make any future listener's life harder.
+	 *
+	 * @param int $friendship_id Unused; BuddyPress passes it first.
+	 * @param int $initiator     Who sent the request.
+	 * @param int $friend        Who accepted it.
+	 */
+	public static function on_accept( $friendship_id, $initiator, $friend ) {
+		unset( $friendship_id );
+
+		$a = (int) $initiator;
+		$b = (int) $friend;
+		if ( ! $a || ! $b || $a === $b ) {
+			return;
+		}
+
+		static $announced = array();
+		$key = min( $a, $b ) . ':' . max( $a, $b );
+		if ( isset( $announced[ $key ] ) ) {
+			return;
+		}
+		$announced[ $key ] = true;
+
+		do_action( 'csm_mutual_match', $a, $b );
 	}
 
 	/**
