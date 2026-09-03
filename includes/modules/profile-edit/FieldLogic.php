@@ -183,6 +183,17 @@ final class FieldLogic {
 			$hidden[] = (int) Config::FIELD_DOB;
 		}
 
+		/*
+		 * The ICAI document is a verification artifact, not a profile detail. It
+		 * was rendering on the profile as a "Download file" link to everyone,
+		 * exposing a member's uploaded proof. Only admins — who review it — should
+		 * see it; hide it from every other viewer, the owner included (they manage
+		 * it through the upload flow / "Verify now", not by downloading it here).
+		 */
+		if ( ! ( $viewer && user_can( (int) $viewer, 'manage_options' ) ) ) {
+			$hidden[] = (int) Config::FIELD_CA_DOC;
+		}
+
 		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
 	}
 
