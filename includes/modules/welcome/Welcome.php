@@ -354,66 +354,67 @@ final class Welcome {
 			}
 		}
 
+		/*
+		 * One step per profile SECTION, not per field (owner: "22 steps seems too
+		 * long ... subsume under fewer groups"). Each group step carries all its
+		 * askable fields; Continue requires the mandatory ones and lets the rest be
+		 * left blank. A group is "done" once its required fields are answered.
+		 */
 		foreach ( $order as $gid ) {
 			$gid = (int) $gid;
 			if ( empty( $by_id[ $gid ]->fields ) ) {
 				continue;
 			}
+
+			$fields = array();
 			foreach ( $by_id[ $gid ]->fields as $field ) {
 				$fid = (int) $field->id;
 
-				// Age is auto-determined from Date of birth, never asked.
 				if ( $fid === Config::FIELD_AGE ) {
-					continue;
+					continue; // auto-derived from DOB
 				}
-				// Collected on the sign-up form — the wizard must not re-ask it.
 				if ( in_array( $fid, Config::SIGNUP_FIELDS, true ) ) {
-					continue;
+					continue; // collected at sign-up
 				}
-				// Fields the profile hides everywhere (e.g. "Other relevant documents").
 				if ( in_array( (string) $field->name, \CAShaadi\Core\Profile::UNCOUNTED_FIELDS, true ) ) {
-					continue;
+					continue; // hidden everywhere
 				}
-				// File/image fields need their own uploader (photos, ICAI doc) and are
-				// handled outside the wizard's simple controls.
 				if ( in_array( (string) $field->type, array( 'file', 'image' ), true ) ) {
-					continue;
+					continue; // uploaded elsewhere
 				}
 
-				// Every remaining field is offered now, required or not (owner: the
-				// wizard should offer ALL fields, skippable when non-mandatory).
-				$required = ! empty( $field->is_required );
-				$value    = self::value_of( $fid, $uid );
-				$steps[]  = array(
+				$fields[] = array(
+					'id'       => $fid,
 					'key'      => 'field_' . $fid,
 					'type'     => (string) $field->type,
 					'label'    => (string) $field->name,
 					'help'     => (string) $field->description,
-					'value'    => $value,
+					'value'    => self::value_of( $fid, $uid ),
 					'options'  => self::options_for( $field ),
-					'required' => $required,
-					// Done when answered, or when an optional field was deliberately
-					// skipped — so a skipped step does not trap the "resume where you
-					// left off" pointer.
-					'done'     => ( '' !== $value ) || ( ! $required && self::is_skipped( $fid, $uid ) ),
+					'required' => ! empty( $field->is_required ),
 				);
 			}
-		}
 
-		// Move the deferred questions to the end, preserving their relative order.
-		$deferred = array();
-		foreach ( $steps as $i => $s ) {
-			if ( 0 !== strpos( $s['key'], 'field_' ) ) {
+			if ( empty( $fields ) ) {
 				continue;
 			}
-			$fid = (int) substr( $s['key'], strlen( 'field_' ) );
-			if ( in_array( $fid, self::ASK_LAST, true ) ) {
-				$deferred[] = $s;
-				unset( $steps[ $i ] );
+
+			$done = true;
+			foreach ( $fields as $f ) {
+				if ( $f['required'] && '' === $f['value'] ) {
+					$done = false;
+					break;
+				}
 			}
-		}
-		if ( $deferred ) {
-			$steps = array_merge( array_values( $steps ), $deferred );
+
+			$steps[] = array(
+				'key'    => 'group_' . $gid,
+				'type'   => 'group',
+				'label'  => (string) $by_id[ $gid ]->name,
+				'help'   => '',
+				'fields' => $fields,
+				'done'   => $done,
+			);
 		}
 
 		return array_values( $steps );
@@ -502,88 +503,71 @@ final class Welcome {
 			);
 		}
 
-		$field_id    = (int) substr( $key, strlen( 'field_' ) );
-		$is_required = ! empty( $allowed[ $key ]['required'] );
+		// A group step carries several fields; save each. Required fields must be
+		// answered; optional ones may be left blank (that is the "skip").
+		$group  = $allowed[ $key ];
+		$posted = $request->get_param( 'fields' );
+		$posted = is_array( $posted ) ? $posted : array();
 
-		// Skip: only optional fields may be passed on. Recorded so onboarding does
-		// not keep landing on it, and left empty.
-		if ( $request->get_param( 'skip' ) ) {
-			if ( $is_required ) {
-				return new \WP_REST_Response(
-					array( 'ok' => false, 'message' => __( 'This one is required.', 'cashaadi-ui' ) ),
-					200
-				);
-			}
-			self::mark_skipped( $field_id, $uid, true );
-			return new \WP_REST_Response( array( 'ok' => true, 'skipped' => true ), 200 );
+		if ( empty( $group['fields'] ) || 'group' !== $group['type'] ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That is not part of onboarding.', 'cashaadi-ui' ) ), 200 );
 		}
 
-		$raw = $request->get_param( 'value' );
+		$saved_ids = array();
+		foreach ( $group['fields'] as $f ) {
+			$fid = (int) $f['id'];
+			$raw = array_key_exists( (string) $fid, $posted ) ? $posted[ (string) $fid ]
+				: ( array_key_exists( 'field_' . $fid, $posted ) ? $posted[ 'field_' . $fid ] : '' );
 
-		if ( is_array( $raw ) ) {
-			$value = array_map( 'sanitize_text_field', array_map( 'strval', $raw ) );
-		} else {
-			// textarea keeps newlines; everything else is a single line.
-			$value = ( 'textarea' === $allowed[ $key ]['type'] )
-				? sanitize_textarea_field( (string) $raw )
-				: sanitize_text_field( (string) $raw );
-		}
-
-		$is_empty = ( is_array( $value ) && ! $value ) || ( ! is_array( $value ) && '' === trim( $value ) );
-		if ( $is_empty ) {
-			// Required -> must answer. Optional submitted empty -> treat as a skip.
-			if ( $is_required ) {
-				return new \WP_REST_Response(
-					array( 'ok' => false, 'message' => __( 'This one is required.', 'cashaadi-ui' ) ),
-					200
-				);
-			}
-			self::mark_skipped( $field_id, $uid, true );
-			return new \WP_REST_Response( array( 'ok' => true, 'skipped' => true ), 200 );
-		}
-
-		// A real answer clears any earlier skip on this field.
-		self::mark_skipped( $field_id, $uid, false );
-
-		/*
-		 * datebox stores a datetime; the client sends YYYY-MM-DD from a native
-		 * date input. Normalise here rather than in JS, so the browser keeps the
-		 * picker it is good at and the storage format stays a server concern.
-		 */
-		if ( 'datebox' === $allowed[ $key ]['type'] && ! is_array( $value ) ) {
-			if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', trim( $value ), $m ) ) {
-				if ( ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
-					return new \WP_REST_Response(
-						array( 'ok' => false, 'message' => __( 'That date is not valid.', 'cashaadi-ui' ) ),
-						200
-					);
-				}
-				$value = trim( $value ) . ' 00:00:00';
+			if ( is_array( $raw ) ) {
+				$value = array_values( array_filter(
+					array_map( 'sanitize_text_field', array_map( 'strval', $raw ) ),
+					function ( $v ) { return '' !== trim( (string) $v ); }
+				) );
 			} else {
-				return new \WP_REST_Response(
-					array( 'ok' => false, 'message' => __( 'Please pick a date.', 'cashaadi-ui' ) ),
-					200
-				);
+				$value = ( 'textarea' === $f['type'] )
+					? sanitize_textarea_field( (string) $raw )
+					: sanitize_text_field( (string) $raw );
+			}
+
+			$is_empty = ( is_array( $value ) && ! $value ) || ( ! is_array( $value ) && '' === trim( (string) $value ) );
+			if ( $is_empty ) {
+				if ( ! empty( $f['required'] ) ) {
+					return new \WP_REST_Response( array(
+						'ok'      => false,
+						'message' => sprintf( __( '%s is required.', 'cashaadi-ui' ), $f['label'] ),
+						'field'   => $fid,
+					), 200 );
+				}
+				continue; // optional + blank: nothing to save
+			}
+
+			if ( 'datebox' === $f['type'] && ! is_array( $value ) ) {
+				if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', trim( $value ), $m ) ) {
+					if ( ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
+						return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That date is not valid.', 'cashaadi-ui' ), 'field' => $fid ), 200 );
+					}
+					$value = trim( $value ) . ' 00:00:00';
+				} else {
+					return new \WP_REST_Response( array( 'ok' => false, 'message' => sprintf( __( 'Please pick a valid date for %s.', 'cashaadi-ui' ), $f['label'] ), 'field' => $fid ), 200 );
+				}
+			}
+
+			if ( xprofile_set_field_data( $fid, $uid, $value ) ) {
+				$saved_ids[] = $fid;
 			}
 		}
 
-		$saved = xprofile_set_field_data( $field_id, $uid, $value );
-
 		/*
-		 * Fire the canonical profile-update hook the classic form and the editor
-		 * both fire. xprofile_set_field_data() by itself does NOT fire it in BP 14,
-		 * so without this the derived Age never recomputed during onboarding (the
-		 * one place it most needs to). sync_age reads only $uid; the other args are
-		 * the standard empty shape.
+		 * Fire the canonical profile-update hook once for the whole group, as the
+		 * classic form and editor do — xprofile_set_field_data() does not fire it
+		 * in BP 14, and the derived Age depends on it (sync_age reads only $uid).
 		 */
-		if ( $saved ) {
-			do_action( 'xprofile_updated_profile', $uid, array( $field_id ), array(), array(), array() );
+		if ( $saved_ids ) {
+			do_action( 'xprofile_updated_profile', $uid, $saved_ids, array(), array(), array() );
 		}
 
-		return new \WP_REST_Response( array(
-			'ok'      => (bool) $saved,
-			'message' => $saved ? '' : __( 'We could not save that. Please try again.', 'cashaadi-ui' ),
-		), 200 );
+		return new \WP_REST_Response( array( 'ok' => true ), 200 );
 	}
 
 	/* ----------------------------------------------------------- complete */

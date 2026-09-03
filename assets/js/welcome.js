@@ -123,7 +123,7 @@
 		err.setAttribute( 'role', 'alert' );
 		card.appendChild( err );
 
-		var field = ( 'photo' === s.type ) ? photoField( s, err ) : inputField( s );
+		var field = ( 'photo' === s.type ) ? photoField( s, err ) : groupField( s );
 		card.appendChild( field.node );
 
 		var nav = el( 'div', 'csm-w-nav' );
@@ -138,14 +138,6 @@
 		next.addEventListener( 'click', function () { submit( s, field, err, next ); } );
 		nav.appendChild( next );
 		card.appendChild( nav );
-
-		// Optional field steps can be passed on. The photo step has its own logic.
-		if ( 'photo' !== s.type && s.required === false ) {
-			var skip = el( 'button', 'csm-w-skip', 'Skip for now' );
-			skip.type = 'button';
-			skip.addEventListener( 'click', function () { skipStep( s, next, skip, err ); } );
-			card.appendChild( skip );
-		}
 
 		main.appendChild( card );
 
@@ -162,15 +154,19 @@
 
 	/* ------------------------------------------------------------ fields */
 
-	function inputField( s ) {
+	/**
+	 * One field's control (options as taps, or an input). Reads a FIELD object
+	 * from a group step, not the step itself.
+	 */
+	function fieldControl( f ) {
 		var wrap = el( 'div', 'csm-w-field' );
-		var opts = s.options || [];
+		var opts = f.options || [];
 		var node;
 
 		if ( opts.length ) {
 			// Options render as tap targets, not a dropdown — one thumb, one tap.
 			node = el( 'div', 'csm-w-opts' );
-			var chosen = s.value || '';
+			var chosen = f.value || '';
 			opts.forEach( function ( o ) {
 				var b = el( 'button', 'csm-w-opt' + ( o === chosen ? ' is-on' : '' ), o );
 				b.type = 'button';
@@ -193,22 +189,53 @@
 			};
 		}
 
-		if ( 'textarea' === s.type ) {
+		if ( 'textarea' === f.type ) {
 			node = el( 'textarea', 'csm-w-input' );
 			node.rows = 4;
 		} else {
 			node = el( 'input', 'csm-w-input' );
-			node.type = ( 'datebox' === s.type ) ? 'date'
-				: ( 'telephone' === s.type ) ? 'tel'
-				: ( 'number' === s.type ) ? 'number' : 'text';
+			node.type = ( 'datebox' === f.type ) ? 'date'
+				: ( 'telephone' === f.type ) ? 'tel'
+				: ( 'number' === f.type ) ? 'number' : 'text';
 		}
-		node.value = s.value || '';
+		node.value = f.value || '';
 		wrap.appendChild( node );
 
 		return {
 			node: wrap,
 			value: function () { return node.value; },
 			focus: function () { node.focus(); }
+		};
+	}
+
+	/**
+	 * A whole section: each of its fields, labelled, with one Continue. Required
+	 * fields must be answered; optional ones may be left blank.
+	 */
+	function groupField( s ) {
+		var wrap = el( 'div', 'csm-w-group' );
+		var controls = [];
+		( s.fields || [] ).forEach( function ( f ) {
+			var fw = el( 'div', 'csm-w-groupfield' );
+			var lbl = el( 'label', 'csm-w-flabel' );
+			lbl.appendChild( document.createTextNode( f.label ) );
+			if ( f.required ) { lbl.appendChild( el( 'span', 'csm-w-req', 'Required' ) ); }
+			fw.appendChild( lbl );
+			if ( f.help ) { fw.appendChild( el( 'p', 'csm-w-fhelp', f.help ) ); }
+			var ctl = fieldControl( f );
+			fw.appendChild( ctl.node );
+			wrap.appendChild( fw );
+			controls.push( { f: f, read: ctl.value } );
+		} );
+		return {
+			node: wrap,
+			controls: controls,
+			values: function () {
+				var m = {};
+				controls.forEach( function ( c ) { m[ c.f.id ] = c.read(); } );
+				return m;
+			},
+			focus: function () { var i = wrap.querySelector( 'input, textarea, .csm-w-opt' ); if ( i && i.focus ) { i.focus(); } }
 		};
 	}
 
@@ -419,24 +446,29 @@
 			return;
 		}
 
-		var val = field.value();
-		if ( ! val || ! String( val ).trim() ) {
+		// Group step: gather every field, require the mandatory ones.
+		var values = field.values();
+		var missing = null;
+		field.controls.forEach( function ( c ) {
+			if ( missing || ! c.f.required ) { return; }
+			var v = values[ c.f.id ];
+			var empty = ! v || ( typeof v === 'string' && ! v.trim() ) || ( Array.isArray( v ) && ! v.length );
+			if ( empty ) { missing = c.f; }
+		} );
+		if ( missing ) {
 			done();
-			// Optional: an empty Continue just skips. Required: must answer.
-			if ( s.required === false ) { return skipStep( s, button, null, err ); }
-			err.textContent = 'Please answer this to continue.';
+			err.textContent = missing.label + ' is required.';
 			return;
 		}
 
 		api( CFG.step, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify( { key: s.key, value: val } )
+			body: JSON.stringify( { key: s.key, fields: values } )
 		} ).then( function ( d ) {
 			done();
 			if ( d && d.ok ) {
-				steps[ idx ].value = val;
-				steps[ idx ].done  = true;
+				steps[ idx ].done = true;
 				return go( idx + 1 );
 			}
 			err.textContent = ( d && d.message ) || 'We could not save that. Please try again.';
