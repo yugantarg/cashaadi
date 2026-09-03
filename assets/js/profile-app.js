@@ -45,7 +45,13 @@
 		if ( d.city ) { head.appendChild( el( 'p', 'csm-p-city', d.city ) ); }
 
 		var badges = el( 'div', 'csm-p-badges' );
-		if ( d.verified ) { badges.appendChild( el( 'span', 'csm-p-badge is-verified', 'Verified CA' ) ); }
+		if ( d.verified ) {
+			badges.appendChild( el( 'span', 'csm-p-badge is-verified', 'Verified CA' ) );
+		} else if ( d.links && d.links.verify ) {
+			// Same spot as the "Verified CA" badge, but a call to action: a member
+			// who is not yet verified taps this to upload their ICAI proof.
+			badges.appendChild( link( 'csm-p-badge is-verify', d.links.verify, 'Verify now' ) );
+		}
 		if ( d.isPremium ) { badges.appendChild( el( 'span', 'csm-p-badge is-premium', 'Premium' ) ); }
 		if ( d.blurred ) { badges.appendChild( el( 'span', 'csm-p-badge', 'Photo blurred' ) ); }
 		if ( badges.children.length ) { head.appendChild( badges ); }

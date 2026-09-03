@@ -180,6 +180,11 @@ final class ProfileApp {
 				'public'   => $base,
 				'preview'  => home_url( '/profile/preview/' ),
 				'photos'   => $base . 'profile/change-avatar/',
+				// Where "Verify now" goes: the ICAI document upload (Verification
+				// group). Shown in place of the "Verified CA" badge until verified.
+				'verify'   => class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
+					? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( 10 )
+					: home_url( '/profile/edit/?g=10' ),
 				'settings' => class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
 					? \CAShaadi\Modules\Settings\SettingsScreen::url()
 					: $base . 'settings/',
