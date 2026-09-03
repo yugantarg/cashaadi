@@ -53,6 +53,10 @@ final class SettingsScreen {
 			self::render_notifications();
 			return;
 		}
+		if ( AppPage::claim( 'settings/visibility' ) ) {
+			self::render_visibility();
+			return;
+		}
 		if ( ! AppPage::claim( 'settings' ) ) {
 			return;
 		}
@@ -82,6 +86,31 @@ final class SettingsScreen {
 	 * renders and calls it, so there is one definition of what "blocked" means and
 	 * one code path that changes it.
 	 */
+	/**
+	 * Who can see each profile field — rebuilt as an app screen.
+	 *
+	 * Owner: the old "Field visibility" link dropped members onto BuddyPress's
+	 * own settings/profile page, a wall of "Select visibility" dropdowns with the
+	 * chosen level clipped out of view. This renders the same choice per field as
+	 * a readable list. BuddyPress still owns the levels and the stored value; this
+	 * only presents them.
+	 */
+	private static function render_visibility() {
+		AppPage::assets();
+		Assets::style( 'settings-app', 'assets/css/settings-app.css', array( 'cashaadi-app-screens' ) );
+		Assets::script( 'visibility-app', 'assets/js/visibility-app.js', array( 'cashaadi-app-screens' ) );
+		wp_localize_script( 'cashaadi-visibility-app', 'CSM_VIS', array(
+			'nonce'    => wp_create_nonce( 'wp_rest' ),
+			'get'      => rest_url( 'csm/v1/settings/visibility' ),
+			'settings' => self::url(),
+		) );
+
+		AppPage::open( __( 'Who sees what', 'cashaadi-ui' ), 'profile' );
+		echo '<div id="csm-visibility-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
+		AppPage::close( 'profile' );
+		exit;
+	}
+
 	private static function render_blocked() {
 		AppPage::assets();
 		Assets::style( 'settings-app', 'assets/css/settings-app.css', array( 'cashaadi-app-screens' ) );
@@ -241,11 +270,104 @@ final class SettingsScreen {
 			'permission_callback' => 'is_user_logged_in',
 		) );
 
+		register_rest_route( 'csm/v1', '/settings/visibility', array(
+			'methods'             => array( 'GET', 'POST' ),
+			'callback'            => array( __CLASS__, 'rest_visibility' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+
 		register_rest_route( 'csm/v1', '/settings', array(
 			'methods'             => 'GET',
 			'callback'            => array( __CLASS__, 'rest_get' ),
 			'permission_callback' => 'is_user_logged_in',
 		) );
+	}
+
+	/** The visibility levels BuddyPress offers, id + label. */
+	private static function visibility_levels() {
+		if ( function_exists( 'bp_xprofile_get_visibility_levels' ) ) {
+			$out = array();
+			foreach ( (array) bp_xprofile_get_visibility_levels() as $id => $lvl ) {
+				$out[] = array( 'id' => (string) $id, 'label' => isset( $lvl['label'] ) ? (string) $lvl['label'] : (string) $id );
+			}
+			if ( $out ) {
+				return $out;
+			}
+		}
+		return array(
+			array( 'id' => 'public', 'label' => __( 'Everyone', 'cashaadi-ui' ) ),
+			array( 'id' => 'loggedin', 'label' => __( 'All members', 'cashaadi-ui' ) ),
+			array( 'id' => 'adminsonly', 'label' => __( 'Only me', 'cashaadi-ui' ) ),
+		);
+	}
+
+	/**
+	 * GET: every field with its current visibility level. POST: set one field's
+	 * level. BuddyPress owns the levels and the write; we only present + relay.
+	 */
+	public static function rest_visibility( $request ) {
+		$uid    = get_current_user_id();
+		$levels = self::visibility_levels();
+
+		if ( 'POST' === $request->get_method() ) {
+			$fid   = (int) $request->get_param( 'field' );
+			$level = sanitize_key( (string) $request->get_param( 'level' ) );
+			$valid = wp_list_pluck( $levels, 'id' );
+			if ( ! $fid || ! in_array( $level, $valid, true ) ) {
+				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'Bad request.', 'cashaadi-ui' ) ), 400 );
+			}
+			$field = class_exists( '\BP_XProfile_Field' ) ? \BP_XProfile_Field::get_instance( $fid ) : null;
+			if ( ! $field || 'allowed' !== $field->allow_custom_visibility ) {
+				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'This field cannot be changed.', 'cashaadi-ui' ) ), 400 );
+			}
+			if ( function_exists( 'xprofile_set_field_visibility_level' ) ) {
+				xprofile_set_field_visibility_level( $fid, $uid, $level );
+			}
+			return new \WP_REST_Response( array( 'ok' => true ), 200 );
+		}
+
+		// GET
+		$sections = array();
+		if ( function_exists( 'bp_xprofile_get_groups' ) ) {
+			$groups = bp_xprofile_get_groups( array( 'fetch_fields' => true ) );
+			$by_id  = array();
+			foreach ( (array) $groups as $g ) {
+				$by_id[ (int) $g->id ] = $g;
+			}
+			$order = \CAShaadi\Core\Config::GROUP_ORDER;
+			foreach ( array_keys( $by_id ) as $gid ) {
+				if ( ! in_array( $gid, $order, true ) ) {
+					$order[] = $gid;
+				}
+			}
+			foreach ( $order as $gid ) {
+				$gid = (int) $gid;
+				if ( empty( $by_id[ $gid ]->fields ) ) {
+					continue;
+				}
+				$rows = array();
+				foreach ( $by_id[ $gid ]->fields as $field ) {
+					$fid = (int) $field->id;
+					if ( $fid === \CAShaadi\Core\Config::FIELD_AGE ) {
+						continue; // auto-derived, not shown here
+					}
+					$level = function_exists( 'xprofile_get_field_visibility_level' )
+						? xprofile_get_field_visibility_level( $fid, $uid )
+						: ( isset( $field->default_visibility ) ? $field->default_visibility : 'public' );
+					$rows[] = array(
+						'id'     => $fid,
+						'label'  => (string) $field->name,
+						'level'  => (string) $level,
+						'locked' => ( 'allowed' !== $field->allow_custom_visibility ),
+					);
+				}
+				if ( $rows ) {
+					$sections[] = array( 'name' => (string) $by_id[ $gid ]->name, 'fields' => $rows );
+				}
+			}
+		}
+
+		return new \WP_REST_Response( array( 'ok' => true, 'levels' => $levels, 'sections' => $sections ), 200 );
 	}
 
 	public static function rest_get( $request ) {
@@ -311,7 +433,7 @@ final class SettingsScreen {
 					),
 					// FIELD visibility, not profile visibility: every profile is visible
 					// to everyone; this controls who sees each individual field.
-					array( 'label' => __( 'Field visibility', 'cashaadi-ui' ), 'value' => '', 'url' => $me . 'settings/profile/' ),
+					array( 'label' => __( 'Who sees what', 'cashaadi-ui' ), 'value' => '', 'url' => home_url( '/settings/visibility/' ) ),
 					array( 'label' => __( 'Blocked members', 'cashaadi-ui' ), 'value' => '', 'url' => home_url( '/settings/blocked/' ) ),
 				),
 			),

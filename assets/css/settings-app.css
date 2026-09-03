@@ -94,3 +94,49 @@
 }
 .csm-nt-switch.is-on .csm-nt-knob { transform: translateX(20px); }
 .csm-nt-input:disabled { cursor: default; }
+
+/* ---- Who sees what (field visibility, Wave 4) ------------------------ */
+.csm-vis-intro {
+	margin: 4px 0 18px;
+	font-size: 13.5px;
+	line-height: 1.5;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-vis-sec { margin: 0 0 22px; }
+.csm-vis-h {
+	margin: 0 0 8px;
+	font-family: var(--csm-serif, Georgia, serif);
+	font-size: 17px;
+	font-weight: 600;
+	color: var(--csm-blue, #2c5b8c);
+}
+.csm-vis-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 2px;
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+}
+.csm-vis-label { font-size: 15px; color: var(--csm-ink, #16212b); flex: 1 1 auto; }
+.csm-vis-select {
+	flex: 0 0 auto;
+	max-width: 46%;
+	padding: 8px 30px 8px 12px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7);
+	border-radius: 10px;
+	background: var(--csm-surface, #fff);
+	font-size: 14px;
+	color: var(--csm-ink, #16212b);
+	/* keep the chosen value fully visible — the old screen clipped it */
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235c6a76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+}
+.csm-vis-locked {
+	flex: 0 0 auto;
+	font-size: 13.5px;
+	color: var(--csm-muted, #5c6a76);
+	font-style: italic;
+}
