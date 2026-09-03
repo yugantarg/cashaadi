@@ -97,8 +97,12 @@ final class ProfileApp {
 	public static function rest_preview( $request ) {
 		unset( $request );
 		$uid = get_current_user_id();
-		// viewer 0 = a stranger, so restricted fields are hidden as they would be.
-		$p = Profile::full( $uid, 0 );
+		/*
+		 * Show the profile as another MEMBER sees it — not a logged-out stranger.
+		 * Passing 0 hid every "All members" field (Age among them), understating
+		 * the preview; VIEWER_MEMBER is a non-match logged-in member.
+		 */
+		$p = Profile::full( $uid, Profile::VIEWER_MEMBER );
 		return new \WP_REST_Response( array( 'ok' => true, 'profile' => $p ), 200 );
 	}
 

@@ -38,11 +38,53 @@ final class Profile {
 	 *
 	 * @return int[]
 	 */
+	/*
+	 * A stand-in "viewer" for the how-others-see-me preview: a logged-in member
+	 * who is not the owner and not a match. Passing 0 (a logged-OUT stranger) hid
+	 * every "All members" field — e.g. Age — which real members do in fact see,
+	 * so the preview understated what others get.
+	 */
+	const VIEWER_MEMBER = -1;
+
 	public static function hidden_for( $profile_id, $viewer_id ) {
+		if ( self::VIEWER_MEMBER === (int) $viewer_id ) {
+			return self::hidden_for_member( (int) $profile_id );
+		}
 		if ( ! function_exists( 'bp_xprofile_get_hidden_fields_for_user' ) ) {
 			return array();
 		}
 		return array_map( 'intval', (array) bp_xprofile_get_hidden_fields_for_user( (int) $profile_id, (int) $viewer_id ) );
+	}
+
+	/**
+	 * What a non-match logged-in member cannot see: fields set to "My matches"
+	 * (friends) or "Only me" (adminsonly), plus the app's always-private ones
+	 * (phone, exact DOB, and the verification documents). Public and "All
+	 * members" fields stay visible — which is the point: this restores Age and
+	 * any other member-visible detail to the preview.
+	 */
+	private static function hidden_for_member( $profile_id ) {
+		$hidden = array();
+		if ( function_exists( 'bp_xprofile_get_groups' ) && function_exists( 'xprofile_get_field_visibility_level' ) ) {
+			foreach ( (array) bp_xprofile_get_groups( array( 'fetch_fields' => true ) ) as $g ) {
+				foreach ( (array) ( isset( $g->fields ) ? $g->fields : array() ) as $f ) {
+					$level = xprofile_get_field_visibility_level( (int) $f->id, (int) $profile_id );
+					if ( 'friends' === $level || 'adminsonly' === $level ) {
+						$hidden[] = (int) $f->id;
+					}
+				}
+			}
+		}
+		$hidden[] = (int) Config::FIELD_PHONE;
+		$hidden[] = (int) Config::FIELD_DOB;
+		$hidden[] = (int) Config::FIELD_CA_DOC;
+		if ( function_exists( 'xprofile_get_field_id_from_name' ) ) {
+			$other = (int) xprofile_get_field_id_from_name( 'Other relevant documents' );
+			if ( $other ) {
+				$hidden[] = $other;
+			}
+		}
+		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
 	}
 
 	/** Centimetres to the imperial label used everywhere on this site. */
