@@ -422,9 +422,12 @@ final class SettingsScreen {
 				),
 			),
 			array(
-				'title' => __( 'Privacy & photos', 'cashaadi-ui' ),
+				// Photo MANAGEMENT lives in one place — Profile > My photos — so it is
+				// not repeated here (owner: "there is a lot of duplication ... do a
+				// redesign around this"). This section keeps only the privacy
+				// controls: the blur toggle, per-field visibility and the block list.
+				'title' => __( 'Privacy', 'cashaadi-ui' ),
 				'rows'  => array(
-					array( 'label' => __( 'Photos', 'cashaadi-ui' ), 'value' => '', 'url' => $photos ),
 					array(
 						'label' => __( 'Photo blur', 'cashaadi-ui' ),
 						'value' => '1' === (string) get_user_meta( $uid, 'csm_photo_private', true )

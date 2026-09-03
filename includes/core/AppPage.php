@@ -168,7 +168,7 @@ final class AppPage {
 			</button>
 		</header>
 
-		<?php self::menu(); ?>
+		<?php self::render_menu(); ?>
 
 		<main class="csm-app-main" id="csm-app-main">
 		<?php
@@ -188,7 +188,7 @@ final class AppPage {
 	 * Everything else — Discover, Requests, Messages, Profile — is a tab, and does
 	 * not belong in a menu as well.
 	 */
-	private static function menu() {
+	public static function render_menu() {
 		$uid = get_current_user_id();
 		$me  = function_exists( 'bp_members_get_user_url' ) && $uid
 			? trailingslashit( bp_members_get_user_url( $uid ) )
