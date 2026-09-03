@@ -282,6 +282,30 @@ final class AppShell {
 			'media'         => 'Photos',
 			'rtmedia'       => 'Photos',
 		);
+		/*
+		 * A settings SUB-screen names itself, not "Settings" (owner: "clicking on
+		 * settings takes me to settings but going back is also called settings?").
+		 * The page said "Settings" in the bar while offering "Back to settings" and
+		 * actually showing Email & Password — three different ideas, one word. The
+		 * bar now names the sub-screen, so "Back to settings" reads as the exit it
+		 * is.
+		 */
+		if ( 'settings' === $c && function_exists( 'bp_current_action' ) ) {
+			$sub = (string) bp_current_action();
+			$subs = array(
+				'general'       => __( 'Email & Password', 'cashaadi-ui' ),
+				'notifications' => __( 'Email notifications', 'cashaadi-ui' ),
+				'profile'       => __( 'Who sees what', 'cashaadi-ui' ),
+				'delete-account' => __( 'Delete account', 'cashaadi-ui' ),
+			);
+			if ( isset( $subs[ $sub ] ) ) {
+				return $subs[ $sub ];
+			}
+			if ( '' !== $sub ) {
+				return ucwords( str_replace( array( '-', '_' ), ' ', $sub ) );
+			}
+		}
+
 		if ( isset( $map[ $c ] ) ) {
 			return $map[ $c ];
 		}
