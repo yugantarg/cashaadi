@@ -172,17 +172,9 @@ final class Site {
 		if ( ! $uid ) {
 			return '';
 		}
-		// Only when the member genuinely has no photo of their own.
-		$has = function_exists( 'bp_get_user_has_avatar' ) && bp_get_user_has_avatar( $uid );
-		if ( ! $has ) {
-			$ids = get_user_meta( $uid, 'csm_photos', true );
-			if ( is_array( $ids ) && ! empty( $ids ) ) {
-				$has = true;
-			}
-		}
-		if ( $has ) {
-			return '';
-		}
+		// The caller only reaches here when the current avatar URL is already a
+		// placeholder (is_default_avatar), so there is no real photo to protect —
+		// resolve the member's gender and hand back the matching silhouette.
 		$raw = '';
 		if ( class_exists( '\BP_XProfile_ProfileData' ) ) {
 			$raw = (string) \BP_XProfile_ProfileData::get_value_byid( \CAShaadi\Core\Config::FIELD_GENDER, $uid );
@@ -200,8 +192,11 @@ final class Site {
 
 	/** Only swap when the current URL is a default/placeholder, not a real photo. */
 	private static function is_default_avatar( $url ) {
+		// mystery-man / gravatar default, AND this site's shared stand-in image
+		// (abstract-user-flat-*.png) that the member import set on everyone who
+		// arrived without a photo — the actual "no photo" case here.
 		return ( '' === $url )
-			|| (bool) preg_match( '#(gravatar\.com|mystery-?man|/buddypress/images/|/bp-core/images/|/mystery)#i', (string) $url );
+			|| (bool) preg_match( '#(gravatar\.com|mystery-?man|/buddypress/images/|/bp-core/images/|/mystery|abstract-user-flat)#i', (string) $url );
 	}
 
 	public static function gendered_placeholder_url( $url, $params = array() ) {
