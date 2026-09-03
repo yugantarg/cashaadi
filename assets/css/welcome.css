@@ -236,3 +236,60 @@
 }
 .csm-w-skip:hover { color: var(--csm-ink, #16212b); }
 .csm-w-skip[disabled] { opacity: .5; cursor: default; }
+
+/* ---- Photo cropper + multi-photo (Wave 3) ---------------------------- */
+.csm-crop { width: 100%; }
+.csm-crop-frame {
+	position: relative;
+	width: 100%;
+	max-width: 320px;
+	margin: 0 auto;
+	overflow: hidden;
+	border-radius: 16px;
+	background: var(--csm-hair, #e4eaf0);
+	touch-action: none;            /* we handle pan/pinch ourselves */
+	cursor: grab;
+	user-select: none;
+}
+.csm-crop-frame:active { cursor: grabbing; }
+.csm-crop-img {
+	position: absolute;
+	top: 0; left: 0;
+	transform-origin: 0 0;
+	will-change: transform;
+	max-width: none;               /* we size it explicitly */
+	pointer-events: none;
+}
+.csm-crop-hint {
+	margin: 8px 0 0;
+	text-align: center;
+	font-size: 12.5px;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-crop-zoom { display: block; width: 100%; max-width: 320px; margin: 10px auto 0; }
+.csm-w-cropactions { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; }
+.csm-w-cropactions .csm-w-next { margin: 0; }
+.csm-w-cropactions .csm-w-skip { margin: 0; }
+
+.csm-w-thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
+.csm-w-thumb {
+	position: relative;
+	width: 72px; height: 90px;
+	border-radius: 10px;
+	overflow: hidden;
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	background: var(--csm-hair, #e4eaf0);
+}
+.csm-w-thumb.is-main { border-color: var(--csm-blue, #2c5b8c); border-width: 2px; }
+.csm-w-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.csm-w-thumb-main {
+	position: absolute; left: 0; right: 0; bottom: 0;
+	background: var(--csm-blue, #2c5b8c); color: #fff;
+	font-size: 10px; font-weight: 700; text-align: center; padding: 2px 0;
+}
+.csm-w-thumb-x {
+	position: absolute; top: 2px; right: 2px;
+	width: 20px; height: 20px; border: 0; border-radius: 50%;
+	background: rgba(10,16,22,.6); color: #fff;
+	font-size: 15px; line-height: 20px; cursor: pointer; padding: 0;
+}

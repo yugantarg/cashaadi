@@ -223,62 +223,108 @@
 	function photoField( s, err ) {
 		var wrap = el( 'div', 'csm-w-photo' );
 
-		var preview = el( 'div', 'csm-w-preview' );
-		var img = el( 'img', 'csm-w-preview-img' );
-		img.alt = '';
-		img.style.display = 'none';
-		preview.appendChild( img );
-		var ph = el( 'span', 'csm-w-preview-ph', 'No photo yet' );
-		preview.appendChild( ph );
-		wrap.appendChild( preview );
+		// Thumbnails of chosen photos; the first is the main (avatar).
+		var strip = el( 'div', 'csm-w-thumbs' );
+		wrap.appendChild( strip );
 
-		var pick = el( 'label', 'csm-w-pick', 'Choose a photo' );
+		// Where the cropper mounts while a photo is being positioned.
+		var cropHost = el( 'div', 'csm-w-crophost' );
+		cropHost.style.display = 'none';
+		wrap.appendChild( cropHost );
+
+		var note = el( 'p', 'csm-w-note' );
+		wrap.appendChild( note );
+
 		var file = el( 'input' );
 		file.type = 'file';
 		file.accept = 'image/*';
 		file.className = 'csm-w-file';
-		pick.appendChild( file );
-		wrap.appendChild( pick );
+		file.style.display = 'none';
+		wrap.appendChild( file );
 
-		// Advisory, not an error — see the change handler below.
-		var note = el( 'p', 'csm-w-note' );
-		wrap.appendChild( note );
+		var addBtn = el( 'button', 'csm-w-pick' );
+		addBtn.type = 'button';
+		addBtn.textContent = 'Choose a photo';
+		wrap.appendChild( addBtn );
 
-		var uploaded = !! s.done;
+		var photos = [];          // { blob, url }
+		var uploaded = !! s.done;  // an earlier onboarding already uploaded
+		var activeCrop = null;
+
+		function renderThumbs() {
+			strip.innerHTML = '';
+			photos.forEach( function ( p, i ) {
+				var t = el( 'div', 'csm-w-thumb' + ( i === 0 ? ' is-main' : '' ) );
+				var im = el( 'img' ); im.src = p.url; t.appendChild( im );
+				if ( i === 0 ) { t.appendChild( el( 'span', 'csm-w-thumb-main', 'Main' ) ); }
+				var x = el( 'button', 'csm-w-thumb-x' ); x.type = 'button';
+				x.setAttribute( 'aria-label', 'Remove photo' ); x.innerHTML = '&times;';
+				x.onclick = function () { photos.splice( i, 1 ); renderThumbs(); syncAdd(); };
+				t.appendChild( x );
+				strip.appendChild( t );
+			} );
+		}
+
+		function syncAdd() {
+			var max = CFG.photoMax || 6;
+			addBtn.textContent = photos.length ? '+ Add another photo' : 'Choose a photo';
+			addBtn.style.display = photos.length >= max ? 'none' : '';
+			note.textContent = photos.length
+				? ( photos.length + ' of ' + max + ' photos' )
+				: 'Add at least one. Drag to reposition, pinch or slide to zoom.';
+			if ( photos.length ) { uploaded = false; }
+		}
+
+		addBtn.addEventListener( 'click', function () { file.value = ''; file.click(); } );
 
 		file.addEventListener( 'change', function () {
 			var f = file.files && file.files[0];
 			if ( ! f ) { return; }
 			err.textContent = '';
-			var url = URL.createObjectURL( f );
-			img.src = url;
-			img.style.display = 'block';
-			ph.style.display = 'none';
-			uploaded = false;
-
-			/* Say so if the photo is small, but do not block on it — prepare()
-			   scales it up so BuddyPress accepts it. This is a note, not an error:
-			   a sharper photo is better, and they may have a better one to hand. */
-			var probe = new Image();
-			probe.onload = function () {
-				var minW = ( CFG.minPhoto && CFG.minPhoto.w ) || 1080;
-				var minH = ( CFG.minPhoto && CFG.minPhoto.h ) || 1350;
-				if ( probe.naturalWidth < minW || probe.naturalHeight < minH ) {
-					note.textContent = 'This photo is a little small, so it may look soft. '
-						+ 'A larger one will look sharper.';
-				} else {
-					note.textContent = '';
-				}
-			};
-			probe.src = url;
+			startCrop( f );
 		} );
 
-		// Blur choice, offered here rather than buried in settings. Default off:
-		// the meta is simply absent until opted in.
+		function startCrop( f ) {
+			// Fallback: if the cropper module did not load, use the file as-is so a
+			// member is never blocked on this mandatory step.
+			if ( typeof window.csmCropper !== 'function' ) {
+				photos.push( { blob: f, url: URL.createObjectURL( f ) } );
+				renderThumbs(); syncAdd();
+				return;
+			}
+			cropHost.innerHTML = '';
+			cropHost.style.display = 'block';
+			addBtn.style.display = 'none';
+			window.csmCropper( f, { aspect: CFG.cropAspect || 0.8, outW: CFG.cropOutW || 1080 } ).then( function ( cr ) {
+				activeCrop = cr;
+				cropHost.appendChild( cr.node );
+				var actions = el( 'div', 'csm-w-cropactions' );
+				var use = el( 'button', 'csm-w-next', 'Use photo' ); use.type = 'button';
+				var cancel = el( 'button', 'csm-w-skip', 'Cancel' ); cancel.type = 'button';
+				use.onclick = function () {
+					cr.export().then( function ( blob ) {
+						if ( ! blob ) { return; }
+						photos.push( { blob: blob, url: URL.createObjectURL( blob ) } );
+						endCrop(); renderThumbs(); syncAdd();
+					} );
+				};
+				cancel.onclick = function () { endCrop(); syncAdd(); };
+				actions.appendChild( use ); actions.appendChild( cancel );
+				cropHost.appendChild( actions );
+			} ).catch( function () {
+				endCrop();
+				err.textContent = 'Could not open that image. Please try another.';
+			} );
+		}
+
+		function endCrop() {
+			if ( activeCrop ) { try { activeCrop.destroy(); } catch ( e ) {} activeCrop = null; }
+			cropHost.innerHTML = ''; cropHost.style.display = 'none'; addBtn.style.display = '';
+		}
+
+		// Blur choice, offered here rather than buried in settings.
 		var blurWrap = el( 'label', 'csm-w-blur' );
-		var cb = el( 'input' );
-		cb.type = 'checkbox';
-		cb.checked = blurred;
+		var cb = el( 'input' ); cb.type = 'checkbox'; cb.checked = blurred;
 		blurWrap.appendChild( cb );
 		var bt = el( 'span' );
 		bt.appendChild( el( 'strong', null, 'Blur my photo for people I have not matched with' ) );
@@ -286,62 +332,19 @@
 		blurWrap.appendChild( bt );
 		wrap.appendChild( blurWrap );
 
+		syncAdd();
+
 		return {
 			node: wrap,
 			isPhoto: true,
-			hasFile: function () { return !! ( file.files && file.files[0] ); },
+			hasAny: function () { return photos.length > 0; },
 			alreadyDone: function () { return uploaded; },
-			file: function () { return file.files[0]; },
-			/**
-			 * What we actually upload.
-			 *
-			 * A photo that already clears BuddyPress's floor is sent BYTE FOR
-			 * BYTE — no canvas, no re-encode, so the only compression it ever
-			 * sees is the single resize BuddyPress does server-side.
-			 *
-			 * A photo below the floor would be rejected outright, and this is a
-			 * step nobody can skip, so it is scaled up to just clear it. That is
-			 * soft, and it is meant to be a last resort — but it displays at the
-			 * same size either way, and the alternative for that member is not
-			 * being able to finish signing up at all.
-			 */
-			prepare: function () {
-				var f = file.files[0];
-				var minW = ( CFG.minPhoto && CFG.minPhoto.w ) || 1080;
-				var minH = ( CFG.minPhoto && CFG.minPhoto.h ) || 1350;
-
-				return new Promise( function ( resolve ) {
-					var probe = new Image();
-					probe.onload = function () {
-						var w = probe.naturalWidth, h = probe.naturalHeight;
-						if ( w >= minW && h >= minH ) { return resolve( f ); }
-
-						var scale = Math.max( minW / w, minH / h );
-						var cv = document.createElement( 'canvas' );
-						cv.width  = Math.ceil( w * scale );
-						cv.height = Math.ceil( h * scale );
-						var ctx = cv.getContext( '2d' );
-						ctx.imageSmoothingEnabled = true;
-						ctx.imageSmoothingQuality = 'high';
-						ctx.drawImage( probe, 0, 0, cv.width, cv.height );
-						// 0.95 so our own re-encode costs as little as possible on
-						// top of the server-side one.
-						cv.toBlob( function ( b ) { resolve( b || f ); }, 'image/jpeg', 0.95 );
-					};
-					probe.onerror = function () { resolve( f ); };
-					probe.src = URL.createObjectURL( f );
-				} );
-			},
+			photos: function () { return photos.map( function ( p ) { return p.blob; } ); },
 			blur: function () { return cb.checked; },
-			markDone: function () { uploaded = true; },
-			showUploaded: function ( url ) {
-				if ( ! url ) { return; }
-				img.src = url;
-				img.style.display = 'block';
-				ph.style.display = 'none';
-			}
+			markDone: function () { uploaded = true; }
 		};
 	}
+
 
 	/* ------------------------------------------------------------ submit */
 
@@ -382,48 +385,37 @@
 			} ).catch( function () {} );
 			blurred = field.blur();
 
-			if ( ! field.hasFile() ) {
+			if ( ! field.hasAny() ) {
 				if ( field.alreadyDone() ) { done(); return go( idx + 1 ); }
 				done();
-				err.textContent = 'Please choose a photo to continue.';
+				err.textContent = 'Please add at least one photo to continue.';
 				return;
 			}
 
-			field.prepare().then( function ( upload ) {
+			/*
+			 * All photos go to the gallery in one request. The gallery makes the
+			 * first the avatar for a member who had none (Gallery::ajax_upload), so
+			 * the main photo and the photo stack stay consistent — the wizard no
+			 * longer posts to BuddyPress's avatar endpoint separately.
+			 */
+			var blobs = field.photos();
 			var fd = new FormData();
-			fd.append( 'file', upload, 'photo.jpg' );
-			/* Required by BuddyPress. Its endpoint hands the upload to
-			   wp_handle_upload(), which tests $_POST['action'] against the
-			   attachment's own action name and otherwise rejects the whole thing
-			   as "Invalid form submission" — verified live, 2026-09-01. */
-			fd.append( 'action', 'bp_avatar_upload' );
+			fd.append( 'action', 'csm_ph_upload' );
+			fd.append( 'nonce', CFG.photoNonce );
+			blobs.forEach( function ( b, i ) { fd.append( 'photos[]', b, 'photo' + ( i + 1 ) + '.jpg' ); } );
 
-			api( CFG.avatar, { method: 'POST', body: fd } ).then( function ( d ) {
-				done();
-				/* Success is an ARRAY of size variants — [{full, thumb}] — not an
-				   object. Checking for d.full alone silently treated every
-				   successful upload as a failure. */
-				var ok = ( Array.isArray( d ) && d[0] && d[0].full ) || ( d && d.full );
-				if ( ok ) {
-					field.markDone();
-					field.showUploaded( Array.isArray( d ) ? d[0].full : d.full );
-					steps[ idx ].done = true;
-					return go( idx + 1 );
-				}
-				if ( d && 'image_too_small' === ( d.data && d.data.reason ) ) {
-					err.textContent = 'That photo is too small. Please choose one at least '
-						+ ( d.data.min_width || 896 ) + ' × ' + ( d.data.min_height || 1024 ) + ' pixels.';
-					return;
-				}
-				offerFallback( err, d );
-			} ).catch( function () {
-				done();
-				offerFallback( err, null );
-			} );
-			} ).catch( function () {
-				done();
-				offerFallback( err, null );
-			} );
+			fetch( CFG.photoAjax, { method: 'POST', credentials: 'same-origin', body: fd } )
+				.then( function ( r ) { return r.json(); } )
+				.then( function ( d ) {
+					done();
+					if ( d && d.success ) {
+						field.markDone();
+						steps[ idx ].done = true;
+						return go( idx + 1 );
+					}
+					offerFallback( err, d && d.data );
+				} )
+				.catch( function () { done(); offerFallback( err, null ); } );
 			return;
 		}
 

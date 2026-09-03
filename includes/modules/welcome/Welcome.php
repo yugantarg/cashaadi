@@ -126,9 +126,11 @@ final class Welcome {
 					)
 				)
 			);
-			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking' ) );
+			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking', 'cashaadi-cropper' ) );
 		} else {
-			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js' );
+			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-cropper' ) );
 		}
 
 		wp_localize_script(
@@ -150,6 +152,15 @@ final class Welcome {
 				'fallback' => function_exists( 'bp_members_get_user_url' )
 					? trailingslashit( bp_members_get_user_url( get_current_user_id() ) ) . 'profile/change-avatar/'
 					: '',
+				// Extra photos go to the gallery (the main one is the avatar). Same
+				// admin-ajax uploader the profile gallery uses.
+				'photoAjax'  => admin_url( 'admin-ajax.php' ),
+				'photoNonce' => wp_create_nonce( 'csm_ph' ),
+				'photoMax'   => class_exists( '\CAShaadi\Modules\Photos\Gallery' )
+					? \CAShaadi\Modules\Photos\Gallery::max() : 6,
+				// Portrait crop that clears the avatar floor (1080x1350 = 4:5).
+				'cropAspect' => 0.8,
+				'cropOutW'   => 1080,
 			)
 		);
 	}
