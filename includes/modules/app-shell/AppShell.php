@@ -256,6 +256,13 @@ final class AppShell {
 			);
 		}
 		echo '</nav>';
+
+		// The app menu renders here, at body level — NOT inside #item-header where
+		// the Messages screen's own CSS (#item-header > *:not(.csm-topbar)) would
+		// hide it. Its hamburger lives in the top bar; the toggle finds both by id.
+		if ( class_exists( '\CAShaadi\Core\AppPage' ) ) {
+			\CAShaadi\Core\AppPage::render_menu();
+		}
 	}
 
 	/* ---- top bar (member pages only) ----------------------------------- */
@@ -318,9 +325,6 @@ final class AppShell {
 		echo '<button type="button" class="csm-topbar-act csm-app-menu-btn" id="csm-app-menu-btn" aria-expanded="false" aria-controls="csm-app-menu" aria-label="' . esc_attr__( 'Menu', 'cashaadi-ui' ) . '"><span></span><span></span><span></span></button>';
 		echo '</span>';
 		echo '</div>';
-		if ( class_exists( '\CAShaadi\Core\AppPage' ) ) {
-			\CAShaadi\Core\AppPage::render_menu();
-		}
 		unset( $settings_slug, $settings_url );
 	}
 
