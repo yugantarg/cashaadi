@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.87.0
+ * Version:           0.88.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -45,6 +45,7 @@ use CAShaadi\Modules\Onboarding\PhotoOptions;
 use CAShaadi\Modules\Welcome\Welcome;
 use CAShaadi\Modules\Media\MediaQuality;
 use CAShaadi\Modules\Tracking\TrackingSettings;
+use CAShaadi\Modules\Otp\OtpSettings;
 use CAShaadi\Modules\Discover\DiscoverScreen;
 use CAShaadi\Modules\MatchIntro\MatchIntro;
 use CAShaadi\Modules\Requests\RequestsScreen;
@@ -56,7 +57,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.87.0' );
+define( 'CASHAADI_UI_VER', '0.88.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -135,6 +136,12 @@ if ( class_exists( 'CAShaadi\\Modules\\Media\\MediaQuality' ) ) {
 // in wp-config. Constants still win where defined.
 if ( class_exists( 'CAShaadi\\Modules\\Tracking\\TrackingSettings' ) ) {
 	TrackingSettings::register();
+}
+
+// Phone-OTP (MSG91) credentials, entered in the admin instead of wp-config.
+// The admin page is always available; the OTP module itself stays flag-gated.
+if ( class_exists( 'CAShaadi\\Modules\\Otp\\OtpSettings' ) ) {
+	OtpSettings::register();
 }
 
 // Discover as a full scrollable profile card, rendered as its own document.

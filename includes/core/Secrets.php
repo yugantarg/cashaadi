@@ -38,15 +38,34 @@ final class Secrets {
 		// predating this plugin). Falling back to it means enabling OTP only
 		// requires the two values that are NOT yet in wp-config — the widget id
 		// and token auth — rather than re-entering the auth key.
-		return self::constant( 'MSG91_AUTHKEY' );
+		$legacy = self::constant( 'MSG91_AUTHKEY' );
+		if ( '' !== $legacy ) {
+			return $legacy;
+		}
+		return self::otp_option( 'authkey' );
 	}
 
 	public static function msg91_widget_id() {
-		return self::constant( 'CASHAADI_MSG91_WIDGET_ID' );
+		$c = self::constant( 'CASHAADI_MSG91_WIDGET_ID' );
+		if ( '' !== $c ) {
+			return $c;
+		}
+		return self::otp_option( 'widget_id' );
 	}
 
 	public static function msg91_token_auth() {
-		return self::constant( 'CASHAADI_MSG91_TOKEN_AUTH' );
+		$c = self::constant( 'CASHAADI_MSG91_TOKEN_AUTH' );
+		if ( '' !== $c ) {
+			return $c;
+		}
+		return self::otp_option( 'token_auth' );
+	}
+
+	/** The admin-entered OTP value (front end), or '' when the module is absent. */
+	private static function otp_option( $key ) {
+		return class_exists( '\CAShaadi\Modules\Otp\OtpSettings' )
+			? \CAShaadi\Modules\Otp\OtpSettings::get( $key )
+			: '';
 	}
 
 	/**
