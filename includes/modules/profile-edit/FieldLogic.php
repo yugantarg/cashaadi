@@ -34,6 +34,10 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_set_field_data_pre_validate', array( __CLASS__, 'gender_lock' ), 5, 3 );
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
+
+		// Belt and braces for the same problem: the filter above only hides the
+		// option, so a crafted POST could still store it.
+		add_action( 'xprofile_data_before_save', array( __CLASS__, 'reject_placeholder_value' ) );
 		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'profile_field_visibility' ), 10, 3 );
 		add_filter( 'bp_get_the_profile_field_value', array( __CLASS__, 'own_dob_as_date' ), 10, 3 );
 		// Age auto-syncs from DOB on every profile-update: the classic form, the
@@ -144,6 +148,31 @@ final class FieldLogic {
 			}
 		}
 		return array_values( $children );
+	}
+
+	/**
+	 * Never store a dropdown placeholder as an answer.
+	 *
+	 * drop_select_option() removes "Select" from the rendered choices, but that is
+	 * presentational: anything posting the field directly — a stale form, a
+	 * script, an import — could still save it, and 49 members already have it
+	 * stored from before that filter existed.
+	 *
+	 * Hooked on xprofile_data_before_save, which BP_XProfile_ProfileData::save()
+	 * fires (verified in BuddyPress 14 at class-bp-xprofile-profiledata.php:243)
+	 * and which every save path goes through — the BuddyPress forms, our REST
+	 * editors and the onboarding wizard alike. Blanking the value here means one
+	 * guard rather than one per screen.
+	 *
+	 * @param \BP_XProfile_ProfileData $data Passed by reference by BuddyPress.
+	 */
+	public static function reject_placeholder_value( $data ) {
+		if ( ! is_object( $data ) || ! isset( $data->value ) || is_array( $data->value ) ) {
+			return;
+		}
+		if ( \CAShaadi\Core\Profile::is_placeholder( $data->value ) ) {
+			$data->value = '';
+		}
 	}
 
 	/**

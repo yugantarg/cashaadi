@@ -59,12 +59,19 @@ final class Profile {
 	 * left the placeholder in place has not answered, and the progress meter
 	 * should say so rather than crediting them for it.
 	 *
+	 * DROPDOWN PLACEHOLDERS ONLY. An earlier version of this also treated "NA",
+	 * "None" and "N/A" as empty, which was wrong: in the data those appear only on
+	 * TEXTBOX fields (Other Qualifications, Father's Occupation, Company Name),
+	 * where a member typing "None" is genuinely answering the question. "Select"
+	 * appears only on selectboxes, where it can only mean the dropdown was never
+	 * opened. Hiding a member's real answer is worse than the problem being fixed.
+	 *
 	 * Only exact, case-insensitive matches: a real answer containing the word
 	 * ("Selected for audit") must survive.
 	 */
 	public static function is_placeholder( $value ) {
 		$v = strtolower( trim( (string) $value ) );
-		return in_array( $v, array( 'select', '-- select --', '--select--', 'select one', 'please select', 'n/a', 'na', 'none' ), true );
+		return in_array( $v, array( 'select', '-- select --', '--select--', 'select one', 'please select' ), true );
 	}
 
 	public static function hidden_for( $profile_id, $viewer_id ) {
