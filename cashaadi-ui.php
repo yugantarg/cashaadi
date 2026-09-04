@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.94.0
+ * Version:           0.95.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -57,13 +57,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.94.0' );
+define( 'CASHAADI_UI_VER', '0.95.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
 // Core layer (see docs/ARCHITECTURE.md). Autoloading a class defines nothing on
 // its own — core is a library that modules call; requiring it changes no behaviour.
 require_once CASHAADI_UI_DIR . 'includes/autoload.php';
+
+// Global functions the child theme and the Discover engine call by name
+// (cashaadi(), csm_user_profile_is_complete()). Both are function_exists-guarded,
+// so this is inert while the cashaadi() mu-plugin is still installed — mu-plugins
+// load first and their definitions win. Removing that file promotes these.
+require_once CASHAADI_UI_DIR . 'includes/core/globals.php';
 
 // Install/upgrade custom tables in one place. Schemas are registered by the
 // table-owning modules (premium, photos, block, emails) only when their flag is
