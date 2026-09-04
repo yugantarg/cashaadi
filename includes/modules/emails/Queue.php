@@ -570,7 +570,11 @@ final class Queue {
 	 * @param  string $type    Unique-per-event type key (see DEDUPE).
 	 * @param  string $subject Plain-text subject.
 	 * @param  string $body    HTML body.
-	 * @return bool   True when a row was queued (or already existed).
+	 * @return bool   True when a NEW row was queued. False when this event was
+	 *                already queued (the unique key refused the duplicate), or
+	 *                when the member is ineligible. Callers that ration sends —
+	 *                Engagement's daily ramp — count the trues, so "already
+	 *                queued" must not read as "queued one more".
 	 */
 	public static function notify( $user_id, $type, $subject, $body ) {
 		$user_id = (int) $user_id;
@@ -602,7 +606,7 @@ final class Queue {
 
 		$id = (int) $wpdb->insert_id;
 		if ( ! $id ) {
-			return true; // already queued for this event — nothing more to do
+			return false; // already queued for this event — nothing new was added
 		}
 
 		/*

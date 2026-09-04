@@ -198,7 +198,9 @@ final class Engagement {
 	/** "Your new profiles have arrived" — to everyone holding a fresh tray. */
 	private static function send_batch( $ist ) {
 		$week = strtolower( $ist->format( 'o-\WW' ) );
-		foreach ( self::members_with_pending() as $uid ) {
+		// Keyed viewer_id => pending count, so the KEY is the member.
+		foreach ( self::members_with_pending() as $uid => $count ) {
+			unset( $count );
 			if ( ! self::allowed( $uid, 'csm_email_batch' ) ) {
 				continue;
 			}
@@ -239,10 +241,35 @@ final class Engagement {
 	 * bands do not overlap, so a long-dormant member gets one email, not two.
 	 */
 	private static function send_idle( $ist ) {
+		/*
+		 * RAMP (owner decision, 2026-09-04). The first real run would otherwise
+		 * queue ~394 emails in one pass — 204 nudges and 190 win-backs out of 545
+		 * members, because most of the base is dormant. Mailing three quarters of
+		 * a list on one day, to people who have not heard from us in months, is
+		 * how a sending domain gets marked as spam — and the emails that would
+		 * suffer are the ones that matter, activation and match alerts.
+		 *
+		 * So idle mail is rationed per day. A member skipped today is picked up on
+		 * a later tick: the type key is per fortnight (nudge) or per month
+		 * (win-back), so the same cohort simply spreads across that window instead
+		 * of landing at once, and nobody is dropped.
+		 *
+		 * Counts only rows actually created — notify() returns false for a
+		 * duplicate, so days where most candidates are already queued still make
+		 * real progress instead of burning the budget on no-ops.
+		 */
+		$budget = (int) apply_filters( 'csm_engagement_idle_cap', 50 );
+		if ( $budget < 1 ) {
+			return;
+		}
+
 		$fortnight = $ist->format( 'o-' ) . str_pad( (string) (int) ceil( (int) $ist->format( 'W' ) / 2 ), 2, '0', STR_PAD_LEFT );
 		$month     = $ist->format( 'Y-m' );
 
 		foreach ( self::idle_members( 14, 59 ) as $uid ) {
+			if ( $budget < 1 ) {
+				return;
+			}
 			if ( ! self::allowed( $uid, 'csm_email_nudges' ) ) {
 				continue;
 			}
@@ -254,10 +281,15 @@ final class Engagement {
 				home_url( '/discover/' ),
 				'Log in and be seen'
 			);
-			Queue::notify( $uid, 'csm-nudge-' . $fortnight, 'Be seen by more members', $body );
+			if ( Queue::notify( $uid, 'csm-nudge-' . $fortnight, 'Be seen by more members', $body ) ) {
+				$budget--;
+			}
 		}
 
 		foreach ( self::idle_members( 60, 3650 ) as $uid ) {
+			if ( $budget < 1 ) {
+				return;
+			}
 			if ( ! self::allowed( $uid, 'csm_email_nudges' ) ) {
 				continue;
 			}
@@ -268,7 +300,9 @@ final class Engagement {
 				home_url( '/discover/' ),
 				'Come back'
 			);
-			Queue::notify( $uid, 'csm-winback-' . $month, 'Your profile is not being seen', $body );
+			if ( Queue::notify( $uid, 'csm-winback-' . $month, 'Your profile is not being seen', $body ) ) {
+				$budget--;
+			}
 		}
 	}
 
@@ -308,7 +342,8 @@ final class Engagement {
 			"SELECT user_id FROM {$wpdb->prefix}bp_activity
 			 WHERE type = 'last_activity'
 			 GROUP BY user_id
-			 HAVING MAX(date_recorded) BETWEEN %s AND %s",
+			 HAVING MAX(date_recorded) BETWEEN %s AND %s
+			 ORDER BY MAX(date_recorded) DESC",
 			$from,
 			$to
 		) );
