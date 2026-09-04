@@ -241,7 +241,7 @@ final class Nsfw {
 			if ( self::enforce() ) {
 				update_post_meta( $pid, '_csm_pm_prev_status', get_post_status( $pid ) );
 				wp_update_post( array( 'ID' => $pid, 'post_status' => 'private' ) );
-				self::notify( (int) get_post_field( 'post_author', $pid ), 'uploaded photo' );
+				self::notify( (int) get_post_field( 'post_author', $pid ), 'uploaded photo', (int) $pid );
 			}
 			return $d['minor'] ? 'flagged_minor' : 'flagged';
 		}
@@ -250,7 +250,16 @@ final class Nsfw {
 
 	/* ---- notify -------------------------------------------------------- */
 
-	private static function notify( $uid, $what ) {
+	/**
+	 * @param int    $uid  Member whose photo was hidden.
+	 * @param string $what Human label for the photo ("profile photo").
+	 * @param int    $ref  Attachment/post id when there is one, so the queue's
+	 *                     unique key gives one notice per photo. 0 for the avatar,
+	 *                     which has no post id — deduped per member per day
+	 *                     instead, since re-running moderation on the same avatar
+	 *                     should not mail them twice.
+	 */
+	private static function notify( $uid, $what, $ref = 0 ) {
 		$user = get_userdata( $uid );
 		if ( ! $user || ! is_email( $user->user_email ) ) {
 			return;
@@ -263,6 +272,18 @@ final class Nsfw {
 			. '<p>If you believe this was a mistake, please reply to this email or contact support and we will review it. '
 			. 'You can also upload a different photo from your profile.</p>'
 			. '<p style="color:#888;font-size:12px;margin-top:24px">This is an automated message from CA Shaadi.</p></div>';
+		// Queued, so the master switch governs it. The type carries the attachment
+		// id: one notice per hidden photo, and re-running moderation over the same
+		// photo cannot mail the member twice.
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
+			\CAShaadi\Modules\Emails\Queue::notify(
+				$uid,
+				$ref ? 'csm-nsfw-' . (int) $ref : 'csm-nsfw-avatar-' . current_time( 'Ymd' ),
+				'About your photo on CA Shaadi',
+				$body
+			);
+			return;
+		}
 		wp_mail( $user->user_email, 'About your photo on CA Shaadi', $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
 	}
 
@@ -368,7 +389,7 @@ final class Nsfw {
 			if ( 'private' !== get_post_status( $pid ) ) {
 				update_post_meta( $pid, '_csm_pm_prev_status', get_post_status( $pid ) );
 				wp_update_post( array( 'ID' => $pid, 'post_status' => 'private' ) );
-				self::notify( (int) get_post_field( 'post_author', $pid ), 'uploaded photo' );
+				self::notify( (int) get_post_field( 'post_author', $pid ), 'uploaded photo', (int) $pid );
 			}
 		}
 	}

@@ -69,6 +69,8 @@ final class Queue {
  scheduled_for DATETIME NULL,
  status VARCHAR(20) NOT NULL DEFAULT 'pending',
  note VARCHAR(191) NOT NULL DEFAULT '',
+ subject VARCHAR(255) NOT NULL DEFAULT '',
+ body LONGTEXT NULL,
  created_at DATETIME NULL,
  processed_at DATETIME NULL,
  PRIMARY KEY  (id),
@@ -437,6 +439,28 @@ final class Queue {
 		$plan  = self::plan();
 
 		foreach ( $rows as $r ) {
+			/*
+			 * Notification rows carry their own body and belong to no reminder
+			 * family, so none of the family/label logic below applies — it would
+			 * cancel them as "condition cleared". They also skip the one-per-day
+			 * reminder throttle: each notification has its own cap at the call
+			 * site (the viewed-you email is already once per member per day), and
+			 * suppressing a match alert because a reminder went out hours earlier
+			 * would be the wrong trade.
+			 */
+			if ( '' !== (string) $r->body ) {
+				if ( ! $live ) {
+					$out['simulated']++;
+					continue;
+				}
+				if ( self::deliver( $r ) ) {
+					$out['sent']++;
+				} else {
+					$out['failed']++;
+				}
+				continue;
+			}
+
 			$want  = isset( $types[ $r->email_type ] ) ? $types[ $r->email_type ]['family'] : '';
 			$label = function_exists( 'csm_profile_pending_label' ) ? csm_profile_pending_label( $r->user_id ) : '';
 			$now_f = self::family_for_label( $label );
@@ -520,6 +544,122 @@ final class Queue {
 	 * "Send now (test)" button in the monitor screen, one row per click.
 	 * Deliberately independent of the hourly queue so a test never drains the batch.
 	 */
+	/**
+	 * Queue a NOTIFICATION email — anything that is not one of the four planned
+	 * reminders: "someone viewed you", a photo request, an NSFW notice, a CA
+	 * verification outcome, and the engagement emails still to come.
+	 *
+	 * Why these go through the queue at all: they used to call wp_mail()
+	 * directly, which meant the master kill switch did not cover them. On
+	 * staging2 that sent "someone viewed your profile" to 97 real members
+	 * between 20 Aug and 4 Sep, because staging carries a clone of the real
+	 * member list and a live Brevo key. Routing them here makes one switch
+	 * govern every non-transactional email, and makes each one visible in the
+	 * Monitor before it goes anywhere.
+	 *
+	 * NOT for transactional mail. The activation code deliberately still calls
+	 * wp_mail() directly: it is user-initiated, expected within seconds, and
+	 * queueing it behind a paused switch would silently break every signup.
+	 *
+	 * DEDUPE: the table's UNIQUE KEY (user_id, email_type) is the idempotency
+	 * guard, so $type must already carry whatever makes this event unique —
+	 * "csm-viewed-20260904", "csm-photo-request-412". A repeat insert is
+	 * ignored rather than queueing a second copy.
+	 *
+	 * @param  int    $user_id Recipient.
+	 * @param  string $type    Unique-per-event type key (see DEDUPE).
+	 * @param  string $subject Plain-text subject.
+	 * @param  string $body    HTML body.
+	 * @return bool   True when a row was queued (or already existed).
+	 */
+	public static function notify( $user_id, $type, $subject, $body ) {
+		$user_id = (int) $user_id;
+		$type    = substr( sanitize_key( $type ), 0, 64 );
+		if ( ! $user_id || '' === $type || '' === trim( (string) $body ) ) {
+			return false;
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user || ! is_email( $user->user_email ) ) {
+			return false;
+		}
+		if ( get_user_meta( $user_id, 'csm_remail_optout', true ) ) {
+			return false;
+		}
+
+		global $wpdb;
+		$t     = self::table();
+		$mysql = current_time( 'mysql' );
+
+		// INSERT IGNORE: the unique key does the deduping, so a second call for
+		// the same event is a no-op rather than a duplicate email.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$t} (user_id, email_type, user_email, scheduled_for, status, note, subject, body, created_at)
+			 VALUES (%d, %s, %s, %s, 'pending', %s, %s, %s, %s)",
+			$user_id, $type, $user->user_email, $mysql, 'notification', substr( (string) $subject, 0, 255 ), (string) $body, $mysql
+		) );
+
+		$id = (int) $wpdb->insert_id;
+		if ( ! $id ) {
+			return true; // already queued for this event — nothing more to do
+		}
+
+		/*
+		 * Send straight away when sending is live. A notification is about
+		 * something that just happened, so waiting for the hourly cron would
+		 * make it stale. When the master switch is off the row simply stays
+		 * pending and visible — which is the whole point.
+		 */
+		if ( self::master_on() && ! self::dry_run() ) {
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ) );
+			if ( $row ) {
+				self::deliver( $row );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Send a stored-body row and record the outcome.
+	 *
+	 * Notification rows carry their own subject and body, so they do NOT go
+	 * through bp_send_email() — there is no BuddyPress email template for them.
+	 *
+	 * @return bool
+	 */
+	public static function deliver( $row ) {
+		global $wpdb;
+		$t     = self::table();
+		$mysql = current_time( 'mysql' );
+
+		delete_transient( 'csm_remail_mail_error' );
+
+		add_filter( 'wp_mail_content_type', array( __CLASS__, 'html_content_type' ) );
+		$sent = wp_mail( $row->user_email, (string) $row->subject, (string) $row->body );
+		remove_filter( 'wp_mail_content_type', array( __CLASS__, 'html_content_type' ) );
+
+		$transport = get_transient( 'csm_remail_mail_error' );
+		$ok        = ( $sent && empty( $transport ) );
+
+		$wpdb->update(
+			$t,
+			array(
+				'status'       => $ok ? 'sent' : 'failed',
+				'note'         => $ok ? 'notification' : substr( 'notification: ' . ( $transport ? $transport : 'wp_mail returned false' ), 0, 191 ),
+				'processed_at' => $mysql,
+			),
+			array( 'id' => (int) $row->id )
+		);
+
+		return $ok;
+	}
+
+	public static function html_content_type() {
+		return 'text/html';
+	}
+
 	public static function send_one( $id ) {
 		global $wpdb;
 		$t = self::table();
@@ -530,6 +670,12 @@ final class Queue {
 		if ( 'sent' === $r->status ) {
 			return 'That reminder was already sent.';
 		}
+		if ( '' !== (string) $r->body ) {
+			return self::deliver( $r )
+				? 'Test send accepted by the mailer for ' . $r->user_email . ' (' . $r->email_type . ').'
+				: 'TEST SEND FAILED for ' . $r->user_email . ' - see the row note.';
+		}
+
 		if ( ! function_exists( 'bp_send_email' ) ) {
 			return 'bp_send_email() is not available - BuddyPress emails are not loaded.';
 		}

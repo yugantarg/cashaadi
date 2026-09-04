@@ -203,6 +203,12 @@ final class CaCron {
 		$name    = $user->display_name ? $user->display_name : $user->user_login;
 		$subject = 'Your CA credentials are verified — CA Shaadi';
 		$body    = self::email_html( $name, home_url( '/' ) );
+		// Queued: a verification outcome is a notification, not a login-critical
+		// transactional mail, so it belongs under the master switch. One per
+		// member — the unique key stops a re-run mailing them twice.
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
+			return \CAShaadi\Modules\Emails\Queue::notify( $uid, 'csm-ca-verified', $subject, $body );
+		}
 		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
 		return wp_mail( $user->user_email, $subject, $body, $headers );
 	}

@@ -831,8 +831,17 @@ final class Premium {
 		$msg .= '<p style="color:#7a6f68;font-size:13px">You are receiving this because someone viewed your CA Shaadi profile. We send this at most once a day.</p>';
 		$msg .= '</div>';
 
-		add_filter( 'wp_mail_content_type', array( __CLASS__, 'pve_html_ct' ) );
-		wp_mail( $owner->user_email, $subject, $msg );
-		remove_filter( 'wp_mail_content_type', array( __CLASS__, 'pve_html_ct' ) );
+		/*
+		 * Through the queue, not wp_mail(): the master switch must govern every
+		 * notification. This one sent to 97 real members from STAGING between 20
+		 * Aug and 4 Sep, because staging carries a clone of the member list and a
+		 * live Brevo key, and nothing here consulted the kill switch.
+		 *
+		 * The type carries the date, so the table's unique key enforces the
+		 * once-a-day rule as well as the user-meta stamp above.
+		 */
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
+			\CAShaadi\Modules\Emails\Queue::notify( $viewed, 'csm-viewed-' . $today, $subject, $msg );
+		}
 	}
 }

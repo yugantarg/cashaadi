@@ -216,11 +216,16 @@ final class PhotoRequest {
 			return;
 		}
 		$viewer_name = bp_core_get_user_displayname( $viewer_id );
-		wp_mail(
-			$owner->user_email,
-			'New photo request on CAShaadi',
-			$viewer_name . ' has requested to view your photo. Log in to CAShaadi to approve or deny the request.'
-		);
+		$subject     = 'New photo request on CAShaadi';
+		$body        = $viewer_name . ' has requested to view your photo. Log in to CAShaadi to approve or deny the request.';
+
+		// Queued so the master switch governs it. The type carries the requester,
+		// so one email per requester and a repeated request cannot spam the owner.
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
+			\CAShaadi\Modules\Emails\Queue::notify( $owner_id, 'csm-photo-req-' . (int) $viewer_id, $subject, $body );
+			return;
+		}
+		wp_mail( $owner->user_email, $subject, $body );
 	}
 
 	private static function notify_requester( $requester_id, $owner_id ) {
@@ -229,10 +234,13 @@ final class PhotoRequest {
 			return;
 		}
 		$owner_name = bp_core_get_user_displayname( $owner_id );
-		wp_mail(
-			$req->user_email,
-			'Your photo request was approved',
-			$owner_name . ' approved your photo request. You can now view their photo on CAShaadi.'
-		);
+		$subject    = 'Your photo request was approved';
+		$body       = $owner_name . ' approved your photo request. You can now view their photo on CAShaadi.';
+
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
+			\CAShaadi\Modules\Emails\Queue::notify( $requester_id, 'csm-photo-ok-' . (int) $owner_id, $subject, $body );
+			return;
+		}
+		wp_mail( $req->user_email, $subject, $body );
 	}
 }
