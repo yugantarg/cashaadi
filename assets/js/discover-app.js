@@ -16,6 +16,8 @@
 
 	var profiles = [];
 	var idx = 0;
+	var acted = {};   // profile ids already liked/passed this session
+	var viewed = {};  // profile ids already reported as viewed, so nav doesn't re-post
 
 	function api( url, opts ) {
 		opts = opts || {};
@@ -154,16 +156,76 @@
 
 		pass.addEventListener( 'click', function () { act( p, 'pass' ); } );
 		like.addEventListener( 'click', function () { act( p, 'like' ); } );
+
+		/* Move through the tray WITHOUT deciding. The owner's rule: a member
+		   should be able to see all 5 before acting on any of them. Skipping is
+		   not a pass — nothing is written to the tray, and the profile is still
+		   there on the next visit. */
+		var prev = el( 'button', 'csm-d-btn csm-d-nav csm-d-prev' );
+		prev.type = 'button';
+		prev.setAttribute( 'aria-label', 'Previous profile' );
+		prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+		var next = el( 'button', 'csm-d-btn csm-d-nav csm-d-next' );
+		next.type = 'button';
+		next.setAttribute( 'aria-label', 'Next profile' );
+		next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
+		prev.disabled = ( step( -1 ) < 0 );
+		next.disabled = ( step( 1 ) < 0 );
+		prev.addEventListener( 'click', function () { go( -1 ); } );
+		next.addEventListener( 'click', function () { go( 1 ); } );
+
+		bar.appendChild( prev );
 		bar.appendChild( pass );
 		bar.appendChild( like );
+		bar.appendChild( next );
 		root.appendChild( bar );
 
 		window.scrollTo( 0, 0 );
+		report( p );
+	}
+
+	/* Index of the next un-acted profile in $dir, or -1 if there is none. */
+	function step( dir ) {
+		var i = idx + dir;
+		while ( i >= 0 && i < profiles.length ) {
+			if ( ! acted[ profiles[ i ].id ] ) { return i; }
+			i += dir;
+		}
+		return -1;
+	}
+
+	function go( dir ) {
+		var i = step( dir );
+		if ( i < 0 ) { return; }
+		idx = i;
+		draw();
+	}
+
+	/*
+	 * Tell the server this profile was actually put in front of the member —
+	 * which is what a "view" means here. Fired on draw, not on tray fill, because
+	 * filling happens server-side for members who may never open Discover.
+	 *
+	 * Once per profile per page load: paging back and forth must not inflate the
+	 * count. Failure is silent — a missed view is not worth interrupting anyone.
+	 */
+	function report( p ) {
+		if ( ! CFG.view || ! p || viewed[ p.id ] ) { return; }
+		viewed[ p.id ] = true;
+		api( CFG.view, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify( { profile_id: p.id } )
+		} ).catch( function () {} );
 	}
 
 	function act( p, what ) {
 		// Advance first: the next profile should appear the instant they tap.
-		idx++;
+		acted[ p.id ] = true;
+		var i = step( 1 );
+		if ( i < 0 ) { i = step( -1 ); }   // acted on the last one — fall back
+		idx = ( i < 0 ) ? profiles.length : i;
 		draw();
 
 		api( CFG.act, {

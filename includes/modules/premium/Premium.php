@@ -603,13 +603,27 @@ final class Premium {
 		if ( ! is_user_logged_in() || ! function_exists( 'bp_is_user' ) || ! bp_is_user() ) {
 			return;
 		}
-		$viewer = (int) get_current_user_id();
-		$viewed = (int) bp_displayed_user_id();
+		self::record_view( (int) get_current_user_id(), (int) bp_displayed_user_id() );
+	}
+
+	/**
+	 * Record that $viewer looked at $viewed.
+	 *
+	 * Parameterised so a view can be recorded from somewhere that is not a
+	 * BuddyPress member page — specifically the Discover screen, which renders a
+	 * full profile inline and therefore never sets bp_displayed_user_id(). One
+	 * definition of "a view happened", used by both entry points.
+	 *
+	 * @return bool True when a row was written.
+	 */
+	public static function record_view( $viewer, $viewed ) {
+		$viewer = (int) $viewer;
+		$viewed = (int) $viewed;
 		if ( ! $viewer || ! $viewed || $viewer === $viewed ) {
-			return;
+			return false;
 		}
 		if ( user_can( $viewer, 'manage_options' ) || user_can( $viewed, 'manage_options' ) ) {
-			return; // never record views by or of admins
+			return false; // never record views by or of admins
 		}
 		global $wpdb;
 		$t   = self::view_table();
@@ -621,6 +635,7 @@ final class Premium {
 			 ON DUPLICATE KEY UPDATE hits = hits + 1, last_at = VALUES(last_at)",
 			$viewer, $viewed, $now, $now
 		) );
+		return true;
 	}
 
 	private static function who_declined_me( $uid ) {
@@ -759,8 +774,19 @@ final class Premium {
 		if ( ! is_user_logged_in() || ! function_exists( 'bp_is_user' ) || ! bp_is_user() ) {
 			return;
 		}
-		$viewer = (int) get_current_user_id();
-		$viewed = function_exists( 'bp_displayed_user_id' ) ? (int) bp_displayed_user_id() : 0;
+		self::notify_view( (int) get_current_user_id(), (int) bp_displayed_user_id() );
+	}
+
+	/**
+	 * Tell $viewed that someone looked at them. At most one email per calendar
+	 * day, whatever the source.
+	 *
+	 * Parameterised alongside record_view() so the Discover screen can notify
+	 * without pretending to be a member page.
+	 */
+	public static function notify_view( $viewer, $viewed ) {
+		$viewer = (int) $viewer;
+		$viewed = (int) $viewed;
 		if ( ! $viewer || ! $viewed || $viewer === $viewed ) {
 			return;
 		}

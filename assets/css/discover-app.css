@@ -75,6 +75,20 @@
 .csm-d-like { border: 0; background: var(--csm-green, #6f9f2e); color: #fff; }
 .csm-d-like:hover { background: var(--csm-green-press, #5e8926); }
 
+/* ---- browse without deciding ----
+   Prev/Next move through the tray without writing anything. Deliberately
+   quieter and smaller than Pass/Like: skipping is navigation, deciding is the
+   point of the screen, and they must not read as equal choices. */
+.csm-d-nav {
+	width: 46px; height: 46px; align-self: center;
+	border: 1px solid var(--csm-hair, #e4eaf0);
+	background: transparent; color: var(--csm-muted, #5c6a76);
+	box-shadow: none;
+}
+.csm-d-nav svg { width: 20px; height: 20px; }
+.csm-d-nav:hover:not(:disabled) { border-color: var(--csm-faint, #93a2ae); color: var(--csm-ink, #16212b); }
+.csm-d-nav:disabled { opacity: .32; cursor: default; }
+
 /* ---- empty ---- */
 .csm-d-empty { max-width: 460px; margin: 0 auto; padding: 56px 24px; text-align: center; }
 .csm-d-empty h2 { margin: 0 0 8px; font-family: var(--csm-serif, Georgia, serif); font-size: 22px; font-weight: 500; }

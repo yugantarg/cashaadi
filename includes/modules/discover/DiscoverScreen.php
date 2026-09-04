@@ -50,6 +50,7 @@ final class DiscoverScreen {
 			'nonce' => wp_create_nonce( 'wp_rest' ),
 			'queue' => rest_url( 'csm/v1/discover/queue' ),
 			'act'   => rest_url( 'csm/v1/discover/act' ),
+			'view'  => rest_url( 'csm/v1/discover/view' ),
 		) );
 
 		AppPage::open( __( 'Discover', 'cashaadi-ui' ), 'discover' );
@@ -65,6 +66,15 @@ final class DiscoverScreen {
 			'methods'             => 'GET',
 			'callback'            => array( __CLASS__, 'rest_queue' ),
 			'permission_callback' => 'is_user_logged_in',
+		) );
+
+		register_rest_route( 'csm/v1', '/discover/view', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_view' ),
+			'permission_callback' => 'is_user_logged_in',
+			'args'                => array(
+				'profile_id' => array( 'required' => true ),
+			),
 		) );
 
 		register_rest_route( 'csm/v1', '/discover/act', array(
@@ -150,6 +160,53 @@ final class DiscoverScreen {
 			'premiumQuota' => 10,
 			'upgrade'   => site_url( '/membership-pricing/' ),
 		), 200 );
+	}
+
+	/**
+	 * A profile was actually put in front of the member.
+	 *
+	 * Owner's rule (2026-09-04): appearing in an active member's tray IS being
+	 * viewed, and the only ways to avoid triggering a view are to be inactive or
+	 * to never scroll your tray — both intentional. So this fires when the card
+	 * is drawn, not when the tray is filled: filling happens server-side and
+	 * would count members who never opened Discover.
+	 *
+	 * AUTHORISATION, same lesson as Discover::act(): without a tray check anyone
+	 * could POST arbitrary ids and spam "someone viewed your profile" emails to
+	 * the entire site. A pending row for this pair is the proof that we put the
+	 * profile in front of this member.
+	 *
+	 * The email itself is capped at one per member per calendar day inside
+	 * Premium::notify_view(), so a member scrolling five profiles does not send
+	 * five emails to the same person.
+	 */
+	public static function rest_view( $request ) {
+		$viewer = get_current_user_id();
+		$pid    = absint( $request->get_param( 'profile_id' ) );
+
+		if ( ! $viewer || ! $pid || $viewer === $pid ) {
+			return new \WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+
+		global $wpdb;
+		$tray = $wpdb->prefix . 'csm_tray';
+		$in   = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$tray} WHERE viewer_id = %d AND profile_id = %d AND status = 'pending'",
+			$viewer,
+			$pid
+		) );
+		if ( ! $in ) {
+			return new \WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+
+		if ( ! class_exists( '\CAShaadi\Modules\Premium\Premium' ) ) {
+			return new \WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+
+		\CAShaadi\Modules\Premium\Premium::record_view( $viewer, $pid );
+		\CAShaadi\Modules\Premium\Premium::notify_view( $viewer, $pid );
+
+		return new \WP_REST_Response( array( 'ok' => true ), 200 );
 	}
 
 	public static function rest_act( $request ) {
