@@ -406,24 +406,32 @@ the member themselves.
   tray, and `$served_week` counts rows by assignment week regardless of status,
   so no action a member takes earns them more profiles. Saving is quota-neutral.
   The real open questions are:
-  1. Does a saved profile stay visible in Discover, or move to a Saved list?
+  1. **Decided (owner, 2026-09-04): a saved profile moves to a Saved list on
+     the Requests screen**, which already collects received / sent / viewers.
+     Discover stays a one-at-a-time deck.
   2. Acting on it later must still work — `Discover::act()` now requires
      `status = 'pending'`, so it must accept `'saved'` too, or a member can
      never like someone they saved.
   3. Does saving count as a decision for the re-show gap below? (It should not
      — saving is explicitly "not yet decided".)
 
-- ⬜ **Re-show after a long gap (owner, 2026-09-04).** No duplicates now, but a
-  profile may be shown again after a big gap. `wp_csm_seen` already records
-  `last_seen_at` and `acted_at` per pair, so this is a filter on
-  `Seen::ids_for()`, not new plumbing: exclude only rows acted on within the
-  window, and let older ones back into the pool. Needs two owner decisions —
-  how long the gap is, and whether a **pass** ever expires or is permanent
-  (a like should stay excluded regardless: they already have a pending request).
+- ✅ **Re-show after a gap (owner decisions, 2026-09-04)** — shipped v0.91.0.
+  - **Only passes expire.** A like stays excluded permanently: that member
+    already has a pending match request with the profile, and re-serving someone
+    you have asked to match with reads as broken. Unacted rows stay excluded too
+    (they are still sitting in the tray).
+  - **Window: 1 month.** Shorter than the 3-month floor I offered, so it is a
+    `csm_pass_reshow_months` filter, not a hardcoded number — tunable without a
+    deploy if members start reporting repeats.
+  - Owner is aware of the trade-off: with a 5/week tray, a small eligible pool
+    and a 1-month window, a member who passes steadily will start seeing
+    previously-passed profiles again fairly often. Watch `wp_csm_seen` for
+    `times_served > 1` growth after cutover.
 
 - ⬜ **First-action explainer.** The first time a member clicks Like, Pass or
   Save for later, show a short popup saying what that action does — that Like
   sends a match request the other person can accept, that Pass is permanent and
   the profile will not return, and what Save keeps. Once per action per member
-  (user meta), never again. Pass being irreversible is the part people most need
+  (user meta) — **decided (owner, 2026-09-04): all three actions, first use of
+  each**, never again. Pass being irreversible is the part people most need
   told BEFORE they use it, not after.

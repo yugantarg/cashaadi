@@ -123,11 +123,25 @@ final class Seen {
 	}
 
 	/**
-	 * Every profile this viewer has already been shown — the refill exclusion.
+	 * Every profile this viewer may not be served again.
 	 *
-	 * Deliberately ALL of them, acted on or not: a profile sitting unacted in the
-	 * tray must not be served twice either, and that used to depend on the
+	 * Deliberately includes profiles with no decision yet: one sitting unacted in
+	 * the tray must not be served twice either, and that used to depend on the
 	 * pending-status query agreeing with reality.
+	 *
+	 * PASSES EXPIRE, LIKES DO NOT (owner decision, 2026-09-04). A pass older than
+	 * the window drops out of this list and the profile can be served again — the
+	 * member may well have changed their photos or details since. A like never
+	 * expires: that pair already has a pending match request, and re-serving
+	 * someone you have asked to match with reads as a bug, not a second chance.
+	 *
+	 * The window is a filter rather than a constant because the owner chose one
+	 * month, which is short for a 5-a-week tray: if members start seeing repeats,
+	 * this wants raising without a deploy.
+	 *
+	 *   add_filter( 'csm_pass_reshow_months', fn() => 6 );
+	 *
+	 * Returning 0 (or less) disables expiry entirely — passes become permanent.
 	 *
 	 * @return int[]
 	 */
@@ -136,11 +150,32 @@ final class Seen {
 			return array();
 		}
 		global $wpdb;
-		$t = self::table();
+		$t      = self::table();
+		$months = (int) apply_filters( 'csm_pass_reshow_months', 1 );
+
+		if ( $months < 1 ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$ids = $wpdb->get_col( $wpdb->prepare(
+				"SELECT profile_id FROM {$t} WHERE viewer_id = %d",
+				(int) $viewer_id
+			) );
+			return array_map( 'intval', (array) $ids );
+		}
+
+		/*
+		 * Cutoff computed in PHP, not with MySQL's NOW(): acted_at is written with
+		 * current_time( 'mysql' ), which is IST, while NOW() is whatever the
+		 * database server is set to. Mixing the two silently shifts the window.
+		 */
+		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $months . ' months', (int) current_time( 'timestamp' ) ) );
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$ids = $wpdb->get_col( $wpdb->prepare(
-			"SELECT profile_id FROM {$t} WHERE viewer_id = %d",
-			(int) $viewer_id
+			"SELECT profile_id FROM {$t}
+			 WHERE viewer_id = %d
+			   AND NOT ( action = 'passed' AND acted_at IS NOT NULL AND acted_at < %s )",
+			(int) $viewer_id,
+			$cutoff
 		) );
 		return array_map( 'intval', (array) $ids );
 	}
