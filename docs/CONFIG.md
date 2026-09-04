@@ -45,20 +45,36 @@ admin option:
 It has been readable to anyone with file access for as long as it has been
 there. Rotate it, and prefer the admin page over a constant from here on.
 
-## 2. Server cron
+## 2. Cron
 
-`DISABLE_WP_CRON = true` on **both** production and staging2, which means
-WordPress will not run scheduled tasks on page loads — a real cron must call
-`wp-cron.php`.
+`DISABLE_WP_CRON` differs per environment **on purpose**:
 
-- **Production: working.** Oldest due event was 8 minutes old when checked.
-- **staging2: NOT working.** Every event was overdue since 2026-09-02 — two
-  days — because no server cron is configured for it.
+| | setting | why |
+|---|---|---|
+| production | `true` | a real hPanel cron job calls wp-cron.php; healthy |
+| staging2 | `false` (2026-09-04) | there is no hPanel cron for staging2, and the box has no `crontab` binary or spool — Hostinger cron is hPanel-only. So WordPress runs cron on page loads instead |
 
-Nothing cron-driven runs on staging2: the reminder email queue, CA verification
-sweeps, PMPro expirations, Better Messages notifications, Wordfence scans. Worth
-knowing before testing anything that depends on a scheduled task, and worth
-fixing in hPanel → Advanced → Cron Jobs if staging is to behave like production.
+On staging that means cron advances **only when someone loads a page**. Fine for
+testing; the daily tick fires on the first visit after it comes due.
+
+Verified 2026-09-04: the ~47-event backlog (overdue since 2026-09-02) cleared,
+`csm_remail_cron` rescheduled hourly, `csm_engagement_daily` daily. `replan(1000)`
+scans all 545 members in 1.7s and `process()` returns `mode=paused` — both well
+inside a request.
+
+### ⚠️ staging mail sink — `wp-content/mu-plugins/00-staging-mail-sink.php`
+
+**Not in git. Must never reach production.**
+
+Enabling cron on staging immediately made Better Messages try to email real
+members about unread threads — it runs its own notification cron every 15
+minutes and is NOT governed by `csm_remail_master`. The sink defines `wp_mail()`
+in an mu-plugin so it loads before Brevo's pluggable definition (Brevo bypasses
+`pre_wp_mail` entirely), logs every message to
+`wp-content/staging-mail-sink.log`, and returns true so callers behave normally.
+
+It catches everything, including the activation email, which always sends by
+design. Delete the file to restore real sending on staging.
 
 ## 3. Database-side settings
 
