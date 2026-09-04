@@ -10,7 +10,7 @@ originals are still the ones running.
 
 | Path | Live original | Lines |
 |---|---|---|
-| `mu-plugins/cashaadi-discovery.php` | `wp-content/mu-plugins/` | 115 |
+| `mu-plugins/cashaadi-discovery.php` | **RETIRED 2026-09-04** — ported to `Core\Engine` + `core/globals.php` | 115 |
 | `child-theme/` | `wp-content/themes/buddyx-child/` | ~815 |
 | `snippets/11732.php` | WPCode snippet — Reminder Email Queue (Engine) | 1438 |
 | `snippets/11733.php` | WPCode snippet — Reminder Email Monitor (Admin) | 694 |

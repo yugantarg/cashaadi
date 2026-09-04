@@ -517,3 +517,39 @@ cancelled 86), and the Monitor page renders as admin — 679 KB, no fatals, h1
 `csm_remail_master` remains `0`. Nothing sends.
 
 wp-config backed up first to `wp-config.php.bak-20260904-082152`.
+
+## mu-plugin cutover — done 2026-09-04
+
+`wp-content/mu-plugins/cashaadi-discovery.php` is retired. Its logic is now
+`Core\Engine` plus `includes/core/globals.php`; staging2 has an **empty
+mu-plugins directory**, and every piece of live code is in git.
+
+Safe because of load order, not luck: mu-plugins load before regular plugins, so
+while the file existed its `cashaadi()` and `csm_user_profile_is_complete()`
+definitions won and the plugin's `function_exists`-guarded copies were inert.
+v0.95.0 shipped and changed nothing; **moving the file is what promoted them.**
+No window where both or neither were defined.
+
+Probed the same values either side of the move:
+
+| | before | after |
+|---|---|---|
+| `cashaadi()` defined in | mu-plugins/cashaadi-discovery.php | plugins/cashaadi-ui/includes/core/globals.php |
+| instance class | `CAShaadi_Discovery` | `CAShaadi\Core\Engine` |
+| `get_week_id()` | 2026-W36 | 2026-W36 |
+| `table('tray')` | wp_csm_tray | wp_csm_tray |
+| `get_opposite_gender(134)` | Female | Female |
+
+Then end-to-end on the ported engine: `csm_refill_tray(399)` inserted 5 rows
+stamped `2026-W36`, `wp_csm_seen` recorded them, and the child theme's
+`csm_user_profile_is_complete()` resolved through to
+`cashaadi_has_missing_required_fields()`. `/`, `/members/`, `/register/`,
+`/activate/`, `/wp-login.php` all 200; no references to `CAShaadi_Discovery`
+remain anywhere in themes, plugins or mu-plugins.
+
+**Rollback** is one command — the file was moved, not deleted:
+`mv wp-content/cashaadi-discovery.php.retired-20260904 wp-content/mu-plugins/`
+
+Kept as-is in the port: `log_event()` still writes to `wp_csm_event_log`, which
+does not exist. Porting was not the moment to change behaviour; deleting the
+dead logging is a separate decision.

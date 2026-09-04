@@ -83,7 +83,7 @@ except where noted.
 
 | Table | Owner |
 |---|---|
-| `wp_csm_tray`, `wp_csm_likes` | the `cashaadi()` mu-plugin — see `baseline/mu-plugins/` |
+| `wp_csm_tray`, `wp_csm_likes` | created outside the Migrator; helpers now in `Core\Engine` (mu-plugin retired 2026-09-04) |
 | `wp_csm_seen` | `Modules\Discover\Seen` |
 | `wp_csm_profile_views`, `wp_csm_rejections` | `Modules\Premium\Premium` |
 | `wp_csm_blocks` | `Modules\Block` |
