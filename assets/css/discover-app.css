@@ -10,7 +10,12 @@
 }
 
 /* ---- photo ---- */
-.csm-d-media { position: relative; line-height: 0; }
+/* overflow:hidden is insurance, not decoration. The overlay, the gradient and the
+   watermark are all positioned against THIS box, so if the photo ever renders
+   taller than it — a browser without aspect-ratio support, a stylesheet that
+   half-loads — the image spills past them and the card shows a name band floating
+   mid-photo. Clipping makes that impossible whatever the cause. */
+.csm-d-media { position: relative; line-height: 0; overflow: hidden; }
 /* The name overlay sits at the FOOT of the photo and the action bar is pinned to
    the foot of the screen, so on a tall photo the two landed on top of each other
    and the member's name was unreadable until you scrolled ~150px. Cap the photo
