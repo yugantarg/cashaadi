@@ -438,11 +438,17 @@ the member themselves.
 
 ## Engagement email programme (owner decisions, 2026-09-04)
 
-**Volume rule: a DAILY DIGEST for match activity**, not one email per event.
-Likes received, matches and message alerts batch into one email per day. A
-member hears about a match up to 24h late — the owner accepted that trade for
-lower unsubscribe risk. Transactional mail (verification outcome, password) is
-exempt and sends immediately.
+**Volume rule (revised by the owner, 2026-09-04): one email per like, sent
+immediately.** The digest idea was dropped on the owner's reasoning that a
+single member will not be liked by many people in a day — which the data
+supports: 137 likes across ~10 weeks and 275 active viewers, so a member
+receiving more than one like a day is rare. Instant beats batched here because
+the first hours after a request are when interest is highest.
+
+**The ONE daily-capped email is "someone viewed your profile"** — views are
+passive and repeatable, so they genuinely need a cap. That email already exists
+(`Premium::pve_notify`, capped to one per calendar day per member) and needs no
+new build. Transactional mail (verification outcome) is also immediate.
 
 **Opt-out: per-category toggles** on the existing Email notifications screen —
 matches / nudges / weekly batch as separate switches, so a member annoyed by one
@@ -454,8 +460,8 @@ kind does not unsubscribe from all of them.
 |---|---|---|
 | New batch has arrived | Weekly, on the Monday reset | Owner's original request |
 | Log in every 2 weeks to be shown more | Fortnightly, dormant-leaning | **Only honest because ranking makes activity a hard tier** — if that tier is ever removed, pull this email |
-| Someone liked you | → daily digest | Respect the premium gate: free members are told they have a request, never who |
-| It's a match | → daily digest | Pairs with the MatchIntro conversation seeding |
+| Someone liked you | Immediate | Respect the premium gate: free members are told they have a request, never who |
+| It's a match | Immediate | Pairs with the MatchIntro conversation seeding |
 | Weekly picks expiring | Weekly, before the Monday reset | Only when unacted rows remain |
 | Verification status changed | Immediate, transactional | ICAI approved/rejected — today a member gets no outcome at all |
 | Dormant win-back | 60+ days inactive | "You have dropped out of the active pool" — true, per the tier |
