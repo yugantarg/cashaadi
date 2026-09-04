@@ -553,3 +553,31 @@ remain anywhere in themes, plugins or mu-plugins.
 Kept as-is in the port: `log_event()` still writes to `wp_csm_event_log`, which
 does not exist. Porting was not the moment to change behaviour; deleting the
 dead logging is a separate decision.
+
+## Placeholder answers cleaned up — 2026-09-04
+
+Three selectboxes were authored with a literal option called "Select" on top of
+BuddyPress's own "----" placeholder, and unlike "----" it saved as a real
+answer. Members who never opened the dropdown had it stored: **Religion 26,
+Nuclear/Joint 19, Occupation Status 4 — 49 rows.**
+
+Closed at four levels:
+
+1. **Rendered choices** — `FieldLogic::drop_select_option()` has filtered it out
+   of the dropdowns since 2026-09-01. Verified: none of the three offers it.
+2. **Save** — `FieldLogic::reject_placeholder_value()` on
+   `xprofile_data_before_save`, which `BP_XProfile_ProfileData::save()` fires
+   (BuddyPress 14, class-bp-xprofile-profiledata.php:243) and every save path
+   goes through. Saving "Select" now stores nothing; "Joint" still stores.
+3. **Display and completion** — `Core\Profile::is_placeholder()`.
+4. **Existing data** — the 49 rows blanked, backed up first to
+   `wp_csm_placeholder_bak_20260904`.
+
+**Dropdown placeholders ONLY.** An earlier cut of `is_placeholder()` also
+matched "NA", "None" and "N/A". Those appear only on TEXTBOX fields — Other
+Qualifications, Father's Occupation, Company Name — where a member typing "None"
+is answering the question. 14 such rows exist and were deliberately left alone;
+hiding a real answer is worse than the bug being fixed.
+
+Production carries the same 49-row problem and will need the same cleanup at
+cutover — the code fixes deploy with git, the data does not.
