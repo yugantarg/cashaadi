@@ -394,3 +394,36 @@ BuddyPress consults in its loop AND the one `Core\Profile` filters through, so
 there is one answer to "may this viewer see this field" instead of two places to
 keep in step. Verified both ways: hidden from another member, still visible to
 the member themselves.
+
+---
+
+## Queued by the owner (2026-09-04)
+- ⬜ **"Save for later" as a third Discover action**, alongside Like and Pass.
+  Touches more than the button row: `wp_csm_tray.status` is an ENUM
+  (`pending`,`liked`,`passed`,`expired`) and needs a fourth value, and
+  `Seen.action` needs the same.
+  Quota is NOT a question — the weekly 5/10 is how many profiles enter the
+  tray, and `$served_week` counts rows by assignment week regardless of status,
+  so no action a member takes earns them more profiles. Saving is quota-neutral.
+  The real open questions are:
+  1. Does a saved profile stay visible in Discover, or move to a Saved list?
+  2. Acting on it later must still work — `Discover::act()` now requires
+     `status = 'pending'`, so it must accept `'saved'` too, or a member can
+     never like someone they saved.
+  3. Does saving count as a decision for the re-show gap below? (It should not
+     — saving is explicitly "not yet decided".)
+
+- ⬜ **Re-show after a long gap (owner, 2026-09-04).** No duplicates now, but a
+  profile may be shown again after a big gap. `wp_csm_seen` already records
+  `last_seen_at` and `acted_at` per pair, so this is a filter on
+  `Seen::ids_for()`, not new plumbing: exclude only rows acted on within the
+  window, and let older ones back into the pool. Needs two owner decisions —
+  how long the gap is, and whether a **pass** ever expires or is permanent
+  (a like should stay excluded regardless: they already have a pending request).
+
+- ⬜ **First-action explainer.** The first time a member clicks Like, Pass or
+  Save for later, show a short popup saying what that action does — that Like
+  sends a match request the other person can accept, that Pass is permanent and
+  the profile will not return, and what Save keeps. Once per action per member
+  (user meta), never again. Pass being irreversible is the part people most need
+  told BEFORE they use it, not after.

@@ -231,21 +231,6 @@ Worth adding before production.
 - ⬜ Accessibility pass; real-device QA; Notifications screen; promote to live.
 - ⬜ Fold remaining WPCode helpers into the plugin where sensible.
 
-## Phase 7 — Queued by the owner (2026-09-04)
-- ⬜ **"Save for later" as a third Discover action**, alongside Like and Pass.
-  Touches more than the button row: `wp_csm_tray.status` is an ENUM
-  (`pending`,`liked`,`passed`,`expired`) and needs a fourth value; `Seen.action`
-  needs the same; and the refill exclusion must decide whether a saved profile
-  stays out of future trays (it should — it has been seen) while remaining
-  reachable from a "Saved" list. Quota question for the owner: does saving spend
-  one of the weekly 5/10, or is it free?
-- ⬜ **First-action explainer.** The first time a member clicks Like, Pass or
-  Save for later, show a short popup saying what that action does — that Like
-  sends a match request the other person can accept, that Pass is permanent and
-  the profile will not return, and what Save keeps. Once per action per member
-  (user meta), never again. Pass being irreversible is the part people most need
-  told BEFORE they use it, not after.
-
 ---
 ### Verify against live before building (from the audit)
 Active plugins list · enabled BuddyPress components · PMPro levels · how the
