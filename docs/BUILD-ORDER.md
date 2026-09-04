@@ -435,3 +435,52 @@ the member themselves.
   (user meta) — **decided (owner, 2026-09-04): all three actions, first use of
   each**, never again. Pass being irreversible is the part people most need
   told BEFORE they use it, not after.
+
+## Engagement email programme (owner decisions, 2026-09-04)
+
+**Volume rule: a DAILY DIGEST for match activity**, not one email per event.
+Likes received, matches and message alerts batch into one email per day. A
+member hears about a match up to 24h late — the owner accepted that trade for
+lower unsubscribe risk. Transactional mail (verification outcome, password) is
+exempt and sends immediately.
+
+**Opt-out: per-category toggles** on the existing Email notifications screen —
+matches / nudges / weekly batch as separate switches, so a member annoyed by one
+kind does not unsubscribe from all of them.
+
+### To build
+
+| Email | Cadence | Notes |
+|---|---|---|
+| New batch has arrived | Weekly, on the Monday reset | Owner's original request |
+| Log in every 2 weeks to be shown more | Fortnightly, dormant-leaning | **Only honest because ranking makes activity a hard tier** — if that tier is ever removed, pull this email |
+| Someone liked you | → daily digest | Respect the premium gate: free members are told they have a request, never who |
+| It's a match | → daily digest | Pairs with the MatchIntro conversation seeding |
+| Weekly picks expiring | Weekly, before the Monday reset | Only when unacted rows remain |
+| Verification status changed | Immediate, transactional | ICAI approved/rejected — today a member gets no outcome at all |
+| Dormant win-back | 60+ days inactive | "You have dropped out of the active pool" — true, per the tier |
+
+### Already exists — audit before building a second one
+
+- **`better_messages_send_notifications`** runs every 15 minutes: Better Messages
+  already emails about new messages. **Do not build our own** — either route
+  message alerts into the digest AND turn theirs off, or leave theirs alone.
+  Building both means members get two emails per message.
+- **`cashaadi_sent_profile_incomplete_email_to_users`** (daily) already sends
+  the completion nudge. Audit what it says — completion is measured properly now
+  — rather than adding a second.
+- **`csm_remail_cron`** is the WPCode #11732 reminder queue. New emails should go
+  through that queue, which means the **email module cutover is a prerequisite**
+  for this programme rather than a parallel task.
+
+### Blocker
+
+**staging2 has no working cron** (`DISABLE_WP_CRON` with nothing calling
+wp-cron.php), so nothing scheduled can be tested there until it is set up in
+hPanel → Advanced → Cron Jobs. Production's cron is healthy. Every email above
+is cron-driven except the verification one.
+
+### Declined
+
+"Your request was declined" — rejection with nothing to act on. The data is
+already captured for insights; the member does not need the mail.
