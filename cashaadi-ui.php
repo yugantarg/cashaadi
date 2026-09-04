@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.95.0
+ * Version:           0.96.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -33,6 +33,7 @@ use CAShaadi\Modules\Matches\Matches;
 use CAShaadi\Modules\Block\Block;
 use CAShaadi\Modules\Emails\Queue;
 use CAShaadi\Modules\Emails\Monitor;
+use CAShaadi\Modules\Emails\Engagement;
 use CAShaadi\Modules\Admin\Dashboard;
 use CAShaadi\Modules\CaVerify\CaVerify;
 use CAShaadi\Modules\CaVerify\CaCron;
@@ -57,7 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.95.0' );
+define( 'CASHAADI_UI_VER', '0.96.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -153,6 +154,13 @@ if ( class_exists( 'CAShaadi\\Modules\\Otp\\OtpSettings' ) ) {
 // Discover as a full scrollable profile card, rendered as its own document.
 // Presentation only: the tray, the weekly refill and like/pass still belong to
 // the Discover module and #11600.
+// Engagement emails (likes, matches, weekly batch, picks expiring, idle nudges).
+// Everything goes through the queue, so the master switch governs it; gated on
+// the same emails flag as the queue it writes into.
+if ( class_exists( 'CAShaadi\\Modules\\Emails\\Engagement' ) ) {
+	Engagement::register();
+}
+
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\DiscoverScreen' ) ) {
 	DiscoverScreen::register();
 }

@@ -182,6 +182,14 @@ final class Discover {
 		 */
 		if ( $is_mutual ) {
 			do_action( 'csm_mutual_match', $viewer_id, $profile_id );
+		} elseif ( 'liked' === $status ) {
+			/*
+			 * A one-way like: the other member now has a request waiting. Only
+			 * fired when it is NOT mutual — a match sends its own email to both
+			 * sides, and "someone liked you" arriving alongside "it's a match"
+			 * would be two emails about one event.
+			 */
+			do_action( 'csm_profile_liked', $viewer_id, $profile_id );
 		}
 
 		return array( 'ok' => true, 'is_mutual' => $is_mutual, 'remaining' => $remaining );
