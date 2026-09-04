@@ -144,18 +144,88 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			return array();
 		}
 
-		/* --- Query eligible profiles (activity filter intentionally removed;
-		 *     see the original #11599 note — re-add later as a scoring modifier). --- */
+		/* --- Rank the eligible pool ------------------------------------------
+		 *
+		 * This used to be ORDER BY RAND(), which is not neutral — it is only
+		 * neutral per draw, and exposure compounds. On staging2 it produced a 22x
+		 * spread (min 1, max 22 impressions) and, worse, left 177 of 416 men never
+		 * shown to anyone at all while the average woman had been shown 10.9 times.
+		 *
+		 * Some of that is structural: 416 men and 127 women means every woman is
+		 * seen by many men and most men by almost no one. RAND() cannot fix the
+		 * ratio, but it made it worse by never remembering who had already had
+		 * exposure. wp_csm_seen now records that, so the pool can be ranked:
+		 *
+		 *   - EXPOSURE (negative): each past impression costs a point, capped, so
+		 *     the least-shown profiles surface first. This is the "balanced
+		 *     proportions" mechanism — within any group of equally-boosted
+		 *     profiles, whoever has been shown least goes first.
+		 *   - ACTIVE: seen in the last 30 days. This is a TIER, not a bonus —
+		 *     every active profile is ranked above every dormant one, and the
+		 *     balancing above happens WITHIN each tier. Written additively first,
+		 *     which was wrong: with exposure costing a point an active profile
+		 *     fell behind dormant ones after three impressions, so "active
+		 *     members are shown more" quietly stopped being true. Showing dormant
+		 *     profiles also wastes a member's 5 weekly picks on people who will
+		 *     never reply, and the tier is what makes the fortnightly "log in to
+		 *     be shown more" email TRUE rather than a claim we do not honour.
+		 *   - NEW: registered recently, so a new member is not stuck behind a
+		 *     year of accumulated exposure on their first week. Deliberately
+		 *     smaller than the activity boost — "slightly more", per the owner.
+		 *   - JITTER: a small random term. Without it the ranking is fully
+		 *     deterministic and the same faces surface in the same order for
+		 *     everyone, which is its own kind of unfair.
+		 *
+		 * Every weight is filterable: this is a product judgement, not a constant,
+		 * and it should be tunable from the data once it is running.
+		 */
+		$w_exposure = (float) apply_filters( 'csm_rank_weight_exposure', 1.0 );
+		$w_cap      = (int) apply_filters( 'csm_rank_exposure_cap', 10 );
+		// Not a weight: activity is a hard tier. Kept as a filter so a site with a
+		// tiny pool can collapse the tiers if dormant profiles must be reachable.
+		$tier_active = (bool) apply_filters( 'csm_rank_active_tier', true );
+		$w_new      = (float) apply_filters( 'csm_rank_weight_new', 2.0 );
+		$w_jitter   = (float) apply_filters( 'csm_rank_weight_jitter', 1.5 );
+		$days_active = (int) apply_filters( 'csm_rank_active_days', 30 );
+		$days_new    = (int) apply_filters( 'csm_rank_new_days', 30 );
+
+		// Cutoffs in PHP for the same reason as Seen::ids_for() — the rows are
+		// written in IST and the database server's clock may not be.
+		$now         = (int) current_time( 'timestamp' );
+		$cut_active  = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days_active . ' days', $now ) );
+		$cut_new     = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days_new . ' days', $now ) );
+
+		$seen_tbl = $wpdb->prefix . 'csm_seen';
+		$act_tbl  = $wpdb->prefix . 'bp_activity';
+
 		$sql = $wpdb->prepare(
 			"SELECT xp.user_id
 			 FROM   {$wpdb->prefix}bp_xprofile_data xp
+			 LEFT JOIN ( SELECT profile_id, COUNT(*) shown FROM {$seen_tbl} GROUP BY profile_id ) sn
+			        ON sn.profile_id = xp.user_id
+			 LEFT JOIN ( SELECT user_id, MAX(date_recorded) seen_at FROM {$act_tbl} WHERE type = 'last_activity' GROUP BY user_id ) ac
+			        ON ac.user_id = xp.user_id
+			 LEFT JOIN {$wpdb->users} u ON u.ID = xp.user_id
 			 WHERE  xp.field_id = %d
 			   AND  xp.value    = %s
 			   AND  xp.user_id NOT IN ({$exclude_csv})
-			 ORDER  BY RAND()
+			 ORDER  BY
+			        IF( %d = 1 AND ac.seen_at IS NOT NULL AND ac.seen_at > %s, 1, 0 ) DESC,
+			        (
+			          ( - LEAST( COALESCE( sn.shown, 0 ), %d ) * %f )
+			        + IF( u.user_registered IS NOT NULL AND u.user_registered > %s, %f, 0 )
+			        + ( RAND() * %f )
+			        ) DESC
 			 LIMIT  %d",
 			$gender_field_id,
 			$opposite,
+			$tier_active ? 1 : 0,
+			$cut_active,
+			$w_cap,
+			$w_exposure,
+			$cut_new,
+			$w_new,
+			$w_jitter,
 			$slots
 		);
 		$eligible = $wpdb->get_col( $sql );
