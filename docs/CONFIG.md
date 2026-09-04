@@ -27,6 +27,7 @@ Module gates. Each is `define( '<NAME>', true );`. All ten are ON on staging2.
 | `CASHAADI_CA_VERIFY_ENABLED` | true | |
 | `CASHAADI_PHOTOS_ENABLED` | true | |
 | `CASHAADI_VERIFICATION_ENABLED` | true | |
+| `CASHAADI_EMAILS_ENABLED` | true | Cut over 2026-09-04; #11732/#11733 disabled in the same change |
 
 **Cutover rule (learned the hard way).** For any module that defines global
 functions — discover, block, matches, otp — disable the WPCode snippet FIRST,
@@ -86,7 +87,7 @@ except where noted.
 | `wp_csm_seen` | `Modules\Discover\Seen` |
 | `wp_csm_profile_views`, `wp_csm_rejections` | `Modules\Premium\Premium` |
 | `wp_csm_blocks` | `Modules\Block` |
-| `wp_csm_email_queue` | WPCode #11732 (still a snippet) |
+| `wp_csm_email_queue` | `Modules\Emails\Queue` (cut over from #11732, 2026-09-04) |
 | `wp_csm_intent` | `Modules\Premium\Premium` |
 | `wp_csm_photo_requests` | `Modules\Photos` |
 

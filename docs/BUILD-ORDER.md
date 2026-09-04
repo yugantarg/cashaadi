@@ -490,3 +490,30 @@ is cron-driven except the verification one.
 
 "Your request was declined" — rejection with nothing to act on. The data is
 already captured for insights; the member does not need the mail.
+
+## Email module cutover — done 2026-09-04
+
+`CASHAADI_EMAILS_ENABLED` on; WPCode **#11732 and #11733 disabled**. staging2 now
+has **zero active WPCode snippets**.
+
+Ordering used (and the wrinkle worth remembering): setting `post_status` to
+`draft` was **not enough**. WPCode caches active snippet code in the
+`wpcode_snippets` option and kept executing both snippets from that cache —
+`function_exists( 'csm_remail_process' )` was still true. Deleting the option
+made WPCode rebuild from published snippets (now none). Verify a snippet is
+really off by checking for one of its functions, not by its post status.
+
+There was no redeclare risk here in any case: the snippet defines global
+`csm_remail_*` functions and the module defines static methods, so the two could
+not collide. Snippet-first ordering was still used, because both hook the same
+`csm_remail_cron`.
+
+Verified after: `/` 200, `/wp-login.php` 200, snippet global gone, plugin class
+loaded, cron hook re-bound to the module, **queue counts byte-identical to the
+pre-cutover snapshot** (pending 107, waiting 357, deferred 253, sent 5,
+cancelled 86), and the Monitor page renders as admin — 679 KB, no fatals, h1
+"Reminder Emails", 836 rows, still showing paused.
+
+`csm_remail_master` remains `0`. Nothing sends.
+
+wp-config backed up first to `wp-config.php.bak-20260904-082152`.
