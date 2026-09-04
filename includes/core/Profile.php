@@ -46,6 +46,27 @@ final class Profile {
 	 */
 	const VIEWER_MEMBER = -1;
 
+	/**
+	 * Values that are not answers.
+	 *
+	 * Several selectboxes on this install ship a placeholder option whose LABEL is
+	 * its value, and members who never opened the dropdown have that placeholder
+	 * saved as real data: "Select" is stored for 26 members on Religion, 19 on
+	 * Nuclear/Joint and 4 on Occupation Status. Rendered literally it reads
+	 * "Nuclear/Joint: Select", which is worse than showing nothing.
+	 *
+	 * Treated as empty for BOTH display and completion counting — a member who
+	 * left the placeholder in place has not answered, and the progress meter
+	 * should say so rather than crediting them for it.
+	 *
+	 * Only exact, case-insensitive matches: a real answer containing the word
+	 * ("Selected for audit") must survive.
+	 */
+	public static function is_placeholder( $value ) {
+		$v = strtolower( trim( (string) $value ) );
+		return in_array( $v, array( 'select', '-- select --', '--select--', 'select one', 'please select', 'n/a', 'na', 'none' ), true );
+	}
+
 	public static function hidden_for( $profile_id, $viewer_id ) {
 		if ( self::VIEWER_MEMBER === (int) $viewer_id ) {
 			return self::hidden_for_member( (int) $profile_id );
@@ -235,7 +256,7 @@ final class Profile {
 			if ( is_array( $val ) ) {
 				$val = implode( '', $val );
 			}
-			if ( '' === trim( (string) $val ) ) {
+			if ( '' === trim( (string) $val ) || self::is_placeholder( $val ) ) {
 				$missing++;
 			}
 		}
@@ -368,7 +389,7 @@ final class Profile {
 				 * profile card.
 				 */
 				$val = trim( wp_strip_all_tags( (string) $val ) );
-				if ( '' === $val ) {
+				if ( '' === $val || self::is_placeholder( $val ) ) {
 					continue;
 				}
 				if ( 'Height' === $field->name ) {

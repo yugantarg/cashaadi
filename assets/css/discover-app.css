@@ -11,7 +11,16 @@
 
 /* ---- photo ---- */
 .csm-d-media { position: relative; line-height: 0; }
-.csm-d-photo { width: 100%; aspect-ratio: 7 / 8; object-fit: cover; display: block; background: var(--csm-hair, #e4eaf0); }
+/* The name overlay sits at the FOOT of the photo and the action bar is pinned to
+   the foot of the screen, so on a tall photo the two landed on top of each other
+   and the member's name was unreadable until you scrolled ~150px. Cap the photo
+   so its bottom — and therefore the name — always clears the bar. The 7/8 aspect
+   still governs everything shorter than the cap. */
+.csm-d-photo {
+	width: 100%; aspect-ratio: 7 / 8; object-fit: cover; display: block;
+	max-height: calc( 100vh - var(--csm-dact-h) - 62px - 104px );
+	background: var(--csm-hair, #e4eaf0);
+}
 .csm-d-media::after {
 	content: ""; position: absolute; inset: auto 0 0 0; height: 52%;
 	background: linear-gradient(to top, rgba(10,16,22,.85), rgba(10,16,22,.35) 45%, transparent);
@@ -55,9 +64,16 @@
 	   a soft top shadow so it reads as a control surface rather than a pair of
 	   buttons floating over the grey page ground. No top margin — it meets the
 	   white card directly, with no grey seam between the last field and it. */
-	position: sticky; bottom: 62px; z-index: 10;
+	/* FIXED, not sticky. Sticky only pins while there is scroll room BELOW the
+	   element, so on a sparse profile — one where the card ends before the
+	   viewport does — the bar dropped to its natural position and left a grey
+	   band between it and the nav (measured: 132px instead of 62px). Fixed puts
+	   it in the same place whatever the profile contains. The card reserves
+	   --csm-dact-h of clearance, so nothing hides behind it. */
+	position: fixed; bottom: 62px; z-index: 10;
+	left: 50%; transform: translateX(-50%);
+	width: 100%; max-width: 560px;
 	display: flex; gap: 14px; justify-content: center;
-	margin: 0 auto;
 	padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px));
 	background: var(--csm-surface, #fff);
 	border-top: 1px solid var(--csm-hair, #e4eaf0);
@@ -110,8 +126,13 @@
 
 @media (min-width: 783px) {
 	/* Desktop moves the nav to a left rail, so there is nothing at the foot to
-	   clear. */
-	.csm-d-actions { bottom: 0; }
+	   clear. The bar is fixed, which positions against the VIEWPORT and so
+	   ignores the body padding that makes room for the rail — without this it
+	   would sit half a rail-width left of the card it belongs to. */
+	.csm-d-actions {
+		bottom: 0;
+		left: calc( 50% + var(--csm-rail-w, 92px) / 2 );
+	}
 }
 
 /* empty state: when more arrive, and a Premium route for free members */
@@ -187,8 +208,10 @@
    nav, so that padding only opened a grey band below the buttons, and a support
    email wedged between Pass/Like and the nav read as clutter. Remove both here;
    every other screen keeps them. */
-body.csm-app-discover .csm-app-main { padding-bottom: 0; }
-body.csm-app-discover .csm-app-support { display: none; }
+/* The support footer is BACK (owner, 2026-09-04): hiding it left narrow screens
+   with no way to reach help. Main now reserves the fixed bar's height plus a
+   little, so the footer sits clear of the buttons instead of behind them. */
+body.csm-app-discover .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 18px ); }
 
 /* The sticky action bar floats over the foot of the scroll, so the last profile
    fields were disappearing behind it. Reserve exactly the bar's height as scroll
