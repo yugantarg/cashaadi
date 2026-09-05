@@ -178,22 +178,46 @@ final class RequestsScreen {
 		 * table of their own: they are still tray rows, they still count against
 		 * the week they were served in, and the weekly reset already leaves them
 		 * alone because it only processes liked/passed/expired.
+		 *
+		 * GATED (owner, 2026-09-05): a free member sees only what they saved THIS
+		 * week; Premium keeps the full history. Saving is otherwise unlimited, so
+		 * without this the list would quietly become an unlimited shortlist —
+		 * which is the thing Premium is meant to be for.
+		 *
+		 * "This week" is measured from the IST Monday that the tray itself resets
+		 * on, via Engine::get_week_id(), so the list empties on exactly the same
+		 * boundary the member already understands. Filtering on acted_at (when
+		 * they saved) rather than week_assigned (when it was served) is what makes
+		 * "saved this week" true for a profile served earlier and saved today.
+		 *
+		 * The older rows are counted, never sent: a free member's response must
+		 * not carry the identities the gate is withholding.
 		 */
-		$saved = array();
+		$saved       = array();
+		$saved_total = 0;
 		global $wpdb;
-		$tray  = $wpdb->prefix . 'csm_tray';
-		$ids   = $wpdb->get_col( $wpdb->prepare(
+		$tray = $wpdb->prefix . 'csm_tray';
+
+		$all = $wpdb->get_results( $wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			"SELECT profile_id FROM {$tray} WHERE viewer_id = %d AND status = 'saved' ORDER BY acted_at DESC",
+			"SELECT profile_id, acted_at FROM {$tray} WHERE viewer_id = %d AND status = 'saved' ORDER BY acted_at DESC",
 			$uid
 		) );
-		foreach ( (array) $ids as $pid ) {
-			$saved[] = self::person( (int) $pid );
+		$saved_total = count( (array) $all );
+
+		$cutoff = $premium ? '' : self::week_start_ist();
+		foreach ( (array) $all as $row ) {
+			if ( '' !== $cutoff && (string) $row->acted_at < $cutoff ) {
+				continue; // older than this week, and this member is not Premium
+			}
+			$saved[] = self::person( (int) $row->profile_id );
 		}
 
 		return new \WP_REST_Response( array(
 			'ok'           => true,
 			'saved'        => $saved,
+			'savedTotal'   => $saved_total,
+			'savedLocked'  => max( 0, $saved_total - count( $saved ) ),
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
 			'sent'         => $sent,
@@ -215,6 +239,24 @@ final class RequestsScreen {
 	 * operation as deciding it in Discover — a second implementation would
 	 * eventually disagree about whether two people had matched.
 	 */
+	/**
+	 * Start of the current tray week, as a site-time datetime string.
+	 *
+	 * Uses the Discover engine's own week id so the Saved list and the tray reset
+	 * cannot drift apart — both must mean the same Monday. Falls back to a plain
+	 * "monday this week" if the engine is unavailable.
+	 */
+	private static function week_start_ist() {
+		try {
+			$tz  = new \DateTimeZone( 'Asia/Kolkata' );
+			$now = new \DateTime( 'now', $tz );
+			$now->modify( 'monday this week' )->setTime( 0, 0, 0 );
+			return $now->format( 'Y-m-d H:i:s' );
+		} catch ( \Exception $e ) {
+			return gmdate( 'Y-m-d H:i:s', strtotime( '-7 days' ) );
+		}
+	}
+
 	public static function rest_act( $request ) {
 		$me    = get_current_user_id();
 		$other = absint( $request->get_param( 'user_id' ) );

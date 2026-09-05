@@ -141,7 +141,11 @@
 			} );
 		} else if ( 'saved' === tab ) {
 			if ( ! ( data.saved || [] ).length ) {
-				root.appendChild( emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
+				root.appendChild( ( data.savedLocked || 0 ) > 0
+					? emptyBox( 'Your saves have moved on',
+						data.savedLocked + ' saved profile' + ( 1 === data.savedLocked ? '' : 's' ) +
+						' from earlier weeks are kept with Premium. Saves from this week always stay here.' )
+					: emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
 				return;
 			}
 			/* Decide from here. The profile is still a live tray row, so Like and
@@ -152,6 +156,20 @@
 					{ kind: 'decline', label: 'Pass', action: 'pass' }
 				] ) );
 			} );
+			/* Free members keep this week's saves; older ones are held behind
+			   Premium. The count is real — the identities are never sent — so this
+			   says how many without showing who. */
+			if ( ! data.isPremium && ( data.savedLocked || 0 ) > 0 ) {
+				var lock = el( 'div', 'csm-r-upsell' );
+				lock.appendChild( el( 'p', null,
+					data.savedLocked + ( 1 === data.savedLocked ? ' earlier save is' : ' earlier saves are' ) + ' from previous weeks.' ) );
+				var a = el( 'a', 'csm-r-upsell-btn', 'Keep saves with Premium' );
+				a.href = '/membership-pricing/';
+				lock.appendChild( a );
+				root.appendChild( list );   // tabs() was already appended above
+				root.appendChild( lock );
+				return;
+			}
 		} else {
 			if ( ! ( data.viewers || [] ).length ) {
 				root.appendChild( emptyBox( 'No visitors yet', 'Complete your profile and start matching to get noticed.' ) );
