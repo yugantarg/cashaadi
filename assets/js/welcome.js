@@ -375,27 +375,6 @@
 
 	/* ------------------------------------------------------------ submit */
 
-	function skipStep( s, nextBtn, skipBtn, err ) {
-		if ( nextBtn ) { nextBtn.disabled = true; }
-		if ( skipBtn ) { skipBtn.disabled = true; }
-		api( CFG.step, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify( { key: s.key, skip: 1 } )
-		} ).then( function ( d ) {
-			if ( nextBtn ) { nextBtn.disabled = false; }
-			if ( skipBtn ) { skipBtn.disabled = false; }
-			if ( d && d.ok ) {
-				steps[ idx ].done = true;
-				return go( idx + 1 );
-			}
-			if ( err ) { err.textContent = ( d && d.message ) || 'We could not skip that.'; }
-		} ).catch( function () {
-			if ( nextBtn ) { nextBtn.disabled = false; }
-			if ( skipBtn ) { skipBtn.disabled = false; }
-			if ( err ) { err.textContent = 'Network problem. Please try again.'; }
-		} );
-	}
 
 	function submit( s, field, err, button ) {
 		err.textContent = '';

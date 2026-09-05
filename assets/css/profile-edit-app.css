@@ -131,11 +131,6 @@
 .csm-pe-file-btn.is-busy { opacity: .6; pointer-events: none; }
 .csm-pe-file-status { margin: 0; font-size: 13.5px; color: var(--csm-muted, #5c6a76); }
 .csm-pe-file-status a { color: var(--csm-blue, #2c5b8c); }
-.csm-pe-native-link {
-	font-size: 12.5px;
-	color: var(--csm-faint, #93a2ae);
-	text-decoration: underline;
-}
 
 /* ---- read-only field (Gender) + Age note under DOB (v0.76.0) ---------- */
 .csm-pe-readonly {

@@ -259,29 +259,6 @@ final class Welcome {
 	}
 
 	/** A field's current value as a plain string (arrays flattened for emptiness). */
-	/* ---- skip tracking (optional fields a member chose to pass on) ------ */
-
-	private static function skipped_ids( $uid ) {
-		$v = get_user_meta( (int) $uid, 'csm_wiz_skipped', true );
-		return is_array( $v ) ? array_map( 'intval', $v ) : array();
-	}
-
-	public static function is_skipped( $field_id, $uid ) {
-		return in_array( (int) $field_id, self::skipped_ids( $uid ), true );
-	}
-
-	private static function mark_skipped( $field_id, $uid, $on ) {
-		$ids = self::skipped_ids( $uid );
-		$fid = (int) $field_id;
-		if ( $on ) {
-			if ( ! in_array( $fid, $ids, true ) ) {
-				$ids[] = $fid;
-			}
-		} else {
-			$ids = array_values( array_diff( $ids, array( $fid ) ) );
-		}
-		update_user_meta( (int) $uid, 'csm_wiz_skipped', $ids );
-	}
 
 	private static function value_of( $field_id, $uid ) {
 		/*
