@@ -101,10 +101,16 @@
 			[ 'Settings', d.links.settings ]
 		];
 		if ( ! d.isPremium ) { rows.push( [ 'Upgrade to Premium', d.links.upgrade ] ); }
+		if ( d.links.support ) { rows.push( [ 'Help and support', d.links.support ] ); }
 		rows.forEach( function ( r ) {
 			var li = el( 'li', 'csm-p-row' );
 			var a = link( '', r[1] );
 			a.appendChild( el( 'span', 'csm-p-label', r[0] ) );
+			// mailto: rows say WHERE they go — a chevron alone would suggest
+			// another in-app screen, and this one leaves for the mail client.
+			if ( 0 === r[1].indexOf( 'mailto:' ) ) {
+				a.appendChild( el( 'span', 'csm-p-sub', r[1].slice( 7 ) ) );
+			}
 			var chev = el( 'span', 'csm-p-chev' );
 			chev.innerHTML = chevron;
 			a.appendChild( chev );

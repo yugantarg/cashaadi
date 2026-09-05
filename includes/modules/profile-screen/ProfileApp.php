@@ -193,6 +193,9 @@ final class ProfileApp {
 					? \CAShaadi\Modules\Settings\SettingsScreen::url()
 					: $base . 'settings/',
 				'upgrade'  => site_url( '/membership-pricing/' ),
+				// Help belongs IN the Profile section, not only in the page footer —
+				// the footer is where a member looks last, if at all.
+				'support'  => 'mailto:' . \CAShaadi\Core\Config::SUPPORT_EMAIL,
 			),
 		), 200 );
 	}

@@ -102,6 +102,9 @@
 	flex: 1; min-width: 0; font-size: 15px;
 	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* the address itself, on the Help row: it leaves for a mail client, so the
+   member should be able to read (or copy) it without tapping first */
+.csm-p-sub { flex: 0 0 auto; font-size: 13px; color: var(--csm-gold, #a9822b); font-weight: 600; }
 .csm-p-state { flex: 0 0 auto; font-size: 13px; font-weight: 600; }
 .csm-p-state.is-done { color: var(--csm-muted, #5c6a76); }
 .csm-p-state.is-todo { color: var(--csm-gold, #a9822b); }
