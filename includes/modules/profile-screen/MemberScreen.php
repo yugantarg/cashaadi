@@ -67,6 +67,13 @@ final class MemberScreen {
 		wp_localize_script( 'cashaadi-member-screen', 'CSM_MEMBER', array(
 			'nonce'    => wp_create_nonce( 'wp_rest' ),
 			'get'      => rest_url( 'csm/v1/member/' . $uid ),
+			/*
+			 * Discover's OWN act endpoint, not a second one. It claims the tray
+			 * row as authorisation before it writes anything, so a like from
+			 * here is authorised on exactly the same terms as a like from
+			 * Discover — and there is no second copy of that check to drift.
+			 */
+			'act'      => rest_url( 'csm/v1/discover/act' ),
 			'messages' => home_url( '/messages/' ),
 			'back'     => wp_get_referer() ? wp_get_referer() : home_url( '/requests/' ),
 		) );

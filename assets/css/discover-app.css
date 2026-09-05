@@ -242,6 +242,10 @@
    screen made it furniture. This padding now does one job — clearing the fixed
    action bar. */
 body.csm-app-discover .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 18px ); }
+/* /member/<id>/ shows the same card and the same fixed action bar, so it needs
+   the same clearance. It renders under the Requests nav key, hence its own
+   class rather than the discover one. */
+body.csm-member-view .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 18px ); }
 
 /* The sticky action bar floats over the foot of the scroll, so the last profile
    fields were disappearing behind it. Reserve exactly the bar's height as scroll
@@ -249,7 +253,8 @@ body.csm-app-discover .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 
    with no grey band reappearing below it). --csm-dact-h is the bar's own height;
    the padding tracks it so the two can't drift. */
 :root { --csm-dact-h: 96px; }
-body.csm-app-discover .csm-d-card {
+body.csm-app-discover .csm-d-card,
+body.csm-member-view .csm-d-card {
 	padding-bottom: calc( var(--csm-dact-h) + env(safe-area-inset-bottom, 0px) );
 }
 
