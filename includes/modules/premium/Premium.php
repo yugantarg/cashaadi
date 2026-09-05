@@ -48,12 +48,13 @@ final class Premium {
 		// disabled on the live site; contact details are no longer gated.)
 
 		/*
-		 * Copy the owner on every membership purchase (owner request, 2026-09-05).
+		 * Copy the admin address on every membership purchase (owner, 2026-09-05:
+		 * "the same mail sent to admin email").
 		 *
-		 * PMPro already emails an admin notice on checkout — it just goes to
-		 * WordPress's admin_email and nowhere else, which on this install is a
-		 * site address nobody reads. This adds a second recipient rather than
-		 * replacing the first, so nothing that already works stops working.
+		 * PMPro already sends the admin a SEPARATE, terser notice. This is
+		 * different: it copies the MEMBER'S OWN receipt — the same email, with the
+		 * same wording and the same order details the customer sees — so the admin
+		 * inbox holds exactly what was sent rather than a summary of it.
 		 */
 		add_filter( 'pmpro_email_recipient', array( __CLASS__, 'copy_owner_on_purchase' ), 10, 2 );
 
@@ -109,39 +110,44 @@ final class Premium {
 	}
 
 	/**
-	 * Where to copy purchase notifications.
+	 * Where to copy purchase receipts.
 	 *
-	 * An option so it can be changed without a deploy, with a filter over the
-	 * top, and a default so it works on production the moment this ships rather
-	 * than waiting for someone to remember to set it. Empty disables the copy.
+	 * Defaults to WordPress's own admin_email — admin@cashaadi.in on production,
+	 * a real mailbox — rather than a hardcoded personal address, so it follows the
+	 * site's configuration and keeps working if the owner changes. Overridable by
+	 * option or filter; empty disables the copy.
 	 */
 	public static function purchase_notify_to() {
-		$to = (string) get_option( 'csm_purchase_notify_to', 'yugantargupta@gmail.com' );
+		$to = (string) get_option( 'csm_purchase_notify_to', (string) get_option( 'admin_email', '' ) );
 		return trim( (string) apply_filters( 'csm_purchase_notify_to', $to ) );
 	}
 
 	/**
-	 * Add the owner as a second recipient on PMPro's admin checkout emails.
+	 * Copy the admin on the member's purchase receipt.
 	 *
-	 * Only the ADMIN checkout templates: the member's own receipt is theirs, and
-	 * copying the owner on it would be reading someone's mail rather than being
-	 * told they bought something.
+	 * These are the MEMBER-facing checkout templates, not the *_admin ones —
+	 * PMPro sends its own admin notice already, and the point here is to have the
+	 * identical customer email on file.
 	 *
-	 * 'checkout_paid_admin'  — a real purchase
-	 * 'checkout_check_admin' — pay-by-check, also a purchase
-	 * 'checkout_free_admin'  — deliberately NOT included: a free level is a
-	 *                          signup, not a purchase, and on a site where most
-	 *                          members are free that would be constant noise.
+	 * 'checkout_paid'  — a paid membership
+	 * 'checkout_check' — pay-by-check, also a purchase
+	 * 'checkout_free'  — deliberately NOT included: a free level is a signup, not
+	 *                    a purchase, and on a site where most members are free it
+	 *                    would bury the ones that matter.
 	 *
-	 * wp_mail() accepts a comma-separated list, which is why this appends rather
-	 * than sending a second message — one email, two recipients, and the owner
-	 * sees exactly what the admin address sees.
+	 * wp_mail() takes a comma-separated list, so this appends a recipient rather
+	 * than sending a second message: one email, delivered to both, byte-identical.
+	 *
+	 * Worth being aware of: this puts a member's own receipt, including their name
+	 * and order details, into the admin mailbox. That is ordinary for a merchant
+	 * keeping records — but it is a real copy of a customer's mail, so the address
+	 * it goes to should be one the business controls.
 	 */
 	public static function copy_owner_on_purchase( $recipient, $email ) {
 		if ( ! is_object( $email ) || empty( $email->template ) ) {
 			return $recipient;
 		}
-		if ( ! in_array( $email->template, array( 'checkout_paid_admin', 'checkout_check_admin' ), true ) ) {
+		if ( ! in_array( $email->template, array( 'checkout_paid', 'checkout_check' ), true ) ) {
 			return $recipient;
 		}
 
