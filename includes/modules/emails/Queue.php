@@ -380,6 +380,27 @@ final class Queue {
 		return $res;
 	}
 
+	/**
+	 * How many have actually gone out today.
+	 *
+	 * The hourly cap alone is not a daily cap: 40/hour is up to 960 a day, and the
+	 * mail plan allows 300. Past that the provider starts rejecting, and a
+	 * rejected send is a member who simply never hears about their match — with
+	 * the failure buried in a queue row nobody is watching.
+	 */
+	public static function sent_today() {
+		global $wpdb;
+		$t     = self::table();
+		$since = get_date_from_gmt( gmdate( 'Y-m-d 00:00:00', (int) current_time( 'timestamp', true ) ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE status = 'sent' AND processed_at >= %s", $since ) ) );
+	}
+
+	/** Daily ceiling, sized to the mail plan. Filter to match your provider. */
+	public static function daily_cap() {
+		return (int) apply_filters( 'csm_remail_daily_cap', (int) get_option( 'csm_remail_daily_cap', 300 ) );
+	}
+
 	public static function sent_last_hour() {
 		global $wpdb;
 		$t = self::table();
@@ -423,7 +444,21 @@ final class Queue {
 
 		$live        = ! self::dry_run();
 		$out['mode'] = $live ? 'live' : 'dry-run';
-		$room        = self::hourly_cap() - self::sent_last_hour();
+
+		// Daily ceiling first: it is the one that maps to money and deliverability.
+		$day_cap  = self::daily_cap();
+		$day_left = $day_cap - self::sent_today();
+		if ( $live && $day_cap > 0 && $day_left < 1 ) {
+			$out['mode'] = 'daily cap reached (' . $day_cap . ')';
+			$out['due']  = count( self::due_rows( 500 ) );
+			update_option( 'csm_remail_last_run', array_merge( array( 'at' => $mysql ), $out ) );
+			return $out;
+		}
+
+		$room = self::hourly_cap() - self::sent_last_hour();
+		if ( $day_cap > 0 && $day_left < $room ) {
+			$room = $day_left;   // never let the hourly allowance overrun the day
+		}
 
 		if ( $live && $room < 1 ) {
 			$out['mode'] = 'hourly cap reached';

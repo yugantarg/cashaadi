@@ -120,6 +120,16 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 */
 		if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
 			$seen = \CAShaadi\Modules\Discover\Seen::ids_for( $viewer_id );
+			if ( false === $seen ) {
+				/*
+				 * The seen record is unavailable, so we cannot tell who this member
+				 * has already been shown. Refilling now would re-serve people they
+				 * have already judged — invisibly. Abort instead: an empty tray is
+				 * obvious and recoverable, duplicate servings are neither.
+				 * Health reports the missing table.
+				 */
+				return array();
+			}
 			if ( $seen ) {
 				$exclude = array_merge( $exclude, $seen );
 			}

@@ -143,11 +143,18 @@ final class Seen {
 	 *
 	 * Returning 0 (or less) disables expiry entirely — passes become permanent.
 	 *
-	 * @return int[]
+	 * FAILS CLOSED. If the table is missing this returns FALSE, not an empty
+	 * array, and the refill aborts. An empty array would read as "this member has
+	 * seen nobody", which is the most dangerous possible answer: the exclusion
+	 * silently disappears and everyone starts being re-served people they have
+	 * already judged. Serving nothing is a visible, harmless failure; serving
+	 * duplicates is an invisible, damaging one.
+	 *
+	 * @return int[]|false Profile ids, or false when the record is unavailable.
 	 */
 	public static function ids_for( $viewer_id ) {
 		if ( ! self::ready() ) {
-			return array();
+			return false;
 		}
 		global $wpdb;
 		$t      = self::table();
