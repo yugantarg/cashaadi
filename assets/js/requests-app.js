@@ -141,16 +141,26 @@
 			} );
 		} else if ( 'saved' === tab ) {
 			if ( ! ( data.saved || [] ).length ) {
-				root.appendChild( ( data.savedLocked || 0 ) > 0
-					? emptyBox( 'Your saves have moved on',
-						data.savedLocked + ' saved profile' + ( 1 === data.savedLocked ? '' : 's' ) +
-						' from earlier weeks are kept with Premium. Saves from this week always stay here.' )
-					: emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
+				root.appendChild( emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
 				return;
 			}
 			/* Decide from here. The profile is still a live tray row, so Like and
 			   Pass go through the same endpoint they would in Discover. */
 			data.saved.forEach( function ( p ) {
+				/* Locked saves render as blurred placeholders, not as people. The
+				   server sends no id, name or avatar for these, so there is nothing
+				   here to un-blur — the lock is real, not styling. */
+				if ( p.masked ) {
+					var row = el( 'li', 'csm-r-row csm-r-masked csm-r-locked' );
+					row.appendChild( el( 'span', 'csm-r-initial', p.initial ) );
+					var meta = el( 'div', 'csm-r-meta' );
+					meta.appendChild( el( 'span', 'csm-r-name', '••••••' ) );
+					if ( p.ago ) { meta.appendChild( el( 'span', 'csm-r-sub', p.ago ) ); }
+					row.appendChild( meta );
+					row.appendChild( el( 'span', 'csm-r-lock', '🔒' ) );
+					list.appendChild( row );
+					return;
+				}
 				list.appendChild( personRow( p, [
 					{ kind: 'accept', label: 'Like', action: 'like' },
 					{ kind: 'decline', label: 'Pass', action: 'pass' }
@@ -162,7 +172,8 @@
 			if ( ! data.isPremium && ( data.savedLocked || 0 ) > 0 ) {
 				var lock = el( 'div', 'csm-r-upsell' );
 				lock.appendChild( el( 'p', null,
-					data.savedLocked + ( 1 === data.savedLocked ? ' earlier save is' : ' earlier saves are' ) + ' from previous weeks.' ) );
+					data.savedLocked + ( 1 === data.savedLocked ? ' save from an earlier week is locked.' : ' saves from earlier weeks are locked.' )
+					+ ' Premium keeps every profile you save.' ) );
 				var a = el( 'a', 'csm-r-upsell-btn', 'Keep saves with Premium' );
 				a.href = '/membership-pricing/';
 				lock.appendChild( a );

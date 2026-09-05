@@ -74,6 +74,13 @@
 }
 .csm-r-masked .csm-r-name { color: var(--csm-faint, #93a2ae); letter-spacing: .12em; }
 
+/* A locked save: visibly present, plainly out of reach. The blur is on the
+   initial only — there is no real name or avatar in the row to obscure, because
+   the server never sent one. */
+.csm-r-locked { opacity: .72; }
+.csm-r-locked .csm-r-initial { filter: blur(3px); }
+.csm-r-lock { margin-left: auto; font-size: 15px; opacity: .5; }
+
 .csm-r-upgrade {
 	max-width: 560px; margin: 16px auto; padding: 22px 20px;
 	background: var(--csm-surface, #fff);

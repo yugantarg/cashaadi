@@ -190,8 +190,16 @@ final class RequestsScreen {
 		 * they saved) rather than week_assigned (when it was served) is what makes
 		 * "saved this week" true for a profile served earlier and saved today.
 		 *
-		 * The older rows are counted, never sent: a free member's response must
-		 * not carry the identities the gate is withholding.
+		 * Older saves are LOCKED, not removed (owner, 2026-09-05): a free member
+		 * still sees that they are there — blurred, with an initial and how long
+		 * ago — so the value of Premium is visible rather than merely asserted.
+		 * They just cannot reach them.
+		 *
+		 * Identities are still withheld from the response, exactly as the viewers
+		 * list does: sending the name and blurring it in CSS would leave the real
+		 * data sitting in the JSON, and a paywall that any reader can lift is not
+		 * a paywall. The member has of course seen these people before — this
+		 * protects the gate, not their privacy.
 		 */
 		$saved       = array();
 		$saved_total = 0;
@@ -206,18 +214,34 @@ final class RequestsScreen {
 		$saved_total = count( (array) $all );
 
 		$cutoff = $premium ? '' : self::week_start_ist();
+		$now    = current_time( 'timestamp' );
+
 		foreach ( (array) $all as $row ) {
-			if ( '' !== $cutoff && (string) $row->acted_at < $cutoff ) {
-				continue; // older than this week, and this member is not Premium
+			$locked = ( '' !== $cutoff && (string) $row->acted_at < $cutoff );
+
+			if ( ! $locked ) {
+				$saved[] = self::person( (int) $row->profile_id );
+				continue;
 			}
-			$saved[] = self::person( (int) $row->profile_id );
+
+			$name    = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( (int) $row->profile_id ) : '';
+			$initial = strtoupper( mb_substr( trim( (string) $name ), 0, 1 ) );
+			$ts      = strtotime( (string) $row->acted_at );
+
+			$saved[] = array(
+				'masked'  => true,
+				'initial' => '' !== $initial ? $initial : 'C',
+				'ago'     => $ts ? sprintf( 'Saved %s ago', human_time_diff( $ts, $now ) ) : 'Saved earlier',
+			);
 		}
 
 		return new \WP_REST_Response( array(
 			'ok'           => true,
 			'saved'        => $saved,
 			'savedTotal'   => $saved_total,
-			'savedLocked'  => max( 0, $saved_total - count( $saved ) ),
+			'savedLocked'  => $premium ? 0 : count( array_filter( $saved, function ( $r ) {
+				return ! empty( $r['masked'] );
+			} ) ),
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
 			'sent'         => $sent,
