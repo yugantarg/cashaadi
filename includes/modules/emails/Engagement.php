@@ -7,7 +7,7 @@
  *   - it's a match               matches
  *
  * SCHEDULED (one daily tick decides what is due):
- *   - new batch has arrived      batch    weekly, Monday, IST
+ *   - new batch has arrived      batch    weekly, Monday AND Tuesday, IST
  *   - your picks expire soon     batch    weekly, Saturday, IST
  *   - log in to be shown more    nudges   fortnightly, 14-59 days idle
  *   - we miss you                nudges   monthly at most, 60+ days idle
@@ -224,7 +224,17 @@ final class Engagement {
 		$ist = self::ist_now();
 		$dow = (int) $ist->format( 'N' ); // 1 = Mon .. 7 = Sun
 
-		if ( 1 === $dow ) {
+		/*
+		 * The weekly batch runs on BOTH Monday and Tuesday (owner, 2026-09-05).
+		 *
+		 * Everyone gets it, but ~275 members in one morning is a blast on a 300/day
+		 * plan and reads like one to spam filters, especially on a new sending
+		 * domain. Monday queues up to the per-run cap; Tuesday picks up whoever is
+		 * left. No bookkeeping is needed to split them: the type key is per WEEK
+		 * ("csm-batch-2026-w36"), so Tuesday's run simply cannot re-queue anyone
+		 * Monday already covered — the unique key refuses it.
+		 */
+		if ( 1 === $dow || 2 === $dow ) {
 			self::send_batch( $ist );
 		}
 		if ( 6 === $dow ) {
@@ -233,12 +243,24 @@ final class Engagement {
 		self::send_idle( $ist );
 	}
 
-	/** "Your new profiles have arrived" — to everyone holding a fresh tray. */
+	/**
+	 * "Your new profiles have arrived" — to everyone holding a fresh tray.
+	 *
+	 * Capped per run, and run on two consecutive days, so the week's batch is
+	 * spread rather than dumped. Actual delivery is throttled again at send time
+	 * by the queue's hourly and daily caps; this only governs how many rows are
+	 * created in one tick.
+	 */
 	private static function send_batch( $ist ) {
-		$week = strtolower( $ist->format( 'o-\WW' ) );
+		$week   = strtolower( $ist->format( 'o-\WW' ) );
+		$budget = (int) apply_filters( 'csm_engagement_batch_cap', 150 );
+
 		// Keyed viewer_id => pending count, so the KEY is the member.
 		foreach ( self::members_with_pending() as $uid => $count ) {
 			unset( $count );
+			if ( $budget < 1 ) {
+				return;
+			}
 			if ( ! self::allowed( $uid, 'csm_email_batch' ) ) {
 				continue;
 			}
@@ -249,14 +271,29 @@ final class Engagement {
 				home_url( '/discover/' ),
 				'See this week\'s profiles'
 			);
-			Queue::notify( $uid, 'csm-batch-' . $week, 'Your new profiles are ready', $body );
+			if ( Queue::notify( $uid, 'csm-batch-' . $week, 'Your new profiles are ready', $body ) ) {
+				$budget--;
+			}
 		}
 	}
 
-	/** Saturday: unacted profiles are about to be replaced. */
+	/**
+	 * Saturday: unacted profiles are about to be replaced.
+	 *
+	 * ONLY members who still have something to act on (owner, 2026-09-05).
+	 * members_with_pending() filters on status='pending', so a member who has
+	 * liked or passed everything is absent from the list entirely — there is
+	 * nothing to remind them about, and "your profiles are waiting" would be
+	 * false. Capped like the Monday batch.
+	 */
 	private static function send_expiring( $ist ) {
-		$week = strtolower( $ist->format( 'o-\WW' ) );
+		$week   = strtolower( $ist->format( 'o-\WW' ) );
+		$budget = (int) apply_filters( 'csm_engagement_batch_cap', 150 );
+
 		foreach ( self::members_with_pending() as $uid => $count ) {
+			if ( $budget < 1 ) {
+				return;
+			}
 			if ( ! self::allowed( $uid, 'csm_email_batch' ) ) {
 				continue;
 			}
@@ -268,7 +305,9 @@ final class Engagement {
 				home_url( '/discover/' ),
 				'Open Discover'
 			);
-			Queue::notify( $uid, 'csm-expiring-' . $week, 'Your profiles are waiting', $body );
+			if ( Queue::notify( $uid, 'csm-expiring-' . $week, 'Your profiles are waiting', $body ) ) {
+				$budget--;
+			}
 		}
 	}
 
