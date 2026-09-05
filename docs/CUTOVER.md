@@ -1,166 +1,196 @@
-# Production cutover runbook
+# Production cutover runbook — single-window plan
 
-**Nothing in here has been executed.** This is the plan for moving
-`cashaadi.in` from 66 WPCode snippets to the plugin, in an order where every step
-is individually reversible.
+**Nothing here has been executed.** This replaces the phased draft: the owner
+asked for a full migration in one window, which is workable because staging2 has
+been running the finished state for weeks.
 
-Written 2026-09-05 against plugin **v1.4.1** on staging2.
-
-## The two sides today
-
-| | production | staging2 |
-|---|---|---|
-| `cashaadi-ui` plugin | **not installed** | v1.4.1 |
-| Active WPCode snippets | **66** | 0 |
-| `cashaadi()` mu-plugin | present | removed |
-| Child theme `functions.php` | 653 lines | 136 lines |
-| `CASHAADI_*` flags | none | 11, all true |
-| LiteSpeed Cache | installed 2026-09-05 | not installed |
-
-Production is the old world entire. Staging2 is months ahead. That gap is the
-risk this runbook exists to manage.
+Written 2026-09-05 against plugin **v1.4.1**.
 
 ---
 
-## The three ways this can break
+## What is and is not being moved
 
-Each has already happened once, on staging, which is why they are listed first.
+**Moving:** the plugin, the flags, the stripped child theme, the retirement of
+the mu-plugin and all 66 snippets.
 
-**1. Redeclare fatal.** A module that defines global functions cannot run
-alongside its snippet. `Discover`, `Block`, `Matches`, `Otp` and `Emails` all
-do. **Disable the snippet FIRST, then set the flag** — never the reverse, and
-never both in one page load.
+**NOT moving: the database.** Production is live and taking signups — the newest
+member registered on the day this was written. Staging2's database is a months-old
+clone plus test data. Copying it would delete ~45 real members and every message
+and profile edit since. Production's data stays exactly where it is.
 
-**2. WPCode's cache.** Setting `post_status = draft` does **not** disable a
-snippet. WPCode keeps the code in the `wpcode_snippets` option and keeps running
-it from there. Delete that option after changing statuses, then confirm with
-`function_exists()` on one of the snippet's functions — not by looking at the
-admin screen.
+That is the whole reason this is a cutover rather than a site copy.
 
-**3. Unguarded class declarations.** The child theme declares
-`My_Custom_Datebox_Field` with no `class_exists()` guard. The plugin's `Datebox`
-stands down while `cashaadi_register_custom_datebox()` exists, so the plugin can
-be installed safely first — but the theme file and that takeover are one step,
-not two.
+## Why one window is defensible
+
+Production and staging2 run **the same 28 plugins**, differing by exactly one on
+each side (`litespeed-cache` on production, `cashaadi-ui` on staging2). The end
+state has been live on staging for weeks with the owner testing it. There is no
+software difference left to discover incrementally.
+
+**The cost:** if something misbehaves afterwards, there are 66 changes to bisect
+rather than one. And rollback is restore-from-backup, which loses any signup that
+happened during the window. Pick a genuinely quiet hour.
 
 ---
 
-## Phase 0 — before touching anything
+## The three ways this breaks
 
-1. **Full backup**: files and database. hPanel → Backups. Verify it completed.
-2. **Record the baseline** so "did we break it" has an answer:
-   - `wp option get active_plugins`
-   - list of the 66 snippet IDs (in this doc's appendix)
-   - homepage, `/members/`, `/register/`, `/membership-pricing/` HTTP status
-   - member count, tray row count
-3. **Pick a low-traffic window.** Steps 2–4 each cause a brief inconsistent state.
-4. **Confirm the three unknowns are covered** (see Open Questions).
+Each has already happened once on staging.
 
-## Phase 1 — install the plugin, inert
+**1. Redeclare fatal.** `Discover`, `Block`, `Matches`, `Otp` and `Emails` define
+global functions. Their snippets must be off **before** the flags go on. In this
+plan both happen inside one maintenance window with the site briefly unreachable,
+which sidesteps it — but the order below still matters.
 
-Install `cashaadi-ui` and activate it with **no `CASHAADI_*` flags set**.
+**2. WPCode's cache.** `post_status = draft` does **not** disable a snippet.
+WPCode runs the code from the `wpcode_snippets` option. Delete that option, then
+prove it with `function_exists()` — never by looking at the admin screen.
 
-Every gated module checks its flag and returns, so this changes nothing. What
-*does* take effect immediately and is not flag-gated:
+**3. The unguarded datebox class.** The theme declares
+`My_Custom_Datebox_Field` with no guard. The plugin's `Datebox` stands down while
+`cashaadi_register_custom_datebox()` exists, so the theme swap is what hands over.
 
-- `Core\Health` — an admin page, read-only
-- `Core\globals.php` — `function_exists`-guarded, so the mu-plugin still wins
-- `ThemeCompat` — **takes over 13 child-theme hooks on `after_setup_theme`**
-- `Coach` — the tour and action explainers appear for members
-- `Premium::copy_owner_on_purchase` — receipts start copying to `admin_email`
+---
 
-> ⚠️ ThemeCompat and Coach are **not** flag-gated. Phase 1 is therefore not a
-> no-op. Verify the register page still reads "Create Your CAShaadi Account" and
-> that `/members/` renders before continuing.
+## Before the window
 
-**Check:** every page 200. **Rollback:** deactivate the plugin.
+1. **Full backup, files and database.** Confirm it completed. This is the only
+   rollback for steps 3–7.
+2. **Baseline, recorded**: `wp option get active_plugins`, user count, homepage /
+   `/members/` / `/register/` / `/membership-pricing/` status codes.
+3. **Have the tracking credentials to hand** — Google Ads ID and label. They are
+   already in staging's `csm_tracking`; production needs the same values **and
+   `enabled = 1`**, which staging deliberately has off.
+4. **Spot-check list ready** (below).
+5. **Maintenance mode on**, or accept ~10 minutes of inconsistency.
 
-## Phase 2 — snippets off, flags on, one module at a time
+---
 
-For each module below, in this order: disable its snippets → delete the
-`wpcode_snippets` option → confirm the function is gone → add the flag → verify.
+## The window
 
-| Order | Flag | Snippets to disable |
-|---|---|---|
-| 1 | `CASHAADI_PHOTOS_ENABLED` | 11617, 11770, 11771, 11798, 11813, 11822, 11838, 11861, 12119 |
-| 2 | `CASHAADI_VERIFICATION_ENABLED` | 11618, 11682 |
-| 3 | `CASHAADI_CA_VERIFY_ENABLED` | 11701, 11815, 12113 |
-| 4 | `CASHAADI_PREMIUM_ENABLED` | 11579, 11620, 11795, 11796, 11807, 11811 |
-| 5 | `CASHAADI_BLOCK_ENABLED` | 11810 |
-| 6 | `CASHAADI_MATCHES_ENABLED` | 11637, 11694 |
-| 7 | `CASHAADI_DISCOVER_ENABLED` | 11599, 11600, 11601, 11602, 11605, 11630, 11675, 11680, 11681 |
-| 8 | `CASHAADI_SIGNUP_ENABLED` | 11583, 11842 |
-| 9 | `CASHAADI_ADMIN_ENABLED` | 11688 |
-| 10 | `CASHAADI_EMAILS_ENABLED` | 11732, 11733 |
-| 11 | `CASHAADI_ANALYTICS_ENABLED` | 11697, 12073, 12084, 12091, 12112 |
+### 1. Deploy the plugin files
+Pull the repo into `wp-content/plugins/cashaadi-ui`. Do **not** activate yet.
 
-Ungated, so their snippets can be disabled at any point after Phase 1: 11556,
-11560, 11581, 11582, 11611, 11612, 11619, 11621, 11624, 11625, 11626, 11629,
-11641, 11674, 11691, 11696, 11760, 11797, 11812, 11844, 12124.
+### 2. Disable every snippet, in one operation
+```sql
+UPDATE wp_posts SET post_status='draft'
+ WHERE post_type='wpcode' AND post_status='publish';
+DELETE FROM wp_options WHERE option_name='wpcode_snippets';
+```
+**Verify** — this is the step that silently fails:
+```
+wp eval 'echo function_exists("csm_refill_tray") ? "STILL LIVE" : "off";'
+```
 
-**Discover (7) is the one to slow down on** — it owns the tray, the weekly reset
-and like/pass. Verify a tray fills before moving on.
+### 3. Add the flags
+Near the top of `wp-config.php`, above the "stop editing" line:
+```php
+define( 'CASHAADI_DISCOVER_ENABLED', true );
+define( 'CASHAADI_MATCHES_ENABLED', true );
+define( 'CASHAADI_BLOCK_ENABLED', true );
+define( 'CASHAADI_SIGNUP_ENABLED', true );
+define( 'CASHAADI_ANALYTICS_ENABLED', true );
+define( 'CASHAADI_ADMIN_ENABLED', true );
+define( 'CASHAADI_PREMIUM_ENABLED', true );
+define( 'CASHAADI_CA_VERIFY_ENABLED', true );
+define( 'CASHAADI_PHOTOS_ENABLED', true );
+define( 'CASHAADI_VERIFICATION_ENABLED', true );
+define( 'CASHAADI_EMAILS_ENABLED', true );
+```
 
-## Phase 3 — retire the mu-plugin
+### 4. Activate the plugin
+`wp plugin activate cashaadi-ui`. Tables install on `init`
+(`wp_csm_seen`, `wp_csm_event_log`), and `Seen::backfill()` runs once over the
+existing tray and likes.
 
-Only once `CASHAADI_DISCOVER_ENABLED` is on and Discover works.
-
+### 5. Retire the mu-plugin
 ```
 mv wp-content/mu-plugins/cashaadi-discovery.php wp-content/cashaadi-discovery.php.retired
 ```
 
-The plugin's guarded `cashaadi()` takes over. **Check:** `cashaadi()` resolves to
-`CAShaadi\Core\Engine`, `get_week_id()` still returns the same IST week string,
-a tray still fills. **Rollback:** move the file back.
+### 6. Swap the child theme
+Back up the live `functions.php`, then replace it with the 136-line version from
+`theme/buddyx-child/functions.php` in the repo.
 
-## Phase 4 — the child theme
+### 7. Analytics, atomically with its flag
+In **Settings → CA Shaadi Tracking**: enter the Google Ads ID and label and set
+**enabled = 1**.
 
-Replace `functions.php` with the 136-line version (mirrored at
-`theme/buddyx-child/functions.php`). This is the atomic step: deleting
-`cashaadi_register_custom_datebox()` is what activates the plugin's `Datebox`,
-and removing the anonymous closure is what stops the gender filter running twice.
+> Snippet #12204 and `Modules\Analytics` fire the **same** conversion
+> (`AW-1014629759`, "Submit lead form"). With the snippet off and `enabled=0`,
+> conversions stop recording **silently**. This step is not optional and does not
+> belong in a later phase.
 
-**Back up the live file first.** **Check:** register page copy, members directory
-renders, a profile-edit form still shows Day/Month/Year.
-
-## Phase 5 — configuration that does not deploy
-
-None of this travels with git.
-
-- Tracking credentials, and **turn conversions ON** (deliberately off on staging)
-- MSG91 credentials, if phone OTP is wanted
-- `csm_pm_enforce = 1` (NSFW auto-hide)
-- Better Messages → Mobile → Auto Open Full Screen **off**
-- `csm_remail_master` — **leave at 0** until you have watched the queue fill
-  correctly for a day. Turning it on releases the backlog at 50/day.
-
-## Phase 6 — data
-
-- **Placeholder cleanup**: `UPDATE wp_bp_xprofile_data SET value='' WHERE
-  field_id IN (302,405,418) AND LOWER(TRIM(value))='select'` — production has its
-  own copy of this. Back up the rows first.
-- **Fake users**: production has its own equivalents of the 15 disposable-domain
-  accounts and `abc@email.com`. Re-run the identification there; do not assume the
-  same IDs.
-- **Purge LiteSpeed cache** after everything.
+### 8. Purge caches
+`wp litespeed-purge all`, and flush object cache.
 
 ---
 
-## Open questions to settle before Phase 2
+## Immediately after — verify in this order
 
-1. **#12204 Google Ads lead conversion** — the Analytics module covers GA4 and
-   Meta Pixel. Whether it covers this specific Google Ads lead conversion is
-   **unverified**. Check before disabling it, or conversions stop being recorded.
-2. **21 ungated snippets** listed above have no flag, which means their behaviour
-   lives in always-on modules. Each should be spot-checked rather than assumed —
-   staging2 running without them is good evidence, not proof, since some paths
-   (checkout styling, SEO noindex) may never have been exercised there.
-3. **`admin_email`** on production is `admin@cashaadi.in`. Confirm someone reads
-   it before purchase receipts start copying there in Phase 1.
+| Check | Expected |
+|---|---|
+| `/`, `/members/`, `/register/`, `/membership-pricing/` | 200 |
+| `wp eval 'echo function_exists("csm_refill_tray");'` | true (plugin's copy) |
+| `cashaadi()` resolves to | `CAShaadi\Core\Engine` |
+| `get_week_id()` | same IST week string as before |
+| Register page | "Create Your CAShaadi Account", "Continue" button |
+| Members directory | renders, opposite-gender only, no admins |
+| A tray fills | `csm_refill_tray( <member id> )` returns rows |
+| Profile edit form | Day / Month / Year selects with labels |
+| **Integration health page** | Sales Dashboard → Integration health, all green |
+
+The health page is the fastest single check: it verifies the ten xProfile field
+ids, required functions and classes, the custom tables, cron scheduling and mail
+routing in one screen.
+
+## Configuration that does not deploy
+
+- `csm_pm_enforce = 1` (NSFW auto-hide)
+- MSG91 credentials, if phone OTP is wanted
+- Better Messages → Mobile → Auto Open Full Screen **off**
+- **`csm_remail_master` stays at 0.** Leave it a day, watch the queue fill
+  correctly, then switch on. Turning it on releases the backlog at 50/day.
+
+## Data, after the site is confirmed healthy
+
+- **Placeholder cleanup** — production has its own copy:
+  `UPDATE wp_bp_xprofile_data SET value='' WHERE field_id IN (302,405,418)
+   AND LOWER(TRIM(value))='select'` — back the rows up first.
+- **Fake users** — re-run the identification on production; do not reuse
+  staging's IDs, they will not match.
+
+---
+
+## Spot-check list: the 21 ungated snippets
+
+These have no flag, so their behaviour lives in always-on modules. Staging2 has
+run without them for weeks, which is evidence rather than proof — some paths may
+never have been exercised there. Worth ten minutes each after the window:
+
+| Check on production | From snippets |
+|---|---|
+| Members directory shows opposite gender only | 11556 |
+| Profile completion meter shows a sane % | 11560, 11844, 11629 |
+| Membership checkout page still styled | 11581 |
+| Age matches date of birth on a profile | 11611, 11760 |
+| Bio edit is a plain textarea | 11619 |
+| Gender is read-only after signup | 11621 |
+| Email field locked on the account screen | 11625 |
+| `/pricing/` redirects to `/membership-pricing/` | 11626 |
+| Height input rejects nonsense | 11797 |
+| "Created for" field renders | 11812 |
+| Member pages are noindex | 11696 |
+| Mobile menu opens once, not twice | 11674 |
+| Support email footer present | 11691 |
+| Profile edit screen looks right on mobile | 11641, 12124 |
 
 ## Rollback
 
-Every phase is individually reversible: deactivate the plugin (1), remove a flag
-and re-publish the snippets (2), move the mu-plugin back (3), restore
-`functions.php` from its backup (4). There is no point at which recovery requires
-the database backup — but take it anyway.
+**During the window:** reverse the steps — deactivate the plugin, move the
+mu-plugin back, restore `functions.php`, re-publish the snippets
+(`UPDATE wp_posts SET post_status='publish' WHERE post_type='wpcode' AND ID IN
+(…)`) and delete `wpcode_snippets` again so WPCode rebuilds.
+
+**After the window:** restore the backup, accepting the loss of anything
+registered since. This is why the window should be quiet and short.
