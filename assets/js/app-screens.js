@@ -149,3 +149,66 @@ window.csmBusy = function ( btn ) {
 		btn.disabled = wasDisabled;
 	};
 };
+
+/**
+ * Build a member's profile card.
+ *
+ * ONE renderer, shared. Discover, "how others see me" and the member view all
+ * show the same card, and three copies of this markup is how they drift: today
+ * the wizard and the profile editor disagreed about multi-select because each
+ * had its own field rendering. Anything that must look identical should be built
+ * in one place.
+ *
+ * Returns the <article>; callers append their own actions.
+ *
+ * @param {Object} p  A profile from Core\Profile::full().
+ * @return {HTMLElement}
+ */
+window.csmProfileCard = function ( p ) {
+	var mk = function ( tag, cls, text ) {
+		var n = document.createElement( tag );
+		if ( cls ) { n.className = cls; }
+		if ( text !== undefined ) { n.textContent = text; }
+		return n;
+	};
+
+	var card  = mk( 'article', 'csm-d-card' );
+	var media = mk( 'div', 'csm-d-media' );
+	var shots = ( p.photos && p.photos.length ) ? p.photos : [ p.avatar ];
+
+	var img = mk( 'img', 'csm-d-photo' );
+	img.src = shots[ 0 ];
+	img.alt = '';
+	media.appendChild( img );
+
+	if ( window.csmPhotoStack ) { window.csmPhotoStack( media, shots ); }
+	if ( p.verified ) { media.appendChild( mk( 'span', 'csm-d-verified', 'Verified CA' ) ); }
+	if ( p.isNew )   { media.appendChild( mk( 'span', 'csm-d-new', 'NEW' ) ); }
+
+	var over = mk( 'div', 'csm-d-over' );
+	over.appendChild( mk( 'h1', 'csm-d-name', p.name + ( p.age ? ', ' + p.age : '' ) ) );
+	var sub = [ p.job, p.city ].filter( Boolean ).join( ' \u00b7 ' );
+	if ( sub ) { over.appendChild( mk( 'p', 'csm-d-sub', sub ) ); }
+	media.appendChild( over );
+	card.appendChild( media );
+
+	if ( p.bio ) {
+		var bio = mk( 'section', 'csm-d-bio' );
+		bio.appendChild( mk( 'p', null, p.bio ) );
+		card.appendChild( bio );
+	}
+
+	( p.groups || [] ).forEach( function ( g ) {
+		var sec = mk( 'section', 'csm-d-group' );
+		sec.appendChild( mk( 'h2', 'csm-d-group-h', g.name ) );
+		var dl = mk( 'dl', 'csm-d-fields' );
+		( g.fields || [] ).forEach( function ( f ) {
+			dl.appendChild( mk( 'dt', null, f.label ) );
+			dl.appendChild( mk( 'dd', null, f.value ) );
+		} );
+		sec.appendChild( dl );
+		card.appendChild( sec );
+	} );
+
+	return card;
+};

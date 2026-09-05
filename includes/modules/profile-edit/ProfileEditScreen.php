@@ -321,6 +321,16 @@ final class ProfileEditScreen {
 				$raw = maybe_unserialize( $raw );
 			}
 
+			/*
+			 * Un-escape it for the input. BuddyPress stores slashed, entity-encoded
+			 * text, so the textarea was showing `I\'m` and `Db Desai &amp;amp; Associates`
+			 * back to the member who typed an apostrophe and an ampersand.
+			 * wp_kses re-applies both on save, so this round-trips.
+			 */
+			$raw = is_array( $raw )
+				? array_map( array( '\CAShaadi\Core\Profile', 'text' ), $raw )
+				: \CAShaadi\Core\Profile::text( $raw );
+
 			$multi = in_array( (string) $field->type, array( 'checkbox', 'multiselectbox' ), true );
 
 			$fields[] = array(

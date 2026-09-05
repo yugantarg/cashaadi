@@ -129,6 +129,31 @@ final class Profile {
 		return intdiv( $inches, 12 ) . '′ ' . ( $inches % 12 ) . '″';
 	}
 
+	/**
+	 * A stored xProfile value, as a human would type it.
+	 *
+	 * BuddyPress stores field data DOUBLE-ESCAPED, and its own display filters
+	 * undo that on the way out. Ours never did, so the escaping surfaced:
+	 *
+	 *   Bio          ->  I\\'m looking for a caring partner
+	 *   Company Name ->  Db Desai &amp;amp; Associates
+	 *
+	 * Both come from wp_filter_kses() on xprofile_data_value_before_save, which
+	 * returns addslashes( wp_kses( ... ) ) — slashes AND entities, by design,
+	 * because the native form posts slashed input and renders HTML output. The
+	 * fix belongs on READ, not on save: writing unescaped values would diverge
+	 * from every row BuddyPress has written since the site launched (verified —
+	 * the oldest affected rows predate this plugin entirely).
+	 *
+	 * Entities are decoded because our screens render values as TEXT, via
+	 * textContent, so `&amp;` has no chance to become `&` later. wp_kses re-encodes
+	 * on the next save, so the round trip is stable.
+	 */
+	public static function text( $raw ) {
+		$v = stripslashes_deep( (string) $raw );
+		return trim( html_entity_decode( $v, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+	}
+
 	/** "27 years old" -> "27". */
 	public static function age_number( $raw ) {
 		return preg_match( '/\d+/', (string) $raw, $m ) ? $m[0] : '';
@@ -158,7 +183,7 @@ final class Profile {
 		if ( is_array( $v ) ) {
 			$v = implode( ', ', array_filter( array_map( 'strval', $v ) ) );
 		}
-		return trim( (string) $v );
+		return self::text( $v );
 	}
 
 	/**
@@ -395,7 +420,7 @@ final class Profile {
 				 * can never inject markup), that anchor showed literally on the
 				 * profile card.
 				 */
-				$val = trim( wp_strip_all_tags( (string) $val ) );
+				$val = self::text( wp_strip_all_tags( (string) $val ) );
 				if ( '' === $val || self::is_placeholder( $val ) ) {
 					continue;
 				}

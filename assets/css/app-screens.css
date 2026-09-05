@@ -59,7 +59,14 @@
 .csm-app-loading { padding: 32px 18px; color: var(--csm-muted, #5c6a76); font-size: 14px; text-align: center; }
 
 /* ---- support footer: the only thing in the footer, per the owner ---- */
+/* It sits AFTER <main>, so the fixed bottom nav overlays it: on any screen
+   short enough that the footer lands at the foot of the viewport — the "that's
+   your 5 for this week" empty state, most obviously — the support line was cut
+   in half by the nav. Reserve the nav's height under it. 62px is the same
+   figure .csm-d-actions is pinned at, so the two cannot drift. */
+:root { --csm-nav-h: 62px; }
 .csm-app-support {
+	margin-bottom: calc( var(--csm-nav-h) + env(safe-area-inset-bottom, 0px) );
 	padding: 18px 16px;
 	background: var(--csm-surface, #fff);
 	border-top: 1px solid var(--csm-hair, #e4eaf0);
@@ -96,6 +103,8 @@
 	}
 	.csm-app-nav-item { flex: 0 0 auto; padding: 14px 4px; }
 	.csm-app-main { padding-bottom: 40px; }
+	/* the nav is a left rail here, so nothing overlays the footer */
+	.csm-app-support { margin-bottom: 0; }
 }
 
 /* ==========================================================================

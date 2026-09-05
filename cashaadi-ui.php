@@ -55,6 +55,7 @@ use CAShaadi\Modules\Discover\DiscoverScreen;
 use CAShaadi\Modules\MatchIntro\MatchIntro;
 use CAShaadi\Modules\Requests\RequestsScreen;
 use CAShaadi\Modules\ProfileScreen\ProfileApp;
+use CAShaadi\Modules\ProfileScreen\MemberScreen;
 use CAShaadi\Modules\ProfileEdit\ProfileEditScreen;
 use CAShaadi\Modules\Settings\SettingsScreen;
 
@@ -62,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.5.3' );
+define( 'CASHAADI_UI_VER', '1.6.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -204,6 +205,13 @@ if ( class_exists( 'CAShaadi\\Modules\\Requests\\RequestsScreen' ) ) {
 // linked from it.
 if ( class_exists( 'CAShaadi\\Modules\\ProfileScreen\\ProfileApp' ) ) {
 	ProfileApp::register();
+}
+
+// Viewing SOMEBODY ELSE, in the app. Without this, every link to another member
+// — a saved profile, a received request, "viewed me" — dropped out of the app
+// onto BuddyPress's own member page.
+if ( class_exists( 'CAShaadi\\Modules\\ProfileScreen\\MemberScreen' ) ) {
+	MemberScreen::register();
 }
 
 // Profile edit as an app screen — one section at a time, reached from the hub.

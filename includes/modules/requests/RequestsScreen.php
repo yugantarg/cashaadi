@@ -100,7 +100,13 @@ final class RequestsScreen {
 			'avatar' => function_exists( 'bp_core_fetch_avatar' )
 				? bp_core_fetch_avatar( array( 'item_id' => $uid, 'type' => 'thumb', 'html' => false ) )
 				: get_avatar_url( $uid, array( 'size' => 120 ) ),
-			'url'    => function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $uid ) : '',
+			/*
+			 * Our own member screen, not bp_members_get_user_url(). Tapping a name
+			 * in Saved used to land on BuddyPress's member page — different
+			 * typography, a tab strip, and an "Add Match / Private Message /
+			 * Block" row — i.e. straight out of the app the member was in.
+			 */
+			'url'    => home_url( '/member/' . $uid . '/' ),
 		);
 	}
 

@@ -99,47 +99,12 @@
 		if ( ! p ) { return empty(); }
 
 		root.innerHTML = '';
-		var card = el( 'article', 'csm-d-card' );
-
-		/* photo stack + name overlay — the stack itself lives in app-screens.js,
-		   because the preview screen renders this same card and must not drift. */
-		var media = el( 'div', 'csm-d-media' );
-		var shots = ( p.photos && p.photos.length ) ? p.photos : [ p.avatar ];
-		var img = el( 'img', 'csm-d-photo' );
-		img.src = shots[ 0 ];
-		img.alt = '';
-		img.loading = 'eager';
-		media.appendChild( img );
-		window.csmPhotoStack( media, shots );
-
-		if ( p.isNew ) { media.appendChild( el( 'span', 'csm-d-new', 'NEW' ) ); }
-		if ( p.verified ) { media.appendChild( el( 'span', 'csm-d-verified', 'Verified CA' ) ); }
-
-		var over = el( 'div', 'csm-d-over' );
-		over.appendChild( el( 'h1', 'csm-d-name', p.name + ( p.age ? ', ' + p.age : '' ) ) );
-		var sub = [ p.job, p.city ].filter( Boolean ).join( ' · ' );
-		if ( sub ) { over.appendChild( el( 'p', 'csm-d-sub', sub ) ); }
-		media.appendChild( over );
-		card.appendChild( media );
-
-		if ( p.bio ) {
-			var bio = el( 'section', 'csm-d-bio' );
-			bio.appendChild( el( 'p', null, p.bio ) );
-			card.appendChild( bio );
-		}
-
-		/* the full profile — this is the point of the screen */
-		( p.groups || [] ).forEach( function ( g ) {
-			var sec = el( 'section', 'csm-d-group' );
-			sec.appendChild( el( 'h2', 'csm-d-group-h', g.name ) );
-			var dl = el( 'dl', 'csm-d-fields' );
-			g.fields.forEach( function ( f ) {
-				dl.appendChild( el( 'dt', null, f.label ) );
-				dl.appendChild( el( 'dd', null, f.value ) );
-			} );
-			sec.appendChild( dl );
-			card.appendChild( sec );
-		} );
+		// One renderer for Discover, "how others see me" and /member/<id>/ —
+		// see csmProfileCard() in app-screens.js. Three copies of this markup is
+		// how they drifted apart.
+		var card = window.csmProfileCard( p );
+		var hero = card.querySelector( '.csm-d-photo' );
+		if ( hero ) { hero.loading = 'eager'; }  // the card the member is looking at
 
 		root.appendChild( card );
 

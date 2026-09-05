@@ -311,10 +311,11 @@ final class Welcome {
 		if ( function_exists( 'maybe_unserialize' ) ) {
 			$v = maybe_unserialize( $v );
 		}
+		// Same un-escaping the profile editor does; see Profile::text().
 		if ( is_array( $v ) ) {
-			return implode( ', ', array_filter( array_map( 'strval', $v ) ) );
+			return implode( ', ', array_filter( array_map( array( '\CAShaadi\Core\Profile', 'text' ), $v ) ) );
 		}
-		$v = trim( wp_strip_all_tags( (string) $v ) );
+		$v = \CAShaadi\Core\Profile::text( wp_strip_all_tags( (string) $v ) );
 		// datebox stores "YYYY-MM-DD 00:00:00"; the date input wants "YYYY-MM-DD".
 		if ( preg_match( '/^(\d{4}-\d{2}-\d{2})[ T]\d{2}:\d{2}/', $v, $m ) ) {
 			$v = $m[1];
