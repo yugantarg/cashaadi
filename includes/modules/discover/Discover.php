@@ -49,6 +49,12 @@ final class Discover {
 		Migrator::register( 'seen', array( Seen::class, 'schema' ) );
 		add_action( 'init', array( Seen::class, 'backfill' ), 20 );
 
+		// The event log the engine has always written to and never had. Creating
+		// the table is all that is needed — every call site already writes to it
+		// behind a table_exists() guard.
+		Migrator::register( 'event_log', array( \CAShaadi\Core\Engine::class, 'event_schema' ) );
+		add_action( 'wp_scheduled_delete', array( \CAShaadi\Core\Engine::class, 'prune_events' ) );
+
 		// #11600 — lazy weekly reset on every front-end load.
 		add_action( 'template_redirect', 'csm_maybe_weekly_reset' );
 

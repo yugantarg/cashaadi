@@ -17,11 +17,10 @@
  *     timezone here would silently re-slice every existing week.
  *   - get_opposite_gender() still passes through the `csm_opposite_gender`
  *     filter, with the same arguments in the same order.
- *   - log_event() is preserved EXACTLY, including the fact that it writes to
- *     `wp_csm_event_log` — a table that does not exist on this install, so every
- *     call has always been a silent no-op. It is kept rather than deleted so the
- *     port is behaviour-identical; `wp_csm_seen` is what actually records
- *     impressions now. See docs/CONFIG.md.
+ *   - log_event() was ported exactly, including the fact that it wrote to
+ *     `wp_csm_event_log` — a table that did not exist, so every call was a
+ *     silent no-op. The table is now created (2026-09-05) and the same calls
+ *     record for the first time; none of the earlier history survives.
  *
  * The global `cashaadi()` accessor lives in includes/core/globals.php, guarded
  * with function_exists so this is inert while the mu-plugin is still present —
@@ -102,12 +101,65 @@ final class Engine {
 	}
 
 	/**
+	 * Schema for the event log, registered by Discover::register().
+	 *
+	 * The table this writes to never existed, so every call below has been
+	 * discarded since day one. The events themselves are worth having — see
+	 * log_event() — so the table is created rather than the calls deleted.
+	 *
+	 * metadata is JSON because the payloads differ per event type and inventing
+	 * columns for the union of them would be worse than a document; nothing
+	 * queries inside it today.
+	 */
+	public static function event_schema( $wpdb ) {
+		$t       = $wpdb->prefix . 'csm_event_log';
+		$charset = $wpdb->get_charset_collate();
+		return "CREATE TABLE {$t} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			event_type VARCHAR(40) NOT NULL DEFAULT '',
+			actor_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			target_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			metadata LONGTEXT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY type_time (event_type, created_at),
+			KEY actor (actor_id)
+		) {$charset};";
+	}
+
+	/**
+	 * Keep the log bounded.
+	 *
+	 * Every tray refill writes several rows, so this grows forever if left alone.
+	 * Hooked to wp_scheduled_delete — a daily job WordPress already runs — rather
+	 * than adding another cron entry to keep alive and monitor.
+	 */
+	public static function prune_events() {
+		global $wpdb;
+		$t = $wpdb->prefix . 'csm_event_log';
+		if ( $t !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $t ) ) ) {
+			return;
+		}
+		$days   = (int) apply_filters( 'csm_event_log_days', 180 );
+		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days . ' days', (int) current_time( 'timestamp' ) ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$t} WHERE created_at < %s", $cutoff ) );
+	}
+
+	/**
 	 * Optional event logger, preserved as-is.
 	 *
-	 * Writes only if a `wp_csm_event_log` table exists. It does not, and never
-	 * has, so every call from the tray refill (profile_served,
-	 * tray_refill_complete, pool_exhausted, weekly_reset_processed,
-	 * match_created) has been discarded silently.
+	 * Writes only if a `wp_csm_event_log` table exists. It did not until
+	 * 2026-09-05, so every earlier call — profile_served, tray_refill_complete,
+	 * pool_exhausted, weekly_reset_processed, match_created — was discarded
+	 * silently and none of that history survives.
+	 *
+	 * The guard stays: it is what let the table be added without touching a
+	 * single call site, and it keeps this safe on an install that lacks it.
+	 *
+	 * pool_exhausted is the one to watch. It fires when a member has nobody left
+	 * to be shown, which on a 416-men-to-127-women pool is the early warning for
+	 * running dry — a question that could not be asked at all before.
 	 */
 	public function log_event( $event_type, $actor_id, $target_id = 0, $metadata = array() ) {
 		if ( ! $this->table_exists( 'event_log' ) ) {

@@ -36,7 +36,7 @@ final class Migrator {
 	 * That decoupling is what lets a module be enabled later, on its own, without
 	 * a coordinated VERSION bump.
 	 */
-	const VERSION = '5';
+	const VERSION = '6';
 
 	/**
 	 * Registered schemas: handle => callable returning the CREATE TABLE SQL for
