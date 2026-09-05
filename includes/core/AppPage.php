@@ -237,20 +237,18 @@ final class AppPage {
 		<?php
 	}
 
-	/** Close the document: support footer, bottom nav, wp_footer. */
+	/**
+	 * Close the document: bottom nav, wp_footer.
+	 *
+	 * NO SUPPORT FOOTER. It used to sit here, on every app screen, and the owner
+	 * asked for it to go: the address now has two deliberate homes — a Help and
+	 * support row in Profile > Manage, and one in Settings — and repeating it
+	 * under every screen made it furniture rather than help.
+	 * Config::SUPPORT_EMAIL is still the single source for both.
+	 */
 	public static function close( $current = '' ) {
 		?>
 		</main>
-
-		<footer class="csm-app-support">
-			<?php
-			printf(
-				/* translators: %s: support email address. */
-				esc_html__( 'Need help? Email us at %s', 'cashaadi-ui' ),
-				'<a href="mailto:' . esc_attr( Config::SUPPORT_EMAIL ) . '">' . esc_html( Config::SUPPORT_EMAIL ) . '</a>'
-			);
-			?>
-		</footer>
 
 		<nav class="csm-app-nav" aria-label="<?php esc_attr_e( 'Main', 'cashaadi-ui' ); ?>">
 			<?php foreach ( self::nav( $current ) as $key => $item ) : ?>

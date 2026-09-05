@@ -237,9 +237,10 @@
    nav, so that padding only opened a grey band below the buttons, and a support
    email wedged between Pass/Like and the nav read as clutter. Remove both here;
    every other screen keeps them. */
-/* The support footer is BACK (owner, 2026-09-04): hiding it left narrow screens
-   with no way to reach help. Main now reserves the fixed bar's height plus a
-   little, so the footer sits clear of the buttons instead of behind them. */
+/* The support footer is gone from the app shell entirely (owner, 2026-09-06):
+   help lives in Profile > Manage and in Settings, and repeating it under every
+   screen made it furniture. This padding now does one job — clearing the fixed
+   action bar. */
 body.csm-app-discover .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 18px ); }
 
 /* The sticky action bar floats over the foot of the scroll, so the last profile
