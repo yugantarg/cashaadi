@@ -69,6 +69,44 @@ final class Engagement {
 
 		// The three opt-out switches, into the screen BuddyPress already renders.
 		add_action( 'bp_notification_settings', array( __CLASS__, 'settings_rows' ), 30 );
+
+		/*
+		 * Take over the friendship emails from BuddyPress (owner, 2026-09-05).
+		 *
+		 * BuddyPress sends its own "match request" and "request accepted" mail
+		 * from friends_notification_new_request() and
+		 * friends_notification_accepted_request(). Ours cover the same two events
+		 * — on_liked() and on_match() — so a single like produced TWO emails,
+		 * governed by TWO different switches: the child theme's
+		 * notification_friends_* rows and our csm_email_matches.
+		 *
+		 * Ours win because theirs bypass everything that matters here: the queue's
+		 * master kill switch, the visible queue row, and the premium gate that
+		 * stops a free member being told WHO liked them.
+		 *
+		 * Unhooked late (priority 99 on bp_init) so BuddyPress has finished
+		 * registering. Only the EMAIL senders go — bp_friends_*_notification()
+		 * still adds the in-app bell notification, which is not duplicated.
+		 */
+		add_action( 'bp_init', array( __CLASS__, 'take_over_friend_emails' ), 99 );
+	}
+
+	/**
+	 * Silence BuddyPress's own friendship emails and retire the switches that
+	 * governed them, so one setting controls one email.
+	 */
+	public static function take_over_friend_emails() {
+		remove_action( 'friends_friendship_requested', 'friends_notification_new_request', 10 );
+		remove_action( 'friends_friendship_accepted', 'friends_notification_accepted_request', 10 );
+
+		/*
+		 * The rows that switched those emails on and off would now control
+		 * nothing, and a switch that does nothing is worse than no switch. Both
+		 * the child theme's relabelled version and BuddyPress's original are
+		 * removed; "Match activity" replaces them.
+		 */
+		remove_action( 'bp_notification_settings', 'cashaadi_friends_screen_notification_settings' );
+		remove_action( 'bp_notification_settings', 'friends_screen_notification_settings' );
 	}
 
 	public static function schedule() {
