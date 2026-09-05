@@ -79,26 +79,58 @@
 		var back = el( 'div', 'csm-coach' );
 		var hole = el( 'div', 'csm-coach-hole' );
 		var card = el( 'div', 'csm-coach-card' );
+		var reposition = null;
 
 		var node = o.target ? visible( o.target ) : null;
 		if ( node ) {
-			var r = node.getBoundingClientRect();
-			var pad = 8;
-			hole.style.top    = ( r.top - pad ) + 'px';
-			hole.style.left   = ( r.left - pad ) + 'px';
-			hole.style.width  = ( r.width + pad * 2 ) + 'px';
-			hole.style.height = ( r.height + pad * 2 ) + 'px';
 			back.appendChild( hole );
 
-			/* Put the card on whichever side has more room, so a target near the
-			   bottom (the nav) gets a card above it rather than off-screen. */
-			var below = window.innerHeight - r.bottom;
-			card.classList.add( below > 260 ? 'is-below' : 'is-above' );
-			if ( below > 260 ) {
-				card.style.top = ( r.bottom + 18 ) + 'px';
-			} else {
-				card.style.bottom = ( window.innerHeight - r.top + 18 ) + 'px';
-			}
+			/*
+			 * Position from a LIVE measurement, and keep re-measuring.
+			 *
+			 * Measuring once when the card opens is too early on a phone: the
+			 * profile photo is still loading, so the page height changes under
+			 * the overlay, and the browser's URL bar collapses shortly after load
+			 * and changes innerHeight. Either leaves the cut-out stranded away
+			 * from the thing it is meant to highlight — it appeared as a blank
+			 * white box above the nav.
+			 */
+			var place = function () {
+				var r   = node.getBoundingClientRect();
+				var pad = 8;
+
+				// A target that has gone (or is not laid out) gets no spotlight
+				// rather than one in the corner.
+				if ( ! r.width || ! r.height ) {
+					hole.style.display = 'none';
+					return;
+				}
+				hole.style.display = '';
+				hole.style.top    = ( r.top - pad ) + 'px';
+				hole.style.left   = ( r.left - pad ) + 'px';
+				hole.style.width  = ( r.width + pad * 2 ) + 'px';
+				hole.style.height = ( r.height + pad * 2 ) + 'px';
+
+				/* Card on whichever side has more room, so a target near the
+				   bottom (the nav) gets a card above it rather than off-screen. */
+				var below = window.innerHeight - r.bottom;
+				card.classList.toggle( 'is-below', below > 260 );
+				card.classList.toggle( 'is-above', below <= 260 );
+				if ( below > 260 ) {
+					card.style.top    = ( r.bottom + 18 ) + 'px';
+					card.style.bottom = '';
+				} else {
+					card.style.bottom = ( window.innerHeight - r.top + 18 ) + 'px';
+					card.style.top    = '';
+				}
+			};
+
+			place();
+			requestAnimationFrame( place );          // after this frame's layout
+			setTimeout( place, 250 );                // after late images settle
+			window.addEventListener( 'resize', place );
+			window.addEventListener( 'scroll', place, true );
+			reposition = place;
 		} else {
 			back.classList.add( 'is-plain' );
 			card.classList.add( 'is-centred' );
@@ -146,6 +178,10 @@
 
 		function close() {
 			document.removeEventListener( 'keydown', onKey );
+			if ( reposition ) {
+				window.removeEventListener( 'resize', reposition );
+				window.removeEventListener( 'scroll', reposition, true );
+			}
 			back.classList.remove( 'is-in' );
 			setTimeout( function () { if ( back.parentNode ) { back.parentNode.removeChild( back ); } }, 200 );
 			open = false;

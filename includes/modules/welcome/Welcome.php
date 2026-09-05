@@ -267,6 +267,27 @@ final class Welcome {
 		return function_exists( 'bp_get_user_has_avatar' ) && bp_get_user_has_avatar( $uid );
 	}
 
+	/**
+	 * A multi-value field's current answers, as a flat array.
+	 *
+	 * BuddyPress serialises checkbox answers, so the stored value is a string
+	 * until unserialised. Returns [] rather than [''] for an unanswered field, so
+	 * "is this empty" stays a simple test.
+	 */
+	private static function values_of( $fid, $uid ) {
+		if ( ! class_exists( '\BP_XProfile_ProfileData' ) ) {
+			return array();
+		}
+		$raw = \BP_XProfile_ProfileData::get_value_byid( (int) $fid, (int) $uid );
+		$val = maybe_unserialize( $raw );
+		if ( ! is_array( $val ) ) {
+			$val = ( '' === trim( (string) $val ) ) ? array() : array( (string) $val );
+		}
+		return array_values( array_filter( array_map( 'strval', $val ), function ( $v ) {
+			return '' !== trim( $v );
+		} ) );
+	}
+
 	/** A field's current value as a plain string (arrays flattened for emptiness). */
 
 	private static function value_of( $field_id, $uid ) {
@@ -369,14 +390,24 @@ final class Welcome {
 					continue; // uploaded elsewhere
 				}
 
+				/*
+				 * Hobbies and Interests is a checkbox field with twelve options,
+				 * and the wizard was rendering every option list as an exclusive
+				 * choice — so a member could save exactly one hobby out of twelve.
+				 * The profile editor already sent this flag and handled it
+				 * correctly; the wizard simply never did.
+				 */
+				$multi = in_array( (string) $field->type, array( 'checkbox', 'multiselectbox' ), true );
+
 				$fields[] = array(
 					'id'       => $fid,
 					'key'      => 'field_' . $fid,
 					'type'     => (string) $field->type,
 					'label'    => (string) $field->name,
 					'help'     => (string) $field->description,
-					'value'    => self::value_of( $fid, $uid ),
+					'value'    => $multi ? self::values_of( $fid, $uid ) : self::value_of( $fid, $uid ),
 					'options'  => self::options_for( $field ),
+					'multi'    => $multi,
 					'required' => ! empty( $field->is_required ),
 				);
 			}
@@ -387,7 +418,8 @@ final class Welcome {
 
 			$done = true;
 			foreach ( $fields as $f ) {
-				if ( $f['required'] && '' === $f['value'] ) {
+				$empty = is_array( $f['value'] ) ? empty( $f['value'] ) : ( '' === $f['value'] );
+				if ( $f['required'] && $empty ) {
 					$done = false;
 					break;
 				}

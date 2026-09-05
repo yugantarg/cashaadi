@@ -164,14 +164,26 @@
 		var node;
 
 		if ( opts.length ) {
-			// Options render as tap targets, not a dropdown — one thumb, one tap.
-			node = el( 'div', 'csm-w-opts' );
-			var chosen = f.value || '';
+			/* Options render as tap targets, not a dropdown — one thumb, one tap.
+			   A multi-value field (Hobbies and Interests is a checkbox with twelve
+			   options) toggles; a single-value field clears the others. Without
+			   this every option list was exclusive, so a member could save exactly
+			   one hobby out of twelve. */
+			node = el( 'div', 'csm-w-opts' + ( f.multi ? ' is-multi' : '' ) );
+			var chosen = f.multi
+				? ( Array.isArray( f.value ) ? f.value : ( f.value ? [ f.value ] : [] ) )
+				: [ f.value || '' ];
+
 			opts.forEach( function ( o ) {
-				var b = el( 'button', 'csm-w-opt' + ( o === chosen ? ' is-on' : '' ), o );
+				var on = chosen.indexOf( o ) !== -1;
+				var b = el( 'button', 'csm-w-opt' + ( on ? ' is-on' : '' ), o );
 				b.type = 'button';
 				b.setAttribute( 'data-val', o );
 				b.addEventListener( 'click', function () {
+					if ( f.multi ) {
+						b.classList.toggle( 'is-on' );
+						return;
+					}
 					[].forEach.call( node.querySelectorAll( '.csm-w-opt' ), function ( x ) {
 						x.classList.remove( 'is-on' );
 					} );
@@ -179,12 +191,15 @@
 				} );
 				node.appendChild( b );
 			} );
+
 			wrap.appendChild( node );
 			return {
 				node: wrap,
 				value: function () {
-					var on = node.querySelector( '.csm-w-opt.is-on' );
-					return on ? on.getAttribute( 'data-val' ) : '';
+					var on = [].filter.call( node.querySelectorAll( '.csm-w-opt' ), function ( x ) {
+						return x.classList.contains( 'is-on' );
+					} ).map( function ( x ) { return x.getAttribute( 'data-val' ); } );
+					return f.multi ? on : ( on[0] || '' );
 				}
 			};
 		}
