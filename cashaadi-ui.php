@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.3.0
+ * Version:           1.3.1
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -20,6 +20,7 @@ use CAShaadi\Core\Migrator;
 use CAShaadi\Core\Health;
 use CAShaadi\Modules\Coach\Coach;
 use CAShaadi\Modules\ThemeCompat\ThemeCompat;
+use CAShaadi\Modules\ThemeCompat\Datebox;
 use CAShaadi\Modules\ProfileEdit\FieldLogic;
 use CAShaadi\Modules\Analytics\Analytics;
 use CAShaadi\Modules\AppShell\AppShell;
@@ -61,7 +62,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.3.0' );
+define( 'CASHAADI_UI_VER', '1.3.1' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -79,6 +80,12 @@ require_once CASHAADI_UI_DIR . 'includes/core/globals.php';
 // the theme's own copies - see the class docblock for why the timing matters.
 if ( class_exists( 'CAShaadi\\Modules\\ThemeCompat\\ThemeCompat' ) ) {
 	ThemeCompat::register();
+}
+
+// The custom xProfile date field, with the class_exists() guard the theme was
+// missing - without it a second bp_init is a fatal redeclare.
+if ( class_exists( 'CAShaadi\\Modules\\ThemeCompat\\Datebox' ) ) {
+	Datebox::register();
 }
 
 // First-run guidance: the new-account tour and the explain-before-you-act

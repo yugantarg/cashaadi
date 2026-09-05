@@ -81,6 +81,18 @@ final class ThemeCompat {
 		remove_action( 'after_setup_theme', 'hide_admin_bar_for_subscribers' );
 		remove_filter( 'bp_get_last_activity', 'cashaadi_coarse_last_active', 99 );
 		remove_filter( 'bp_member_last_active', 'cashaadi_coarse_last_active', 99 );
+		remove_filter( 'bp_after_has_members_parse_args', 'exclude_admins_and_current_loggedin_user_from_members_directory' );
+
+		/*
+		 * The gender filter on bp_pre_user_query_construct is an ANONYMOUS
+		 * CLOSURE in the theme, so there is no name to remove it by. Ours is
+		 * added alongside it and both run until the theme copy is deleted.
+		 *
+		 * That is safe because the operation is idempotent: the exclude list is
+		 * array_unique'd, and a second identical xprofile_query clause ANDs a
+		 * condition with itself. Deliberately different from every other hook
+		 * here, which are unhooked rather than duplicated.
+		 */
 
 		// Registration and login.
 		add_filter( 'wp_pre_insert_user_data', array( __CLASS__, 'hashed_username' ), 10, 4 );
@@ -94,6 +106,10 @@ final class ThemeCompat {
 		add_filter( 'bp_nouveau_feedback_messages', array( __CLASS__, 'register_notices' ) );
 		add_filter( 'bp_nouveau_get_user_feedback', array( __CLASS__, 'matches_copy' ) );
 		add_filter( 'bp_get_add_friend_button', array( __CLASS__, 'match_button' ) );
+
+		// Members directory.
+		add_filter( 'bp_after_has_members_parse_args', array( __CLASS__, 'directory_exclude' ) );
+		add_action( 'bp_pre_user_query_construct', array( __CLASS__, 'directory_gender_filter' ), 20 );
 
 		// Navigation.
 		add_action( 'bp_friends_setup_nav', array( __CLASS__, 'hide_friends_if_not_self' ) );
@@ -238,6 +254,87 @@ final class ThemeCompat {
 			$args['link_title'] = $pair[1];
 		}
 		return $args;
+	}
+
+	/* --------------------------------------------------- members directory */
+
+	/** Admins and the viewer themselves never appear in the directory. */
+	public static function directory_exclude( $args ) {
+		if ( ! function_exists( 'bp_is_members_directory' ) || ! bp_is_members_directory() ) {
+			return $args;
+		}
+
+		$exclude = (array) get_users( array( 'role' => 'Administrator', 'fields' => 'ID' ) );
+		if ( is_user_logged_in() ) {
+			$exclude[] = get_current_user_id();
+		}
+		if ( ! $exclude ) {
+			return $args;
+		}
+
+		$args['exclude'] = empty( $args['exclude'] )
+			? $exclude
+			: array_merge( (array) $args['exclude'], $exclude );
+
+		return $args;
+	}
+
+	/**
+	 * Show only opposite-gender members, and never admins or yourself.
+	 *
+	 * Runs on bp_pre_user_query_construct, which hands over the BP_User_Query
+	 * before it executes — the only point where an xprofile_query clause can be
+	 * added to the directory.
+	 *
+	 * Two deliberate escape hatches, both ported as-is: an INCOMPLETE profile
+	 * sees everyone (otherwise a member who has not set their own gender would
+	 * face an empty directory and no way to understand why), and admins and
+	 * logged-out visitors are never filtered.
+	 *
+	 * Idempotent on purpose — see the note in takeover() about the theme's
+	 * closure, which cannot be unhooked and so runs alongside this until the
+	 * theme file is stripped.
+	 */
+	public static function directory_gender_filter( $query ) {
+		if ( ! function_exists( 'bp_is_members_directory' ) || ! bp_is_members_directory() ) {
+			return; // widgets and profile tabs are unaffected
+		}
+
+		$exclude = isset( $query->query_vars['exclude'] ) ? (array) $query->query_vars['exclude'] : array();
+		$exclude = array_merge( $exclude, (array) get_users( array( 'role' => 'administrator', 'fields' => 'ids' ) ) );
+		if ( is_user_logged_in() && function_exists( 'bp_loggedin_user_id' ) ) {
+			$exclude[] = bp_loggedin_user_id();
+		}
+		$query->query_vars['exclude'] = array_unique( array_map( 'intval', $exclude ) );
+
+		if ( ! is_user_logged_in() || current_user_can( 'administrator' ) ) {
+			return;
+		}
+
+		// An incomplete profile sees everyone.
+		if ( function_exists( 'csm_user_profile_is_complete' ) && ! csm_user_profile_is_complete( get_current_user_id() ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'xprofile_get_field_data' ) ) {
+			return;
+		}
+		$gender = strtolower( (string) xprofile_get_field_data( 'Gender', bp_loggedin_user_id() ) );
+		if ( 'male' === $gender ) {
+			$want = 'Female';
+		} elseif ( 'female' === $gender ) {
+			$want = 'Male';
+		} else {
+			return; // unset or unrecognised → show everyone
+		}
+
+		$xq   = isset( $query->query_vars['xprofile_query'] ) ? $query->query_vars['xprofile_query'] : array();
+		$xq[] = array(
+			'field'   => 'Gender',
+			'value'   => $want,
+			'compare' => '=',
+		);
+		$query->query_vars['xprofile_query'] = $xq;
 	}
 
 	/* ---------------------------------------------------------- navigation */
