@@ -47,6 +47,16 @@ final class Premium {
 		// (#11614 contact gate intentionally NOT migrated — it was already
 		// disabled on the live site; contact details are no longer gated.)
 
+		/*
+		 * Copy the owner on every membership purchase (owner request, 2026-09-05).
+		 *
+		 * PMPro already emails an admin notice on checkout — it just goes to
+		 * WordPress's admin_email and nowhere else, which on this install is a
+		 * site address nobody reads. This adds a second recipient rather than
+		 * replacing the first, so nothing that already works stops working.
+		 */
+		add_filter( 'pmpro_email_recipient', array( __CLASS__, 'copy_owner_on_purchase' ), 10, 2 );
+
 		// Profile Visitors (#11811): "who viewed me". Read-only over the
 		// wp_csm_profile_views table (created/logged by #11807, which stays
 		// active). Premium sees the full list; free sees a locked teaser + count.
@@ -96,6 +106,58 @@ final class Premium {
 			) ) . ';',
 			'before'
 		);
+	}
+
+	/**
+	 * Where to copy purchase notifications.
+	 *
+	 * An option so it can be changed without a deploy, with a filter over the
+	 * top, and a default so it works on production the moment this ships rather
+	 * than waiting for someone to remember to set it. Empty disables the copy.
+	 */
+	public static function purchase_notify_to() {
+		$to = (string) get_option( 'csm_purchase_notify_to', 'yugantargupta@gmail.com' );
+		return trim( (string) apply_filters( 'csm_purchase_notify_to', $to ) );
+	}
+
+	/**
+	 * Add the owner as a second recipient on PMPro's admin checkout emails.
+	 *
+	 * Only the ADMIN checkout templates: the member's own receipt is theirs, and
+	 * copying the owner on it would be reading someone's mail rather than being
+	 * told they bought something.
+	 *
+	 * 'checkout_paid_admin'  — a real purchase
+	 * 'checkout_check_admin' — pay-by-check, also a purchase
+	 * 'checkout_free_admin'  — deliberately NOT included: a free level is a
+	 *                          signup, not a purchase, and on a site where most
+	 *                          members are free that would be constant noise.
+	 *
+	 * wp_mail() accepts a comma-separated list, which is why this appends rather
+	 * than sending a second message — one email, two recipients, and the owner
+	 * sees exactly what the admin address sees.
+	 */
+	public static function copy_owner_on_purchase( $recipient, $email ) {
+		if ( ! is_object( $email ) || empty( $email->template ) ) {
+			return $recipient;
+		}
+		if ( ! in_array( $email->template, array( 'checkout_paid_admin', 'checkout_check_admin' ), true ) ) {
+			return $recipient;
+		}
+
+		$extra = self::purchase_notify_to();
+		if ( '' === $extra || ! is_email( $extra ) ) {
+			return $recipient;
+		}
+
+		// Never duplicate: if the admin address already IS this address, one copy.
+		$current = array_filter( array_map( 'trim', explode( ',', (string) $recipient ) ) );
+		if ( in_array( $extra, $current, true ) ) {
+			return $recipient;
+		}
+		$current[] = $extra;
+
+		return implode( ',', $current );
 	}
 
 	/* ---- profile visitors (#11811) ------------------------------------- */
