@@ -11,13 +11,20 @@
  * markup wrapper is the real change and the theme's CSS targets it, so the port
  * follows the code rather than the comment.
  *
- * THE BUG THIS FIXES. The theme declared `My_Custom_Datebox_Field` inside a
- * function hooked to `bp_init` with no class_exists() guard. bp_init normally
- * fires once, so it never surfaced — but anything firing it twice took the whole
- * site down with a fatal redeclare. It was reproduced accidentally while testing
- * an unrelated change. The guard below is the fix, and it is also what lets this
- * coexist with the theme's copy during the migration: whichever declares first
- * wins, the other skips, and the class is identical either way.
+ * THE BUG THIS FIXES. The theme declares `My_Custom_Datebox_Field` inside a
+ * function hooked to `bp_init` with no class_exists() guard, so anything firing
+ * bp_init twice takes the site down with a fatal redeclare.
+ *
+ * WHY THIS WAITS FOR THE THEME. A first attempt registered this immediately and
+ * took staging2 down with 500s across every page. The reasoning was "whichever
+ * declares first wins, the other skips" — true only if BOTH are guarded, and the
+ * theme's is not. Ours declared the class at bp_init:20, the theme's ran at the
+ * same priority straight after, and redeclared it.
+ *
+ * So this stays dormant while the theme's function exists, and takes over the
+ * moment it is deleted. Unlike the hooks in ThemeCompat, which can be unhooked by
+ * name and swapped safely, a class declaration cannot coexist with an unguarded
+ * twin: theme and plugin must change in the same step.
  */
 
 namespace CAShaadi\Modules\ThemeCompat;
@@ -37,6 +44,15 @@ final class Datebox {
 			return; // BuddyPress inactive, or xProfile switched off
 		}
 
+		/*
+		 * Stand down while the theme still declares this. Its copy is unguarded,
+		 * so if we declare first it will redeclare and fatal the whole site —
+		 * which is exactly what happened when this was first deployed.
+		 */
+		if ( function_exists( 'cashaadi_register_custom_datebox' ) ) {
+			return;
+		}
+
 		// The guard the theme was missing. Without it a second bp_init is fatal.
 		if ( ! class_exists( 'My_Custom_Datebox_Field', false ) ) {
 			require_once __DIR__ . '/class-my-custom-datebox-field.php';
@@ -48,8 +64,8 @@ final class Datebox {
 	/**
 	 * Point the 'datebox' type at our class.
 	 *
-	 * Idempotent: the theme's copy sets the same key to the same class name, so
-	 * both running during the migration is harmless.
+	 * Only reached once the theme's copy is gone, so there is no competing
+	 * mapping — but idempotent regardless: the same key, the same class name.
 	 */
 	public static function map_type( $types ) {
 		$types['datebox'] = 'My_Custom_Datebox_Field';
