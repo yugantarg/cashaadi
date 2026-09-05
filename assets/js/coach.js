@@ -125,11 +125,24 @@
 		requestAnimationFrame( function () { back.classList.add( 'is-in' ); } );
 		b.focus();
 
-		/* Escape counts as the primary action, not a cancel: for an explainer the
-		   member has already asked to do the thing, and trapping them behind a
-		   card they cannot dismiss is worse than proceeding. */
-		function onKey( e ) { if ( 'Escape' === e.key ) { close(); if ( o.onCta ) { o.onCta(); } } }
+		/*
+		 * Escape and a backdrop tap take the SAFE way out.
+		 *
+		 * Originally Escape ran the primary action, on the reasoning that the
+		 * member had already asked to do the thing. That is wrong wherever the
+		 * primary action is destructive: dismissing a card that says "passing is
+		 * final" must not be what performs the pass. So if the step offers a
+		 * secondary (Cancel on an explainer, Skip on the tour) that is what a
+		 * dismissal does; only a step with no way out falls through to the CTA.
+		 */
+		function dismiss() {
+			close();
+			if ( o.onSkip ) { o.onSkip(); return; }
+			if ( o.onCta ) { o.onCta(); }
+		}
+		function onKey( e ) { if ( 'Escape' === e.key ) { dismiss(); } }
 		document.addEventListener( 'keydown', onKey );
+		back.addEventListener( 'click', function ( e ) { if ( e.target === back ) { dismiss(); } } );
 
 		function close() {
 			document.removeEventListener( 'keydown', onKey );
@@ -149,8 +162,21 @@
 		var key = 'action_' + name;
 		var copy = ( CFG.actions || {} )[ name ];
 		if ( ! copy || has( key ) ) { return go(); }
-		remember( key );
-		step( { title: copy.title, body: copy.body, cta: copy.cta, onCta: go } );
+
+		step( {
+			title: copy.title,
+			body:  copy.body,
+			cta:   copy.cta,
+			skip:  copy.cancel || 'Cancel',
+			/*
+			 * Only remember it once they GO THROUGH with it. If they read
+			 * "passing is final" and back out, the warning has not done its job
+			 * yet — it should still be there the next time they reach for the
+			 * button, not silently spent.
+			 */
+			onCta:  function () { remember( key ); go(); },
+			onSkip: function () {}
+		} );
 	}
 
 	/** The new-account walkthrough. One key for the whole tour. */

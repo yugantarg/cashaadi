@@ -142,17 +142,20 @@ final class Coach {
 				'pass' => array(
 					'title' => __( 'Passing is final', 'cashaadi-ui' ),
 					'body'  => __( 'This profile will not come back, and they are not told. Use the arrows to look through everyone before you decide.', 'cashaadi-ui' ),
-					'cta'   => __( 'Got it, pass', 'cashaadi-ui' ),
+					'cta'    => __( 'Yes, pass', 'cashaadi-ui' ),
+					'cancel' => __( 'Go back', 'cashaadi-ui' ),
 				),
 				'like' => array(
 					'title' => __( 'Liking sends a request', 'cashaadi-ui' ),
 					'body'  => __( 'They will see that someone is interested and can accept. If they do, it is a match and you can message each other.', 'cashaadi-ui' ),
-					'cta'   => __( 'Got it, like', 'cashaadi-ui' ),
+					'cta'    => __( 'Yes, like', 'cashaadi-ui' ),
+					'cancel' => __( 'Go back', 'cashaadi-ui' ),
 				),
 				'save' => array(
 					'title' => __( 'Save to decide later', 'cashaadi-ui' ),
 					'body'  => __( 'Nothing is sent and they are not told. The profile moves to Requests → Saved, where you can like or pass whenever you are ready.', 'cashaadi-ui' ),
-					'cta'   => __( 'Got it, save', 'cashaadi-ui' ),
+					'cta'    => __( 'Yes, save', 'cashaadi-ui' ),
+					'cancel' => __( 'Go back', 'cashaadi-ui' ),
 				),
 			),
 		);
