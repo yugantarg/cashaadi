@@ -88,7 +88,11 @@
 .csm-pe-msg.is-ok { color: var(--csm-green-press, #5e8926); font-weight: 600; }
 .csm-pe-msg.is-bad { color: #96262a; }
 
+/* Same spacing problem the wizard had: pressed flush against the last field,
+   the primary action reads as one more row of the form rather than the end of
+   it. Air plus a hairline says the fields have finished. */
 .csm-pe-save {
+	margin-top: 26px;
 	width: 100%; min-height: 50px;
 	padding: 13px 20px; border: 0; border-radius: 999px;
 	background: var(--csm-green, #6f9f2e); color: #fff;

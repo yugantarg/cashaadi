@@ -183,8 +183,20 @@
 .csm-w-blur strong { display: block; font-size: 13.5px; font-weight: 600; }
 .csm-w-blur em { display: block; margin-top: 2px; font-size: 12.5px; font-style: normal; color: var(--csm-muted, #5c6a76); }
 
-/* ---- nav ---- */
-.csm-w-nav { display: flex; align-items: center; gap: 12px; }
+/* ---- nav ----
+   The action row sat flush against the last field: on a step ending in a choice
+   list, Continue looked like one more option in the list. It needs air above it
+   and a hairline, so it reads as "the step ends here" rather than as another
+   thing to pick.
+
+   The cropper reuses .csm-w-next inside its own action row, which is tight by
+   design, so the spacing goes on .csm-w-nav rather than on the button. */
+.csm-w-nav {
+	display: flex; align-items: center; gap: 12px;
+	margin-top: 26px;
+	padding-top: 20px;
+	border-top: 1px solid var(--csm-hair, #e4eaf0);
+}
 .csm-w-back {
 	padding: 12px 4px;
 	border: 0;
