@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           0.98.0
+ * Version:           0.99.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -17,6 +17,7 @@
 
 use CAShaadi\Core\Assets;
 use CAShaadi\Core\Migrator;
+use CAShaadi\Core\Health;
 use CAShaadi\Modules\ProfileEdit\FieldLogic;
 use CAShaadi\Modules\Analytics\Analytics;
 use CAShaadi\Modules\AppShell\AppShell;
@@ -58,7 +59,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '0.98.0' );
+define( 'CASHAADI_UI_VER', '0.99.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -71,6 +72,12 @@ require_once CASHAADI_UI_DIR . 'includes/autoload.php';
 // so this is inert while the cashaadi() mu-plugin is still installed — mu-plugins
 // load first and their definitions win. Removing that file promotes these.
 require_once CASHAADI_UI_DIR . 'includes/core/globals.php';
+
+// Integration health. Ungated and admin-only: it reads nothing but its own
+// checks, and it is most needed exactly when a flag or dependency is wrong.
+if ( class_exists( 'CAShaadi\\Core\\Health' ) ) {
+	Health::register();
+}
 
 // Install/upgrade custom tables in one place. Schemas are registered by the
 // table-owning modules (premium, photos, block, emails) only when their flag is
