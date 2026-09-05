@@ -112,6 +112,13 @@ final class Profile {
 				$hidden[] = $other;
 			}
 		}
+		/*
+		 * Never the four that identify a profile. This path builds the list
+		 * itself rather than asking BuddyPress, so SettingsScreen's filter does
+		 * not reach it — the rule has to be applied here too.
+		 */
+		$hidden = array_diff( $hidden, Config::ALWAYS_PUBLIC_FIELDS );
+
 		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
 	}
 

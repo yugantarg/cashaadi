@@ -40,6 +40,33 @@ final class Config {
 	 */
 	const SIGNUP_FIELDS = array( self::FIELD_NAME, self::FIELD_PHONE, self::FIELD_GENDER, self::FIELD_DOB, self::FIELD_CITY );
 
+	/*
+	 * Fields a member cannot hide.
+	 *
+	 * These four ARE the profile as far as anyone browsing is concerned: a card
+	 * with no name, no age, no city and no gender is not a profile someone can
+	 * decide about, and Discover is gender-matched, so hiding gender would take
+	 * a member out of everyone's tray while leaving them convinced they were
+	 * listed. The visibility screen shows them locked on "Everyone" rather than
+	 * offering a choice that the rest of the site then overrides.
+	 *
+	 * Enforced, not merely displayed — see Profile::hidden_for() and the
+	 * bp_xprofile_get_hidden_fields_for_user filter, which strip these ids from
+	 * whatever any member set earlier.
+	 */
+	const ALWAYS_PUBLIC_FIELDS = array( self::FIELD_NAME, self::FIELD_AGE, self::FIELD_GENDER, self::FIELD_CITY );
+
+	/*
+	 * Field NAMES kept off the visibility screen entirely.
+	 *
+	 * "Other relevant documents" is a private upload — Profile::hidden_for_member
+	 * drops it from every profile at every visibility level — so a row offering
+	 * "Everyone / Matches / Only me" for it is a choice the site would ignore.
+	 * ICAI ID stays listed: it is locked to Only me, and seeing that stated is
+	 * how a member knows their certificate is not on show.
+	 */
+	const VISIBILITY_EXCLUDED = array( 'Other relevant documents' );
+
 	/* ---- xProfile group edit order (photo step handled separately) ----- */
 	const GROUP_ORDER = array( 1, 7, 6, 4, 9, 8, 10 );
 

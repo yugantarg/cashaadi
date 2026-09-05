@@ -36,6 +36,21 @@ final class SettingsScreen {
 	public static function register() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+
+		/*
+		 * Enforce ALWAYS_PUBLIC_FIELDS everywhere, not just on our screens.
+		 * BuddyPress's own member page, the members directory and any plugin
+		 * that asks it all go through this filter, so one hook covers them —
+		 * and members who set City or Gender to "Only me" before this rule
+		 * existed are corrected without rewriting their stored settings.
+		 */
+		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'unhide_always_public' ) );
+	}
+
+	/** Strip the never-hideable ids from whatever BuddyPress worked out. */
+	public static function unhide_always_public( $hidden ) {
+		$hidden = array_map( 'intval', (array) $hidden );
+		return array_values( array_diff( $hidden, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS ) );
 	}
 
 	public static function url() {
@@ -320,6 +335,11 @@ final class SettingsScreen {
 			if ( ! $field || 'allowed' !== $field->allow_custom_visibility ) {
 				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'This field cannot be changed.', 'cashaadi-ui' ) ), 400 );
 			}
+			// The screen locks these; so does the server, because the screen is
+			// not the only thing that can POST here.
+			if ( in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true ) ) {
+				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'This one is always shown to everyone.', 'cashaadi-ui' ) ), 400 );
+			}
 			if ( function_exists( 'xprofile_set_field_visibility_level' ) ) {
 				xprofile_set_field_visibility_level( $fid, $uid, $level );
 			}
@@ -351,14 +371,28 @@ final class SettingsScreen {
 					if ( $fid === \CAShaadi\Core\Config::FIELD_AGE ) {
 						continue; // auto-derived, not shown here
 					}
+					// A private upload has no visibility to choose. See Config.
+					if ( in_array( (string) $field->name, \CAShaadi\Core\Config::VISIBILITY_EXCLUDED, true ) ) {
+						continue;
+					}
+
+					/*
+					 * The four fields a member cannot hide read as locked
+					 * "Everyone" whatever is stored against them — including a
+					 * level set before this rule existed, which the hidden-fields
+					 * filter now overrides anyway. Showing the stored value here
+					 * would tell them their city was private when it is not.
+					 */
+					$always = in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true );
+
 					$level = function_exists( 'xprofile_get_field_visibility_level' )
 						? xprofile_get_field_visibility_level( $fid, $uid )
 						: ( isset( $field->default_visibility ) ? $field->default_visibility : 'public' );
 					$rows[] = array(
 						'id'     => $fid,
 						'label'  => (string) $field->name,
-						'level'  => (string) $level,
-						'locked' => ( 'allowed' !== $field->allow_custom_visibility ),
+						'level'  => $always ? 'public' : (string) $level,
+						'locked' => $always || ( 'allowed' !== $field->allow_custom_visibility ),
 					);
 				}
 				if ( $rows ) {
