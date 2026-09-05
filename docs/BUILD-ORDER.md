@@ -581,3 +581,70 @@ hiding a real answer is worse than the bug being fixed.
 
 Production carries the same 49-row problem and will need the same cleanup at
 cutover — the code fixes deploy with git, the data does not.
+
+---
+
+# Session state — 2026-09-05 (plugin v1.3.0)
+
+## Shipped since v0.99.1
+
+- **v1.0.0–1.0.2 Save for later.** Third Discover outcome. `wp_csm_tray.status`
+  gained 'saved' by targeted ALTER (the tray predates the Migrator). `act()`
+  widened: a save may only come FROM pending, but a like/pass may come from
+  pending OR saved — without that, saving made a profile permanently
+  un-actionable. A save is not a decision: not written to Seen, no friend
+  request. Free members see this week's saves live and older ones **blurred and
+  locked** (identities never sent, same rule as the viewers list); Premium sees
+  all. Fourth tab on Requests.
+- **v1.1.0–1.1.2 Coach.** One spotlight component for the new-account tour and
+  the explain-before-you-act popups. Seen-state in user meta, not localStorage.
+  Two bugs found live: it spotlighted the *hidden* nav (two navs exist, one
+  display:none per breakpoint — now picks the first VISIBLE match), and the
+  explainer had no way out, so the warning that a pass is final was also the
+  thing that performed it. Now every explainer carries "Go back", Escape and
+  backdrop take the safe path, and the seen-key is recorded on confirm only.
+- **v1.2.0 Weekly batch spread over Monday AND Tuesday**, per-run cap
+  (`csm_engagement_batch_cap`, default 150). No bookkeeping splits the days: the
+  type key is per week, so Tuesday cannot re-queue Monday's recipients.
+  Saturday's expiring email only goes to members who still have pending rows.
+- **v1.3.0 ThemeCompat.** 13 child-theme hooks moved into the plugin. Takes over
+  on `after_setup_theme` priority 1 — plugins load before themes, so removing
+  the theme's filters at plugin load would find nothing and leave both running.
+
+## Verified this session
+
+Fake users purged (19 + 550 orphaned rows; backups in `csm_purge_*_20260905`,
+safe to drop). Old `staging` install deleted: 33,154 files, 1.1 GB — its
+database `u671281642_XaZn1` still needs dropping in hPanel. LiteSpeed Cache
+installed on **production**: public pages ~0.2s (was 0.6–1.0s), member/auth
+paths bypass, minify off deliberately.
+
+## The 503s
+
+Confirmed as origin, not CDN: `server: LiteSpeed`, backend unavailable, ~0.4%
+of requests. Cause is PHP-worker exhaustion — every uncacheable request costs
+~0.75s and 16 WordPress installs share one plan's workers. PHP is already
+8.2.33 with OPcache; no memcached server exists. **Measured and disproved:** the
+snippet cutover is NOT a performance fix — production (66 snippets) and staging2
+(0 snippets) render an uncacheable page in the same ~0.75s.
+
+## Next
+
+1. **Child theme, second pass** — the members-directory gender filter (an
+   anonymous closure, so theme and plugin must change together), the 140-line
+   datebox class (add the missing `class_exists()` guard), and delete the dead
+   `cashaadi_friends_screen_notification_settings`.
+2. **ZeptoMail** — owner adding DKIM TXT `51788._domainkey` and CNAME
+   `bounce-zem`. Then: retire Brevo (it overrides wp_mail), wire the API behind
+   an admin page, raise `csm_remail_daily_cap` from 300. SPF is NOT part of
+   verification; the merged line, when wanted, is
+   `v=spf1 include:_spf.mail.hostinger.com include:zeptomail.zoho.in ~all`
+   as a single record.
+3. **Production cutover** — flags, snippets off in order, placeholder-data
+   cleanup, its own fake-user pass, tracking credentials, `csm_remail_master`.
+
+## Open, owner-side
+
+Photo overflow (symptom clipped by `overflow:hidden`, cause unknown — needs
+device/browser); `/membership-pricing/` renders in 2.5–3.1s and is uncacheable
+for a reason I did not finish diagnosing.
