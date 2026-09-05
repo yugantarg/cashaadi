@@ -179,7 +179,24 @@ final class ActivationCode {
 
 		$ct = function () { return 'text/html'; };
 		add_filter( 'wp_mail_content_type', $ct );
+
+		/*
+		 * Mark this send as one that must never be intercepted.
+		 *
+		 * Without a code a member cannot activate at all, so this email is the one
+		 * that must survive every safety net we put in front of mail. It already
+		 * bypasses the queue by calling wp_mail() directly; this flag also gets it
+		 * past staging's mail sink, which otherwise swallows it and makes signup
+		 * impossible to test on staging — which is exactly what happened.
+		 *
+		 * The flag is a global rather than a filter because the sink is an
+		 * mu-plugin that loads before this plugin exists and cannot depend on it.
+		 * Safe to leak: nothing else reads it, and it is cleared immediately.
+		 */
+		$GLOBALS['csm_mail_always_send'] = true;
 		wp_mail( $email, $subject, $msg );
+		unset( $GLOBALS['csm_mail_always_send'] );
+
 		remove_filter( 'wp_mail_content_type', $ct );
 	}
 
