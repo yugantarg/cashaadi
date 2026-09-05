@@ -163,9 +163,22 @@
 		save.setAttribute( 'aria-label', 'Save for later' );
 		save.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
 
-		pass.addEventListener( 'click', function () { act( p, 'pass' ); } );
-		like.addEventListener( 'click', function () { act( p, 'like' ); } );
-		save.addEventListener( 'click', function () { act( p, 'save' ); } );
+		/* Explain each action the first time it is used, then carry it out. The
+		   explainer runs BEFORE the action, which is the whole point for Pass:
+		   telling someone it was irreversible after the fact is no use. Once
+		   seen, csmCoach.explain() calls straight through. */
+		function guarded( name ) {
+			return function () {
+				if ( window.csmCoach ) {
+					window.csmCoach.explain( name, function () { act( p, name ); } );
+				} else {
+					act( p, name );
+				}
+			};
+		}
+		pass.addEventListener( 'click', guarded( 'pass' ) );
+		like.addEventListener( 'click', guarded( 'like' ) );
+		save.addEventListener( 'click', guarded( 'save' ) );
 
 		/* Move through the tray WITHOUT deciding. The owner's rule: a member
 		   should be able to see all 5 before acting on any of them. Skipping is
@@ -279,6 +292,11 @@
 		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade };
 		idx = 0;
 		draw();
+
+		/* The new-account tour, after the first card is on screen so the member
+		   can see what is being described. Runs once ever; the component itself
+		   checks and records that. */
+		if ( window.csmCoach ) { window.csmCoach.tour(); }
 	} ).catch( function () {
 		empty( 'We could not load profiles just now.' );
 	} );

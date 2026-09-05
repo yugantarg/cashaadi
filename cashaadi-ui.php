@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.0.2
+ * Version:           1.1.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -18,6 +18,7 @@
 use CAShaadi\Core\Assets;
 use CAShaadi\Core\Migrator;
 use CAShaadi\Core\Health;
+use CAShaadi\Modules\Coach\Coach;
 use CAShaadi\Modules\ProfileEdit\FieldLogic;
 use CAShaadi\Modules\Analytics\Analytics;
 use CAShaadi\Modules\AppShell\AppShell;
@@ -59,7 +60,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.0.2' );
+define( 'CASHAADI_UI_VER', '1.1.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -72,6 +73,13 @@ require_once CASHAADI_UI_DIR . 'includes/autoload.php';
 // so this is inert while the cashaadi() mu-plugin is still installed — mu-plugins
 // load first and their definitions win. Removing that file promotes these.
 require_once CASHAADI_UI_DIR . 'includes/core/globals.php';
+
+// First-run guidance: the new-account tour and the explain-before-you-act
+// popups. Ungated - it only ever adds an overlay a member dismisses once, and
+// it records what they have seen so it cannot repeat.
+if ( class_exists( 'CAShaadi\\Modules\\Coach\\Coach' ) ) {
+	Coach::register();
+}
 
 // Integration health. Ungated and admin-only: it reads nothing but its own
 // checks, and it is most needed exactly when a flag or dependency is wrong.

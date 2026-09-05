@@ -281,6 +281,13 @@ final class AppPage {
 		// an import because the same file is used on BuddyPress screens too.
 		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
 		Assets::script( 'app-screens', 'assets/js/app-screens.js', array( 'cashaadi-ui-dialog' ) );
+
+		// The spotlight overlay: the new-account tour and the first-action
+		// explainers both use it, so it belongs on every app screen rather than
+		// being enqueued twice by the two features that happen to need it.
+		if ( class_exists( '\CAShaadi\Modules\Coach\Coach' ) ) {
+			\CAShaadi\Modules\Coach\Coach::assets();
+		}
 	}
 
 	/**
