@@ -35,6 +35,7 @@
 		[
 			[ 'received', 'Received', ( data.received || [] ).length ],
 			[ 'sent', 'Sent', ( data.sent || [] ).length ],
+			[ 'saved', 'Saved', ( data.saved || [] ).length ],
 			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ]
 		].forEach( function ( t ) {
 			var b = el( 'button', 'csm-r-tab' + ( tab === t[0] ? ' is-on' : '' ) );
@@ -136,6 +137,19 @@
 			data.sent.forEach( function ( p ) {
 				list.appendChild( personRow( p, [
 					{ kind: 'withdraw', label: 'Withdraw', action: 'withdraw' }
+				] ) );
+			} );
+		} else if ( 'saved' === tab ) {
+			if ( ! ( data.saved || [] ).length ) {
+				root.appendChild( emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
+				return;
+			}
+			/* Decide from here. The profile is still a live tray row, so Like and
+			   Pass go through the same endpoint they would in Discover. */
+			data.saved.forEach( function ( p ) {
+				list.appendChild( personRow( p, [
+					{ kind: 'accept', label: 'Like', action: 'like' },
+					{ kind: 'decline', label: 'Pass', action: 'pass' }
 				] ) );
 			} );
 		} else {

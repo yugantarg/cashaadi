@@ -154,8 +154,18 @@
 		like.setAttribute( 'aria-label', 'Like' );
 		like.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
 
+		/* Save for later — a third outcome, not a third decision. Deliberately
+		   between the arrows and the decisions in weight: larger than navigation,
+		   quieter than Like/Pass, because parking a profile should not feel like
+		   choosing one. */
+		var save = el( 'button', 'csm-d-btn csm-d-save' );
+		save.type = 'button';
+		save.setAttribute( 'aria-label', 'Save for later' );
+		save.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+
 		pass.addEventListener( 'click', function () { act( p, 'pass' ); } );
 		like.addEventListener( 'click', function () { act( p, 'like' ); } );
+		save.addEventListener( 'click', function () { act( p, 'save' ); } );
 
 		/* Move through the tray WITHOUT deciding. The owner's rule: a member
 		   should be able to see all 5 before acting on any of them. Skipping is
@@ -177,6 +187,7 @@
 
 		bar.appendChild( prev );
 		bar.appendChild( pass );
+		bar.appendChild( save );
 		bar.appendChild( like );
 		bar.appendChild( next );
 		root.appendChild( bar );
@@ -222,6 +233,8 @@
 
 	function act( p, what ) {
 		// Advance first: the next profile should appear the instant they tap.
+		// A saved profile leaves the deck too — it moves to the Saved list, and
+		// leaving it in place would mean deciding it again on every visit.
 		acted[ p.id ] = true;
 		var i = step( 1 );
 		if ( i < 0 ) { i = step( -1 ); }   // acted on the last one — fall back
@@ -234,11 +247,21 @@
 			body: JSON.stringify( { profile_id: p.id, action: what } )
 		} ).then( function ( d ) {
 			if ( d && d.isMutual ) { celebrate( p ); }
+			if ( 'save' === what ) { toast( 'Saved. Find them under Requests → Saved.' ); }
 		} ).catch( function () {
 			/* The write failed but the member has moved on. Re-showing the profile
 			   would be more confusing than letting the weekly tray carry it over,
 			   which it does: the row simply stays 'pending'. */
 		} );
+	}
+
+	/** A brief, non-blocking confirmation. Reuses the match toast's styling. */
+	function toast( text ) {
+		var t = el( 'div', 'csm-d-match csm-d-toast' );
+		t.appendChild( el( 'span', null, text ) );
+		document.body.appendChild( t );
+		setTimeout( function () { t.classList.add( 'is-out' ); }, 2200 );
+		setTimeout( function () { if ( t.parentNode ) { t.parentNode.removeChild( t ); } }, 2800 );
 	}
 
 	function celebrate( p ) {

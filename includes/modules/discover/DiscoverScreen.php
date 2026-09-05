@@ -212,7 +212,8 @@ final class DiscoverScreen {
 	public static function rest_act( $request ) {
 		$pid    = absint( $request->get_param( 'profile_id' ) );
 		$what   = sanitize_text_field( (string) $request->get_param( 'action' ) );
-		$status = ( 'like' === $what ) ? 'liked' : 'passed';
+		$map    = array( 'like' => 'liked', 'pass' => 'passed', 'save' => 'saved' );
+		$status = isset( $map[ $what ] ) ? $map[ $what ] : 'passed';
 
 		$res = Discover::act( get_current_user_id(), $pid, $status );
 

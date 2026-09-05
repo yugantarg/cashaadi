@@ -173,8 +173,27 @@ final class RequestsScreen {
 			);
 		}
 
+		/*
+		 * Saved profiles. These live in the tray as status='saved' rather than in a
+		 * table of their own: they are still tray rows, they still count against
+		 * the week they were served in, and the weekly reset already leaves them
+		 * alone because it only processes liked/passed/expired.
+		 */
+		$saved = array();
+		global $wpdb;
+		$tray  = $wpdb->prefix . 'csm_tray';
+		$ids   = $wpdb->get_col( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"SELECT profile_id FROM {$tray} WHERE viewer_id = %d AND status = 'saved' ORDER BY acted_at DESC",
+			$uid
+		) );
+		foreach ( (array) $ids as $pid ) {
+			$saved[] = self::person( (int) $pid );
+		}
+
 		return new \WP_REST_Response( array(
 			'ok'           => true,
+			'saved'        => $saved,
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
 			'sent'         => $sent,
@@ -184,11 +203,17 @@ final class RequestsScreen {
 	}
 
 	/**
-	 * Accept, decline, or withdraw.
+	 * Accept, decline, withdraw — or decide a saved profile.
 	 *
-	 * Delegated entirely to BuddyPress: it owns the friendship state machine,
-	 * the counts, the caches and the notifications. Writing to wp_bp_friends
-	 * directly would leave all of those stale.
+	 * The first three are delegated entirely to BuddyPress: it owns the
+	 * friendship state machine, the counts, the caches and the notifications.
+	 * Writing to wp_bp_friends directly would leave all of those stale.
+	 *
+	 * like/pass are delegated just as strictly to Discover::act(), which owns the
+	 * tray authorisation, the mutual-match detection and the Seen record. A saved
+	 * profile is still a live tray row, so deciding it here must be the same
+	 * operation as deciding it in Discover — a second implementation would
+	 * eventually disagree about whether two people had matched.
 	 */
 	public static function rest_act( $request ) {
 		$me    = get_current_user_id();
@@ -215,6 +240,9 @@ final class RequestsScreen {
 			}
 		} elseif ( 'withdraw' === $what && function_exists( 'friends_withdraw_friendship' ) ) {
 			$done = (bool) friends_withdraw_friendship( $me, $other );
+		} elseif ( in_array( $what, array( 'like', 'pass' ), true ) && class_exists( '\CAShaadi\Modules\Discover\Discover' ) ) {
+			$res  = \CAShaadi\Modules\Discover\Discover::act( $me, $other, 'like' === $what ? 'liked' : 'passed' );
+			$done = ! empty( $res['ok'] );
 		}
 
 		return new \WP_REST_Response( array(

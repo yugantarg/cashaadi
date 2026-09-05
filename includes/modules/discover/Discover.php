@@ -53,6 +53,7 @@ final class Discover {
 		// the table is all that is needed — every call site already writes to it
 		// behind a table_exists() guard.
 		Migrator::register( 'event_log', array( \CAShaadi\Core\Engine::class, 'event_schema' ) );
+		add_action( 'init', array( __CLASS__, 'ensure_saved_status' ), 15 );
 		add_action( 'wp_scheduled_delete', array( \CAShaadi\Core\Engine::class, 'prune_events' ) );
 
 		// #11600 — lazy weekly reset on every front-end load.
@@ -76,6 +77,35 @@ final class Discover {
 
 		// Styles + header-compass JS, for logged-in members (front-end only).
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );
+	}
+
+	/**
+	 * Add 'saved' to wp_csm_tray.status.
+	 *
+	 * The tray predates the Migrator and is not registered with it, so this is a
+	 * targeted one-time ALTER rather than a dbDelta: running dbDelta over a table
+	 * full of live rows to add one enum value is a much bigger risk than the
+	 * change deserves.
+	 *
+	 * Extending an ENUM is additive — existing rows and their values are
+	 * untouched — and the weekly reset only processes liked/passed/expired, so
+	 * saved rows survive resets on their own with no further change.
+	 */
+	public static function ensure_saved_status() {
+		if ( get_option( 'csm_tray_saved_status' ) ) {
+			return;
+		}
+		global $wpdb;
+		$t   = $wpdb->prefix . 'csm_tray';
+		$col = $wpdb->get_row( "SHOW COLUMNS FROM {$t} LIKE 'status'" ); // phpcs:ignore
+		if ( ! $col ) {
+			return; // table not there yet; nothing to alter
+		}
+		if ( false === strpos( (string) $col->Type, "'saved'" ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "ALTER TABLE {$t} MODIFY status ENUM('pending','liked','passed','expired','saved') NULL DEFAULT 'pending'" );
+		}
+		update_option( 'csm_tray_saved_status', current_time( 'mysql' ), false );
 	}
 
 	/* ---- assets -------------------------------------------------------- */
@@ -115,7 +145,7 @@ final class Discover {
 	public static function act( $viewer_id, $profile_id, $status ) {
 		$viewer_id  = (int) $viewer_id;
 		$profile_id = (int) $profile_id;
-		$status     = ( 'liked' === $status ) ? 'liked' : 'passed';
+		$status     = in_array( $status, array( 'liked', 'passed', 'saved' ), true ) ? $status : 'passed';
 
 		if ( ! $viewer_id || ! $profile_id || $viewer_id === $profile_id ) {
 			return array( 'ok' => false, 'is_mutual' => false, 'remaining' => 0 );
@@ -140,21 +170,36 @@ final class Discover {
 		 * Requiring status = 'pending' also makes acting twice a no-op, which is
 		 * what stops a second click from re-writing acted_at.
 		 */
-		$claimed = $wpdb->update(
-			$tray,
-			array( 'status' => $status, 'acted_at' => $now ),
-			array( 'viewer_id' => $viewer_id, 'profile_id' => $profile_id, 'status' => 'pending' ),
-			array( '%s', '%s' ),
-			array( '%d', '%d', '%s' )
-		);
+		/*
+		 * Saving parks a profile; liking or passing decides it. So a save may only
+		 * come from 'pending', but a decision may come from 'pending' OR 'saved' —
+		 * otherwise saving something would make it permanently un-actionable,
+		 * which is the trap this guard created when it was written for two
+		 * outcomes instead of three.
+		 */
+		$from = ( 'saved' === $status ) ? array( 'pending' ) : array( 'pending', 'saved' );
+		$in   = implode( ',', array_fill( 0, count( $from ), '%s' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$claimed = $wpdb->query( $wpdb->prepare(
+			"UPDATE {$tray} SET status = %s, acted_at = %s
+			 WHERE viewer_id = %d AND profile_id = %d AND status IN ({$in})",
+			array_merge( array( $status, $now, $viewer_id, $profile_id ), $from )
+		) );
 
 		if ( ! $claimed ) {
 			return array( 'ok' => false, 'is_mutual' => false, 'remaining' => 0 );
 		}
 
-		// Permanent record of the decision, independent of the tray and of the
-		// weekly reset that deletes acted rows.
-		Seen::record_action( $viewer_id, $profile_id, $status );
+		/*
+		 * Only decisions are recorded. A save is explicitly "not yet decided", so
+		 * writing it as an action would tell the re-show rule a judgement was made
+		 * — and the profile is still excluded from future trays regardless,
+		 * because Seen holds every profile ever served, decided or not.
+		 */
+		if ( 'saved' !== $status ) {
+			Seen::record_action( $viewer_id, $profile_id, $status );
+		}
 
 		$is_mutual = false;
 		if ( 'liked' === $status ) {
@@ -176,7 +221,9 @@ final class Discover {
 			$viewer_id
 		) );
 
-		if ( function_exists( 'csm_log_event' ) ) {
+		// Saving must not create a match request — csm_log_event() routes a like
+		// into a BuddyPress friendship, and a parked profile has asked for nothing.
+		if ( 'saved' !== $status && function_exists( 'csm_log_event' ) ) {
 			csm_log_event( 'liked' === $status ? 'like' : 'pass', $viewer_id, $profile_id );
 		}
 

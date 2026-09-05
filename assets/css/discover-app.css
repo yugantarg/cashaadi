@@ -93,6 +93,30 @@
 .csm-d-btn svg { width: 26px; height: 26px; }
 .csm-d-pass { border: 1px solid var(--csm-hair-2, #d6dfe7); background: var(--csm-surface, #fff); color: var(--csm-muted, #5c6a76); }
 .csm-d-pass:hover { border-color: var(--csm-faint, #93a2ae); color: var(--csm-ink, #16212b); }
+/* Save sits between navigation and decision in weight: bigger than the arrows,
+   smaller and quieter than Like/Pass, because parking a profile is not choosing
+   one. Gold rather than green so it never reads as a soft Like. */
+.csm-d-save {
+	width: 54px; height: 54px; align-self: center;
+	border: 1px solid var(--csm-gold, #a9822b);
+	background: var(--csm-surface, #fff); color: var(--csm-gold, #a9822b);
+}
+.csm-d-save svg { width: 22px; height: 22px; }
+.csm-d-save:hover { background: #fdf7ec; }
+
+/* The toast reuses the match banner's shape; a save is not a celebration, so it
+   gets the neutral ink background rather than the match colour. */
+.csm-d-toast { background: var(--csm-ink, #16212b); }
+
+/* Five controls at 64+54+46+46 plus four 14px gaps and 36px of padding comes to
+   366px — inside a 375px phone, but with 9px to spare, which is not a margin
+   worth trusting across fonts and zoom levels. Tighten the gaps below 420px. */
+@media (max-width: 420px) {
+	.csm-d-actions { gap: 8px; padding-left: 10px; padding-right: 10px; }
+	.csm-d-nav { width: 42px; height: 42px; }
+	.csm-d-save { width: 50px; height: 50px; }
+}
+
 .csm-d-like { border: 0; background: var(--csm-green, #6f9f2e); color: #fff; }
 .csm-d-like:hover { background: var(--csm-green-press, #5e8926); }
 
