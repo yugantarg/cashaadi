@@ -34,6 +34,25 @@
 		} ).catch( function () {} );
 	}
 
+	/**
+	 * First VISIBLE match for a selector, or null.
+	 *
+	 * Existence is not enough. The app renders two navigations — a bottom bar for
+	 * mobile and a left rail for desktop — and the one for the other breakpoint is
+	 * still in the DOM with display:none. querySelector happily returned the
+	 * hidden one, which put the spotlight at 0×0 in the corner. A zero-sized
+	 * rectangle is the tell, and it is worth checking for its own sake: a target
+	 * that cannot be seen must never be spotlighted.
+	 */
+	function visible( selector ) {
+		var list = document.querySelectorAll( selector );
+		for ( var i = 0; i < list.length; i++ ) {
+			var r = list[ i ].getBoundingClientRect();
+			if ( r.width > 0 && r.height > 0 ) { return list[ i ]; }
+		}
+		return null;
+	}
+
 	function el( tag, cls, text ) {
 		var n = document.createElement( tag );
 		if ( cls ) { n.className = cls; }
@@ -61,7 +80,7 @@
 		var hole = el( 'div', 'csm-coach-hole' );
 		var card = el( 'div', 'csm-coach-card' );
 
-		var node = o.target ? document.querySelector( o.target ) : null;
+		var node = o.target ? visible( o.target ) : null;
 		if ( node ) {
 			var r = node.getBoundingClientRect();
 			var pad = 8;
@@ -138,7 +157,7 @@
 	function tour() {
 		var steps = CFG.tour || [];
 		if ( ! steps.length || has( 'tour_v1' ) ) { return; }
-		if ( ! document.querySelector( steps[0].target ) ) { return; } // nav not on this screen
+		if ( ! visible( steps[0].target ) ) { return; } // no navigation on screen to point at
 		remember( 'tour_v1' );
 
 		var i = 0;

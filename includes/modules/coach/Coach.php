@@ -100,28 +100,34 @@ final class Coach {
 			'nonce' => wp_create_nonce( 'wp_rest' ),
 
 			/*
-			 * Every step targets the bottom navigation, which is present on all
-			 * four app screens and does not move — so the tour cannot end up
-			 * spotlighting an element that has scrolled away or not rendered yet.
+			 * Every step targets the navigation, which is present on all four app
+			 * screens and does not move, so a step cannot end up pointing at
+			 * something that has scrolled away.
+			 *
+			 * BOTH selectors are listed because there are two navigations: a bottom
+			 * bar (.csm-appnav-item) for mobile and a left rail (.csm-app-nav-item)
+			 * for desktop, and the one for the other breakpoint stays in the DOM
+			 * with display:none. The component picks the first VISIBLE match — a
+			 * selector alone would have found the hidden one.
 			 */
 			'tour'  => array(
 				array(
-					'target' => '.csm-appnav-item[href*="/discover"]',
+					'target' => '.csm-app-nav-item[href*="/discover"], .csm-appnav-item[href*="/discover"]',
 					'title'  => __( 'Five profiles a week', 'cashaadi-ui' ),
 					'body'   => __( 'We choose a small set for you each Monday, rather than an endless list. Read the whole profile, then decide.', 'cashaadi-ui' ),
 				),
 				array(
-					'target' => '.csm-appnav-item[href*="/requests"]',
+					'target' => '.csm-app-nav-item[href*="/requests"], .csm-appnav-item[href*="/requests"]',
 					'title'  => __( 'Requests and saves', 'cashaadi-ui' ),
 					'body'   => __( 'Who has asked to match with you, who you have asked, and the profiles you saved to decide on later.', 'cashaadi-ui' ),
 				),
 				array(
-					'target' => '.csm-appnav-item[href*="/messages"]',
+					'target' => '.csm-app-nav-item[href*="/messages"], .csm-appnav-item[href*="/messages"]',
 					'title'  => __( 'Messages open on a match', 'cashaadi-ui' ),
 					'body'   => __( 'When two people both say yes, a conversation opens here. Nobody can message you before that.', 'cashaadi-ui' ),
 				),
 				array(
-					'target' => '.csm-appnav-item[href*="/profile"]',
+					'target' => '.csm-app-nav-item[href*="/profile"], .csm-appnav-item[href*="/profile"]',
 					'title'  => __( 'A fuller profile is shown more', 'cashaadi-ui' ),
 					'body'   => __( 'Add your photos and details here. Complete, active profiles are the ones we put in front of other members.', 'cashaadi-ui' ),
 				),
