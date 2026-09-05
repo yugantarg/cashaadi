@@ -362,6 +362,31 @@ final class Profile {
 		 */
 		$out['photos'] = self::photos( $profile_id, $viewer_id, $out['avatar'] );
 
+		/*
+		 * Say OUT LOUD that a photo is blurred.
+		 *
+		 * Discover handed the viewer a blurred picture and no explanation, so it
+		 * read as a broken image or a bad upload rather than a deliberate choice
+		 * — and the two ways to see it (match, or Premium) were invisible. The
+		 * card now carries a small reveal button, and the copy comes from
+		 * Gallery, which already writes this notice for the profile gallery,
+		 * gendered and aware of whether a request is in flight.
+		 *
+		 * The flag is the viewer's, not the owner's: a matched viewer, a premium
+		 * one and the owner all see photoHidden false and no button.
+		 */
+		$out['photoHidden'] = false;
+		$out['photoNote']   = '';
+		$out['upgradeUrl']  = '';
+		if ( class_exists( '\CAShaadi\Modules\Photos\Privacy' )
+			&& \CAShaadi\Modules\Photos\Privacy::is_hidden( $profile_id, $viewer_id ) ) {
+			$out['photoHidden'] = true;
+			if ( method_exists( '\CAShaadi\Modules\Photos\Gallery', 'blur_notice' ) ) {
+				$out['photoNote']  = (string) \CAShaadi\Modules\Photos\Gallery::blur_notice( $profile_id, $viewer_id );
+				$out['upgradeUrl'] = (string) \CAShaadi\Modules\Photos\Gallery::blur_upgrade_url();
+			}
+		}
+
 		if ( ! function_exists( 'bp_xprofile_get_groups' ) ) {
 			return $out;
 		}

@@ -461,6 +461,23 @@ final class Gallery {
 		return $first;
 	}
 
+	/**
+	 * The blur explanation, for callers outside this class.
+	 *
+	 * Discover's reveal button says the same thing as the profile gallery's
+	 * notice, from the same function — gendered, and aware of whether a request
+	 * is already in flight. Two hand-written copies of "match or upgrade" would
+	 * have gone out of step the first time either changed.
+	 */
+	public static function blur_notice( $owner_id, $viewer_id ) {
+		return self::pn_notice_text( (int) $owner_id, (int) $viewer_id );
+	}
+
+	/** Where "See Premium" goes. */
+	public static function blur_upgrade_url() {
+		return self::pn_pricing_url();
+	}
+
 	private static function pn_notice_text( $owner_id, $viewer_id ) {
 		$p      = self::pn_pronouns( $owner_id );
 		$first  = self::pn_first_name( $owner_id );

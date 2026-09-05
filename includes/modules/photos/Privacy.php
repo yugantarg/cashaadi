@@ -144,8 +144,42 @@ final class Privacy {
 		return '';
 	}
 
+	/**
+	 * Bumped whenever the blur STRENGTH changes.
+	 *
+	 * Cache filenames are a hash of the source name and its mtime, so without
+	 * this a strength change would leave every existing member on the blur that
+	 * was cached under the old settings — indefinitely, since the source file
+	 * has not changed. It is part of the hash, so a bump regenerates them.
+	 */
+	const BLUR_VERSION = 2;
+
+	/**
+	 * How much of the picture survives, in pixels across.
+	 *
+	 * v1 reduced to 24px wide before blurring, which destroyed everything: a
+	 * grey-brown smear that told a viewer nothing at all. The owner asked for
+	 * "roughly how she looks" to read while the face stays unidentifiable, so v2
+	 * keeps 64px across (32 for the thumbnail).
+	 *
+	 * WHY THAT IS STILL SAFE. A face occupies perhaps a quarter of a portrait's
+	 * width, so 64px across leaves ~16px of face — well under the ~32px between
+	 * the eyes that recognition, human or automated, needs. Hair, build,
+	 * clothing and setting survive; the features do not. The gaussian on top is
+	 * lighter than v1's for the same reason: the downsample is what destroys the
+	 * detail, and it is not reversible — the pixels are gone, not smeared.
+	 *
+	 * Filtered so this can be tuned without a deploy. Raising it far past 96
+	 * starts to make faces recognisable; that is the member's privacy, not a
+	 * display preference.
+	 */
+	private static function blur_pixels( $type ) {
+		$px = ( 'thumb' === $type ) ? 32 : 64;
+		return max( 8, (int) apply_filters( 'csm_photo_blur_pixels', $px, $type ) );
+	}
+
 	private static function make_blur( $src, $dest, $type = 'full' ) {
-		$tiny = ( 'thumb' === $type ) ? 16 : 24;
+		$tiny = self::blur_pixels( $type );
 		$out  = ( 'thumb' === $type ) ? 150 : 450;
 
 		if ( class_exists( 'Imagick' ) ) {
@@ -154,7 +188,9 @@ final class Privacy {
 				$img->setImageFormat( 'jpeg' );
 				$img->thumbnailImage( $tiny, 0 );
 				$img->resizeImage( $out, 0, \Imagick::FILTER_GAUSSIAN, 1 );
-				$img->gaussianBlurImage( 10, 5 );
+				// Just enough to hide the upscale's blockiness. The downsample
+				// above is what removes the detail, permanently.
+				$img->gaussianBlurImage( 6, 3 );
 				$img->setImageCompressionQuality( 82 );
 				$img->stripImage();
 				$written = $img->writeImage( $dest );
@@ -195,9 +231,9 @@ final class Privacy {
 		$big = imagecreatetruecolor( $bw, $bh );
 		imagecopyresampled( $big, $small, 0, 0, 0, 0, $bw, $bh, $tw, $th );
 
-		for ( $i = 0; $i < 3; $i++ ) {
-			imagefilter( $big, IMG_FILTER_GAUSSIAN_BLUR );
-		}
+		// One pass, not three: see make_blur()'s note on where the privacy
+		// actually comes from.
+		imagefilter( $big, IMG_FILTER_GAUSSIAN_BLUR );
 		$ok = imagejpeg( $big, $dest, 82 );
 
 		imagedestroy( $orig );
@@ -215,12 +251,21 @@ final class Privacy {
 			return '';
 		}
 		$stamp = (int) @filemtime( $src ); // phpcs:ignore
-		$name  = 'csm-blur-' . $type . '-' . substr( md5( basename( $src ) . '|' . $stamp ), 0, 12 ) . '.jpg';
+		$key   = basename( $src ) . '|' . $stamp . '|v' . self::BLUR_VERSION . '|' . self::blur_pixels( $type );
+		$name  = 'csm-blur-' . $type . '-' . substr( md5( $key ), 0, 12 ) . '.jpg';
 		$dest  = dirname( $src ) . '/' . $name;
 
 		if ( ! file_exists( $dest ) ) {
 			if ( ! self::make_blur( $src, $dest, $type ) ) {
 				return '';
+			}
+			// Sweep the superseded derivatives for this type. Without this every
+			// strength change leaves a dead file per member per size behind, and
+			// this host has had inodes run short before.
+			foreach ( (array) glob( dirname( $src ) . '/csm-blur-' . $type . '-*.jpg' ) as $old ) {
+				if ( $old !== $dest ) {
+					@unlink( $old ); // phpcs:ignore
+				}
 			}
 		}
 		return bp_core_avatar_url() . '/avatars/' . $owner_id . '/' . $name;

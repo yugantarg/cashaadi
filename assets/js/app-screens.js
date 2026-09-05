@@ -183,6 +183,35 @@ window.csmProfileCard = function ( p ) {
 
 	if ( window.csmPhotoStack ) { window.csmPhotoStack( media, shots ); }
 	if ( p.verified ) { media.appendChild( mk( 'span', 'csm-d-verified', 'Verified CA' ) ); }
+
+	/*
+	 * A blurred photo, said out loud. Without this the viewer sees an indistinct
+	 * picture and no reason for it — and the two ways to see the real one (match,
+	 * or Premium) are nowhere on the screen. Small and low-contrast on purpose:
+	 * it explains a state, it is not a call to action competing with Like.
+	 * The copy comes from the server (Photos\Gallery), gendered and aware of any
+	 * request already in flight.
+	 */
+	if ( p.photoHidden ) {
+		var reveal = mk( 'button', 'csm-d-reveal' );
+		reveal.type = 'button';
+		reveal.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+		reveal.appendChild( mk( 'span', null, 'Unhide photo' ) );
+		reveal.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();   // the photo stack pages on tap; this must not
+			var note = p.photoNote || 'This member has chosen to blur their photo. Match with them, or upgrade to Premium, to see it.';
+			if ( ! window.csmConfirm ) { window.alert( note ); return; }
+			window.csmConfirm( note, {
+				title: 'Photo is blurred',
+				okText: 'See Premium',
+				cancelText: 'Close'
+			} ).then( function ( go ) {
+				if ( go ) { window.location.href = p.upgradeUrl || '/membership-pricing/'; }
+			} );
+		} );
+		media.appendChild( reveal );
+	}
 	if ( p.isNew )   { media.appendChild( mk( 'span', 'csm-d-new', 'NEW' ) ); }
 
 	var over = mk( 'div', 'csm-d-over' );
