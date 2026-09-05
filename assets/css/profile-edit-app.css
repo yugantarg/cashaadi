@@ -154,3 +154,8 @@
 	font-size: 13px;
 	color: var(--csm-muted, #5c6a76);
 }
+
+/* Upload status. It previously only ever said "Uploading…" and was never
+   cleared, so a finished upload still looked in progress. */
+.csm-pe-file-status.is-ok  { color: var(--csm-green-press, #5e8926); font-weight: 600; }
+.csm-pe-file-status.is-bad { color: #96262a; }

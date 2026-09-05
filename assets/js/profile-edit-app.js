@@ -27,6 +27,18 @@
 		return fetch( url, opts ).then( function ( r ) { return r.json(); } );
 	}
 
+	/* How many file uploads are in flight. Save is held while any are, so the
+	   member never gets "Saved." over the top of "Uploading…". */
+	var uploading  = 0;
+	var saveButton = null;
+
+	function refreshSaveState() {
+		if ( ! saveButton ) { return; }
+		var busy = uploading > 0;
+		saveButton.disabled    = busy;
+		saveButton.textContent = busy ? 'Waiting for upload…' : 'Save changes';
+	}
+
 	function el( tag, cls, text ) {
 		var n = document.createElement( tag );
 		if ( cls ) { n.className = cls; }
@@ -99,6 +111,11 @@
 				fd.append( 'file', input.files[0] );
 				pick.classList.add( 'is-busy' );
 				status.textContent = 'Uploading…';
+				/* Block the form's own save while a file is in flight: a member who
+				   taps Save mid-upload was told "Saved." while "Uploading…" was
+				   still on screen, which is two contradictory answers at once. */
+				uploading++;
+				refreshSaveState();
 				// admin-ajax, not REST: the host's WAF blocks file POSTs to /wp-json/.
 				fetch( CFG.upload, {
 					method: 'POST', credentials: 'same-origin',
@@ -109,14 +126,24 @@
 						showCurrent( d.data.url );
 						pick.textContent = 'Replace file';
 						pick.appendChild( input );
+						// Was never cleared, so it read "Uploading…" indefinitely
+						// after a file had in fact uploaded and saved.
+						status.textContent = 'Uploaded.';
+						status.className = 'csm-pe-file-status is-ok';
 					} else {
 						status.textContent = ( d && d.data && d.data.message ) || 'Upload failed. Try a PDF, JPG or PNG.';
+						status.className = 'csm-pe-file-status is-bad';
 					}
 					input.value = '';
+					uploading--;
+					refreshSaveState();
 				} ).catch( function () {
 					pick.classList.remove( 'is-busy' );
 					status.textContent = 'Network error, please try again.';
+					status.className = 'csm-pe-file-status is-bad';
 					input.value = '';
+					uploading--;
+					refreshSaveState();
 				} );
 			} );
 
@@ -230,6 +257,8 @@
 		card.appendChild( msg );
 
 		var save = el( 'button', 'csm-pe-save', 'Save changes' );
+		saveButton = save;
+		refreshSaveState();
 		save.type = 'button';
 		save.addEventListener( 'click', function () { submit( data.group.id, controls, save, msg ); } );
 		card.appendChild( save );
