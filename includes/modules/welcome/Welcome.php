@@ -224,8 +224,17 @@ final class Welcome {
 			'callback'            => array( __CLASS__, 'rest_step' ),
 			'permission_callback' => $auth,
 			'args'                => array(
-				'key'   => array( 'required' => true ),
-				'value' => array( 'required' => true ),
+				'key' => array( 'required' => true ),
+				/*
+				 * 'value' is NOT required. Single-value steps (the blur choice)
+				 * send it; grouped steps send 'fields' instead. Declaring it
+				 * required was left over from the one-field-per-step design and
+				 * made WordPress reject every group save with 400 "Missing
+				 * parameter(s): value" before the callback ever ran — the wizard
+				 * could not save anything from v0.87.0 until this was found by
+				 * hand-testing a real signup.
+				 */
+				'value' => array( 'required' => false ),
 			),
 		) );
 

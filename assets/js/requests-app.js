@@ -78,6 +78,9 @@
 	}
 
 	function doAct( p, action, row, button ) {
+		/* Was disabled-only: the button greyed out and then nothing visibly
+		   happened until the row vanished. A spinner says the tap registered. */
+		var release = window.csmBusy ? window.csmBusy( button ) : function () { button.disabled = false; };
 		button.disabled = true;
 		api( CFG.act, {
 			method: 'POST',
@@ -91,10 +94,10 @@
 				setTimeout( function () { if ( row.parentNode ) { row.parentNode.removeChild( row ); } }, 220 );
 				return;
 			}
-			button.disabled = false;
+			release();
 			alertRow( row, ( d && d.message ) || 'That did not work.' );
 		} ).catch( function () {
-			button.disabled = false;
+			release();
 			alertRow( row, 'Network problem. Please try again.' );
 		} );
 	}

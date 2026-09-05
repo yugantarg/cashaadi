@@ -169,10 +169,11 @@
 		   seen, csmCoach.explain() calls straight through. */
 		function guarded( name ) {
 			return function () {
+				var btn = this;
 				if ( window.csmCoach ) {
-					window.csmCoach.explain( name, function () { act( p, name ); } );
+					window.csmCoach.explain( name, function () { act( p, name, btn ); } );
 				} else {
-					act( p, name );
+					act( p, name, btn );
 				}
 			};
 		}
@@ -244,7 +245,10 @@
 		} ).catch( function () {} );
 	}
 
-	function act( p, what ) {
+	function act( p, what, btn ) {
+		/* Busy state on the tapped control. The card advances optimistically, so
+		   this mostly matters on a slow connection where the old card lingers. */
+		var release = ( window.csmBusy && btn ) ? window.csmBusy( btn ) : function () {};
 		// Advance first: the next profile should appear the instant they tap.
 		// A saved profile leaves the deck too — it moves to the Saved list, and
 		// leaving it in place would mean deciding it again on every visit.
@@ -259,9 +263,11 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify( { profile_id: p.id, action: what } )
 		} ).then( function ( d ) {
+			release();
 			if ( d && d.isMutual ) { celebrate( p ); }
 			if ( 'save' === what ) { toast( 'Saved. Find them under Requests → Saved.' ); }
 		} ).catch( function () {
+			release();
 			/* The write failed but the member has moved on. Re-showing the profile
 			   would be more confusing than letting the weekly tray carry it over,
 			   which it does: the row simply stays 'pending'. */

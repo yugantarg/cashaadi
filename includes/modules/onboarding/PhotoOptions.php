@@ -96,12 +96,41 @@ final class PhotoOptions {
 
 	/** Does this member have at least one photo? Used by /welcome/ progress. */
 	public static function has_photo( $uid ) {
-		$ids = get_user_meta( (int) $uid, 'csm_photos', true );
+		$uid = (int) $uid;
+
+		$ids = get_user_meta( $uid, 'csm_photos', true );
 		if ( is_array( $ids ) && ! empty( $ids ) ) {
 			return true;
 		}
-		// A member who uploaded through BuddyPress directly still counts.
-		return function_exists( 'bp_get_user_has_avatar' ) && bp_get_user_has_avatar( (int) $uid );
+
+		/*
+		 * A member who uploaded through BuddyPress directly still counts — but
+		 * bp_get_user_has_avatar() CANNOT be used to decide that here.
+		 *
+		 * The Photos module filters bp_core_avatar_default to serve a local
+		 * placeholder instead of Gravatar, and BuddyPress then reports "has
+		 * avatar" for everyone, including a member who has never uploaded
+		 * anything. That silently made the mandatory photo step skippable: every
+		 * new signup was told it was already done. Found by hand-testing a real
+		 * registration, which jumped straight past the photo screen.
+		 *
+		 * So ask the filesystem instead: BuddyPress writes uploads to
+		 * uploads/avatars/<user id>/, and that directory exists only when a real
+		 * file was saved.
+		 */
+		$dir = wp_upload_dir();
+		if ( empty( $dir['basedir'] ) ) {
+			return false; // cannot tell; treat as "no photo" so we ask rather than assume
+		}
+
+		$path = trailingslashit( $dir['basedir'] ) . 'avatars/' . $uid;
+		if ( ! is_dir( $path ) ) {
+			return false;
+		}
+
+		// The directory can linger after a delete, so require an actual image.
+		$files = glob( $path . '/*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE );
+		return ! empty( $files );
 	}
 
 }

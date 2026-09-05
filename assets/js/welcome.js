@@ -440,11 +440,16 @@
 			return;
 		}
 
+		/* The save can take a second or two. Without this the Continue button
+		   looks inert and people tap it again, firing a second save. */
+		var release = window.csmBusy ? window.csmBusy( document.querySelector( '.csm-w-next' ) ) : function () {};
+
 		api( CFG.step, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify( { key: s.key, fields: values } )
 		} ).then( function ( d ) {
+			release();
 			done();
 			if ( d && d.ok ) {
 				steps[ idx ].done = true;
@@ -452,6 +457,7 @@
 			}
 			err.textContent = ( d && d.message ) || 'We could not save that. Please try again.';
 		} ).catch( function () {
+			release();
 			done();
 			err.textContent = 'Network problem. Please try again.';
 		} );

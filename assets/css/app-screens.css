@@ -204,3 +204,28 @@ img.avatar {
 	-webkit-user-drag: none;
 	user-drag: none;
 }
+
+/* ---- pending buttons ----
+   The owner reported "long time for registering clicks in a lot of places" —
+   the request was in flight, but nothing said so, and people cannot tell a slow
+   save from a dead button. Any button given .is-busy shows a spinner in place of
+   its label and stops accepting further clicks, so a second tap cannot fire a
+   second save. */
+.is-busy { position: relative; color: transparent !important; pointer-events: none; }
+.is-busy > * { visibility: hidden; }
+.is-busy::after {
+	content: ""; position: absolute; top: 50%; left: 50%;
+	width: 18px; height: 18px; margin: -9px 0 0 -9px;
+	border: 2px solid currentColor; border-top-color: transparent;
+	border-radius: 50%; color: #fff;
+	animation: csm-spin .7s linear infinite;
+}
+/* On a light button the spinner needs a dark stroke to be visible at all. */
+.is-busy.csm-d-pass::after, .is-busy.csm-d-save::after,
+.is-busy.csm-r-btn-decline::after, .is-busy.csm-coach-skip::after { color: var(--csm-muted, #5c6a76); }
+
+@keyframes csm-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+	.is-busy::after { animation-duration: 2s; }
+}

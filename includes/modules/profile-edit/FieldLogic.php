@@ -34,6 +34,7 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_set_field_data_pre_validate', array( __CLASS__, 'gender_lock' ), 5, 3 );
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
+		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'created_for_options' ), 11, 2 );
 
 		// Belt and braces for the same problem: the filter above only hides the
 		// option, so a crafted POST could still store it.
@@ -148,6 +149,76 @@ final class FieldLogic {
 			}
 		}
 		return array_values( $children );
+	}
+
+	/**
+	 * "Created for" — four choices, matched to the profile's gender.
+	 *
+	 * The field ships seven: Self, Son, Daughter, Brother, Sister, Relative,
+	 * Friend. Owner (2026-09-05) wants Self, the gender-appropriate child, the
+	 * gender-appropriate sibling, and Friend. Showing "Son" and "Daughter"
+	 * together on a profile whose gender is already known is asking a question
+	 * the site can answer for itself.
+	 *
+	 * FILTERED, NOT DELETED. The options stay in the field, exactly as with the
+	 * stray "Select": removing them edits the xProfile schema irreversibly and
+	 * would orphan the members who already answered "Relative". Those members
+	 * keep their stored value; they simply cannot pick it again.
+	 *
+	 * Gender comes from the profile being edited, not the viewer — an admin
+	 * editing someone else's profile must see that member's options.
+	 */
+	public static function created_for_options( $children, $field_id = 0 ) {
+		if ( empty( $children ) || ! is_array( $children ) ) {
+			return $children;
+		}
+
+		$fid = (int) $field_id;
+		if ( ! $fid && function_exists( 'bp_get_the_profile_field_id' ) ) {
+			$fid = (int) bp_get_the_profile_field_id();
+		}
+		if ( self::created_for_field_id() !== $fid ) {
+			return $children;
+		}
+
+		$uid = 0;
+		if ( function_exists( 'bp_displayed_user_id' ) && bp_displayed_user_id() ) {
+			$uid = (int) bp_displayed_user_id();
+		} elseif ( is_user_logged_in() ) {
+			$uid = get_current_user_id();
+		}
+		if ( ! $uid || ! function_exists( 'xprofile_get_field_data' ) ) {
+			return $children;
+		}
+
+		$gender = strtolower( trim( (string) xprofile_get_field_data( 'Gender', $uid ) ) );
+		if ( 'male' === $gender ) {
+			$keep = array( 'self', 'son', 'brother', 'friend' );
+		} elseif ( 'female' === $gender ) {
+			$keep = array( 'self', 'daughter', 'sister', 'friend' );
+		} else {
+			return $children; // gender unknown — better all seven than the wrong four
+		}
+
+		$out = array();
+		foreach ( $children as $child ) {
+			if ( isset( $child->name ) && in_array( strtolower( trim( (string) $child->name ) ), $keep, true ) ) {
+				$out[] = $child;
+			}
+		}
+
+		return $out ? array_values( $out ) : $children;
+	}
+
+	/** Field id for "Created for", looked up once. */
+	private static function created_for_field_id() {
+		static $id = null;
+		if ( null === $id ) {
+			$id = function_exists( 'xprofile_get_field_id_from_name' )
+				? (int) xprofile_get_field_id_from_name( 'Created for' )
+				: 0;
+		}
+		return $id;
 	}
 
 	/**

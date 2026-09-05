@@ -125,3 +125,27 @@ window.csmPhotoStack = function ( media, shots ) {
 		if ( guarded( e ) ) { e.preventDefault(); }
 	} );
 }() );
+
+/**
+ * Mark a button busy while something is in flight.
+ *
+ * Returns a function that restores it. Sets aria-busy as well as the class, so
+ * the state is announced rather than only drawn, and disables the control so a
+ * second tap cannot fire a second request — the usual response to a button that
+ * appears to do nothing.
+ *
+ *   var done = csmBusy( btn );
+ *   fetch(...).finally( done );
+ */
+window.csmBusy = function ( btn ) {
+	if ( ! btn ) { return function () {}; }
+	var wasDisabled = btn.disabled;
+	btn.classList.add( 'is-busy' );
+	btn.setAttribute( 'aria-busy', 'true' );
+	btn.disabled = true;
+	return function () {
+		btn.classList.remove( 'is-busy' );
+		btn.removeAttribute( 'aria-busy' );
+		btn.disabled = wasDisabled;
+	};
+};
