@@ -214,3 +214,18 @@ body.activate #activation-form input[type=submit]:hover { background: var(--csm-
 	font-weight: 600;
 }
 .csm-gender-radio input { accent-color: var(--csm-blue, #2c5b8c); }
+
+/* ---- date of birth on /register/: one typed field, not three dropdowns ----
+   dob-input.js hides BuddyPress's day/month/year selects and puts this in
+   front of them; the selects still carry the POST. */
+.csm-dob-wrap { margin: 0 0 4px; }
+.csm-dob-field {
+	width: 100%; box-sizing: border-box;
+	padding: 12px 14px;
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 10px;
+	background: #fff; font-size: 16px; letter-spacing: .02em;
+}
+.csm-dob-field:focus { outline: 2px solid var(--csm-blue, #2c5b8c); outline-offset: 1px; }
+.csm-dob-age { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--csm-muted, #5c6a76); }
+.csm-dob-age:empty { display: none; }
+.csm-dob-age.is-bad { color: var(--csm-danger, #b3261e); }

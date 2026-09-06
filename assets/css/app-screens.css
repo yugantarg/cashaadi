@@ -219,3 +219,13 @@ img.avatar {
 @media (prefers-reduced-motion: reduce) {
 	.is-busy::after { animation-duration: 2s; }
 }
+
+/* ---- date of birth: typed, not picked (dob-input.js) ---- */
+.csm-dob-field { letter-spacing: .02em; }
+.csm-dob-age {
+	margin: 6px 0 0;
+	font-size: 13px; font-weight: 600;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-dob-age:empty { display: none; }
+.csm-dob-age.is-bad { color: var(--csm-danger, #b3261e); }

@@ -278,6 +278,8 @@ final class AppPage {
 		// In-app confirm/toast, replacing browser dialogs. A dependency rather than
 		// an import because the same file is used on BuddyPress screens too.
 		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+		// Date of birth is typed, not picked, on every screen that edits it.
+		Assets::script( 'dob-input', 'assets/js/dob-input.js' );
 		Assets::script( 'app-screens', 'assets/js/app-screens.js', array( 'cashaadi-ui-dialog' ) );
 
 		// The spotlight overlay: the new-account tour and the first-action

@@ -204,21 +204,31 @@
 			};
 		}
 
+		var dob = null;
+
 		if ( 'textarea' === f.type ) {
 			node = el( 'textarea', 'csm-w-input' );
 			node.rows = 4;
 		} else {
 			node = el( 'input', 'csm-w-input' );
-			node.type = ( 'datebox' === f.type ) ? 'date'
-				: ( 'telephone' === f.type ) ? 'tel'
+			node.type = ( 'telephone' === f.type ) ? 'tel'
 				: ( 'number' === f.type ) ? 'number' : 'text';
 		}
 		node.value = f.value || '';
 		wrap.appendChild( node );
 
+		// Date of birth is typed as eight digits and shown as dd/mm/yyyy, with
+		// the age underneath — see dob-input.js. Upgraded after the node is in
+		// the DOM, because the component inserts the age line as a sibling.
+		if ( 'datebox' === f.type && window.csmDobInput ) {
+			node.classList.add( 'csm-dob-field' );
+			node.value = String( f.value || '' ).slice( 0, 10 );
+			dob = window.csmDobInput( node );
+		}
+
 		return {
 			node: wrap,
-			value: function () { return node.value; },
+			value: function () { return dob ? dob.iso() : node.value; },
 			focus: function () { node.focus(); }
 		};
 	}

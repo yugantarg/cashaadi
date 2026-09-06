@@ -195,6 +195,12 @@ final class Signup {
 		// The username auto-fill/hide (#11842) only applies to the signup form.
 		if ( $on_register ) {
 			Assets::script( 'signup', 'assets/js/signup.js' );
+			/*
+			 * Date of birth as one typed field instead of three dropdowns. It
+			 * hides BuddyPress's selects and writes back to them, so the POST
+			 * shape and the server-side save are untouched.
+			 */
+			Assets::script( 'dob-input', 'assets/js/dob-input.js' );
 		}
 	}
 }

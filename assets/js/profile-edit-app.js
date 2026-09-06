@@ -200,14 +200,22 @@
 			node.value = f.value || '';
 			node.addEventListener( 'input', function () { setDirty( true ); } );
 			read = function () { return node.value; };
+		} else if ( 'datebox' === f.type && window.csmDobInput ) {
+			/* Typed, not picked. <input type="date"> opens its mobile picker on
+			   the CURRENT month, so a 1993 birthday was thirty-odd swipes away.
+			   csmDobInput masks eight digits to dd/mm/yyyy and shows the age
+			   underneath. read() returns the ISO date the server already
+			   expects, so nothing changes on the way in. */
+			node = el( 'input', 'csm-pe-input csm-dob-field' );
+			node.value = String( f.value || '' ).slice( 0, 10 );
+			var dob = window.csmDobInput( node, { onChange: function () { setDirty( true ); } } );
+			read = function () { return dob.iso(); };
 		} else {
 			node = el( 'input', 'csm-pe-input' );
-			node.type = ( 'datebox' === f.type ) ? 'date'
-				: ( 'telephone' === f.type ) ? 'tel'
+			node.type = ( 'telephone' === f.type ) ? 'tel'
 				: ( 'number' === f.type ) ? 'number'
 				: ( 'url' === f.type ) ? 'url' : 'text';
-			// a stored datetime won't populate a date input; trim to the date part
-			node.value = ( 'datebox' === f.type ) ? String( f.value || '' ).slice( 0, 10 ) : ( f.value || '' );
+			node.value = f.value || '';
 			node.addEventListener( 'input', function () { setDirty( true ); } );
 			read = function () { return node.value; };
 		}

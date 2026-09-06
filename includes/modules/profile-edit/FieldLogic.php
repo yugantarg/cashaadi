@@ -461,6 +461,13 @@ final class FieldLogic {
 		Assets::style( 'profile-forms', 'assets/css/profile-forms.css' );
 		Assets::script( 'profile-forms', 'assets/js/profile-forms.js' );
 
+		// BuddyPress's own edit form still exists behind the app editor, and it
+		// renders date of birth as three dropdowns. Same typed field there.
+		if ( $on_edit ) {
+			Assets::style( 'signup', 'assets/css/signup.css' );
+			Assets::script( 'dob-input', 'assets/js/dob-input.js' );
+		}
+
 		$cfg = array(
 			'gender'       => Config::FIELD_GENDER,
 			'height'       => Config::FIELD_HEIGHT,
