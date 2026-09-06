@@ -172,6 +172,16 @@ final class ProfileApp {
 				? bp_core_fetch_avatar( array( 'item_id' => $uid, 'type' => 'full', 'html' => false ) )
 				: get_avatar_url( $uid, array( 'size' => 300 ) ),
 			'hasPhoto'    => (bool) $has_photo,
+			/*
+			 * Their photo is too small to render sharply on a card. Only the
+			 * member can fix this — BuddyPress deleted the original at upload,
+			 * so there is nothing on the server to re-crop from. Surfaced here
+			 * rather than on the card, because a badge telling everyone ELSE
+			 * the photo is low quality helps nobody.
+			 */
+			'lowResPhoto' => $has_photo
+				&& method_exists( '\CAShaadi\Modules\Photos\Photos', 'avatar_is_low_res' )
+				&& \CAShaadi\Modules\Photos\Photos::avatar_is_low_res( $uid ),
 			'blurred'     => '1' === (string) get_user_meta( $uid, 'csm_photo_private', true ),
 			'verified'    => method_exists( '\CAShaadi\Core\Verification', 'ca_verified' ) && Verification::ca_verified( $uid ),
 			'isPremium'   => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ),

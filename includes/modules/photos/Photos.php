@@ -125,6 +125,67 @@ final class Photos {
 
 	/* ---- HD sizes (#11813) --------------------------------------------- */
 
+	/**
+	 * How wide this member's stored avatar actually is, in pixels. 0 = none.
+	 *
+	 * BuddyPress crops uploads to whatever BP_AVATAR_FULL_WIDTH was AT THE TIME
+	 * and deletes the original. This site has three generations on disk — 150px
+	 * (BuddyPress's default), 350px, and 896px since the HD filter above — so
+	 * 163 members' "full" avatars are 150 square. Rendered across a ~450px card
+	 * that is a 3x upscale, which is why photos look blurred for members who
+	 * never turned blur on.
+	 *
+	 * Cached in user meta: this reads the file header, and doing that on every
+	 * avatar render on a directory page would be a stat storm. The cache is
+	 * keyed on the file's mtime, so a re-upload invalidates it by itself.
+	 */
+	public static function avatar_width( $user_id ) {
+		$user_id = (int) $user_id;
+		if ( $user_id < 1 || ! function_exists( 'bp_core_avatar_upload_path' ) ) {
+			return 0;
+		}
+
+		$dir = bp_core_avatar_upload_path() . '/avatars/' . $user_id;
+		if ( ! is_dir( $dir ) ) {
+			return 0;
+		}
+		$src = '';
+		foreach ( (array) glob( $dir . '/*-bpfull.*' ) as $file ) {
+			if ( 0 !== strpos( basename( $file ), 'csm-blur-' ) ) {
+				$src = $file;
+				break;
+			}
+		}
+		if ( '' === $src ) {
+			return 0;
+		}
+
+		$stamp  = (int) @filemtime( $src ); // phpcs:ignore
+		$cached = (array) get_user_meta( $user_id, 'csm_avatar_dims', true );
+		if ( isset( $cached['stamp'], $cached['w'] ) && (int) $cached['stamp'] === $stamp ) {
+			return (int) $cached['w'];
+		}
+
+		$size = @getimagesize( $src ); // phpcs:ignore
+		$w    = ( $size && ! empty( $size[0] ) ) ? (int) $size[0] : 0;
+		update_user_meta( $user_id, 'csm_avatar_dims', array( 'stamp' => $stamp, 'w' => $w ) );
+		return $w;
+	}
+
+	/**
+	 * Is this member's photo too small for the card to show it sharply?
+	 *
+	 * The threshold is half the width we crop to today. Below that, a card-width
+	 * render is upscaling by more than 2x and looks soft however it is served —
+	 * and no amount of processing brings back pixels that were thrown away at
+	 * upload. The only real fix is a fresh upload, which is why this drives a
+	 * prompt on the member's own profile rather than anything on the card.
+	 */
+	public static function avatar_is_low_res( $user_id ) {
+		$w = self::avatar_width( $user_id );
+		return ( $w > 0 && $w < (int) apply_filters( 'csm_avatar_lowres_below', (int) round( self::FULL_W / 2 ) ) );
+	}
+
 	public static function full_w() {
 		return self::FULL_W;
 	}

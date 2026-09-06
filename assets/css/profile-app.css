@@ -77,6 +77,11 @@
 	font-size: 13.5px; font-weight: 700;
 }
 
+/* Something is WRONG rather than merely incomplete — gold, not green, so it
+   does not read as one more step in the same completion sequence. */
+.csm-p-nudge.is-warn { border-left-color: var(--csm-gold, #a9822b); }
+.csm-p-nudge.is-warn .csm-p-nudge-cta { background: var(--csm-gold, #a9822b); }
+
 /* ---- section lists ---- */
 .csm-p-sections { max-width: 560px; margin: 22px auto 0; }
 .csm-p-h {

@@ -62,6 +62,21 @@
 		head.appendChild( link( 'csm-p-public', d.links.preview || d.links.public, 'See how my profile looks to others' ) );
 		root.appendChild( head );
 
+		/* ---- a photo too small to look sharp ----
+		   Older uploads were cropped to 150px by BuddyPress, which is a 3x
+		   upscale on a card. Nothing server-side can recover that — the original
+		   was deleted at upload — so the only fix is a new photo, and the member
+		   is the only one who can supply it. */
+		if ( d.lowResPhoto ) {
+			var warn = link( 'csm-p-nudge is-warn', d.links.photos );
+			var wtxt = el( 'span', 'csm-p-nudge-text' );
+			wtxt.appendChild( el( 'strong', null, 'Your photo looks blurry to others' ) );
+			wtxt.appendChild( el( 'span', null, 'It was saved at a small size. Upload it again from your phone for a sharp one.' ) );
+			warn.appendChild( wtxt );
+			warn.appendChild( el( 'span', 'csm-p-nudge-cta', 'Upload' ) );
+			root.appendChild( warn );
+		}
+
 		/* ---- what is still missing ---- */
 		if ( d.outstanding > 0 && d.firstGap ) {
 			var nudge = link( 'csm-p-nudge', d.firstGap );
