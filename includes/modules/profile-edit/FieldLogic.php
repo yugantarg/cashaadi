@@ -383,7 +383,15 @@ final class FieldLogic {
 	 * once, ever, and sync_age() keeps up from then on.
 	 */
 	public static function backfill_ages() {
-		if ( get_option( 'csm_age_backfill_done' ) ) {
+		/*
+		 * NOT 'csm_age_backfill_done'. That option already exists on this site,
+		 * holding a date ('2026-06-20 09:04:08') — an earlier age pass, from
+		 * before this plugin, that left 117 members without an Age row anyway.
+		 * The first version of this guard read that value, found it truthy and
+		 * skipped, so the backfill silently never ran. Version the key instead
+		 * of trusting a name.
+		 */
+		if ( get_option( 'csm_age_backfill_v2' ) ) {
 			return;
 		}
 		global $wpdb;
@@ -407,7 +415,7 @@ final class FieldLogic {
 
 		// Done even when nothing matched — the query is the check, and repeating
 		// it on every request would be a join per page view for no reason.
-		update_option( 'csm_age_backfill_done', 1, false );
+		update_option( 'csm_age_backfill_v2', 1, false );
 	}
 
 	private static function raw_dob( $user_id ) {
