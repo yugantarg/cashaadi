@@ -172,17 +172,17 @@ final class Settings {
 		self::group_close();
 
 		/* ---- log out / delete ----
-		 * "Delete my account" is only offered when BuddyPress actually serves a
-		 * deletion screen. Verified on staging2: /settings/delete-account/ returns
-		 * 200 but renders NO delete UI when deletion is disabled, so linking to it
-		 * unconditionally would walk members into a dead end. */
-		$can_delete = ! function_exists( 'bp_disable_account_deletion' ) || ! bp_disable_account_deletion();
+		 * The link used to be hidden unless BuddyPress served its own deletion
+		 * screen, and BuddyPress's is disabled here (bp-disable-account-deletion
+		 * = 1) — so it was never shown and there was no way to leave. Our own
+		 * screen claims that path first, so it is always offered now. */
+		$delete = class_exists( '\CAShaadi\Modules\Settings\DeleteAccount' )
+			? DeleteAccount::url()
+			: $me . 'settings/delete-account/';
 
 		echo '<div class="csm-set-foot">';
 		echo '<a class="csm-set-logout" href="' . esc_url( wp_logout_url( home_url( '/' ) ) ) . '">' . esc_html__( 'Log out', 'cashaadi-ui' ) . '</a>';
-		if ( $can_delete ) {
-			echo '<a class="csm-set-danger" href="' . esc_url( $me . 'settings/delete-account/' ) . '">' . esc_html__( 'Delete my account', 'cashaadi-ui' ) . '</a>';
-		}
+		echo '<a class="csm-set-danger" href="' . esc_url( $delete ) . '">' . esc_html__( 'Delete my account', 'cashaadi-ui' ) . '</a>';
 		echo '</div>';
 
 		echo '</section>';

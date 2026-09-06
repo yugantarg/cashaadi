@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.11.0' );
+define( 'CASHAADI_UI_VER', '1.12.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -232,6 +232,14 @@ if ( class_exists( 'CAShaadi\\Modules\\ProfileEdit\\ProfileEditScreen' ) ) {
 // stays with BuddyPress's own forms.
 if ( class_exists( 'CAShaadi\\Modules\\Settings\\SettingsScreen' ) ) {
 	SettingsScreen::register();
+	/*
+	 * "Delete my account". Registered beside the settings screens because it is
+	 * one of them — and its delete_user cleanup must load whether or not a
+	 * member ever opens the screen, since deletions also happen from wp-admin.
+	 */
+	if ( class_exists( 'CAShaadi\\Modules\\Settings\\DeleteAccount' ) ) {
+		\CAShaadi\Modules\Settings\DeleteAccount::register();
+	}
 }
 
 // Site-wide tweaks (noindex member pages, pricing redirect, support footer).

@@ -509,9 +509,18 @@ final class SettingsScreen {
 			'ok'       => true,
 			'groups'   => $groups,
 			'logout'   => wp_logout_url( home_url( '/' ) ),
-			// Only offered when BuddyPress actually allows it, or the row is a lie.
-			'deleteUrl' => ( function_exists( 'bp_disable_account_deletion' ) && ! bp_disable_account_deletion() )
-				? $me . 'settings/delete-account/' : '',
+			/*
+			 * OUR deletion screen, and always offered.
+			 *
+			 * This used to point at BuddyPress's own page and hide the row when
+			 * bp_disable_account_deletion() was true — which it is on this site,
+			 * so the row never appeared and members had no way to leave at all.
+			 * DeleteAccount claims the same path first, so the link works and
+			 * the member stays inside the app.
+			 */
+			'deleteUrl' => class_exists( '\CAShaadi\Modules\Settings\DeleteAccount' )
+				? \CAShaadi\Modules\Settings\DeleteAccount::url()
+				: '',
 		), 200 );
 	}
 }

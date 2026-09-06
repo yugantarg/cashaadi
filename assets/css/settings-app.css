@@ -140,3 +140,28 @@
 	color: var(--csm-muted, #5c6a76);
 	font-style: italic;
 }
+
+/* ---- delete my account ----
+   No reassuring colour and no green anywhere: this screen should not feel like
+   the rest of the app. The button stays disabled until both locks are met. */
+.csm-del-box { max-width: 560px; margin: 8px auto 40px; padding: 0 18px; }
+.csm-del-h { margin: 10px 0 6px; font-family: var(--csm-serif, Georgia, serif); font-size: 23px; font-weight: 600; }
+.csm-del-lead { margin: 0 0 20px; font-size: 15px; color: var(--csm-danger, #b3261e); font-weight: 600; }
+.csm-del-sub { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--csm-muted, #5c6a76); }
+.csm-del-list { margin: 0 0 18px; padding-left: 20px; font-size: 14.5px; line-height: 1.7; }
+.csm-del-note { margin: 0 0 24px; padding: 12px 14px; border-radius: 10px; background: var(--csm-ground, #f4f6f8); font-size: 13.5px; color: var(--csm-muted, #5c6a76); }
+.csm-del-field { display: block; margin: 0 0 14px; }
+.csm-del-field span { display: block; margin-bottom: 6px; font-size: 13.5px; font-weight: 600; }
+.csm-del-input {
+	width: 100%; box-sizing: border-box; padding: 12px 14px;
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 10px;
+	background: #fff; font-size: 16px;
+}
+.csm-del-err { min-height: 18px; margin: 4px 0 10px; color: var(--csm-danger, #b3261e); font-size: 13.5px; font-weight: 600; }
+.csm-del-go {
+	width: 100%; padding: 14px; border: 0; border-radius: 999px;
+	background: var(--csm-danger, #b3261e); color: #fff;
+	font-size: 15.5px; font-weight: 700; cursor: pointer;
+}
+.csm-del-go:disabled { background: #d8dde2; color: #8a949d; cursor: not-allowed; }
+.csm-del-cancel { display: block; margin: 16px 0 0; text-align: center; font-size: 14.5px; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none; }
