@@ -49,6 +49,66 @@
 			}
 			root.querySelectorAll( '.csm-ph-del' ).forEach( function ( b ) { b.onclick = async function () { if ( ! ( await window.csmConfirm( 'This cannot be undone.', { title: 'Remove this photo?', okText: 'Remove', danger: true } ) ) ) { return; } post( 'csm_ph_delete', { id: b.getAttribute( 'data-id' ) } ); }; } );
 			root.querySelectorAll( '.csm-ph-setmain' ).forEach( function ( b ) { b.onclick = function () { post( 'csm_ph_main', { id: b.getAttribute( 'data-id' ) } ).then( function ( d ) { if ( d ) { say( 'Main photo updated.', true ); } } ); }; } );
+			root.querySelectorAll( '.csm-ph-crop' ).forEach( function ( b ) { b.onclick = function () { adjust( b ); }; } );
+		}
+
+		/**
+		 * Re-frame the main photo.
+		 *
+		 * Only possible because the whole picture is now the master — until this
+		 * release the stored file WAS the crop, so there was nothing outside the
+		 * frame to move into. The photo is not re-uploaded: only the rectangle
+		 * changes, and the server redraws the avatar from the master.
+		 */
+		function adjust( btn ) {
+			if ( 'function' !== typeof window.csmCropper ) {
+				say( 'The cropper could not load. Please refresh.' );
+				return;
+			}
+			say( 'Loading photo…', true );
+
+			fetch( btn.getAttribute( 'data-src' ), { credentials: 'same-origin' } )
+				.then( function ( r ) { return r.blob(); } )
+				.then( function ( blob ) {
+					return window.csmCropper( blob, { aspect: 0.8 } );
+				} )
+				.then( function ( cr ) {
+					say( '' );
+					var ov = document.createElement( 'div' );
+					ov.className = 'csm-ph-cropover';
+					var box = document.createElement( 'div' );
+					box.className = 'csm-ph-cropbox';
+					box.appendChild( cr.node );
+
+					var row = document.createElement( 'div' );
+					row.className = 'csm-ph-cropactions';
+					var save = document.createElement( 'button' );
+					save.type = 'button'; save.className = 'csm-ph-cropsave'; save.textContent = 'Save crop';
+					var cancel = document.createElement( 'button' );
+					cancel.type = 'button'; cancel.className = 'csm-ph-cropcancel'; cancel.textContent = 'Cancel';
+					row.appendChild( cancel ); row.appendChild( save );
+					box.appendChild( row );
+					ov.appendChild( box );
+					document.body.appendChild( ov );
+
+					function shut() {
+						cr.destroy();
+						if ( ov.parentNode ) { ov.parentNode.removeChild( ov ); }
+					}
+					cancel.onclick = shut;
+					save.onclick = function () {
+						var release = window.csmBusy ? window.csmBusy( save ) : function () {};
+						post( 'csm_ph_crop', {
+							id: btn.getAttribute( 'data-id' ),
+							rect: JSON.stringify( cr.rect() )
+						} ).then( function ( d ) {
+							release();
+							shut();
+							if ( d ) { say( 'Crop updated.', true ); }
+						} );
+					};
+				} )
+				.catch( function () { say( 'That photo could not be opened for cropping.' ); } );
 		}
 		bind();
 	}

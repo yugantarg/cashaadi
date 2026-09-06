@@ -43,6 +43,9 @@ final class Gallery {
 		add_action( 'wp_ajax_csm_ph_upload', array( __CLASS__, 'ajax_upload' ) );
 		add_action( 'wp_ajax_csm_ph_delete', array( __CLASS__, 'ajax_delete' ) );
 		add_action( 'wp_ajax_csm_ph_main', array( __CLASS__, 'ajax_main' ) );
+		// Re-crop an existing photo. Possible at all only because the master is
+		// now the whole picture rather than the crop.
+		add_action( 'wp_ajax_csm_ph_crop', array( __CLASS__, 'ajax_crop' ) );
 
 		// Uploader shortcode + profile gallery under the member header.
 		add_shortcode( 'csm_photos', array( __CLASS__, 'uploader_html' ) );
@@ -91,6 +94,79 @@ final class Gallery {
 
 	/* ---------------------------------------- set the main photo as BP avatar */
 
+	/**
+	 * The stored crop for an attachment, or null.
+	 *
+	 * Fractions of the source, never pixels — see the note in cropper.js. The
+	 * master can be re-encoded or capped at a different size and the rectangle
+	 * still points at the same part of the picture.
+	 */
+	public static function crop_rect( $att_id ) {
+		$r = get_post_meta( (int) $att_id, '_csm_crop', true );
+		if ( ! is_array( $r ) || ! isset( $r['x'], $r['y'], $r['w'], $r['h'] ) ) {
+			return null;
+		}
+		$w = min( 1.0, max( 0.0, (float) $r['w'] ) );
+		$h = min( 1.0, max( 0.0, (float) $r['h'] ) );
+		if ( $w <= 0 || $h <= 0 ) {
+			return null;
+		}
+		return array(
+			'x' => min( 1.0, max( 0.0, (float) $r['x'] ) ),
+			'y' => min( 1.0, max( 0.0, (float) $r['y'] ) ),
+			'w' => $w,
+			'h' => $h,
+		);
+	}
+
+	/** Store a crop, validating it as a fraction of the image. */
+	public static function set_crop_rect( $att_id, $raw ) {
+		$r = is_string( $raw ) ? json_decode( $raw, true ) : $raw;
+		if ( ! is_array( $r ) || ! isset( $r['x'], $r['y'], $r['w'], $r['h'] ) ) {
+			return false;
+		}
+		$clean = array(
+			'x' => min( 1.0, max( 0.0, (float) $r['x'] ) ),
+			'y' => min( 1.0, max( 0.0, (float) $r['y'] ) ),
+			'w' => min( 1.0, max( 0.0, (float) $r['w'] ) ),
+			'h' => min( 1.0, max( 0.0, (float) $r['h'] ) ),
+		);
+		if ( $clean['w'] <= 0 || $clean['h'] <= 0 ) {
+			return false;
+		}
+		// A rectangle running off the edge would crop outside the file.
+		$clean['w'] = min( $clean['w'], 1.0 - $clean['x'] );
+		$clean['h'] = min( $clean['h'], 1.0 - $clean['y'] );
+		return (bool) update_post_meta( (int) $att_id, '_csm_crop', $clean );
+	}
+
+	/**
+	 * Narrow an editor to the member's chosen region, in place.
+	 *
+	 * Silent no-op without a rectangle, which is what an older photo or an
+	 * uncropped upload has — those keep the centre crop resize() gives them.
+	 */
+	private static function apply_crop( $editor, $crop ) {
+		if ( ! $crop || is_wp_error( $editor ) ) {
+			return;
+		}
+		$size = $editor->get_size();
+		if ( empty( $size['width'] ) || empty( $size['height'] ) ) {
+			return;
+		}
+		$w = (int) round( $size['width'] * $crop['w'] );
+		$h = (int) round( $size['height'] * $crop['h'] );
+		if ( $w < 8 || $h < 8 ) {
+			return; // nonsense rectangle: better the whole photo than a sliver
+		}
+		$editor->crop(
+			(int) round( $size['width'] * $crop['x'] ),
+			(int) round( $size['height'] * $crop['y'] ),
+			$w,
+			$h
+		);
+	}
+
 	public static function set_avatar( $uid, $att_id ) {
 		$file = get_attached_file( (int) $att_id );
 		if ( ! $file || ! file_exists( $file ) || ! function_exists( 'bp_core_avatar_upload_path' ) ) {
@@ -114,16 +190,20 @@ final class Gallery {
 		$th = (int) apply_filters( 'bp_core_avatar_thumb_height', 50 );
 		$ts = time();
 
+		$crop = self::crop_rect( (int) $att_id );
+
 		$full = wp_get_image_editor( $file );
 		if ( is_wp_error( $full ) ) {
 			return false;
 		}
+		self::apply_crop( $full, $crop );
 		$full->resize( $fw, $fh, true );
 		$full->set_quality( 92 );
 		$full->save( $dir . '/' . $ts . '-bpfull.jpg' );
 
 		$thumb = wp_get_image_editor( $file );
 		if ( ! is_wp_error( $thumb ) ) {
+			self::apply_crop( $thumb, $crop );
 			$thumb->resize( $tw, $th, true );
 			$thumb->set_quality( 92 );
 			$thumb->save( $dir . '/' . $ts . '-bpthumb.jpg' );
@@ -136,6 +216,42 @@ final class Gallery {
 	}
 
 	/* ------------------------------------------------------------- AJAX: add */
+
+	/**
+	 * Change the crop on a photo the member already uploaded.
+	 *
+	 * Only meaningful now that the master is the whole photo: before, the stored
+	 * file WAS the crop, so there was nothing outside it to move the frame into.
+	 *
+	 * Ownership is checked against the member's own photo list, not merely
+	 * against the attachment's post_author — an attachment id is guessable, and
+	 * media uploaded elsewhere on the site must not be re-cropped from here.
+	 */
+	public static function ajax_crop() {
+		check_ajax_referer( 'csm_ph', 'nonce' );
+		$uid = get_current_user_id();
+		if ( ! $uid ) {
+			wp_send_json_error( array( 'message' => 'Please log in.' ) );
+		}
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$in = isset( $_POST['rect'] ) ? wp_unslash( $_POST['rect'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- validated in set_crop_rect()
+
+		$mine = self::get( $uid );
+		if ( ! $id || ! in_array( $id, array_map( 'intval', $mine ), true ) ) {
+			wp_send_json_error( array( 'message' => 'That photo is not yours.' ) );
+		}
+		if ( ! self::set_crop_rect( $id, $in ) ) {
+			wp_send_json_error( array( 'message' => 'That crop could not be saved.' ) );
+		}
+
+		// Only the main photo feeds the avatar, so only that one needs redrawing.
+		if ( ! empty( $mine ) && (int) $mine[0] === $id ) {
+			self::set_avatar( $uid, $id );
+		}
+
+		wp_send_json_success( array( 'html' => self::grid_html( $uid ) ) );
+	}
 
 	public static function ajax_upload() {
 		check_ajax_referer( 'csm_ph', 'nonce' );
@@ -159,6 +275,7 @@ final class Gallery {
 		}
 
 		$files   = $_FILES['photos']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$rects   = isset( $_POST['rects'] ) ? (array) $_POST['rects'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- validated in set_crop_rect()
 		$added   = array();
 		$errors  = array();
 		$allowed = array( 'image/jpeg', 'image/png', 'image/webp', 'image/heic' );
@@ -185,6 +302,15 @@ final class Gallery {
 			if ( is_wp_error( $att_id ) ) {
 				$errors[] = $att_id->get_error_message();
 				continue;
+			}
+			/*
+			 * The crop the member chose, kept BESIDE the photo rather than baked
+			 * into it. rects[] is positional and always the same length as
+			 * photos[], so an empty entry means "no crop" and one photo's
+			 * rectangle can never be applied to another.
+			 */
+			if ( isset( $rects[ $i ] ) && '' !== $rects[ $i ] ) {
+				self::set_crop_rect( (int) $att_id, wp_unslash( $rects[ $i ] ) );
 			}
 			$added[] = (int) $att_id;
 		}
@@ -268,6 +394,12 @@ final class Gallery {
 			$html .= '<a class="csm-ph-lb" href="' . esc_url( wp_get_attachment_url( $id ) ) . '"><img src="' . esc_url( $src ) . '" alt=""></a>';
 			if ( $main ) {
 				$html .= '<span class="csm-ph-badge">Main</span>';
+				/*
+				 * Only on the main photo: it is the one that becomes the avatar,
+				 * so it is the only one whose crop is visible to anybody.
+				 */
+				$html .= '<button type="button" class="csm-ph-crop" data-id="' . (int) $id . '"'
+					. ' data-src="' . esc_url( wp_get_attachment_url( $id ) ) . '">Adjust crop</button>';
 			} else {
 				$html .= '<button type="button" class="csm-ph-setmain" data-id="' . (int) $id . '">Make main</button>';
 			}
@@ -508,7 +640,11 @@ final class Gallery {
 		// csmConfirm replaces the browser confirm() on photo delete.
 		Assets::style( 'app-screens', 'assets/css/app-screens.css', array( 'cashaadi-tokens' ) );
 		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
-		Assets::script( 'photos-gallery', 'assets/js/photos-gallery.js', array( 'cashaadi-ui-dialog' ) );
+		// "Adjust crop" re-frames an existing photo, so the cropper has to be
+		// here too — not only on the onboarding step that first uploads one.
+		Assets::script( 'cropper', 'assets/js/cropper.js' );
+		Assets::script( 'app-screens', 'assets/js/app-screens.js', array( 'cashaadi-ui-dialog' ) );
+		Assets::script( 'photos-gallery', 'assets/js/photos-gallery.js', array( 'cashaadi-ui-dialog', 'cashaadi-cropper', 'cashaadi-app-screens' ) );
 	}
 
 	/**

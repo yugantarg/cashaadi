@@ -161,6 +161,15 @@ final class Welcome {
 				// Portrait crop that clears the avatar floor (1080x1350 = 4:5).
 				'cropAspect' => 0.8,
 				'cropOutW'   => 1080,
+				/*
+				 * Longest edge of the MASTER — the whole photo, which is what
+				 * now gets uploaded. 2000 is the owner's call: big enough that a
+				 * re-crop still has detail to work with, small enough that the
+				 * upload finishes on a weak mobile connection mid-onboarding,
+				 * which is exactly where members abandon. Anything smaller than
+				 * this is passed through untouched rather than upscaled.
+				 */
+				'masterMax'  => 2000,
 			)
 		);
 	}

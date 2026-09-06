@@ -340,23 +340,48 @@
 			// Fallback: if the cropper module did not load, use the file as-is so a
 			// member is never blocked on this mandatory step.
 			if ( typeof window.csmCropper !== 'function' ) {
-				photos.push( { blob: f, url: URL.createObjectURL( f ) } );
+				// No cropper: the file goes up whole and un-cropped, which is still
+			// the master. The server centre-crops it, as it always did.
+			photos.push( { blob: f, rect: null, url: URL.createObjectURL( f ) } );
 				renderThumbs(); syncAdd();
 				return;
 			}
 			cropHost.innerHTML = '';
 			cropHost.style.display = 'block';
 			addBtn.style.display = 'none';
-			window.csmCropper( f, { aspect: CFG.cropAspect || 0.8, outW: CFG.cropOutW || 1080 } ).then( function ( cr ) {
+			window.csmCropper( f, {
+				aspect: CFG.cropAspect || 0.8,
+				outW: CFG.cropOutW || 1080,
+				masterMax: CFG.masterMax || 2000
+			} ).then( function ( cr ) {
 				activeCrop = cr;
 				cropHost.appendChild( cr.node );
 				var actions = el( 'div', 'csm-w-cropactions' );
 				var use = el( 'button', 'csm-w-next', 'Use photo' ); use.type = 'button';
 				var cancel = el( 'button', 'csm-w-skip', 'Cancel' ); cancel.type = 'button';
 				use.onclick = function () {
-					cr.export().then( function ( blob ) {
+					/* Upload the WHOLE photo and send the crop beside it. The
+					   cropped canvas used to be all that ever left the browser,
+					   so the member's original was destroyed here and nobody
+					   could re-crop it later. */
+					var r = cr.rect();
+					/* The master is up to 2000px now, so this is no longer
+					   instant on a phone. csmBusy is not enqueued on /welcome/,
+					   so fall back to disabling the button with a label — the
+					   step must never look like it ignored the tap. */
+					var busy;
+					if ( window.csmBusy ) {
+						busy = window.csmBusy( use );
+					} else {
+						var was = use.textContent;
+						use.disabled = true;
+						use.textContent = 'Preparing…';
+						busy = function () { use.disabled = false; use.textContent = was; };
+					}
+					cr.master().then( function ( blob ) {
+						busy();
 						if ( ! blob ) { return; }
-						photos.push( { blob: blob, url: URL.createObjectURL( blob ) } );
+						photos.push( { blob: blob, rect: r, url: URL.createObjectURL( blob ) } );
 						endCrop(); renderThumbs(); syncAdd();
 					} );
 				};
@@ -392,6 +417,7 @@
 			hasAny: function () { return photos.length > 0; },
 			alreadyDone: function () { return uploaded; },
 			photos: function () { return photos.map( function ( p ) { return p.blob; } ); },
+			rects: function () { return photos.map( function ( p ) { return p.rect || null; } ); },
 			blur: function () { return cb.checked; },
 			markDone: function () { uploaded = true; }
 		};
@@ -433,7 +459,14 @@
 			var fd = new FormData();
 			fd.append( 'action', 'csm_ph_upload' );
 			fd.append( 'nonce', CFG.photoNonce );
-			blobs.forEach( function ( b, i ) { fd.append( 'photos[]', b, 'photo' + ( i + 1 ) + '.jpg' ); } );
+			var rects = field.rects ? field.rects() : [];
+			blobs.forEach( function ( b, i ) {
+				fd.append( 'photos[]', b, 'photo' + ( i + 1 ) + '.jpg' );
+				// One entry per photo, positionally matched — '' where the member
+				// never cropped, so the server can tell "no crop" from "index
+				// missing" and never applies one photo's rectangle to another.
+				fd.append( 'rects[]', rects[ i ] ? JSON.stringify( rects[ i ] ) : '' );
+			} );
 
 			fetch( CFG.photoAjax, { method: 'POST', credentials: 'same-origin', body: fd } )
 				.then( function ( r ) { return r.json(); } )

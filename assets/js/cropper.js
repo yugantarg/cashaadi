@@ -6,10 +6,29 @@
  * function." So: drag to reposition, wheel / pinch / slider to zoom, and the
  * fixed-aspect frame is what gets exported.
  *
- * window.csmCropper( file, opts ) -> Promise<{ node, export, destroy }>
- *   opts.aspect  target width/height (default 4/5 portrait)
- *   opts.outW    exported width in px (height derived from aspect)
- *   export()     -> Promise<Blob>  the cropped region as a JPEG
+ * window.csmCropper( file, opts ) -> Promise<{ node, master, rect, export, destroy }>
+ *   opts.aspect     target width/height (default 4/5 portrait)
+ *   opts.outW       cropped export width (height derived from aspect)
+ *   opts.masterMax  longest edge of the master, default 2000
+ *   master()     -> Promise<Blob>  the WHOLE photo, never upscaled
+ *   rect()       -> {x,y,w,h}      the crop, as fractions of the source
+ *   export()     -> Promise<Blob>  the cropped region alone (legacy callers)
+ *
+ * NEVER DISCARD THE MEMBER'S PHOTO. Owner's rule: "never downscale a photo the
+ * user uploads ... I hope you retain the full photo not just the cropped
+ * portion. the cropped portion is the part that's shown to other users. but the
+ * owner should be able to adjust the crop later."
+ *
+ * This used to export the cropped canvas alone, at a fixed 1080px, and that was
+ * all that ever reached the server — so the original was destroyed in the
+ * BROWSER, before upload, and re-cropping later was impossible for anyone. Now
+ * the whole image is uploaded as the master and the crop travels beside it as a
+ * rectangle.
+ *
+ * The rectangle is NORMALISED — fractions of the source, not pixels — so it
+ * stays correct when the master is capped at 2000px on the way out, and stays
+ * correct again against any future derivative. Pixel coordinates would have
+ * silently referred to the wrong region the moment either size changed.
  *
  * The image is always kept covering the frame, so the crop can never include
  * empty edges. Everything is pointer-events based, so one code path serves mouse,
@@ -25,6 +44,7 @@
 		var aspect = opts.aspect || ( 4 / 5 );
 		var outW   = opts.outW || 1080;
 		var outH   = Math.round( outW / aspect );
+		var maxEdge = opts.masterMax || 2000;
 
 		return new Promise( function ( resolve, reject ) {
 			var img = new Image();
@@ -172,12 +192,58 @@
 					} );
 				}
 
+				/**
+				 * The crop, in fractions of the source image.
+				 *
+				 * Clamped to 0..1: the frame is always covered by the image, so
+				 * this should already be in range, but a rounding error that put
+				 * x+w over 1 would make the server crop outside the file.
+				 */
+				function rect() {
+					var s = state.base * state.scale;
+					var x = clamp( ( -state.x / s ) / iw, 0, 1 );
+					var y = clamp( ( -state.y / s ) / ih, 0, 1 );
+					return {
+						x: x,
+						y: y,
+						w: clamp( ( state.fw / s ) / iw, 0, 1 - x ),
+						h: clamp( ( state.fh / s ) / ih, 0, 1 - y )
+					};
+				}
+
+				/**
+				 * The whole photo, downscaled ONLY if it is bigger than maxEdge.
+				 *
+				 * Never upscaled — that was the old export's real sin: it wrote
+				 * 1080px whatever the source held, so a 300px pick became a
+				 * 1080px file that looked sharp to every check we had and soft to
+				 * every human. A file smaller than the cap is passed through
+				 * untouched, original bytes and all.
+				 */
+				function master() {
+					return new Promise( function ( res ) {
+						var longest = Math.max( iw, ih );
+						if ( longest <= maxEdge ) {
+							return res( file );   // as uploaded, not re-encoded
+						}
+						var k  = maxEdge / longest;
+						var cv = document.createElement( 'canvas' );
+						cv.width  = Math.round( iw * k );
+						cv.height = Math.round( ih * k );
+						var ctx = cv.getContext( '2d' );
+						ctx.imageSmoothingEnabled = true;
+						ctx.imageSmoothingQuality = 'high';
+						ctx.drawImage( image, 0, 0, cv.width, cv.height );
+						cv.toBlob( function ( b ) { res( b || file ); }, 'image/jpeg', 0.9 );
+					} );
+				}
+
 				function destroy() {
 					window.removeEventListener( 'resize', reset );
 					try { URL.revokeObjectURL( image.src ); } catch ( e ) {}
 				}
 
-				return { node: node, export: exportBlob, destroy: destroy, reset: reset };
+				return { node: node, master: master, rect: rect, export: exportBlob, destroy: destroy, reset: reset };
 			}
 		} );
 	};
