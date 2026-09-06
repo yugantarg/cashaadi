@@ -105,15 +105,15 @@ final class Deactivate {
 			) );
 		}
 
-		if ( class_exists( '\CAShaadi\Core\Engine' ) && method_exists( '\CAShaadi\Core\Engine', 'log_event' ) ) {
-			\CAShaadi\Core\Engine::log_event( 'profile_paused', $user_id, 0, array() );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'profile_paused', $user_id, 0, array() );
 		}
 	}
 
 	public static function resume( $user_id ) {
 		delete_user_meta( (int) $user_id, self::META );
-		if ( class_exists( '\CAShaadi\Core\Engine' ) && method_exists( '\CAShaadi\Core\Engine', 'log_event' ) ) {
-			\CAShaadi\Core\Engine::log_event( 'profile_resumed', (int) $user_id, 0, array() );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'profile_resumed', (int) $user_id, 0, array() );
 		}
 	}
 

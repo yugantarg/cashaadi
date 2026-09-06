@@ -126,8 +126,8 @@ final class DeleteAccount {
 		 * is no user to attribute it to, and "how many people leave" is the one
 		 * number this feature makes it possible to know.
 		 */
-		if ( class_exists( '\CAShaadi\Core\Engine' ) && method_exists( '\CAShaadi\Core\Engine', 'log_event' ) ) {
-			\CAShaadi\Core\Engine::log_event( 'account_deleted', $uid, 0, array( 'at' => current_time( 'mysql' ) ) );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'account_deleted', $uid, 0, array( 'at' => current_time( 'mysql' ) ) );
 		}
 
 		// Stop billing before the account goes, or PMPro keeps a level pointing
