@@ -175,15 +175,22 @@ final class Photos {
 	/**
 	 * Is this member's photo too small for the card to show it sharply?
 	 *
-	 * The threshold is half the width we crop to today. Below that, a card-width
-	 * render is upscaling by more than 2x and looks soft however it is served —
-	 * and no amount of processing brings back pixels that were thrown away at
-	 * upload. The only real fix is a fresh upload, which is why this drives a
-	 * prompt on the member's own profile rather than anything on the card.
+	 * 300px, which is a card render (~450px) at 1.5x. Nothing brings back pixels
+	 * thrown away at upload, so the only fix is a fresh photo — which is why
+	 * this drives a prompt on the member's own profile rather than anything on
+	 * the card.
+	 *
+	 * NOT FULL_W/2 (448), which the first version used. That reads as principled
+	 * — "half of what we crop to today" — and it flagged 210 of the 285 members
+	 * with a photo, because it swept in the whole 350px generation, which is a
+	 * 1.3x upscale and looks perfectly fine. Prompting three quarters of the
+	 * membership to re-upload an acceptable photo is nagging, and it buries the
+	 * 163 whose photos genuinely are soft. 300 draws the line where the two
+	 * generations actually differ.
 	 */
 	public static function avatar_is_low_res( $user_id ) {
 		$w = self::avatar_width( $user_id );
-		return ( $w > 0 && $w < (int) apply_filters( 'csm_avatar_lowres_below', (int) round( self::FULL_W / 2 ) ) );
+		return ( $w > 0 && $w < (int) apply_filters( 'csm_avatar_lowres_below', 300 ) );
 	}
 
 	public static function full_w() {
