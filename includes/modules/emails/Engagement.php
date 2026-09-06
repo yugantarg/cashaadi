@@ -130,6 +130,90 @@ final class Engagement {
 		return 'no' !== $v;
 	}
 
+	/* ------------------------------------------------- campaign: photo quality */
+
+	/** The one-off type key. No period suffix: this is sent once, ever. */
+	const PHOTO_QUALITY_TYPE = 'csm-photoqual';
+
+	/**
+	 * Members whose stored photo is too small to render sharply.
+	 *
+	 * Walks the avatar directories rather than the user table, because the
+	 * evidence is the FILE — BuddyPress cropped these to whatever
+	 * BP_AVATAR_FULL_WIDTH was at the time and there is no record of it
+	 * anywhere else. Photos::avatar_width() caches per file mtime, so this is
+	 * one stat per member after the first run, and anyone who re-uploads drops
+	 * out of the audience by itself.
+	 */
+	public static function photo_quality_audience() {
+		if ( ! class_exists( '\CAShaadi\Modules\Photos\Photos' )
+			|| ! method_exists( '\CAShaadi\Modules\Photos\Photos', 'avatar_is_low_res' )
+			|| ! function_exists( 'bp_core_avatar_upload_path' ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( (array) glob( bp_core_avatar_upload_path() . '/avatars/*', GLOB_ONLYDIR ) as $dir ) {
+			$uid = (int) basename( $dir );
+			if ( $uid < 1 || ! get_userdata( $uid ) ) {
+				continue;
+			}
+			if ( \CAShaadi\Modules\Photos\Photos::avatar_is_low_res( $uid ) ) {
+				$out[] = $uid;
+			}
+		}
+		return $out;
+	}
+
+	/** The message itself, for one member. Also what the preview renders. */
+	public static function photo_quality_body( $uid ) {
+		$photos = function_exists( 'bp_members_get_user_url' )
+			? trailingslashit( bp_members_get_user_url( (int) $uid ) ) . 'profile/change-avatar/'
+			: home_url( '/profile/' );
+
+		return self::wrap(
+			self::greeting( $uid ),
+			/*
+			 * Written as OUR fault, because it is: the site's own avatar setting
+			 * cropped their photo small and did not keep the original. Blaming
+			 * the member for a decision the software made would be both wrong
+			 * and a worse ask.
+			 */
+			'<p>Your profile photo is being shown to other members smaller and softer than it should be.</p>'
+			. '<p>That is on us — when you uploaded it, ' . esc_html( self::site() )
+			. ' saved photos at a much smaller size than it does now, and the original was not kept.</p>'
+			. '<p>Uploading the same photo again fixes it. It takes a few seconds from your phone, and it will be sharp everywhere it appears.</p>',
+			$photos,
+			'Upload my photo'
+		);
+	}
+
+	/**
+	 * Stage the campaign. Writes HELD rows; sends nothing.
+	 *
+	 * @return array{audience:int,staged:int,skipped:int}
+	 */
+	public static function stage_photo_quality() {
+		$audience = self::photo_quality_audience();
+		$staged   = 0;
+		$skipped  = 0;
+
+		foreach ( $audience as $uid ) {
+			// Honours the same per-category opt-out as every other nudge. This is
+			// housekeeping, not transactional, so it does not earn a bypass.
+			if ( ! self::allowed( $uid, 'csm_email_nudges' ) ) {
+				$skipped++;
+				continue;
+			}
+			if ( Queue::stage( $uid, self::PHOTO_QUALITY_TYPE, 'Your photo is showing up blurry', self::photo_quality_body( $uid ) ) ) {
+				$staged++;
+			} else {
+				$skipped++;   // already staged, opted out, or no usable address
+			}
+		}
+
+		return array( 'audience' => count( $audience ), 'staged' => $staged, 'skipped' => $skipped );
+	}
+
 	public static function settings_rows() {
 		$uid = function_exists( 'bp_displayed_user_id' ) ? bp_displayed_user_id() : get_current_user_id();
 		echo '<tr><th scope="row">' . esc_html__( 'CA Shaadi emails', 'cashaadi-ui' ) . '</th><td colspan="2"></td></tr>';

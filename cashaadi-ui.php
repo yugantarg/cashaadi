@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.10.0' );
+define( 'CASHAADI_UI_VER', '1.11.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -189,6 +189,14 @@ if ( class_exists( 'CAShaadi\\Modules\\Otp\\OtpSettings' ) ) {
 // the same emails flag as the queue it writes into.
 if ( class_exists( 'CAShaadi\\Modules\\Emails\\Engagement' ) ) {
 	Engagement::register();
+	/*
+	 * Campaigns: one-off mailings staged on hold and fired by hand. Registered
+	 * beside Engagement because it stages through the same queue and honours
+	 * the same opt-outs — it is a control surface, not a second mailer.
+	 */
+	if ( class_exists( 'CAShaadi\\Modules\\Emails\\Campaigns' ) ) {
+		\CAShaadi\Modules\Emails\Campaigns::register();
+	}
 }
 
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\DiscoverScreen' ) ) {

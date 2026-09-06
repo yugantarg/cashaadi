@@ -611,6 +611,115 @@ final class Queue {
 	 *                Engagement's daily ramp — count the trues, so "already
 	 *                queued" must not read as "queued one more".
 	 */
+	/**
+	 * Queue a message and DO NOT send it: a campaign, staged for later.
+	 *
+	 * Owner: "We will be slowly firing the emails in production but I want a
+	 * manual control to decide when to fire them ... I'll sequence them at my
+	 * pace." So a campaign is written with status 'held', which due_rows() does
+	 * not select — the rows exist, are countable and inspectable, and nothing
+	 * moves until release() is called from the campaigns screen.
+	 *
+	 * No schema change: 'status' already carries pending / sent / cancelled /
+	 * failed, and every reader filters on it explicitly rather than assuming.
+	 *
+	 * Deduped by the same UNIQUE KEY (user_id, email_type) as notify(), so
+	 * staging a campaign twice does not double anybody.
+	 *
+	 * @return bool True if a NEW row was staged.
+	 */
+	public static function stage( $user_id, $type, $subject, $body ) {
+		$user_id = (int) $user_id;
+		$type    = substr( sanitize_key( $type ), 0, 64 );
+		if ( ! $user_id || '' === $type || '' === trim( (string) $body ) ) {
+			return false;
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user || ! is_email( $user->user_email ) ) {
+			return false;
+		}
+		if ( get_user_meta( $user_id, 'csm_remail_optout', true ) ) {
+			return false;
+		}
+
+		global $wpdb;
+		$t     = self::table();
+		$mysql = current_time( 'mysql' );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$t} (user_id, email_type, user_email, scheduled_for, status, note, subject, body, created_at)
+			 VALUES (%d, %s, %s, %s, 'held', %s, %s, %s, %s)",
+			$user_id, $type, $user->user_email, $mysql, 'campaign', substr( (string) $subject, 0, 255 ), (string) $body, $mysql
+		) );
+
+		return (bool) $wpdb->insert_id;
+	}
+
+	/**
+	 * Let some of a staged campaign go.
+	 *
+	 * Flips held rows to pending, oldest first, so releasing 20 twice sends 40
+	 * different people rather than the same 20 again. They then run through the
+	 * ordinary queue: the master switch, the daily cap and the hourly cap all
+	 * still apply, so this is a gate in front of those, never a way round them.
+	 *
+	 * @return int How many were released.
+	 */
+	public static function release( $type, $limit ) {
+		global $wpdb;
+		$t     = self::table();
+		$type  = substr( sanitize_key( $type ), 0, 64 );
+		$limit = max( 0, (int) $limit );
+		if ( '' === $type || ! $limit ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->query( $wpdb->prepare(
+			"UPDATE {$t} SET status = 'pending', scheduled_for = %s
+			  WHERE email_type = %s AND status = 'held'
+			  ORDER BY id ASC LIMIT %d",
+			current_time( 'mysql' ),
+			$type,
+			$limit
+		) );
+	}
+
+	/** Put released-but-unsent rows back on hold. */
+	public static function unrelease( $type ) {
+		global $wpdb;
+		$t    = self::table();
+		$type = substr( sanitize_key( $type ), 0, 64 );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->query( $wpdb->prepare(
+			"UPDATE {$t} SET status = 'held' WHERE email_type = %s AND status = 'pending'",
+			$type
+		) );
+	}
+
+	/** How a campaign stands: held / pending / sent / failed / cancelled. */
+	public static function type_counts( $type ) {
+		global $wpdb;
+		$t    = self::table();
+		$type = substr( sanitize_key( $type ), 0, 64 );
+		$out  = array( 'held' => 0, 'pending' => 0, 'sent' => 0, 'failed' => 0, 'cancelled' => 0 );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT status, COUNT(*) n FROM {$t} WHERE email_type = %s GROUP BY status", $type ) );
+		foreach ( (array) $rows as $r ) {
+			$out[ $r->status ] = (int) $r->n;
+		}
+		return $out;
+	}
+
+	/** One staged row, for previewing exactly what a member will receive. */
+	public static function sample( $type ) {
+		global $wpdb;
+		$t = self::table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE email_type = %s ORDER BY id ASC LIMIT 1", substr( sanitize_key( $type ), 0, 64 ) ) );
+	}
+
 	public static function notify( $user_id, $type, $subject, $body ) {
 		$user_id = (int) $user_id;
 		$type    = substr( sanitize_key( $type ), 0, 64 );
