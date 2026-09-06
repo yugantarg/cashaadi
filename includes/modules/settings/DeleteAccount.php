@@ -130,11 +130,29 @@ final class DeleteAccount {
 			cashaadi()->log_event( 'account_deleted', $uid, 0, array( 'at' => current_time( 'mysql' ) ) );
 		}
 
-		// Stop billing before the account goes, or PMPro keeps a level pointing
-		// at a user id that no longer exists.
+		/*
+		 * Stop billing BEFORE the account goes.
+		 *
+		 * PMPro's own delete_user hook cancels active subscriptions only when
+		 * $_REQUEST['pmpro_delete_active_subscriptions'] is set — a field on the
+		 * wp-admin delete form, which obviously is not present on a REST call
+		 * from the member's own phone. Read in cleanup.php rather than assumed.
+		 * Left alone, someone could delete their account and keep being charged.
+		 */
+		add_filter( 'pmpro_user_deletion_cancel_active_subscriptions', '__return_true' );
 		if ( function_exists( 'pmpro_changeMembershipLevel' ) ) {
 			pmpro_changeMembershipLevel( 0, $uid );
 		}
+
+		/*
+		 * Tell them it happened, while there is still an address to tell.
+		 *
+		 * Sent directly rather than through the queue: the queue would hold it
+		 * behind the master switch and a daily cap, and by the time it released
+		 * there would be no account for it to describe. It is also the alarm
+		 * that matters most if the deletion was NOT them.
+		 */
+		self::farewell( $user );
 
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 
@@ -156,6 +174,78 @@ final class DeleteAccount {
 		wp_logout();
 
 		return new \WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/**
+	 * "Your account has been deleted."
+	 *
+	 * Deliberately not through the email queue — see the call site. wp_mail() is
+	 * pluggable and Brevo overrides it here, so this goes out the same way every
+	 * other real message on this site does.
+	 */
+	private static function farewell( $user ) {
+		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$body = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">'
+			. '<p>Your ' . esc_html( $site ) . ' account has been deleted, along with your profile, photos and conversations.</p>'
+			. '<p>There is nothing left to undo — we cannot restore it. You are welcome to sign up again at any time.</p>'
+			. '<p style="color:#7a6f68;font-size:13px">If this was not you, reply to this email immediately.</p>'
+			. '</div>';
+
+		add_filter( 'wp_mail_content_type', array( __CLASS__, 'html_type' ) );
+		wp_mail( $user->user_email, 'Your ' . $site . ' account has been deleted', $body );
+		remove_filter( 'wp_mail_content_type', array( __CLASS__, 'html_type' ) );
+	}
+
+	public static function html_type() {
+		return 'text/html';
+	}
+
+	/**
+	 * Better Messages keeps its OWN tables and cleans up after nobody.
+	 *
+	 * Checked the plugin source: it hooks neither delete_user nor
+	 * wpmu_delete_user anywhere. So without this, a deleted member's messages,
+	 * thread membership, mentions and cached display name stay in
+	 * wp_bm_* indefinitely — and their name keeps rendering in other people's
+	 * inboxes, from wp_bm_user_index, long after the account is gone.
+	 *
+	 * Their sent messages go too. That does remove text from the other person's
+	 * thread, which is a real cost — but it is the departing member's own words,
+	 * and a deletion that leaves them in place is not a deletion.
+	 */
+	private static function purge_messages( $user_id ) {
+		global $wpdb;
+
+		$by_user = array(
+			'bm_message_recipients' => 'user_id',
+			'bm_mentions'           => 'user_id',
+			'bm_moderation'         => 'user_id',
+			'bm_user_roles_index'   => 'user_id',
+			'bm_user_index'         => 'ID',
+			'bm_message_messages'   => 'sender_id',
+		);
+
+		foreach ( $by_user as $table => $col ) {
+			$full = $wpdb->prefix . $table;
+			if ( $full !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$full} WHERE {$col} = %d", $user_id ) );
+		}
+
+		/*
+		 * Threads nobody is left in. A one-to-one conversation loses its only
+		 * other participant when an account goes, and an empty thread is a row
+		 * that can never be opened again.
+		 */
+		$threads = $wpdb->prefix . 'bm_threads';
+		$recips  = $wpdb->prefix . 'bm_message_recipients';
+		if ( $threads === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $threads ) )
+			&& $recips === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $recips ) ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "DELETE t FROM {$threads} t LEFT JOIN {$recips} r ON r.thread_id = t.id WHERE r.id IS NULL" );
+		}
 	}
 
 	/* ---------------------------------------------------------------- purge */
@@ -195,6 +285,8 @@ final class DeleteAccount {
 				$wpdb->query( $wpdb->prepare( "DELETE FROM {$full} WHERE {$col} = %d", $user_id ) );
 			}
 		}
+
+		self::purge_messages( $user_id );
 
 		// Gallery photos are ordinary attachments; nothing else removes them.
 		$photos = get_user_meta( $user_id, 'csm_photos', true );
