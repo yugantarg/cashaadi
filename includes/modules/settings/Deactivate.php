@@ -41,6 +41,20 @@ final class Deactivate {
 
 	const META = 'csm_deactivated';
 
+	/**
+	 * Not offered yet. Owner: "hold off on deactivate. Complete building delete
+	 * first."
+	 *
+	 * The FILTERS still register — Discover, the directory and the email veto —
+	 * because a member paused during testing must stay hidden whether or not the
+	 * entry points are showing. Only the links and the screen are withheld.
+	 *
+	 * Flip with define( 'CASHAADI_PAUSE_ENABLED', true ) in wp-config.php.
+	 */
+	public static function offered() {
+		return defined( 'CASHAADI_PAUSE_ENABLED' ) && CASHAADI_PAUSE_ENABLED;
+	}
+
 	public static function register() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
@@ -138,6 +152,9 @@ final class Deactivate {
 	/* ---------------------------------------------------------------- screen */
 
 	public static function maybe_render() {
+		if ( ! self::offered() ) {
+			return;
+		}
 		if ( ! AppPage::claim( 'settings/pause' ) ) {
 			return;
 		}
