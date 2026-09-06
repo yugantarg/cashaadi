@@ -47,6 +47,7 @@ final class FieldLogic {
 		// alone does NOT fire xprofile_data_after_save in BP 14, so hooking that was
 		// dead — this single hook covers every real write path.
 		add_action( 'xprofile_updated_profile', array( __CLASS__, 'sync_age' ), 10, 1 );
+		add_action( 'wp_loaded', array( __CLASS__, 'backfill_ages' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ), 21 );
 	}
 
@@ -357,6 +358,56 @@ final class FieldLogic {
 			return;
 		}
 		xprofile_set_field_data( Config::FIELD_AGE, $user_id, $age );
+	}
+
+	/**
+	 * This member's age, computed from Date of birth. 0 when it cannot be.
+	 *
+	 * Public because the stored Age field is a CACHE, not the source: it is only
+	 * written on profile update, so a member who has not saved since signing up
+	 * has no Age row at all (117 of them on staging had a DOB and no Age, which
+	 * is why their Discover card showed a bare name), and one who saved two
+	 * years ago still has a two-year-old number. Date of birth is the fact.
+	 */
+	public static function age_for( $user_id ) {
+		$age = self::calc_age( self::raw_dob( (int) $user_id ) );
+		return ( null === $age ) ? 0 : (int) $age;
+	}
+
+	/**
+	 * Write the missing Age rows once.
+	 *
+	 * Deriving on read fixes our own screens immediately, but BuddyPress's
+	 * member directory, its profile loop and anything filtering on Age read the
+	 * stored field — so those rows have to exist too. Option-guarded: this runs
+	 * once, ever, and sync_age() keeps up from then on.
+	 */
+	public static function backfill_ages() {
+		if ( get_option( 'csm_age_backfill_done' ) ) {
+			return;
+		}
+		global $wpdb;
+		$table = $wpdb->prefix . 'bp_xprofile_data';
+
+		// Members with a date of birth and no usable Age row.
+		$ids = $wpdb->get_col( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"SELECT d.user_id FROM {$table} d
+			  LEFT JOIN {$table} a ON a.user_id = d.user_id AND a.field_id = %d
+			 WHERE d.field_id = %d AND d.value <> ''
+			   AND ( a.id IS NULL OR a.value = '' )
+			 LIMIT 500",
+			Config::FIELD_AGE,
+			Config::FIELD_DOB
+		) );
+
+		foreach ( (array) $ids as $uid ) {
+			self::sync_age( (int) $uid );
+		}
+
+		// Done even when nothing matched — the query is the check, and repeating
+		// it on every request would be a join per page view for no reason.
+		update_option( 'csm_age_backfill_done', 1, false );
 	}
 
 	private static function raw_dob( $user_id ) {

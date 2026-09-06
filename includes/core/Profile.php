@@ -161,6 +161,28 @@ final class Profile {
 		return trim( html_entity_decode( $v, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 	}
 
+	/**
+	 * A member's age, for display.
+	 *
+	 * Date of birth first, the stored Age field second.
+	 *
+	 * The Age field is written only by FieldLogic::sync_age() on profile update,
+	 * so it is a cache with two failure modes: a member who has not saved since
+	 * signing up has no row at all (117 such members on staging — their Discover
+	 * cards showed a bare name with no age), and one who last saved two years
+	 * ago carries a two-year-old number. Deriving from DOB fixes both, and the
+	 * stored value still covers anyone whose DOB is missing or unparseable.
+	 */
+	public static function age_of( $profile_id, $hidden = null ) {
+		if ( method_exists( '\CAShaadi\Modules\ProfileEdit\FieldLogic', 'age_for' ) ) {
+			$age = (int) \CAShaadi\Modules\ProfileEdit\FieldLogic::age_for( $profile_id );
+			if ( $age > 0 ) {
+				return (string) $age;
+			}
+		}
+		return self::age_number( self::field( 'Age', $profile_id, $hidden ) );
+	}
+
 	/** "27 years old" -> "27". */
 	public static function age_number( $raw ) {
 		return preg_match( '/\d+/', (string) $raw, $m ) ? $m[0] : '';
@@ -333,7 +355,7 @@ final class Profile {
 		$out = array(
 			'id'       => $profile_id,
 			'name'     => $name,
-			'age'      => self::age_number( self::field( 'Age', $profile_id, $hidden ) ),
+			'age'      => self::age_of( $profile_id, $hidden ),
 			'city'     => self::field( 'City', $profile_id, $hidden ),
 			'bio'      => self::field( 'Bio', $profile_id, $hidden ),
 			'job'      => self::field( 'Current Job Title', $profile_id, $hidden ),

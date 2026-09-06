@@ -95,7 +95,7 @@ final class RequestsScreen {
 		return array(
 			'id'     => $uid,
 			'name'   => $name,
-			'age'    => Profile::age_number( Profile::field( 'Age', $uid, $hidden ) ),
+			'age'    => Profile::age_of( $uid, $hidden ),
 			'city'   => Profile::field( 'City', $uid, $hidden ),
 			'avatar' => function_exists( 'bp_core_fetch_avatar' )
 				? bp_core_fetch_avatar( array( 'item_id' => $uid, 'type' => 'thumb', 'html' => false ) )
