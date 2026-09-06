@@ -182,6 +182,12 @@ final class Settings {
 
 		echo '<div class="csm-set-foot">';
 		echo '<a class="csm-set-logout" href="' . esc_url( wp_logout_url( home_url( '/' ) ) ) . '">' . esc_html__( 'Log out', 'cashaadi-ui' ) . '</a>';
+		if ( class_exists( '\CAShaadi\Modules\Settings\Deactivate' ) ) {
+			$paused = \CAShaadi\Modules\Settings\Deactivate::is_paused( get_current_user_id() );
+			echo '<a class="csm-set-pause" href="' . esc_url( \CAShaadi\Modules\Settings\Deactivate::url() ) . '">'
+				. esc_html( $paused ? __( 'Turn my profile back on', 'cashaadi-ui' ) : __( 'Pause my profile', 'cashaadi-ui' ) )
+				. '</a>';
+		}
 		echo '<a class="csm-set-danger" href="' . esc_url( $delete ) . '">' . esc_html__( 'Delete my account', 'cashaadi-ui' ) . '</a>';
 		echo '</div>';
 

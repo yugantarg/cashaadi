@@ -521,6 +521,12 @@ final class SettingsScreen {
 			'deleteUrl' => class_exists( '\CAShaadi\Modules\Settings\DeleteAccount' )
 				? \CAShaadi\Modules\Settings\DeleteAccount::url()
 				: '',
+			// The reversible door, offered BEFORE the permanent one.
+			'pauseUrl'  => class_exists( '\CAShaadi\Modules\Settings\Deactivate' )
+				? \CAShaadi\Modules\Settings\Deactivate::url()
+				: '',
+			'paused'    => class_exists( '\CAShaadi\Modules\Settings\Deactivate' )
+				&& \CAShaadi\Modules\Settings\Deactivate::is_paused( $uid ),
 		), 200 );
 	}
 }

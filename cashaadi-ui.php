@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.12.0' );
+define( 'CASHAADI_UI_VER', '1.13.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -239,6 +239,15 @@ if ( class_exists( 'CAShaadi\\Modules\\Settings\\SettingsScreen' ) ) {
 	 */
 	if ( class_exists( 'CAShaadi\\Modules\\Settings\\DeleteAccount' ) ) {
 		\CAShaadi\Modules\Settings\DeleteAccount::register();
+	}
+	/*
+	 * "Pause my profile" — the reversible way out, offered before the permanent
+	 * one. Registered unconditionally because its filters (Discover exclusion,
+	 * directory exclusion, the email veto) must apply whether or not the member
+	 * whose request is being served is the one who paused.
+	 */
+	if ( class_exists( 'CAShaadi\\Modules\\Settings\\Deactivate' ) ) {
+		\CAShaadi\Modules\Settings\Deactivate::register();
 	}
 }
 

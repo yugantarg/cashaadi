@@ -41,7 +41,18 @@
 	].forEach( function ( t ) { ul.appendChild( el( 'li', null, t ) ); } );
 	box.appendChild( ul );
 
-	box.appendChild( el( 'p', 'csm-del-note', 'If you only want a break, you can stop the emails in Settings → Email notifications instead, and your profile stays as it is.' ) );
+	// The way back, on the screen where people are most likely to want it.
+	var alt = el( 'p', 'csm-del-note' );
+	if ( CFG.pause ) {
+		alt.appendChild( document.createTextNode( 'If you only want a break, ' ) );
+		var pl = el( 'a', null, 'pause your profile instead' );
+		pl.href = CFG.pause;
+		alt.appendChild( pl );
+		alt.appendChild( document.createTextNode( ' — you disappear from Discover and the emails stop, and nothing is lost.' ) );
+	} else {
+		alt.textContent = 'If you only want a break, you can stop the emails in Settings → Email notifications instead, and your profile stays as it is.';
+	}
+	box.appendChild( alt );
 
 	var f1 = el( 'label', 'csm-del-field' );
 	f1.appendChild( el( 'span', null, 'Type DELETE to confirm' ) );

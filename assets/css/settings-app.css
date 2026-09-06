@@ -38,6 +38,14 @@
 	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 14px;
 	color: var(--csm-blue, #2c5b8c); font-size: 15px; font-weight: 600; text-decoration: none;
 }
+/* Pause reads as an ordinary action, delete as a last resort — the weight of
+   the two links is the main thing steering people to the reversible one. */
+.csm-st-pause {
+	display: block; margin-top: 10px; padding: 14px;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 14px;
+	color: var(--csm-ink, #16212b); font-size: 15px; font-weight: 600; text-decoration: none;
+}
 .csm-st-danger {
 	display: inline-block; margin-top: 18px;
 	color: #96262a; font-size: 13px; text-decoration: underline;
@@ -165,3 +173,13 @@
 }
 .csm-del-go:disabled { background: #d8dde2; color: #8a949d; cursor: not-allowed; }
 .csm-del-cancel { display: block; margin: 16px 0 0; text-align: center; font-size: 14.5px; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none; }
+
+/* ---- pause: calm where delete is hostile ---- */
+.csm-pause-lead { margin: 0 0 20px; font-size: 15px; color: var(--csm-muted, #5c6a76); }
+.csm-pause-go {
+	width: 100%; padding: 14px; border: 0; border-radius: 999px;
+	background: var(--csm-blue, #2c5b8c); color: #fff;
+	font-size: 15.5px; font-weight: 700; cursor: pointer;
+}
+.csm-pause-go.is-on { background: var(--csm-green, #6f9f2e); }
+.csm-del-note a { color: var(--csm-danger, #b3261e); font-weight: 700; }

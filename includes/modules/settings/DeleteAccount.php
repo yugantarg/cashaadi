@@ -71,6 +71,9 @@ final class DeleteAccount {
 			'submit' => rest_url( 'csm/v1/settings/delete-account' ),
 			'back'   => home_url( '/settings/' ),
 			'home'   => home_url( '/' ),
+			// The reversible alternative, offered ON this screen: most people
+			// who get this far want to stop being seen, not to lose everything.
+			'pause'  => class_exists( '\CAShaadi\Modules\Settings\Deactivate' ) ? Deactivate::url() : '',
 		) );
 
 		AppPage::open( __( 'Delete my account', 'cashaadi-ui' ), 'profile' );

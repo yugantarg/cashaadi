@@ -172,6 +172,28 @@ final class AppPage {
 
 		<main class="csm-app-main" id="csm-app-main">
 		<?php
+		self::paused_banner();
+	}
+
+	/**
+	 * "Your profile is paused", on every app screen.
+	 *
+	 * A paused member sees an empty Discover and an empty directory, which
+	 * without this is indistinguishable from a broken site. It carries its own
+	 * way out, because a setting a member cannot find is a setting they cannot
+	 * undo.
+	 */
+	private static function paused_banner() {
+		if ( ! is_user_logged_in() || ! class_exists( '\CAShaadi\Modules\Settings\Deactivate' ) ) {
+			return;
+		}
+		if ( ! \CAShaadi\Modules\Settings\Deactivate::is_paused( get_current_user_id() ) ) {
+			return;
+		}
+		echo '<div class="csm-app-paused">'
+			. '<span>' . esc_html__( 'Your profile is paused — nobody can see you.', 'cashaadi-ui' ) . '</span>'
+			. '<a href="' . esc_url( \CAShaadi\Modules\Settings\Deactivate::url() ) . '">' . esc_html__( 'Turn it back on', 'cashaadi-ui' ) . '</a>'
+			. '</div>';
 	}
 
 	/**

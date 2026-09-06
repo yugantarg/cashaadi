@@ -484,6 +484,13 @@ final class Queue {
 			 * would be the wrong trade.
 			 */
 			if ( '' !== (string) $r->body ) {
+				// Queued before they paused: the veto is asked again at send time,
+				// because a row can outlive the state it was written under.
+				if ( ! apply_filters( 'csm_remail_can_email', true, (int) $r->user_id, (string) $r->email_type ) ) {
+					$wpdb->update( $t, array( 'status' => 'cancelled', 'note' => 'recipient not emailable', 'processed_at' => $mysql ), array( 'id' => $r->id ) );
+					$out['cleared']++;
+					continue;
+				}
 				if ( ! $live ) {
 					$out['simulated']++;
 					continue;
@@ -642,6 +649,15 @@ final class Queue {
 		if ( get_user_meta( $user_id, 'csm_remail_optout', true ) ) {
 			return false;
 		}
+		/*
+		 * One veto every writer asks. Deactivate hooks it so a paused member is
+		 * not merely skipped at send time but never queued in the first place —
+		 * a held campaign row would otherwise sit waiting to reach them the
+		 * moment they came back, which is not what pausing promised.
+		 */
+		if ( ! apply_filters( 'csm_remail_can_email', true, $user_id, $type ) ) {
+			return false;
+		}
 
 		global $wpdb;
 		$t     = self::table();
@@ -733,6 +749,9 @@ final class Queue {
 		}
 		if ( get_user_meta( $user_id, 'csm_remail_optout', true ) ) {
 			return false;
+		}
+		if ( ! apply_filters( 'csm_remail_can_email', true, $user_id, $type ) ) {
+			return false;   // paused, or whatever else vetoes it
 		}
 
 		global $wpdb;

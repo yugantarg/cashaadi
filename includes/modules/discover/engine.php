@@ -146,6 +146,18 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			}
 		}
 
+		/*
+		 * Paused profiles are not offered to anybody. Pausing also clears the
+		 * pending rows they are already in (Deactivate::pause), so this stops
+		 * them coming back on the next refill rather than being the only guard.
+		 */
+		if ( class_exists( '\CAShaadi\Modules\Settings\Deactivate' ) ) {
+			$paused = \CAShaadi\Modules\Settings\Deactivate::paused_ids();
+			if ( $paused ) {
+				$exclude = array_merge( $exclude, array_map( 'intval', $paused ) );
+			}
+		}
+
 		$exclude     = array_unique( $exclude );
 		$exclude_csv = implode( ',', $exclude ); // safe — every value intval'd
 

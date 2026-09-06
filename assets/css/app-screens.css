@@ -229,3 +229,13 @@ img.avatar {
 }
 .csm-dob-age:empty { display: none; }
 .csm-dob-age.is-bad { color: var(--csm-danger, #b3261e); }
+
+/* ---- paused: shown on every app screen while a profile is switched off ---- */
+.csm-app-paused {
+	display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+	padding: 11px 16px;
+	background: var(--csm-gold-soft, #fbf3e2);
+	border-bottom: 1px solid var(--csm-gold, #a9822b);
+	color: #6b5316; font-size: 13.5px; font-weight: 600; text-align: center;
+}
+.csm-app-paused a { color: #6b5316; font-weight: 700; }

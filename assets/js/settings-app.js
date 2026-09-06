@@ -61,6 +61,14 @@
 		out.href = d.logout;
 		foot.appendChild( out );
 
+		/* Pause first, delete second: the reversible option should be the one a
+		   member finds when they are looking for a way out. */
+		if ( d.pauseUrl ) {
+			var pz = el( 'a', 'csm-st-pause', d.paused ? 'Turn my profile back on' : 'Pause my profile' );
+			pz.href = d.pauseUrl;
+			foot.appendChild( pz );
+		}
+
 		if ( d.deleteUrl ) {
 			var del = el( 'a', 'csm-st-danger', 'Delete my account' );
 			del.href = d.deleteUrl;
