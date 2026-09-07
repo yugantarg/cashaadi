@@ -46,6 +46,11 @@
 		( data.sections || [] ).forEach( function ( sec ) {
 			var s = el( 'section', 'csm-vis-sec' );
 			s.appendChild( el( 'h2', 'csm-vis-h', sec.name ) );
+			/* Rows live on their own white card, the same shape as the Settings
+			   hub's list. Without this wrapper the heading would sit inside the
+			   card with them, which is why the section headings and the rows had
+			   no way to be spaced differently. */
+			var list = el( 'div', 'csm-vis-list' );
 			sec.fields.forEach( function ( f ) {
 				var row = el( 'div', 'csm-vis-row' );
 				row.appendChild( el( 'span', 'csm-vis-label', f.label ) );
@@ -64,8 +69,9 @@
 					sel.addEventListener( 'change', function () { save( f.id, sel.value, sel, f ); } );
 					row.appendChild( sel );
 				}
-				s.appendChild( row );
+				list.appendChild( row );
 			} );
+			s.appendChild( list );
 			root.appendChild( s );
 		} );
 	}
