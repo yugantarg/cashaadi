@@ -260,6 +260,7 @@ final class Tracking {
 			        SUM(status = 'held') held,
 			        SUM(opened_at IS NOT NULL) opened,
 			        SUM(clicked_at IS NOT NULL) clicked,
+			        SUM(opened_at IS NOT NULL AND clicked_at IS NULL) opened_not_clicked,
 			        SUM(unsub_at IS NOT NULL) unsubscribed,
 			        SUM(login_used_at IS NOT NULL) signed_in
 			   FROM {$t} WHERE email_type = %s",
@@ -276,9 +277,16 @@ final class Tracking {
 			'held'         => (int) ( $r->held ?? 0 ),
 			'opened'       => (int) ( $r->opened ?? 0 ),
 			'clicked'      => (int) ( $r->clicked ?? 0 ),
+			/*
+			 * Read it and did nothing. The interesting failure: the subject line
+			 * worked and the message did not, which is a different problem from
+			 * one nobody opened at all.
+			 */
+			'opened_not_clicked' => (int) ( $r->opened_not_clicked ?? 0 ),
 			'unsubscribed' => (int) ( $r->unsubscribed ?? 0 ),
 			'signed_in'    => (int) ( $r->signed_in ?? 0 ),
 			'open_rate'    => $rate( $r->opened ?? 0 ),
+			'read_no_action_rate' => $rate( $r->opened_not_clicked ?? 0 ),
 			'click_rate'   => $rate( $r->clicked ?? 0 ),
 			/*
 			 * The one to watch. Mailbox providers start treating a sender as spam
