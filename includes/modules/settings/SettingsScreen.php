@@ -45,6 +45,57 @@ final class SettingsScreen {
 		 * existed are corrected without rewriting their stored settings.
 		 */
 		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'unhide_always_public' ), 10, 2 );
+		// Tighten the stored settings once; see enforce_private_defaults().
+		add_action( 'wp_loaded', array( __CLASS__, 'enforce_private_defaults' ) );
+	}
+
+	/**
+	 * Make the private-by-default fields actually private, once.
+	 *
+	 * THE READ-TIME DEFAULT WAS NOT ENOUGH, and the numbers are why. BuddyPress
+	 * writes an explicit visibility entry for EVERY field whenever a profile is
+	 * saved through its own form, so "has never chosen" is almost an empty set:
+	 * measured on staging2, 527 of 528 members had an explicit level for date of
+	 * birth and 524 of those said public. None of them chose that — BuddyPress
+	 * did, on their behalf, the first time they saved anything.
+	 *
+	 * So removing the unconditional hide without this would have PUBLISHED 524
+	 * dates of birth. The default has to be applied to the stored settings, not
+	 * only to the absence of them.
+	 *
+	 * Runs once, and only ever tightens: a member who has deliberately set Only
+	 * me keeps it, and anyone who wants their date of birth shown can turn it
+	 * back on — which they could not do at all before.
+	 */
+	public static function enforce_private_defaults() {
+		if ( get_option( 'csm_dob_private_migrated' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'xprofile_set_field_visibility_level' ) ) {
+			return;   // BuddyPress not ready; try again next request
+		}
+
+		global $wpdb;
+		$changed = 0;
+
+		foreach ( \CAShaadi\Core\Config::PRIVATE_BY_DEFAULT_FIELDS as $fid ) {
+			$fid = (int) $fid;
+			$ids = (array) $wpdb->get_col( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'bp_xprofile_visibility_levels'" );
+			foreach ( $ids as $uid ) {
+				$uid    = (int) $uid;
+				$levels = get_user_meta( $uid, 'bp_xprofile_visibility_levels', true );
+				if ( ! is_array( $levels ) || ! isset( $levels[ $fid ] ) ) {
+					continue;   // no stored level: the read-time default covers it
+				}
+				if ( 'adminsonly' === $levels[ $fid ] ) {
+					continue;   // already private
+				}
+				xprofile_set_field_visibility_level( $fid, $uid, 'adminsonly' );
+				$changed++;
+			}
+		}
+
+		update_option( 'csm_dob_private_migrated', array( 'at' => current_time( 'mysql' ), 'changed' => $changed ), false );
 	}
 
 	/**
