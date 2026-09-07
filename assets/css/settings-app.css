@@ -104,8 +104,8 @@
 .csm-nt-input:disabled { cursor: default; }
 
 /* ---- Who sees what (field visibility) --------------------------------
-   The screen had no container: only .csm-st-back centred itself, so the intro,
-   the headings and every row ran the full width of the phone with nothing
+   The screen had no container: only .csm-st-back centred itself, so the
+   headings and every row ran the full width of the phone with nothing
    between the text and the bezel — and the right-hand values were clipped off
    the edge. Rows also changed height depending on whether they held a <select>
    or a locked label, so the list had no rhythm at all.
@@ -115,13 +115,6 @@
 #csm-visibility-app { max-width: 560px; margin: 0 auto; padding: 0 0 40px; }
 #csm-visibility-app .csm-st-back { max-width: none; margin: 16px 0 0; }
 
-.csm-vis-intro {
-	margin: 6px 0 22px;
-	padding: 0 18px;
-	font-size: 13.5px;
-	line-height: 1.55;
-	color: var(--csm-muted, #5c6a76);
-}
 .csm-vis-sec { margin: 0 0 26px; }
 .csm-vis-h {
 	margin: 0 0 10px;
@@ -182,7 +175,7 @@
 @media (min-width: 600px) {
 	.csm-vis-list { border-radius: 14px; border: 1px solid var(--csm-hair, #e4eaf0); overflow: hidden; }
 	#csm-visibility-app { padding-left: 18px; padding-right: 18px; }
-	.csm-vis-intro, .csm-vis-h { padding-left: 0; padding-right: 0; }
+	.csm-vis-h { padding-left: 0; padding-right: 0; }
 }
 
 /* ---- delete my account ----
