@@ -253,6 +253,15 @@ final class Engagement {
 			return;
 		}
 
+		/*
+		 * The NAME is withheld from the email, not from the product. A received
+		 * request is not gated anywhere — RequestsScreen builds that list for
+		 * everyone, with names and photos — so the old "Upgrade to Premium to
+		 * see who it is" was selling something the member already had, and told
+		 * a paying member's peers to pay twice. Withholding it here only keeps
+		 * the identity out of an inbox, which is a privacy decision; the answer
+		 * is one tap away on the screen the button already opens.
+		 */
 		$premium = class_exists( '\CAShaadi\Core\Membership' )
 			&& \CAShaadi\Core\Membership::is_premium( $liked_id );
 
@@ -260,7 +269,7 @@ final class Engagement {
 		$body = self::wrap(
 			self::greeting( $liked_id ),
 			'<p><strong>' . esc_html( $who ) . '</strong> has sent you a match request on ' . esc_html( self::site() ) . '.</p>'
-			. ( $premium ? '' : '<p style="color:#7a6f68;font-size:13px">Upgrade to Premium to see who it is.</p>' )
+			. ( $premium ? '' : '<p style="color:#7a6f68;font-size:13px">Open your requests to see who it is.</p>' )
 			. '<p>Accept it and you can start a conversation.</p>',
 			home_url( '/requests/' ),
 			'View your requests'
