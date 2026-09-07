@@ -184,6 +184,18 @@ final class ProfileApp {
 				&& \CAShaadi\Modules\Photos\Photos::avatar_is_low_res( $uid ),
 			'blurred'     => '1' === (string) get_user_meta( $uid, 'csm_photo_private', true ),
 			'verified'    => method_exists( '\CAShaadi\Core\Verification', 'ca_verified' ) && Verification::ca_verified( $uid ),
+			/*
+			 * The verification OUTCOME, not just the badge. A rejected document
+			 * used to leave "Verify now" showing with nothing to say why, so a
+			 * member who uploaded the wrong file could repeat the mistake for
+			 * ever without learning anything.
+			 */
+			'caState'     => class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
+				? \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid )
+				: '',
+			'caNote'      => class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
+				? \CAShaadi\Modules\CaVerify\CaVerify::member_note( $uid )
+				: '',
 			'isPremium'   => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ),
 			'outstanding' => (int) $completion['outstanding'],
 			'firstGap'    => $completion['firstGap']
@@ -206,6 +218,9 @@ final class ProfileApp {
 				 * so burying it under Settings was the wrong shelf.
 				 */
 				'visibility' => home_url( '/settings/visibility/' ),
+				// Which emails they get is a profile-level preference too, and it
+				// was three taps away behind Settings.
+				'emails'     => home_url( '/settings/notifications/' ),
 				'settings' => class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
 					? \CAShaadi\Modules\Settings\SettingsScreen::url()
 					: $base . 'settings/',

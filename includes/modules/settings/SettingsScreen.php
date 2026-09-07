@@ -47,6 +47,7 @@ final class SettingsScreen {
 		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'unhide_always_public' ), 10, 2 );
 		// Tighten the stored settings once; see enforce_private_defaults().
 		add_action( 'wp_loaded', array( __CLASS__, 'enforce_private_defaults' ) );
+		add_action( 'wp_loaded', array( __CLASS__, 'retire_loggedin' ) );
 	}
 
 	/**
@@ -396,22 +397,67 @@ final class SettingsScreen {
 		) );
 	}
 
-	/** The visibility levels BuddyPress offers, id + label. */
+	/**
+	 * The three choices we actually offer.
+	 *
+	 * NOT bp_xprofile_get_visibility_levels(), which returns BuddyPress's four
+	 * and their generic labels. Two problems with those here:
+	 *
+	 *   "All members" (loggedin) is indistinguishable from "Everyone" on this
+	 *   site — a profile is only ever browsed by signed-in members — so offering
+	 *   both asked people to choose between two identical outcomes. Owner:
+	 *   "there is no distinction between Everyone vs all members. remove the
+	 *   'all members'."
+	 *
+	 *   "My friends" is BuddyPress's word. On a matrimonial site the relationship
+	 *   is a match, and the rest of this UI has said "match" throughout since the
+	 *   rebuild.
+	 *
+	 * loggedin is still ACCEPTED on write and still resolves correctly if some
+	 * member has it stored — it simply is not offered any more. See
+	 * retire_loggedin() for what happens to the ones that already exist.
+	 */
 	private static function visibility_levels() {
-		if ( function_exists( 'bp_xprofile_get_visibility_levels' ) ) {
-			$out = array();
-			foreach ( (array) bp_xprofile_get_visibility_levels() as $id => $lvl ) {
-				$out[] = array( 'id' => (string) $id, 'label' => isset( $lvl['label'] ) ? (string) $lvl['label'] : (string) $id );
-			}
-			if ( $out ) {
-				return $out;
-			}
-		}
 		return array(
 			array( 'id' => 'public', 'label' => __( 'Everyone', 'cashaadi-ui' ) ),
-			array( 'id' => 'loggedin', 'label' => __( 'All members', 'cashaadi-ui' ) ),
+			array( 'id' => 'friends', 'label' => __( 'My matches', 'cashaadi-ui' ) ),
 			array( 'id' => 'adminsonly', 'label' => __( 'Only me', 'cashaadi-ui' ) ),
 		);
+	}
+
+	/**
+	 * Fold the retired "All members" into "Everyone", once.
+	 *
+	 * A stored level with no matching option would render as whichever option
+	 * happened to be first — telling the member their field is set to something
+	 * they never chose. Since the two were indistinguishable in effect, public is
+	 * the honest destination: nothing about who can actually see the field
+	 * changes.
+	 */
+	public static function retire_loggedin() {
+		if ( get_option( 'csm_loggedin_retired' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'xprofile_set_field_visibility_level' ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$changed = 0;
+		$ids = (array) $wpdb->get_col( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'bp_xprofile_visibility_levels'" );
+		foreach ( $ids as $uid ) {
+			$levels = get_user_meta( (int) $uid, 'bp_xprofile_visibility_levels', true );
+			if ( ! is_array( $levels ) ) {
+				continue;
+			}
+			foreach ( $levels as $fid => $level ) {
+				if ( 'loggedin' === $level ) {
+					xprofile_set_field_visibility_level( (int) $fid, (int) $uid, 'public' );
+					$changed++;
+				}
+			}
+		}
+		update_option( 'csm_loggedin_retired', array( 'at' => current_time( 'mysql' ), 'changed' => $changed ), false );
 	}
 
 	/**
@@ -514,6 +560,9 @@ final class SettingsScreen {
 		$phone    = method_exists( '\CAShaadi\Core\Verification', 'user_phone' ) ? Verification::user_phone( $uid ) : '';
 		$phone_ok = method_exists( '\CAShaadi\Core\Verification', 'phone_verified' ) && Verification::phone_verified( $uid );
 		$ca_ok    = method_exists( '\CAShaadi\Core\Verification', 'ca_verified' ) && Verification::ca_verified( $uid );
+		$ca_state = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
+			? \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid )
+			: '';
 
 		// Is phone verification actually available? Requires the OTP module AND the
 		// MSG91 credentials it calls; without both, offering it is a dead end.
@@ -585,10 +634,14 @@ final class SettingsScreen {
 						 */
 						'value' => $ca_ok
 							? __( 'Verified', 'cashaadi-ui' )
-							: ( ( class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) && \CAShaadi\Modules\CaVerify\CaVerify::doc( $uid ) )
-								? __( 'In review', 'cashaadi-ui' )
-								: __( 'Not uploaded', 'cashaadi-ui' ) ),
-						'ok'    => $ca_ok,
+							: ( ( 'rejected' === $ca_state )
+								? __( 'Not accepted', 'cashaadi-ui' )
+								: ( ( 'pending' === $ca_state )
+									? __( 'In review', 'cashaadi-ui' )
+									: __( 'Not uploaded', 'cashaadi-ui' ) ) ),
+						// A rejection is a state the member has to act on, so it is
+						// flagged rather than shown as neutral grey text.
+						'ok'    => $ca_ok ? true : ( 'rejected' === $ca_state ? false : null ),
 						'url'   => home_url( '/profile/edit/?g=10' ),
 					),
 					array(

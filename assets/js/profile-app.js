@@ -47,6 +47,13 @@
 		var badges = el( 'div', 'csm-p-badges' );
 		if ( d.verified ) {
 			badges.appendChild( el( 'span', 'csm-p-badge is-verified', 'Verified CA' ) );
+		} else if ( 'rejected' === d.caState && d.links && d.links.verify ) {
+			// Say it was rejected. "Verify now" alone reads as "you have not
+			// tried yet", which is exactly what somebody who HAS tried must not
+			// be told — they will upload the same wrong document again.
+			badges.appendChild( link( 'csm-p-badge is-rejected', d.links.verify, 'Not verified — try again' ) );
+		} else if ( 'pending' === d.caState && d.links && d.links.verify ) {
+			badges.appendChild( link( 'csm-p-badge is-pending', d.links.verify, 'Verification in review' ) );
 		} else if ( d.links && d.links.verify ) {
 			// Same spot as the "Verified CA" badge, but a call to action: a member
 			// who is not yet verified taps this to upload their ICAI proof.
@@ -61,6 +68,19 @@
 		   profile" describes a page, not the question being asked. */
 		head.appendChild( link( 'csm-p-public', d.links.preview || d.links.public, 'See how my profile looks to others' ) );
 		root.appendChild( head );
+
+		/* ---- verification told plainly ----
+		   The badge alone cannot carry a reason, and a rejection without one
+		   leaves the member guessing at what was wrong with their document. */
+		if ( 'rejected' === d.caState && d.caNote ) {
+			var vwarn = link( 'csm-p-nudge is-warn', d.links.verify );
+			var vtxt = el( 'span', 'csm-p-nudge-text' );
+			vtxt.appendChild( el( 'strong', null, 'ICAI verification was not accepted' ) );
+			vtxt.appendChild( el( 'span', null, d.caNote ) );
+			vwarn.appendChild( vtxt );
+			vwarn.appendChild( el( 'span', 'csm-p-nudge-cta', 'Re-upload' ) );
+			root.appendChild( vwarn );
+		}
 
 		/* ---- a photo too small to look sharp ----
 		   Older uploads were cropped to 150px by BuddyPress, which is a 3x
@@ -117,6 +137,7 @@
 		// Who sees what is about the profile, not the account — it belongs here
 		// rather than two taps away under Settings.
 		if ( d.links.visibility ) { rows.push( [ 'Who sees what', d.links.visibility ] ); }
+		if ( d.links.emails ) { rows.push( [ 'Email preferences', d.links.emails ] ); }
 		rows.push( [ 'Settings', d.links.settings ] );
 		if ( ! d.isPremium ) { rows.push( [ 'Upgrade to Premium', d.links.upgrade ] ); }
 		if ( d.links.support ) { rows.push( [ 'Help and support', d.links.support ] ); }

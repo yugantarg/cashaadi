@@ -36,6 +36,10 @@
 }
 .csm-p-badge.is-verified { background: rgba(44,91,140,.1); color: var(--csm-blue, #2c5b8c); }
 .csm-p-badge.is-premium { background: rgba(169,130,43,.14); color: var(--csm-gold, #a9822b); }
+/* Verification has three outcomes, not two. "Verify now" on its own reads as
+   "not attempted", which is the one thing a rejected member must not be told. */
+.csm-p-badge.is-rejected { background: rgba(179,38,30,.10); color: var(--csm-danger, #b3261e); }
+.csm-p-badge.is-pending { background: rgba(169,130,43,.14); color: var(--csm-gold, #a9822b); }
 /* "Verify now" sits where the "Verified CA" badge would be, but reads as a
    tappable call to action rather than a status pill (owner request). */
 .csm-p-badge.is-verify {

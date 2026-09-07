@@ -47,8 +47,26 @@ final class Settings {
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
 	}
 
-	/** The member's OWN settings screen (never someone else's). */
+	/**
+	 * The member's OWN settings screen (never someone else's) — AND only when
+	 * the app does not already own settings.
+	 *
+	 * THERE WERE TWO SETTINGS HUBS. This one draws on BuddyPress's settings
+	 * pages; Modules\Settings\SettingsScreen is the app's own /settings/ screen.
+	 * Tapping "Email" in the app sent the member to BuddyPress's page for the
+	 * account form — and this rendered a SECOND hub above it, complete with its
+	 * own Field visibility and Blocked members rows, with the email field far
+	 * below the fold. Owner: "there seem to be two separate settings pages ...
+	 * changing email is there on scrolling."
+	 *
+	 * The app hub is the one members reach on purpose, so this one stands down
+	 * wherever it exists, leaving BuddyPress's page to do the single job the app
+	 * sends it there for.
+	 */
 	private static function is_here() {
+		if ( class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' ) ) {
+			return false;
+		}
 		return function_exists( 'bp_is_user_settings' )
 			&& bp_is_user_settings()
 			&& function_exists( 'bp_is_my_profile' )

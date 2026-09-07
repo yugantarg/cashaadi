@@ -288,6 +288,52 @@ final class CaVerify {
 		echo '</form></div>';
 	}
 
+	/**
+	 * What the MEMBER should be told, as a machine-readable state.
+	 *
+	 * status_label() below is the admin queue's HTML and is not reusable here.
+	 * More to the point, nothing told the member anything at all: a rejected
+	 * document left the profile showing "Verify now" with no explanation, so
+	 * somebody who uploaded the wrong file had no way to learn that — the owner
+	 * uploaded a random PDF and the screen still read "completed" under
+	 * Verification with a Verify now button beside it, which is two different
+	 * half-truths and no answer.
+	 *
+	 * @return string none | pending | approved | rejected
+	 */
+	public static function member_state( $uid ) {
+		$uid = (int) $uid;
+		$s   = (string) get_user_meta( $uid, 'csm_av_status', true );
+
+		if ( 'approved' === $s ) {
+			return 'approved';
+		}
+		if ( 'rejected' === $s ) {
+			return 'rejected';
+		}
+		// doc() already answers "has anything been uploaded"; a second copy of
+		// that question would be one more thing to keep in step.
+		return self::doc( $uid ) ? 'pending' : 'none';
+	}
+
+	/**
+	 * One sentence for the member. Never the AI's reasoning verbatim — that is
+	 * written for a reviewer, mentions confidence scores, and would be a poor
+	 * and occasionally alarming thing to show the person it judged.
+	 */
+	public static function member_note( $uid ) {
+		switch ( self::member_state( $uid ) ) {
+			case 'approved':
+				return __( 'Your ICAI document was accepted. Your profile shows the Verified CA badge.', 'cashaadi-ui' );
+			case 'rejected':
+				return __( 'We could not verify the document you uploaded. Please upload a clear ICAI certificate, marksheet or membership card showing your name.', 'cashaadi-ui' );
+			case 'pending':
+				return __( 'Your document is being checked. This usually takes a day.', 'cashaadi-ui' );
+			default:
+				return __( 'Upload your ICAI certificate to get the Verified CA badge.', 'cashaadi-ui' );
+		}
+	}
+
 	public static function status_label( $uid ) {
 		$s = get_user_meta( $uid, 'csm_av_status', true );
 		if ( 'approved' === $s ) {
