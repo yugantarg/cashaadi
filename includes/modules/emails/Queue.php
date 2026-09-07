@@ -297,9 +297,40 @@ final class Queue {
 			$family = self::family_for_label( $label );
 			$optout = get_user_meta( $uid, 'csm_remail_optout', true );
 
-			if ( '' === $family || '' === trim( (string) $u->user_email ) || $optout ) {
-				$reason = $optout ? 'member opted out' : 'nothing outstanding';
+			$no_address = ( '' === trim( (string) $u->user_email ) );
+
+			/*
+			 * An opt-out or a dead address kills EVERYTHING queued for them —
+			 * a member who asked not to be emailed means all of it, campaigns
+			 * included.
+			 */
+			if ( $optout || $no_address ) {
+				$reason = $optout ? 'member opted out' : 'no usable address';
 				$n      = $wpdb->query( $wpdb->prepare( "UPDATE {$t} SET status = 'cancelled', note = %s, processed_at = %s WHERE user_id = %d AND status IN ( 'pending', 'deferred', 'waiting' )", $reason, $mysql, $uid ) );
+				$res['cleared'] += intval( $n );
+				continue;
+			}
+
+			/*
+			 * "Nothing outstanding" is a statement about the REMINDER schedule
+			 * only — this member has no incomplete profile left to nag about.
+			 * It says nothing about a campaign somebody staged by hand, so the
+			 * cancellation is scoped to the four types this planner owns.
+			 *
+			 * It was not, and it silently cancelled 278 of 519 launch
+			 * announcements: every member whose profile was complete, which is
+			 * exactly the audience most worth reaching.
+			 */
+			if ( '' === $family ) {
+				$slugs = array_keys( self::types() );
+				$in    = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
+				$args  = array_merge( array( 'nothing outstanding', $mysql, $uid ), $slugs );
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$n = $wpdb->query( $wpdb->prepare(
+					"UPDATE {$t} SET status = 'cancelled', note = %s, processed_at = %s
+					  WHERE user_id = %d AND status IN ( 'pending', 'deferred', 'waiting' ) AND email_type IN ( {$in} )",
+					$args
+				) );
 				$res['cleared'] += intval( $n );
 				continue;
 			}
