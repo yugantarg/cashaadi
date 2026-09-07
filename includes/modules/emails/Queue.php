@@ -81,6 +81,7 @@ final class Queue {
  login_hash CHAR(64) NOT NULL DEFAULT '',
  login_expires DATETIME NULL DEFAULT NULL,
  login_used_at DATETIME NULL DEFAULT NULL,
+ unsub_at DATETIME NULL DEFAULT NULL,
  PRIMARY KEY  (id),
  UNIQUE KEY user_type (user_id,email_type),
  KEY status_sched (status,scheduled_for),
@@ -410,6 +411,32 @@ final class Queue {
 		return (int) apply_filters( 'csm_remail_daily_cap', (int) get_option( 'csm_remail_daily_cap', 300 ) );
 	}
 
+	/**
+	 * How many have gone out in the last seven days.
+	 *
+	 * A rolling window, not a calendar week: the point is the reputation a
+	 * provider is measuring, and that does not reset on Monday.
+	 */
+	public static function sent_this_week() {
+		global $wpdb;
+		$t     = self::table();
+		$since = get_date_from_gmt( gmdate( 'Y-m-d H:i:s', time() - ( 7 * DAY_IN_SECONDS ) ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE status = 'sent' AND processed_at >= %s", $since ) ) );
+	}
+
+	/**
+	 * Weekly ceiling.
+	 *
+	 * The daily cap does not bound a week: 300 a day is 2,100 a week, which on a
+	 * domain with no sending history is how a new provider account gets throttled
+	 * or suspended outright. This is the cap that keeps a warm-up a warm-up.
+	 * 0 disables it.
+	 */
+	public static function weekly_cap() {
+		return (int) apply_filters( 'csm_remail_weekly_cap', (int) get_option( 'csm_remail_weekly_cap', 600 ) );
+	}
+
 	public static function sent_last_hour() {
 		global $wpdb;
 		$t = self::table();
@@ -464,9 +491,22 @@ final class Queue {
 			return $out;
 		}
 
+		// Then the week, for the same reason one rung up.
+		$week_cap  = self::weekly_cap();
+		$week_left = $week_cap - self::sent_this_week();
+		if ( $live && $week_cap > 0 && $week_left < 1 ) {
+			$out['mode'] = 'weekly cap reached (' . $week_cap . ')';
+			$out['due']  = count( self::due_rows( 500 ) );
+			update_option( 'csm_remail_last_run', array_merge( array( 'at' => $mysql ), $out ) );
+			return $out;
+		}
+
 		$room = self::hourly_cap() - self::sent_last_hour();
 		if ( $day_cap > 0 && $day_left < $room ) {
 			$room = $day_left;   // never let the hourly allowance overrun the day
+		}
+		if ( $week_cap > 0 && $week_left < $room ) {
+			$room = $week_left;  // nor the week
 		}
 
 		if ( $live && $room < 1 ) {

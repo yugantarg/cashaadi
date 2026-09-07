@@ -256,19 +256,36 @@ final class Tracking {
 		$r = $wpdb->get_row( $wpdb->prepare(
 			"SELECT COUNT(*) total,
 			        SUM(status = 'sent') sent,
+			        SUM(status = 'failed') failed,
+			        SUM(status = 'held') held,
 			        SUM(opened_at IS NOT NULL) opened,
-			        SUM(clicked_at IS NOT NULL) clicked
+			        SUM(clicked_at IS NOT NULL) clicked,
+			        SUM(unsub_at IS NOT NULL) unsubscribed,
+			        SUM(login_used_at IS NOT NULL) signed_in
 			   FROM {$t} WHERE email_type = %s",
 			$email_type
 		) );
 		$sent = (int) ( $r->sent ?? 0 );
+		$rate = function ( $n ) use ( $sent ) {
+			return $sent ? round( 100 * (int) $n / $sent, 1 ) : 0.0;
+		};
 		return array(
-			'total'   => (int) ( $r->total ?? 0 ),
-			'sent'    => $sent,
-			'opened'  => (int) ( $r->opened ?? 0 ),
-			'clicked' => (int) ( $r->clicked ?? 0 ),
-			'open_rate'  => $sent ? round( 100 * (int) $r->opened / $sent, 1 ) : 0.0,
-			'click_rate' => $sent ? round( 100 * (int) $r->clicked / $sent, 1 ) : 0.0,
+			'total'        => (int) ( $r->total ?? 0 ),
+			'sent'         => $sent,
+			'failed'       => (int) ( $r->failed ?? 0 ),
+			'held'         => (int) ( $r->held ?? 0 ),
+			'opened'       => (int) ( $r->opened ?? 0 ),
+			'clicked'      => (int) ( $r->clicked ?? 0 ),
+			'unsubscribed' => (int) ( $r->unsubscribed ?? 0 ),
+			'signed_in'    => (int) ( $r->signed_in ?? 0 ),
+			'open_rate'    => $rate( $r->opened ?? 0 ),
+			'click_rate'   => $rate( $r->clicked ?? 0 ),
+			/*
+			 * The one to watch. Mailbox providers start treating a sender as spam
+			 * around 0.3%; past ~0.5% a warm-up is already going wrong and the
+			 * remaining batches should not go out.
+			 */
+			'unsub_rate'   => $rate( $r->unsubscribed ?? 0 ),
 		);
 	}
 
@@ -368,6 +385,15 @@ final class Tracking {
 
 		if ( $done ) {
 			update_user_meta( (int) $row->user_id, 'csm_remail_optout', 1 );
+
+			/*
+			 * Stamp the message they were reading when they left. The opt-out
+			 * itself is per member and kills all future mail, but which campaign
+			 * cost you the member is the only number that tells you whether a
+			 * send was worth making.
+			 */
+			global $wpdb;
+			$wpdb->update( Queue::table(), array( 'unsub_at' => current_time( 'mysql' ) ), array( 'id' => (int) $row->id ) );
 			if ( function_exists( 'cashaadi' ) && method_exists( cashaadi(), 'log_event' ) ) {
 				cashaadi()->log_event( 'email_unsubscribed', (int) $row->user_id, array( 'type' => (string) $row->email_type ) );
 			}
