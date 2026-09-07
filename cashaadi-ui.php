@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.14.1' );
+define( 'CASHAADI_UI_VER', '1.15.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -189,6 +189,13 @@ if ( class_exists( 'CAShaadi\\Modules\\Otp\\OtpSettings' ) ) {
 // the same emails flag as the queue it writes into.
 if ( class_exists( 'CAShaadi\\Modules\\Emails\\Engagement' ) ) {
 	Engagement::register();
+	/*
+	 * ZeptoMail. Registered beside the queue it serves; stands down unless
+	 * CASHAADI_ZEPTO_TOKEN is defined, which is what keeps staging on the sink.
+	 */
+	if ( class_exists( 'CAShaadi\\Modules\\Emails\\Zepto' ) ) {
+		\CAShaadi\Modules\Emails\Zepto::register();
+	}
 	/*
 	 * Campaigns: one-off mailings staged on hold and fired by hand. Registered
 	 * beside Engagement because it stages through the same queue and honours
