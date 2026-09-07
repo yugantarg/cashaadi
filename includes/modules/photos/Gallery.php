@@ -137,7 +137,43 @@ final class Gallery {
 		// A rectangle running off the edge would crop outside the file.
 		$clean['w'] = min( $clean['w'], 1.0 - $clean['x'] );
 		$clean['h'] = min( $clean['h'], 1.0 - $clean['y'] );
-		return (bool) update_post_meta( (int) $att_id, '_csm_crop', $clean );
+
+		/*
+		 * Round before storing. These arrive as full-precision floats from the
+		 * browser, so two visually identical crops differ in the fifteenth
+		 * decimal place — enough to defeat the comparison below and enough to
+		 * make the stored value churn for no reason. Five places is ~0.005% of
+		 * the image's width: far finer than anybody can drag.
+		 */
+		foreach ( $clean as $k => $v ) {
+			$clean[ $k ] = round( (float) $v, 5 );
+		}
+
+		/*
+		 * "Nothing changed" is SUCCESS, not failure.
+		 *
+		 * update_post_meta() returns false when the new value equals the stored
+		 * one. So a member who opened Adjust crop, moved nothing (or moved and
+		 * came back to the same place) and pressed Save was told "That crop
+		 * could not be saved" — for a save that had nothing to do and was in no
+		 * way wrong. That is the occasional error: not a fault, a
+		 * misinterpretation of a documented return value.
+		 */
+		$existing = get_post_meta( (int) $att_id, '_csm_crop', true );
+		if ( is_array( $existing ) ) {
+			$same = true;
+			foreach ( $clean as $k => $v ) {
+				if ( ! isset( $existing[ $k ] ) || abs( (float) $existing[ $k ] - $v ) > 0.000001 ) {
+					$same = false;
+					break;
+				}
+			}
+			if ( $same ) {
+				return true;
+			}
+		}
+
+		return false !== update_post_meta( (int) $att_id, '_csm_crop', $clean );
 	}
 
 	/**
