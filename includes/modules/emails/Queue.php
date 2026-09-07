@@ -73,9 +73,15 @@ final class Queue {
  body LONGTEXT NULL,
  created_at DATETIME NULL,
  processed_at DATETIME NULL,
+ track_token VARCHAR(32) NOT NULL DEFAULT '',
+ opened_at DATETIME NULL,
+ open_count INT UNSIGNED NOT NULL DEFAULT 0,
+ clicked_at DATETIME NULL,
+ click_count INT UNSIGNED NOT NULL DEFAULT 0,
  PRIMARY KEY  (id),
  UNIQUE KEY user_type (user_id,email_type),
- KEY status_sched (status,scheduled_for)
+ KEY status_sched (status,scheduled_for),
+ KEY track_token (track_token)
 ) " . $wpdb->get_charset_collate();
 	}
 
@@ -803,8 +809,19 @@ final class Queue {
 
 		delete_transient( 'csm_remail_mail_error' );
 
+		/*
+		 * Add the pixel and rewrite our own links, at SEND time rather than when
+		 * the row is written. A row can sit in the queue for days; instrumenting
+		 * it on the way out means the token exists exactly once, for the message
+		 * that actually goes.
+		 */
+		$body = (string) $row->body;
+		if ( class_exists( '\CAShaadi\Modules\Emails\Tracking' ) ) {
+			$body = Tracking::instrument( $body, (int) $row->id );
+		}
+
 		add_filter( 'wp_mail_content_type', array( __CLASS__, 'html_content_type' ) );
-		$sent = wp_mail( $row->user_email, (string) $row->subject, (string) $row->body );
+		$sent = wp_mail( $row->user_email, (string) $row->subject, $body );
 		remove_filter( 'wp_mail_content_type', array( __CLASS__, 'html_content_type' ) );
 
 		$transport = get_transient( 'csm_remail_mail_error' );

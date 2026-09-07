@@ -159,6 +159,22 @@ final class Campaigns {
 				self::button( $type, 'hold', 'Put released-but-unsent back on hold' );
 				self::button( $type, 'stage', 'Re-scan and stage any new matches' );
 
+				/*
+				 * Opens and clicks. The click rate is the one to read: opens are
+				 * suppressed by image blocking on Gmail and inflated by Apple
+				 * Mail's pre-fetching, so the number is a floor with noise on
+				 * top. A click is somebody actually arriving.
+				 */
+				if ( class_exists( '\CAShaadi\Modules\Emails\Tracking' ) && $counts['sent'] > 0 ) {
+					$st = \CAShaadi\Modules\Emails\Tracking::stats( $type );
+					printf(
+						'<p><strong>Opened:</strong> %d of %d (%s%%) &nbsp;|&nbsp; <strong>Clicked:</strong> %d (%s%%)'
+						. ' <span style="color:#666">— opens are approximate; clicks are not.</span></p>',
+						(int) $st['opened'], (int) $st['sent'], esc_html( (string) $st['open_rate'] ),
+						(int) $st['clicked'], esc_html( (string) $st['click_rate'] )
+					);
+				}
+
 				$sample = Queue::sample( $type );
 				if ( $sample ) {
 					echo '<h3>What they receive</h3>';
