@@ -444,10 +444,74 @@ final class Queue {
 		return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE status = 'sent' AND processed_at >= %s", $since ) ) );
 	}
 
+	/**
+	 * Email types that answer something a member just did.
+	 *
+	 * These are never held back by the quiet window. Somebody liked you at 2am
+	 * and the mail arrives at 7am is not a courtesy, it is a broken product —
+	 * and these go to one person who caused them, so they cannot be a bulk send
+	 * by definition.
+	 */
+	const TRANSACTIONAL_LIKE = array( 'csm-liked-%', 'csm-viewed-%', 'csm-match%', 'csm-ca-verified' );
+
+	public static function is_transactional( $type ) {
+		foreach ( self::TRANSACTIONAL_LIKE as $p ) {
+			$re = '/^' . str_replace( '%', '.*', preg_quote( $p, '/' ) ) . '$/i';
+			if ( preg_match( $re, (string) $type ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The hours when bulk mail must not go out, in SITE time.
+	 *
+	 * Stored as [start, end) on a 24-hour clock. A window that wraps midnight is
+	 * supported (start > end), because "overnight" is the obvious thing to want
+	 * and getting it wrong means mailing 500 people at 3am.
+	 */
+	public static function quiet_window() {
+		$from = (int) get_option( 'csm_remail_quiet_from', 0 );
+		$to   = (int) get_option( 'csm_remail_quiet_to', 19 );
+		return array( max( 0, min( 23, $from ) ), max( 0, min( 24, $to ) ) );
+	}
+
+	/** Are we inside the no-bulk window right now? */
+	public static function in_quiet_hours() {
+		list( $from, $to ) = self::quiet_window();
+		if ( $from === $to ) {
+			return false;   // disabled
+		}
+		$h = (int) current_time( 'G' );   // site timezone, 0-23
+		return ( $from < $to ) ? ( $h >= $from && $h < $to ) : ( $h >= $from || $h < $to );
+	}
+
 	public static function due_rows( $limit = 25 ) {
 		global $wpdb;
-		$t = self::table();
-		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE status = 'pending' AND scheduled_for <= %s ORDER BY scheduled_for ASC LIMIT %d", current_time( 'mysql' ), $limit ) );
+		$t     = self::table();
+		$where = '';
+
+		/*
+		 * During the quiet window the queue does not stop — it narrows to the
+		 * mail a member is waiting for. Bulk rows stay 'pending' and are picked
+		 * up by the first run after the window closes; nothing is cancelled or
+		 * rescheduled, so a held campaign resumes exactly where it stopped.
+		 */
+		if ( self::in_quiet_hours() ) {
+			$likes = array();
+			foreach ( self::TRANSACTIONAL_LIKE as $p ) {
+				$likes[] = $wpdb->prepare( 'email_type LIKE %s', $p );
+			}
+			$where = ' AND ( ' . implode( ' OR ', $likes ) . ' )';
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return $wpdb->get_results( $wpdb->prepare(
+			"SELECT * FROM {$t} WHERE status = 'pending' AND scheduled_for <= %s{$where} ORDER BY scheduled_for ASC LIMIT %d",
+			current_time( 'mysql' ),
+			$limit
+		) );
 	}
 
 	public static function counts() {
@@ -480,6 +544,11 @@ final class Queue {
 
 		$live        = ! self::dry_run();
 		$out['mode'] = $live ? 'live' : 'dry-run';
+
+		if ( self::in_quiet_hours() ) {
+			list( $qf, $qt ) = self::quiet_window();
+			$out['mode'] = sprintf( '%s — quiet hours %02d:00-%02d:00, transactional only', $out['mode'], $qf, $qt );
+		}
 
 		// Daily ceiling first: it is the one that maps to money and deliverability.
 		$day_cap  = self::daily_cap();
