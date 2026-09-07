@@ -199,6 +199,13 @@ final class ProfileApp {
 				'verify'   => class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
 					? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( 10 )
 					: home_url( '/profile/edit/?g=10' ),
+				/*
+				 * Owner: "visibility of fields should be directly an option in
+				 * profile - shouldn't have to go through settings." It is the
+				 * one setting that is about the PROFILE rather than the account,
+				 * so burying it under Settings was the wrong shelf.
+				 */
+				'visibility' => home_url( '/settings/visibility/' ),
 				'settings' => class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
 					? \CAShaadi\Modules\Settings\SettingsScreen::url()
 					: $base . 'settings/',

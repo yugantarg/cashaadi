@@ -112,9 +112,12 @@
 		manage.appendChild( el( 'h2', 'csm-p-h', 'Manage' ) );
 		var mlist = el( 'ul', 'csm-p-list' );
 		var rows = [
-			[ 'My photos', d.links.photos ],
-			[ 'Settings', d.links.settings ]
+			[ 'My photos', d.links.photos ]
 		];
+		// Who sees what is about the profile, not the account — it belongs here
+		// rather than two taps away under Settings.
+		if ( d.links.visibility ) { rows.push( [ 'Who sees what', d.links.visibility ] ); }
+		rows.push( [ 'Settings', d.links.settings ] );
 		if ( ! d.isPremium ) { rows.push( [ 'Upgrade to Premium', d.links.upgrade ] ); }
 		if ( d.links.support ) { rows.push( [ 'Help and support', d.links.support ] ); }
 		rows.forEach( function ( r ) {

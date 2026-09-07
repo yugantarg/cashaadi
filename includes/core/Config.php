@@ -67,6 +67,27 @@ final class Config {
 	 */
 	const VISIBILITY_EXCLUDED = array( 'Other relevant documents' );
 
+	/*
+	 * Private unless the member says otherwise.
+	 *
+	 * Date of birth used to be hidden unconditionally — Profile::hidden_for_member
+	 * added it to the hidden list every time, so no setting could ever reveal it.
+	 * Owner: "date of birth is me only by default. ... Date of birth can be
+	 * displayed if so desired by user." So it becomes an ordinary choosable field
+	 * whose DEFAULT is Only me.
+	 *
+	 * The default is applied at read time rather than by rewriting the xProfile
+	 * field's default_visibility, because that is a per-environment database
+	 * change that staging and production would drift on. A member who has never
+	 * touched the setting is treated as Only me; the moment they choose, their
+	 * choice governs.
+	 *
+	 * Age is the counterpart and is in ALWAYS_PUBLIC_FIELDS: everyone sees it,
+	 * nobody can change it. Between them a member can share their age without
+	 * publishing the exact date, which is the point.
+	 */
+	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB );
+
 	/* ---- xProfile group edit order (photo step handled separately) ----- */
 	const GROUP_ORDER = array( 1, 7, 6, 4, 9, 8, 10 );
 

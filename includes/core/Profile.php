@@ -104,8 +104,22 @@ final class Profile {
 			}
 		}
 		$hidden[] = (int) Config::FIELD_PHONE;
-		$hidden[] = (int) Config::FIELD_DOB;
 		$hidden[] = (int) Config::FIELD_CA_DOC;
+
+		/*
+		 * Date of birth is no longer hidden unconditionally. It is private by
+		 * DEFAULT and the member may choose to show it — the old line here made
+		 * that choice unreachable, because whatever they set, this put it back
+		 * in the hidden list on every read.
+		 */
+		foreach ( Config::PRIVATE_BY_DEFAULT_FIELDS as $fid ) {
+			$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+				? \CAShaadi\Modules\Settings\SettingsScreen::effective_level( $fid, $profile_id )
+				: 'adminsonly';
+			if ( 'public' !== $level ) {
+				$hidden[] = (int) $fid;
+			}
+		}
 		if ( function_exists( 'xprofile_get_field_id_from_name' ) ) {
 			$other = (int) xprofile_get_field_id_from_name( 'Other relevant documents' );
 			if ( $other ) {

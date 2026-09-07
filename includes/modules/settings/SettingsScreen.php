@@ -44,13 +44,60 @@ final class SettingsScreen {
 		 * and members who set City or Gender to "Only me" before this rule
 		 * existed are corrected without rewriting their stored settings.
 		 */
-		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'unhide_always_public' ) );
+		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'unhide_always_public' ), 10, 2 );
 	}
 
-	/** Strip the never-hideable ids from whatever BuddyPress worked out. */
-	public static function unhide_always_public( $hidden ) {
+	/**
+	 * Has this member ever chosen a visibility for this field?
+	 *
+	 * BuddyPress keeps per-user choices in one usermeta array. Asking
+	 * xprofile_get_field_visibility_level() cannot answer this: it silently
+	 * falls back to the field's default, so "never set" and "set to the default"
+	 * come back identical — and the whole point of a private-by-default field is
+	 * telling those two apart.
+	 */
+	public static function level_is_explicit( $fid, $uid ) {
+		$levels = get_user_meta( (int) $uid, 'bp_xprofile_visibility_levels', true );
+		return is_array( $levels ) && isset( $levels[ (int) $fid ] ) && '' !== $levels[ (int) $fid ];
+	}
+
+	/** The level that actually applies, with the private-by-default rule. */
+	public static function effective_level( $fid, $uid ) {
+		$fid = (int) $fid;
+		if ( in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true ) ) {
+			return 'public';
+		}
+		if ( in_array( $fid, \CAShaadi\Core\Config::PRIVATE_BY_DEFAULT_FIELDS, true )
+			&& ! self::level_is_explicit( $fid, $uid ) ) {
+			return 'adminsonly';
+		}
+		return function_exists( 'xprofile_get_field_visibility_level' )
+			? (string) xprofile_get_field_visibility_level( $fid, $uid )
+			: 'public';
+	}
+
+	/**
+	 * Correct BuddyPress's hidden-field list in both directions.
+	 *
+	 * Out: the four fields nobody may hide. In: the fields that are private
+	 * until their owner opts in — BuddyPress would show those, because the
+	 * xProfile field's stored default is public and we deliberately do not
+	 * rewrite it per environment.
+	 */
+	public static function unhide_always_public( $hidden, $user_id = 0 ) {
 		$hidden = array_map( 'intval', (array) $hidden );
-		return array_values( array_diff( $hidden, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS ) );
+		$hidden = array_diff( $hidden, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS );
+
+		$user_id = (int) $user_id;
+		if ( $user_id ) {
+			foreach ( \CAShaadi\Core\Config::PRIVATE_BY_DEFAULT_FIELDS as $fid ) {
+				if ( 'public' !== self::effective_level( $fid, $user_id ) ) {
+					$hidden[] = (int) $fid;
+				}
+			}
+		}
+
+		return array_values( array_unique( $hidden ) );
 	}
 
 	public static function url() {
@@ -368,9 +415,12 @@ final class SettingsScreen {
 				$rows = array();
 				foreach ( $by_id[ $gid ]->fields as $field ) {
 					$fid = (int) $field->id;
-					if ( $fid === \CAShaadi\Core\Config::FIELD_AGE ) {
-						continue; // auto-derived, not shown here
-					}
+					/*
+					 * Age IS listed now, locked. It used to be skipped as
+					 * "auto-derived", which left the member unable to see that
+					 * their age is public at all — a privacy screen that omits a
+					 * public field is worse than one that shows it greyed out.
+					 */
 					// A private upload has no visibility to choose. See Config.
 					if ( in_array( (string) $field->name, \CAShaadi\Core\Config::VISIBILITY_EXCLUDED, true ) ) {
 						continue;
@@ -385,13 +435,10 @@ final class SettingsScreen {
 					 */
 					$always = in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true );
 
-					$level = function_exists( 'xprofile_get_field_visibility_level' )
-						? xprofile_get_field_visibility_level( $fid, $uid )
-						: ( isset( $field->default_visibility ) ? $field->default_visibility : 'public' );
 					$rows[] = array(
 						'id'     => $fid,
 						'label'  => (string) $field->name,
-						'level'  => $always ? 'public' : (string) $level,
+						'level'  => self::effective_level( $fid, $uid ),
 						'locked' => $always || ( 'allowed' !== $field->allow_custom_visibility ),
 					);
 				}

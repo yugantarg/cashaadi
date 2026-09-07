@@ -36,6 +36,11 @@ final class Site {
 
 		// --- /pricing/ -> /membership-pricing/ (#11626) ---
 		add_action( 'template_redirect', array( __CLASS__, 'pricing_redirect' ), 1 );
+		/*
+		 * Members do not need the sales page. Priority 2 so it runs after the
+		 * pricing redirect and before AppPage claims anything.
+		 */
+		add_action( 'template_redirect', array( __CLASS__, 'members_skip_home' ), 2 );
 
 		// --- gendered rectangular placeholder when a member has no photo ---
 		// Priority 30: AFTER Privacy's blur (20) and NSFW's mask (21), so a member
@@ -95,6 +100,52 @@ final class Site {
 			wp_safe_redirect( home_url( '/membership-pricing/' ), 301 );
 			exit;
 		}
+	}
+
+	/* ---- signed-in members land on Discover, not the sales page --------- */
+
+	/**
+	 * Owner: "if a registered user goes to home page they should be redirected
+	 * to discover."
+	 *
+	 * Three guards, each for a case where sending them to Discover would be
+	 * wrong rather than helpful:
+	 *
+	 *   - ONBOARDING FIRST. A member who has not finished /welcome/ has no tray
+	 *     and no complete profile; Discover would show them an empty screen and
+	 *     no way to fix it. They go to /welcome/ instead.
+	 *   - ADMINISTRATORS ARE LEFT ALONE. The owner needs to be able to look at
+	 *     their own front page while signed in, which is exactly what this would
+	 *     otherwise make impossible.
+	 *   - ONLY THE FRONT PAGE, and only a plain GET. A query string means the
+	 *     visitor arrived deliberately — an ad campaign, a preview, a password
+	 *     reset link — and swallowing that would hide the thing they came for.
+	 */
+	public static function members_skip_home() {
+		if ( ! is_user_logged_in() || is_admin() || wp_doing_ajax() ) {
+			return;
+		}
+		if ( ! is_front_page() && ! is_home() ) {
+			return;
+		}
+		if ( ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+		if ( 'GET' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET' ) ) {
+			return;
+		}
+		if ( current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$uid = get_current_user_id();
+		if ( function_exists( 'csm_user_profile_is_complete' ) && ! csm_user_profile_is_complete( $uid ) ) {
+			wp_safe_redirect( home_url( '/welcome/' ) );
+			exit;
+		}
+
+		wp_safe_redirect( home_url( '/discover/' ) );
+		exit;
 	}
 
 	/* ---- support footer (#11691) --------------------------------------- */
