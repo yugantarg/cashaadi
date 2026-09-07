@@ -1,0 +1,33 @@
+/* Site header, on the theme's own pages (not the app screens).
+   ------------------------------------------------------------------------
+   On a 375px phone the header carried four things on one line: the logo, a
+   "Log in" text link, a "Register" text link and the hamburger. The two links
+   were ~11px, bunched together and pressed against the burger with almost no
+   gap — the "weird" look. They are also DUPLICATES: the drawer the hamburger
+   opens already contains Log in and Register.
+
+   So on small screens the duplicates go and the header becomes what a mobile
+   header should be: logo on the left, one control on the right. Desktop keeps
+   them, because there the space is real. */
+@media (max-width: 781px) {
+	.buddypress-icons-wrapper { display: none !important; }
+
+	/* With the crush gone the burger can have a proper target size — it was
+	   sharing its line with two links and had shrunk to fit. */
+	#menu-toggle {
+		min-width: 44px;
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+}
+
+/* The drawer's own list: BuddyX gives the items no vertical rhythm, so Home /
+   About Us / Pricing / Log in / Register ran together as one block of text. */
+.buddyx-mobile-menu .menu > li > a {
+	display: block;
+	padding: 13px 4px;
+	font-size: 16px;
+}
+.buddyx-mobile-menu .menu > li + li { border-top: 1px solid rgba(0, 0, 0, .07); }

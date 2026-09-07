@@ -103,14 +103,17 @@ final class Profile {
 				}
 			}
 		}
-		$hidden[] = (int) Config::FIELD_PHONE;
 		$hidden[] = (int) Config::FIELD_CA_DOC;
 
 		/*
-		 * Date of birth is no longer hidden unconditionally. It is private by
-		 * DEFAULT and the member may choose to show it — the old line here made
-		 * that choice unreachable, because whatever they set, this put it back
-		 * in the hidden list on every read.
+		 * Date of birth and phone number are no longer hidden unconditionally.
+		 * Each has a DEFAULT the member can change — Only me for the date of
+		 * birth, My matches for the phone — and the old unconditional lines made
+		 * those choices unreachable: whatever a member set, this put the field
+		 * straight back in the hidden list on every read.
+		 *
+		 * Hiding the phone from everybody also hid it from the people a member
+		 * had matched with, who are the ones supposed to be able to ring them.
 		 */
 		foreach ( Config::PRIVATE_BY_DEFAULT_FIELDS as $fid ) {
 			$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )

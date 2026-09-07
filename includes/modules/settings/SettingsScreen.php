@@ -69,7 +69,7 @@ final class SettingsScreen {
 	 * back on — which they could not do at all before.
 	 */
 	public static function enforce_private_defaults() {
-		if ( get_option( 'csm_dob_private_migrated' ) ) {
+		if ( get_option( 'csm_visibility_defaults_v2' ) ) {
 			return;
 		}
 		if ( ! function_exists( 'xprofile_set_field_visibility_level' ) ) {
@@ -79,24 +79,24 @@ final class SettingsScreen {
 		global $wpdb;
 		$changed = 0;
 
-		foreach ( \CAShaadi\Core\Config::PRIVATE_BY_DEFAULT_FIELDS as $fid ) {
+		$ids = (array) $wpdb->get_col( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'bp_xprofile_visibility_levels'" );
+		foreach ( \CAShaadi\Core\Config::DEFAULT_VISIBILITY as $fid => $want ) {
 			$fid = (int) $fid;
-			$ids = (array) $wpdb->get_col( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'bp_xprofile_visibility_levels'" );
 			foreach ( $ids as $uid ) {
 				$uid    = (int) $uid;
 				$levels = get_user_meta( $uid, 'bp_xprofile_visibility_levels', true );
 				if ( ! is_array( $levels ) || ! isset( $levels[ $fid ] ) ) {
 					continue;   // no stored level: the read-time default covers it
 				}
-				if ( 'adminsonly' === $levels[ $fid ] ) {
-					continue;   // already private
+				if ( $want === $levels[ $fid ] ) {
+					continue;
 				}
-				xprofile_set_field_visibility_level( $fid, $uid, 'adminsonly' );
+				xprofile_set_field_visibility_level( $fid, $uid, $want );
 				$changed++;
 			}
 		}
 
-		update_option( 'csm_dob_private_migrated', array( 'at' => current_time( 'mysql' ), 'changed' => $changed ), false );
+		update_option( 'csm_visibility_defaults_v2', array( 'at' => current_time( 'mysql' ), 'changed' => $changed ), false );
 	}
 
 	/**
@@ -119,9 +119,9 @@ final class SettingsScreen {
 		if ( in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true ) ) {
 			return 'public';
 		}
-		if ( in_array( $fid, \CAShaadi\Core\Config::PRIVATE_BY_DEFAULT_FIELDS, true )
-			&& ! self::level_is_explicit( $fid, $uid ) ) {
-			return 'adminsonly';
+		$defaults = \CAShaadi\Core\Config::DEFAULT_VISIBILITY;
+		if ( isset( $defaults[ $fid ] ) && ! self::level_is_explicit( $fid, $uid ) ) {
+			return (string) $defaults[ $fid ];
 		}
 		return function_exists( 'xprofile_get_field_visibility_level' )
 			? (string) xprofile_get_field_visibility_level( $fid, $uid )

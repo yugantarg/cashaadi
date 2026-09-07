@@ -358,6 +358,15 @@ final class ProfileEditScreen {
 				'currentUrl' => in_array( (string) $field->type, array( 'file', 'image' ), true )
 					? self::file_url( $field->id, $uid, $raw )
 					: '',
+				/*
+				 * The file's own name. Without it the screen could only say
+				 * "Uploaded", which tells a member nothing about WHICH file is
+				 * stored — the difference between their ICAI certificate and the
+				 * wrong PDF they picked by mistake.
+				 */
+				'currentName' => in_array( (string) $field->type, array( 'file', 'image' ), true )
+					? rawurldecode( basename( (string) wp_parse_url( (string) self::file_url( $field->id, $uid, $raw ), PHP_URL_PATH ) ) )
+					: '',
 				'accept' => self::accept_for( (string) $field->type ),
 				// Gender is fixed after sign-up: shown, never editable here.
 				'readonly' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_GENDER ),

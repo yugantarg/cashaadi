@@ -41,7 +41,7 @@
 		root.appendChild( back );
 
 		root.appendChild( el( 'p', 'csm-vis-intro',
-			'Choose who can see each detail. Your age is always shown and cannot be hidden. Your date of birth is private unless you choose to show it, and your phone number stays private until you match.' ) );
+			'Choose who can see each detail. Your age is always shown and cannot be hidden. By default your phone number is shared with your matches and your date of birth is private — change either whenever you like.' ) );
 
 		( data.sections || [] ).forEach( function ( sec ) {
 			var s = el( 'section', 'csm-vis-sec' );

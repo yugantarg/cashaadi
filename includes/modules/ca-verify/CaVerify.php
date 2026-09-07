@@ -289,6 +289,43 @@ final class CaVerify {
 	}
 
 	/**
+	 * Why a document was rejected, in the member's language.
+	 *
+	 * A fixed list rather than free text. Three reasons: a reviewer clicking
+	 * Reject at speed will not write a sentence, so free text would usually be
+	 * empty; the wording reaching a member should be considered once rather than
+	 * improvised per case; and a stored key can be re-worded later without
+	 * rewriting what past members were told.
+	 *
+	 * Owner: "i want a short reviewer reason e.g. photo not clear, name not
+	 * matched, this is employee ID not ICAI ID etc."
+	 */
+	public static function reasons() {
+		return array(
+			'unclear'     => __( 'The document was not clear enough to read. Please upload a sharper photo or the original PDF.', 'cashaadi-ui' ),
+			'name'        => __( 'The name on the document does not match your profile name.', 'cashaadi-ui' ),
+			'not_icai'    => __( 'That is not an ICAI document. Please upload your ICAI certificate, marksheet or membership card.', 'cashaadi-ui' ),
+			'incomplete'  => __( 'Part of the document was cut off. Please upload the full page.', 'cashaadi-ui' ),
+			'wrong_level' => __( 'The document does not support the qualification on your profile. Please upload proof of the level you have claimed.', 'cashaadi-ui' ),
+			'expired'     => __( 'The document could not be verified as current. Please upload a recent ICAI document.', 'cashaadi-ui' ),
+			'other'       => __( 'We could not verify the document you uploaded. Please upload a clear ICAI certificate, marksheet or membership card showing your name.', 'cashaadi-ui' ),
+		);
+	}
+
+	/** Short labels for the admin queue's dropdown. */
+	public static function reason_labels() {
+		return array(
+			'unclear'     => 'Not clear / unreadable',
+			'name'        => 'Name does not match',
+			'not_icai'    => 'Not an ICAI document',
+			'incomplete'  => 'Cut off / incomplete',
+			'wrong_level' => 'Wrong qualification level',
+			'expired'     => 'Not current',
+			'other'       => 'Other',
+		);
+	}
+
+	/**
 	 * What the MEMBER should be told, as a machine-readable state.
 	 *
 	 * status_label() below is the admin queue's HTML and is not reusable here.
@@ -326,7 +363,9 @@ final class CaVerify {
 			case 'approved':
 				return __( 'Your ICAI document was accepted. Your profile shows the Verified CA badge.', 'cashaadi-ui' );
 			case 'rejected':
-				return __( 'We could not verify the document you uploaded. Please upload a clear ICAI certificate, marksheet or membership card showing your name.', 'cashaadi-ui' );
+				$reasons = self::reasons();
+				$key     = (string) get_user_meta( (int) $uid, 'csm_av_reason', true );
+				return isset( $reasons[ $key ] ) ? $reasons[ $key ] : $reasons['other'];
 			case 'pending':
 				return __( 'Your document is being checked. This usually takes a day.', 'cashaadi-ui' );
 			default:
@@ -382,6 +421,13 @@ final class CaVerify {
 				echo '<em>Word file — review manually</em><br>';
 			}
 			echo '<button class="button csm-av-decide" data-uid="' . (int) $uid . '" data-decision="approved">Approve</button> ';
+			// The reason travels with the Reject click, so rejecting without
+			// choosing one is impossible rather than merely discouraged.
+			echo '<select class="csm-av-reason" data-uid="' . (int) $uid . '" style="max-width:190px;margin:4px 0">';
+			foreach ( self::reason_labels() as $key => $label ) {
+				echo '<option value="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</option>';
+			}
+			echo '</select> ';
 			echo '<button class="button csm-av-decide" data-uid="' . (int) $uid . '" data-decision="rejected">Reject</button>';
 			echo '</td></tr>';
 		}
@@ -421,6 +467,20 @@ final class CaVerify {
 		update_user_meta( $uid, 'csm_av_status', $dec );
 		update_user_meta( $uid, 'csm_av_decided_by', get_current_user_id() );
 		update_user_meta( $uid, 'csm_av_decided_at', time() );
+
+		/*
+		 * The reason is only meaningful on a rejection, and it is cleared on
+		 * approval so a member who is rejected, re-uploads and is then accepted
+		 * is not left carrying an explanation for a decision that was reversed.
+		 */
+		if ( 'rejected' === $dec ) {
+			$reason = isset( $_POST['reason'] ) ? sanitize_key( wp_unslash( $_POST['reason'] ) ) : '';
+			$reason = array_key_exists( $reason, self::reasons() ) ? $reason : 'other';
+			update_user_meta( $uid, 'csm_av_reason', $reason );
+		} else {
+			delete_user_meta( $uid, 'csm_av_reason' );
+		}
+
 		wp_send_json_success( array( 'status' => $dec ) );
 	}
 }

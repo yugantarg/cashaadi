@@ -80,19 +80,38 @@
 			var box = el( 'div', 'csm-pe-native' );
 
 			var status = el( 'p', 'csm-pe-file-status' );
-			function showCurrent( url ) {
+
+			/**
+			 * Show the file, its name, and that it is already saved.
+			 *
+			 * THE UPLOAD IS SAVED THE MOMENT IT FINISHES — ajax_file() writes it
+			 * with xprofile_set_field_data() and the form deliberately excludes
+			 * the field from Save. But the screen never said so: it built this
+			 * link and then, two lines later in the upload handler, replaced the
+			 * whole element with the bare word "Uploaded." So the member saw no
+			 * file name, no way to open what they had just sent, and no reason to
+			 * believe leaving without pressing Save was safe.
+			 */
+			function showCurrent( url, name, justNow ) {
+				status.className = 'csm-pe-file-status' + ( url ? ' is-ok' : '' );
 				status.textContent = '';
-				if ( url ) {
-					status.appendChild( document.createTextNode( 'Uploaded: ' ) );
-					var v = document.createElement( 'a' );
-					v.href = url; v.target = '_blank'; v.rel = 'noopener';
-					v.textContent = 'view file';
-					status.appendChild( v );
-				} else {
+				if ( ! url ) {
 					status.textContent = 'No file uploaded yet.';
+					return;
 				}
+				status.appendChild( document.createTextNode(
+					justNow ? 'Uploaded and saved: ' : 'Uploaded: '
+				) );
+				var strong = document.createElement( 'strong' );
+				strong.textContent = name || 'your file';
+				status.appendChild( strong );
+				status.appendChild( document.createTextNode( ' \u00b7 ' ) );
+				var v = document.createElement( 'a' );
+				v.href = url; v.target = '_blank'; v.rel = 'noopener';
+				v.textContent = 'See file';
+				status.appendChild( v );
 			}
-			showCurrent( f.currentUrl );
+			showCurrent( f.currentUrl, f.currentName );
 
 			var pick = el( 'label', 'csm-pe-file-btn' );
 			pick.appendChild( document.createTextNode( f.currentUrl ? 'Replace file' : ( 'Upload ' + f.label ) ) );
@@ -123,13 +142,12 @@
 				} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
 					pick.classList.remove( 'is-busy' );
 					if ( d && d.success && d.data ) {
-						showCurrent( d.data.url );
 						pick.textContent = 'Replace file';
 						pick.appendChild( input );
-						// Was never cleared, so it read "Uploading…" indefinitely
-						// after a file had in fact uploaded and saved.
-						status.textContent = 'Uploaded.';
-						status.className = 'csm-pe-file-status is-ok';
+						// showCurrent() says everything — including the file name
+						// and a working link. Overwriting it afterwards with the
+						// word "Uploaded." is what destroyed both.
+						showCurrent( d.data.url, d.data.name, true );
 					} else {
 						status.textContent = ( d && d.data && d.data.message ) || 'Upload failed. Try a PDF, JPG or PNG.';
 						status.className = 'csm-pe-file-status is-bad';

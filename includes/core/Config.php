@@ -85,8 +85,20 @@ final class Config {
 	 * Age is the counterpart and is in ALWAYS_PUBLIC_FIELDS: everyone sees it,
 	 * nobody can change it. Between them a member can share their age without
 	 * publishing the exact date, which is the point.
+	 *
+	 * PHONE NUMBER defaults to My matches, not Only me. The old behaviour hid it
+	 * from everybody for ever — including the people a member had actually
+	 * matched with, who are precisely the ones meant to be able to ring them.
+	 * Owner: "we need to show phone number to matches ... but users can change
+	 * settings." So it is a real default, not a lock.
 	 */
-	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB );
+	const DEFAULT_VISIBILITY = array(
+		self::FIELD_DOB   => 'adminsonly',
+		self::FIELD_PHONE => 'friends',
+	);
+
+	/** Fields whose default is anything other than public. */
+	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB, self::FIELD_PHONE );
 
 	/* ---- xProfile group edit order (photo step handled separately) ----- */
 	const GROUP_ORDER = array( 1, 7, 6, 4, 9, 8, 10 );

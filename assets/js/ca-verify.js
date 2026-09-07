@@ -50,7 +50,10 @@
 			e.preventDefault();
 			var uid2 = d.getAttribute( 'data-uid' );
 			var dec = d.getAttribute( 'data-decision' );
-			post( 'csm_av_decide', uid2, { decision: dec } ).then( function ( res ) {
+			// Send the reason chosen on this member's row. It only matters on a
+			// rejection, and the server falls back to 'other' if it is missing.
+			var sel = document.querySelector( '.csm-av-reason[data-uid="' + uid2 + '"]' );
+			post( 'csm_av_decide', uid2, { decision: dec, reason: sel ? sel.value : '' } ).then( function ( res ) {
 				if ( res && res.success ) {
 					var st = document.querySelector( '#csm-av-row-' + uid2 + ' .csm-av-status' );
 					st.innerHTML = dec === 'approved' ? '<span style="color:#137333;font-weight:600">Approved</span>' : '<span style="color:#b3261e;font-weight:600">Rejected</span>';

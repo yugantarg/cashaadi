@@ -41,6 +41,7 @@ final class Site {
 		 * pricing redirect and before AppPage claims anything.
 		 */
 		add_action( 'template_redirect', array( __CLASS__, 'members_skip_home' ), 2 );
+		add_action( 'template_redirect', array( __CLASS__, 'login_destination' ), 2 );
 
 		// --- gendered rectangular placeholder when a member has no photo ---
 		// Priority 30: AFTER Privacy's blur (20) and NSFW's mask (21), so a member
@@ -205,6 +206,36 @@ final class Site {
 		if ( wp_script_is( 'jquery', 'registered' ) || wp_script_is( 'jquery', 'enqueued' ) ) {
 			Assets::script( 'menu-toggle-fix', 'assets/js/menu-toggle-fix.js', array( 'jquery' ) );
 		}
+
+		// Header tidy-up for the theme's pages. The app screens render their own
+		// header and must not be touched by this.
+		Assets::style( 'site-header', 'assets/css/site-header.css' );
+	}
+
+	/**
+	 * Send logged-out visitors from WooCommerce's /my-account/ to our /login/.
+	 *
+	 * The theme's header "Log in" points at /my-account/. That page does show a
+	 * login form, so it works — but it is WooCommerce's, styled as a shop
+	 * account page, and it is not where every other login link on this site
+	 * goes. One destination for signing in is worth more than one redirect
+	 * costs.
+	 *
+	 * Only when logged OUT: a signed-in member going to /my-account/ wants their
+	 * orders, and sending them to a login page they do not need would be worse
+	 * than the inconsistency.
+	 */
+	public static function login_destination() {
+		if ( is_user_logged_in() ) {
+			return;
+		}
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path = trim( (string) wp_parse_url( (string) $uri, PHP_URL_PATH ), '/' );
+		if ( 'my-account' !== strtolower( $path ) ) {
+			return;
+		}
+		wp_safe_redirect( home_url( '/login/' ) );
+		exit;
 	}
 
 	/* ---- gendered no-photo placeholder ---------------------------------- */
