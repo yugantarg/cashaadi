@@ -130,10 +130,38 @@ final class RequestsScreen {
 		unset( $request );
 		$uid = get_current_user_id();
 
-		/* ---- received ---- */
+		/*
+		 * ---- received ----
+		 *
+		 * friends_get_friendship_request_user_ids(), NOT
+		 * friends_get_friendship_requests() — the latter does not exist in
+		 * BuddyPress. The function_exists() guard meant to make this degrade
+		 * gracefully instead hid the typo completely: the call was skipped, the
+		 * list came back empty, and the screen rendered "no requests" for
+		 * everybody from the day it shipped. Found when a member with eight
+		 * pending requests could not see one of them.
+		 *
+		 * The fallback below is the query BuddyPress itself runs, so a missing
+		 * or renamed helper degrades to the right answer rather than to silence.
+		 */
 		$received = array();
-		if ( function_exists( 'friends_get_friendship_requests' ) ) {
-			foreach ( (array) friends_get_friendship_requests( $uid ) as $rid ) {
+		$rids     = array();
+
+		if ( function_exists( 'friends_get_friendship_request_user_ids' ) ) {
+			$rids = (array) friends_get_friendship_request_user_ids( $uid );
+		} else {
+			global $wpdb;
+			$ft   = $wpdb->base_prefix . 'bp_friends';
+			$rids = (array) $wpdb->get_col( $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT initiator_user_id FROM {$ft} WHERE friend_user_id = %d AND is_confirmed = 0",
+				$uid
+			) );
+		}
+
+		foreach ( $rids as $rid ) {
+			$rid = (int) $rid;
+			if ( $rid && get_userdata( $rid ) ) {
 				$received[] = self::person( $rid );
 			}
 		}
