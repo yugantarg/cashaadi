@@ -35,6 +35,7 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'created_for_options' ), 11, 3 );
+		add_action( 'wp_loaded', array( __CLASS__, 'merge_relative_friend' ) );
 
 		// Belt and braces for the same problem: the filter above only hides the
 		// option, so a crafted POST could still store it.
@@ -210,16 +211,21 @@ final class FieldLogic {
 		}
 
 		/*
-		 * Four options, two of them gendered. The field holds seven — Self, Son,
+		 * Four options, two of them gendered. The field held seven — Self, Son,
 		 * Daughter, Brother, Sister, Relative, Friend — and showing a man the
 		 * choice between "Son" and "Daughter" for a profile he is making is
 		 * asking him to answer a question the site already knows.
+		 *
+		 * Relative and Friend are one option now (owner: "both relative and
+		 * friend go into relative/friend"): the distinction changed nothing about
+		 * how the profile is treated, and asking for it was a choice with no
+		 * consequence.
 		 */
 		$gender = strtolower( trim( (string) xprofile_get_field_data( 'Gender', $uid ) ) );
 		if ( 'male' === $gender ) {
-			$keep = array( 'self', 'son', 'brother', 'friend' );
+			$keep = array( 'self', 'son', 'brother', self::RELATIVE_FRIEND_LC );
 		} elseif ( 'female' === $gender ) {
-			$keep = array( 'self', 'daughter', 'sister', 'friend' );
+			$keep = array( 'self', 'daughter', 'sister', self::RELATIVE_FRIEND_LC );
 		} else {
 			return $children; // gender unknown — better all seven than the wrong four
 		}
@@ -244,6 +250,66 @@ final class FieldLogic {
 		}
 
 		return $out ? array_values( $out ) : $children;
+	}
+
+	/** The merged option's stored name, and its lower-cased form for matching. */
+	const RELATIVE_FRIEND    = 'Relative/Friend';
+	const RELATIVE_FRIEND_LC = 'relative/friend';
+
+	/**
+	 * Merge the Relative and Friend options into one, once.
+	 *
+	 * xProfile stores the option's NAME as the member's value, so this cannot be
+	 * a display-only rename: the option is renamed in the field AND every member
+	 * already holding "Relative" or "Friend" is moved onto the merged name in the
+	 * same pass. Renaming without migrating would leave those members with a
+	 * value that matches no option — which renders as an empty dropdown and
+	 * silently rewrites their answer the next time they save anything.
+	 *
+	 * The now-unused "Relative" child is left in place rather than deleted.
+	 * Deleting an option is irreversible and buys nothing: created_for_options()
+	 * already keeps it off every list.
+	 */
+	public static function merge_relative_friend() {
+		if ( get_option( 'csm_created_for_merged' ) ) {
+			return;
+		}
+		$fid = self::created_for_field_id();
+		if ( ! $fid ) {
+			return;   // field not found yet; try again next request
+		}
+
+		global $wpdb;
+		$fields = $wpdb->prefix . 'bp_xprofile_fields';
+		$data   = $wpdb->prefix . 'bp_xprofile_data';
+
+		// 1. Rename the Friend option to carry both meanings.
+		$wpdb->query( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"UPDATE {$fields} SET name = %s WHERE parent_id = %d AND name = %s",
+			self::RELATIVE_FRIEND,
+			$fid,
+			'Friend'
+		) );
+
+		// 2. Move everyone who holds either of the old values onto it.
+		$moved = (int) $wpdb->query( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"UPDATE {$data} SET value = %s WHERE field_id = %d AND value IN (%s, %s)",
+			self::RELATIVE_FRIEND,
+			$fid,
+			'Relative',
+			'Friend'
+		) );
+
+		// BuddyPress caches fields and their children; a rename it does not know
+		// about would keep serving the old option until something else evicted it.
+		if ( function_exists( 'bp_core_reset_incrementor' ) ) {
+			bp_core_reset_incrementor( 'bp_xprofile' );
+		}
+		wp_cache_delete( $fid, 'bp_xprofile_fields' );
+
+		update_option( 'csm_created_for_merged', array( 'at' => current_time( 'mysql' ), 'moved' => $moved ), false );
 	}
 
 	/** Field id for "Created for", looked up once. */
