@@ -372,6 +372,14 @@ final class ProfileEditScreen {
 				'readonly' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_GENDER ),
 				// Age lives under Date of birth as a read-only note, since it is
 				// derived from it and is not an editable field of its own.
+				/*
+				 * Height is stored and entered in centimetres, but every screen
+				 * that SHOWS it converts to feet and inches (Profile::height_label).
+				 * Without this the member types 170 and has no idea what anyone
+				 * else will read — the same gap the age note under Date of birth
+				 * was added to close.
+				 */
+				'heightNote' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_HEIGHT ),
 				'ageNote' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_DOB )
 					? self::age_note( $uid )
 					: '',

@@ -103,6 +103,10 @@
 					canvasImg.style.transform = 'translate(' + state.x + 'px,' + state.y + 'px)';
 				}
 
+				/**
+				 * Start again: centre the image at scale 1. Only ever called for
+				 * the FIRST layout — never in response to the window changing.
+				 */
 				function reset() {
 					measure();
 					state.scale = 1;
@@ -110,6 +114,41 @@
 					state.x = ( state.fw - iw * s ) / 2;
 					state.y = ( state.fh - ih * s ) / 2;
 					apply();
+				}
+
+				/**
+				 * The frame changed size — keep the crop where the member put it.
+				 *
+				 * THIS IS WHY THE CROP KEPT VANISHING. `reset` was bound to
+				 * window resize, and on a phone scrolling FIRES resize: the
+				 * browser's address bar collapses and the viewport height
+				 * changes. So a member would position their photo, scroll a few
+				 * pixels, and watch it snap back to centre — "when I crop or
+				 * adjust the photo and scroll even slightly the photo goes back
+				 * to the original crop".
+				 *
+				 * The fix is not to stop listening — the frame really can change
+				 * width, and the image must still cover it — but to re-measure
+				 * WITHOUT throwing the position away. The offsets are held as a
+				 * fraction of the old frame and restored against the new one, so
+				 * the same part of the picture stays in view.
+				 */
+				function remeasure() {
+					var oldW = state.fw, oldH = state.fh, oldBase = state.base;
+					if ( ! oldW || ! oldH || ! oldBase ) {
+						return reset();
+					}
+					var oldS = oldBase * state.scale;
+					// Where the frame's top-left sits on the source image, 0..1.
+					var fx = ( -state.x / oldS ) / iw;
+					var fy = ( -state.y / oldS ) / ih;
+
+					measure();
+
+					var newS = state.base * state.scale;
+					state.x = -fx * iw * newS;
+					state.y = -fy * ih * newS;
+					apply();   // apply() clamps, so it can never uncover the frame
 				}
 
 				// ---- pan (pointer) + pinch (two pointers) --------------------
@@ -169,9 +208,10 @@
 					apply();
 				} );
 
-				// Re-measure once attached/laid out.
+				// Reset once, when it is first laid out. After that the member
+				// owns the position and only remeasure() may touch it.
 				requestAnimationFrame( reset );
-				window.addEventListener( 'resize', reset );
+				window.addEventListener( 'resize', remeasure );
 
 				function exportBlob() {
 					return new Promise( function ( res ) {
@@ -239,11 +279,11 @@
 				}
 
 				function destroy() {
-					window.removeEventListener( 'resize', reset );
+					window.removeEventListener( 'resize', remeasure );
 					try { URL.revokeObjectURL( image.src ); } catch ( e ) {}
 				}
 
-				return { node: node, master: master, rect: rect, export: exportBlob, destroy: destroy, reset: reset };
+				return { node: node, master: master, rect: rect, export: exportBlob, destroy: destroy, reset: reset, remeasure: remeasure };
 			}
 		} );
 	};

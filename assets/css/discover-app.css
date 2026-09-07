@@ -75,7 +75,12 @@
 	   band between it and the nav (measured: 132px instead of 62px). Fixed puts
 	   it in the same place whatever the profile contains. The card reserves
 	   --csm-dact-h of clearance, so nothing hides behind it. */
-	position: fixed; bottom: 62px; z-index: 10;
+	/* Sits directly on top of the bottom nav. --csm-nav-h is measured from the
+	   nav itself in app-screens.js; the 62px fallback is only for the instant
+	   before that runs. A fixed guess left a visible strip of page between the
+	   two on most phones, because the nav's height depends on the device's
+	   safe-area inset. */
+	position: fixed; bottom: var(--csm-nav-h, 62px); z-index: 10;
 	left: 50%; transform: translateX(-50%);
 	width: 100%; max-width: 560px;
 	display: flex; gap: 14px; justify-content: center;
@@ -252,7 +257,7 @@ body.csm-member-view .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 1
    clearance INSIDE the white card (so the last field can rise clear of the bar
    with no grey band reappearing below it). --csm-dact-h is the bar's own height;
    the padding tracks it so the two can't drift. */
-:root { --csm-dact-h: 96px; }
+:root { --csm-dact-h: 96px; }   /* the action bar's own height */
 body.csm-app-discover .csm-d-card,
 body.csm-member-view .csm-d-card {
 	padding-bottom: calc( var(--csm-dact-h) + env(safe-area-inset-bottom, 0px) );

@@ -164,6 +164,42 @@ window.csmBusy = function ( btn ) {
  * @param {Object} p  A profile from Core\Profile::full().
  * @return {HTMLElement}
  */
+/**
+ * Publish the bottom nav's real height as --csm-nav-h.
+ *
+ * The Discover action bar is pinned above the nav, and its offset was the
+ * hardcoded 62px in discover-app.css. The nav is not 62px: its height comes
+ * from its own padding, a 22px icon, an 11px label and whatever
+ * env(safe-area-inset-bottom) is on the device — so on most phones the two
+ * did not meet and a strip of page showed between them. Owner: "there is a
+ * slight gap between the like/pass bar and the menu with discover, requests
+ * etc".
+ *
+ * Measuring beats guessing here because the correct number is different on
+ * every handset, and a notched iPhone is not the same as an Android.
+ */
+( function () {
+	function syncNavHeight() {
+		var nav = document.querySelector( '.csm-app-nav' );
+		if ( ! nav ) { return; }
+		var h = Math.round( nav.getBoundingClientRect().height );
+		if ( h > 0 ) {
+			document.documentElement.style.setProperty( '--csm-nav-h', h + 'px' );
+		}
+	}
+	if ( 'loading' === document.readyState ) {
+		document.addEventListener( 'DOMContentLoaded', syncNavHeight );
+	} else {
+		syncNavHeight();
+	}
+	window.addEventListener( 'resize', syncNavHeight );
+	window.addEventListener( 'orientationchange', syncNavHeight );
+	// Fonts land after first paint and change the label's line box.
+	if ( document.fonts && document.fonts.ready ) {
+		document.fonts.ready.then( syncNavHeight );
+	}
+}() );
+
 window.csmProfileCard = function ( p ) {
 	var mk = function ( tag, cls, text ) {
 		var n = document.createElement( tag );

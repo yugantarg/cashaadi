@@ -242,6 +242,26 @@
 		if ( f.ageNote ) {
 			wrap.appendChild( el( 'p', 'csm-pe-agenote', f.ageNote ) );
 		}
+
+		/* Height goes in as centimetres and comes out as feet and inches
+		   everywhere it is displayed, so say so while they type. Same arithmetic
+		   and the same 100–260 bounds as Profile::height_label(), so the note
+		   cannot promise something the profile then renders differently. */
+		if ( f.heightNote && node ) {
+			var hnote = el( 'p', 'csm-pe-agenote' );
+			var showHeight = function () {
+				var cm = parseInt( node.value, 10 );
+				if ( ! cm || cm < 100 || cm > 260 ) {
+					hnote.textContent = 'Enter your height in centimetres.';
+					return;
+				}
+				var inches = Math.round( cm / 2.54 );
+				hnote.textContent = 'Others see: ' + Math.floor( inches / 12 ) + '\u2032 ' + ( inches % 12 ) + '\u2033';
+			};
+			node.addEventListener( 'input', showHeight );
+			showHeight();
+			wrap.appendChild( hnote );
+		}
 		wrap.appendChild( el( 'p', 'csm-pe-err' ) );
 		return { node: wrap, key: 'field_' + f.id, read: read };
 	}

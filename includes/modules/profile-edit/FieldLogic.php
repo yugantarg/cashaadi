@@ -34,7 +34,7 @@ final class FieldLogic {
 		add_filter( 'bp_xprofile_set_field_data_pre_validate', array( __CLASS__, 'gender_lock' ), 5, 3 );
 		add_filter( 'bp_xprofile_is_richtext_enabled_for_field', array( __CLASS__, 'bio_plain' ), 99, 2 );
 		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'drop_select_option' ), 10, 1 );
-		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'created_for_options' ), 11, 2 );
+		add_filter( 'bp_xprofile_field_get_children', array( __CLASS__, 'created_for_options' ), 11, 3 );
 
 		// Belt and braces for the same problem: the filter above only hides the
 		// option, so a crafted POST could still store it.
@@ -169,12 +169,29 @@ final class FieldLogic {
 	 * Gender comes from the profile being edited, not the viewer — an admin
 	 * editing someone else's profile must see that member's options.
 	 */
-	public static function created_for_options( $children, $field_id = 0 ) {
+	/**
+	 * @param array  $children    The field's options.
+	 * @param bool   $for_editing BuddyPress's SECOND argument. Not a field id.
+	 * @param object $field       The field itself — BuddyPress's third argument.
+	 *
+	 * THIS FILTER NEVER RAN. It was registered for two arguments and treated the
+	 * second as a field id, but BuddyPress passes
+	 *
+	 *   apply_filters( 'bp_xprofile_field_get_children', $children, $for_editing, $this )
+	 *
+	 * so the "field id" was a boolean — 0 or 1, never 594 — and the fallback to
+	 * bp_get_the_profile_field_id() returns null outside a profile loop, which is
+	 * where the app's editor reads options from. The comparison never matched and
+	 * every member saw all seven options. Owner, twice: "the created for has
+	 * still not been fixed".
+	 */
+	public static function created_for_options( $children, $for_editing = false, $field = null ) {
+		unset( $for_editing );
 		if ( empty( $children ) || ! is_array( $children ) ) {
 			return $children;
 		}
 
-		$fid = (int) $field_id;
+		$fid = ( is_object( $field ) && isset( $field->id ) ) ? (int) $field->id : 0;
 		if ( ! $fid && function_exists( 'bp_get_the_profile_field_id' ) ) {
 			$fid = (int) bp_get_the_profile_field_id();
 		}
@@ -192,6 +209,12 @@ final class FieldLogic {
 			return $children;
 		}
 
+		/*
+		 * Four options, two of them gendered. The field holds seven — Self, Son,
+		 * Daughter, Brother, Sister, Relative, Friend — and showing a man the
+		 * choice between "Son" and "Daughter" for a profile he is making is
+		 * asking him to answer a question the site already knows.
+		 */
 		$gender = strtolower( trim( (string) xprofile_get_field_data( 'Gender', $uid ) ) );
 		if ( 'male' === $gender ) {
 			$keep = array( 'self', 'son', 'brother', 'friend' );
@@ -199,6 +222,18 @@ final class FieldLogic {
 			$keep = array( 'self', 'daughter', 'sister', 'friend' );
 		} else {
 			return $children; // gender unknown — better all seven than the wrong four
+		}
+
+		/*
+		 * Whatever they have already chosen stays on the list even if it is not
+		 * one of the four. Dropping a member's own stored answer out of its own
+		 * dropdown makes the field look empty and re-saves something they never
+		 * picked — which matters here because "Relative" is a real stored value
+		 * that the four do not include.
+		 */
+		$current = strtolower( trim( (string) xprofile_get_field_data( $fid, $uid ) ) );
+		if ( '' !== $current && ! in_array( $current, $keep, true ) ) {
+			$keep[] = $current;
 		}
 
 		$out = array();
