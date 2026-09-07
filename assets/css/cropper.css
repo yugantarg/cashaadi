@@ -1,0 +1,43 @@
+/* csmCropper — the pan/zoom photo cropper.
+   ------------------------------------------------------------------------
+   THIS USED TO LIVE IN welcome.css, which is only enqueued on /welcome/. When
+   "Adjust crop" was added to the photo gallery in v1.10.0 the script came with
+   it and the stylesheet did not, so on that screen .csm-crop-img had no
+   position:absolute, no transform-origin and no max-width:none — and the
+   theme's img{max-width:100%} then capped the width the script had set in
+   pixels while leaving the height alone. The photo stretched, and with no
+   absolute positioning the transform could not pan it either: "when I am using
+   the zoom it is elongating the photo there's no way to adjust what part".
+
+   It is its own file now, loaded wherever cropper.js is. A component whose
+   behaviour ships separately from its appearance will come apart again. */
+
+.csm-crop { width: 100%; }
+.csm-crop-frame {
+	position: relative;
+	width: 100%;
+	max-width: 320px;
+	margin: 0 auto;
+	overflow: hidden;
+	border-radius: 16px;
+	background: var(--csm-hair, #e4eaf0);
+	touch-action: none;            /* we handle pan/pinch ourselves */
+	cursor: grab;
+	user-select: none;
+}
+.csm-crop-frame:active { cursor: grabbing; }
+.csm-crop-img {
+	position: absolute;
+	top: 0; left: 0;
+	transform-origin: 0 0;
+	will-change: transform;
+	max-width: none;               /* we size it explicitly */
+	pointer-events: none;
+}
+.csm-crop-hint {
+	margin: 8px 0 0;
+	text-align: center;
+	font-size: 12.5px;
+	color: var(--csm-muted, #5c6a76);
+}
+.csm-crop-zoom { display: block; width: 100%; max-width: 320px; margin: 10px auto 0; }

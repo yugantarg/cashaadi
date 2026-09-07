@@ -642,6 +642,8 @@ final class Gallery {
 		Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
 		// "Adjust crop" re-frames an existing photo, so the cropper has to be
 		// here too — not only on the onboarding step that first uploads one.
+		// The cropper's stylesheet, not only its script — see cropper.css.
+		Assets::style( 'cropper', 'assets/css/cropper.css' );
 		Assets::script( 'cropper', 'assets/js/cropper.js' );
 		Assets::script( 'app-screens', 'assets/js/app-screens.js', array( 'cashaadi-ui-dialog' ) );
 		Assets::script( 'photos-gallery', 'assets/js/photos-gallery.js', array( 'cashaadi-ui-dialog', 'cashaadi-cropper', 'cashaadi-app-screens' ) );

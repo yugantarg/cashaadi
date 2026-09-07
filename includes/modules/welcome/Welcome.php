@@ -126,9 +126,11 @@ final class Welcome {
 					)
 				)
 			);
+			\CAShaadi\Core\Assets::style( 'cropper', 'assets/css/cropper.css' );
 			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
 			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking', 'cashaadi-cropper' ) );
 		} else {
+			\CAShaadi\Core\Assets::style( 'cropper', 'assets/css/cropper.css' );
 			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
 			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-cropper' ) );
 		}

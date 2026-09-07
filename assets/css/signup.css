@@ -27,6 +27,12 @@
 
 body.register #masthead,
 body.activate #masthead { display: none !important; }
+/* ...and the wrapper AROUND it, which otherwise keeps its 51px and its white
+   background: an empty bar across the top of the sign-up page with nothing in
+   it. Hiding a child does not collapse its parent, and #masthead is not the
+   outermost element the theme prints for the header. */
+body.register .site-header-wrapper,
+body.activate .site-header-wrapper { display: none !important; }
 
 body.register,
 body.activate {
