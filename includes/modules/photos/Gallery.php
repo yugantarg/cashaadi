@@ -204,7 +204,28 @@ final class Gallery {
 	}
 
 	public static function set_avatar( $uid, $att_id ) {
-		$file = get_attached_file( (int) $att_id );
+		/*
+		 * Render from the ORIGINAL, not the scaled working copy.
+		 *
+		 * get_attached_file() returns the 2560px copy WordPress serves. That was
+		 * sufficient for an 896px avatar — 2560 covers a crop down to 35% of the
+		 * frame — but not for 1400, which would need 4000px to survive the same
+		 * crop and would quietly upscale anything tighter than 55%.
+		 *
+		 * The original is kept on disk precisely so this does not have to be a
+		 * compromise. It costs one extra decode of a large file per upload or
+		 * re-crop — seconds, once, on an operation the member is already waiting
+		 * for — and in exchange the avatar is native however tightly they crop.
+		 *
+		 * Falls back to the served file for anything uploaded before WordPress
+		 * started keeping originals, which is most of the back catalogue.
+		 */
+		$file = function_exists( 'wp_get_original_image_path' )
+			? wp_get_original_image_path( (int) $att_id )
+			: '';
+		if ( ! $file || ! file_exists( $file ) ) {
+			$file = get_attached_file( (int) $att_id );
+		}
 		if ( ! $file || ! file_exists( $file ) || ! function_exists( 'bp_core_avatar_upload_path' ) ) {
 			return false;
 		}
@@ -418,6 +439,67 @@ final class Gallery {
 	}
 
 	/* -------------------------------------------------------------- renderers */
+
+	/**
+	 * Re-render existing avatars at the new size.
+	 *
+	 * Raising FULL_W only affects the NEXT upload — an avatar already on disk
+	 * stays whatever it was rendered at. So the back catalogue needs a pass, and
+	 * it can only be done now because WordPress keeps the originals: the member's
+	 * own crop is re-applied to the full-resolution file.
+	 *
+	 * Batched and resumable, and deliberately NOT hooked to anything. Re-rendering
+	 * hundreds of large images is exactly the kind of work that put this account
+	 * into its memory ceiling; it runs when somebody asks it to, a few at a time.
+	 *
+	 * Members with no gallery photo are skipped — their avatar came from
+	 * elsewhere and there is nothing to re-render it from. So are those whose
+	 * upload predates WordPress keeping originals: re-rendering a 1400px avatar
+	 * from a 150px file would replace something soft with something worse.
+	 *
+	 * @param int $limit How many members to process.
+	 * @return array{done:int,skipped:int,remaining:int}
+	 */
+	public static function regenerate_avatars( $limit = 10 ) {
+		global $wpdb;
+		$limit = max( 1, (int) $limit );
+		$seen  = (array) get_option( 'csm_avatar_regen_done', array() );
+
+		$ids = (array) $wpdb->get_col( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'csm_photos'" );
+		$ids = array_values( array_diff( array_map( 'intval', $ids ), array_map( 'intval', $seen ) ) );
+
+		$done = 0;
+		$skipped = 0;
+
+		foreach ( array_slice( $ids, 0, $limit ) as $uid ) {
+			$photos = get_user_meta( $uid, 'csm_photos', true );
+			$att    = ( is_array( $photos ) && $photos ) ? (int) $photos[0] : 0;
+
+			$original = ( $att && function_exists( 'wp_get_original_image_path' ) )
+				? wp_get_original_image_path( $att )
+				: '';
+			$size = ( $original && file_exists( $original ) ) ? @getimagesize( $original ) : false; // phpcs:ignore
+
+			// Only worth doing when the source can actually fill the new size.
+			if ( ! $att || ! $size || (int) $size[0] < \CAShaadi\Modules\Photos\Photos::FULL_W ) {
+				$skipped++;
+			} elseif ( self::set_avatar( $uid, $att ) ) {
+				$done++;
+			} else {
+				$skipped++;
+			}
+
+			$seen[] = $uid;
+		}
+
+		update_option( 'csm_avatar_regen_done', array_values( array_unique( array_map( 'intval', $seen ) ) ), false );
+
+		return array(
+			'done'      => $done,
+			'skipped'   => $skipped,
+			'remaining' => max( 0, count( $ids ) - $limit ),
+		);
+	}
 
 	/**
 	 * Inline style that shows only the cropped region of an image.

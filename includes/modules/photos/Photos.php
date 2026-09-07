@@ -26,10 +26,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Photos {
 
 	/* HD avatar sizes (#11813): portrait 7:8, long edge 1024/512. */
-	const FULL_W  = 896;
-	const FULL_H  = 1024;
-	const THUMB_W = 448;
-	const THUMB_H = 512;
+	/*
+	 * Avatar dimensions, 7:8 — the aspect the cropper frames at and every
+	 * surface displays at.
+	 *
+	 * 896 was below what a modern phone shows. The Discover card is full-bleed,
+	 * so at DPR 3 it needs ~1180-1290 device pixels and 896 was being stretched
+	 * about 40% for everyone on a recent handset. For comparison Instagram
+	 * serves feed photos at 1080 on the long edge, on a smaller, squarer tile.
+	 *
+	 * 1400x1600 covers DPR 3 with headroom. It roughly doubles each avatar file
+	 * (~160KB to ~390KB), which against 13GB used of 200GB is not a number worth
+	 * optimising, and it changes nothing about what is SERVED per page — the
+	 * same one image, at the size the screen actually wants.
+	 */
+	const FULL_W  = 1400;
+	const FULL_H  = 1600;
+	const THUMB_W = 700;
+	const THUMB_H = 800;
 
 	public static function register() {
 		// --- Local default avatar (#11617) — idempotent, always on ---
