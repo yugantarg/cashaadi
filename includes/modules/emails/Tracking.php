@@ -76,12 +76,22 @@ final class Tracking {
 		return home_url( '/' . self::PREFIX . '/o/' . rawurlencode( $token ) . '.gif' );
 	}
 
-	public static function click_url( $token, $target ) {
-		return add_query_arg(
+	public static function click_url( $token, $target, $login = '' ) {
+		$url = add_query_arg(
 			'u',
 			rawurlencode( $target ),
 			home_url( '/' . self::PREFIX . '/c/' . rawurlencode( $token ) )
 		);
+		/*
+		 * The sign-in token rides ONLY on real links inside the body. It is
+		 * deliberately absent from pixel_url(), because the pixel is fetched by
+		 * every mail scanner and image proxy that touches the message — a token
+		 * handed to those must never be able to open a session.
+		 */
+		if ( '' !== $login ) {
+			$url = add_query_arg( MagicLink::ARG, rawurlencode( $login ), $url );
+		}
+		return $url;
 	}
 
 	/**
@@ -112,9 +122,26 @@ final class Tracking {
 		// the unsubscribe URL passes through untouched once it is real.
 		$html = str_replace( self::UNSUB_MARKER, esc_url_raw( self::unsub_url( $token ) ), $html );
 
+		/*
+		 * One sign-in token per message, minted here rather than at stage time so
+		 * its fortnight starts when the message actually goes out. Empty for
+		 * administrators — MagicLink refuses them — and an empty token leaves the
+		 * links behaving exactly as they did before this existed.
+		 */
+		$login = '';
+		if ( class_exists( '\CAShaadi\Modules\Emails\MagicLink' ) ) {
+			global $wpdb;
+			$t   = Queue::table();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, user_id FROM {$t} WHERE id = %d", (int) $row_id ) );
+			if ( $row ) {
+				$login = MagicLink::mint( $row );
+			}
+		}
+
 		$html = preg_replace_callback(
 			'/href=(["\'])(https?:\/\/[^"\']+)\1/i',
-			function ( $m ) use ( $token, $home ) {
+			function ( $m ) use ( $token, $home, $login ) {
 				$host = wp_parse_url( $m[2], PHP_URL_HOST );
 				if ( ! $host || strtolower( $host ) !== strtolower( $home ) ) {
 					return $m[0];   // not ours: leave it alone
@@ -122,7 +149,7 @@ final class Tracking {
 				if ( false !== strpos( $m[2], '/' . self::PREFIX . '/' ) ) {
 					return $m[0];   // already instrumented
 				}
-				return 'href=' . $m[1] . esc_url_raw( self::click_url( $token, $m[2] ) ) . $m[1];
+				return 'href=' . $m[1] . esc_url_raw( self::click_url( $token, $m[2], $login ) ) . $m[1];
 			},
 			$html
 		);
@@ -150,7 +177,9 @@ final class Tracking {
 		}
 		if ( 'c' === $kind ) {
 			self::record_click( $token );
-			self::redirect( isset( $_GET['u'] ) ? rawurldecode( wp_unslash( $_GET['u'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$target = isset( $_GET['u'] ) ? rawurldecode( wp_unslash( $_GET['u'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			self::maybe_sign_in( $token, $target );
+			self::redirect( $target );
 		}
 		if ( 'u' === $kind ) {
 			self::unsubscribe( $token );
@@ -241,6 +270,80 @@ final class Tracking {
 			'open_rate'  => $sent ? round( 100 * (int) $r->opened / $sent, 1 ) : 0.0,
 			'click_rate' => $sent ? round( 100 * (int) $r->clicked / $sent, 1 ) : 0.0,
 		);
+	}
+
+	/* ------------------------------------------------------------ sign-in */
+
+	/**
+	 * Offer to sign the reader in before sending them on.
+	 *
+	 * Returns quietly — letting the plain redirect happen — whenever there is
+	 * nothing to offer: no token, an expired or already-used one, an admin, or
+	 * somebody who is signed in already.
+	 *
+	 * The GET only ASKS. Mail scanners fetch every link in a message before a
+	 * human sees it, so a GET that signed people in would be spent by the
+	 * scanner and the member would arrive at a dead link. The POST is the only
+	 * thing that opens a session.
+	 */
+	private static function maybe_sign_in( $token, $target ) {
+		if ( ! class_exists( '\CAShaadi\Modules\Emails\MagicLink' ) ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$key = isset( $_GET[ MagicLink::ARG ] ) ? rawurldecode( wp_unslash( $_GET[ MagicLink::ARG ] ) ) : '';
+		if ( '' === $key || is_user_logged_in() ) {
+			return;
+		}
+
+		$row = self::row_by_token( $token );
+		if ( ! $row ) {
+			return;
+		}
+		$claim = MagicLink::claim( (int) $row->id, $key );
+		if ( ! $claim ) {
+			return;   // expired, spent, or wrong — they can still sign in normally
+		}
+
+		$user = get_userdata( (int) $claim->user_id );
+		if ( ! $user ) {
+			return;
+		}
+
+		$post = 'POST' === ( isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( (string) $_SERVER['REQUEST_METHOD'] ) : 'GET' );
+		if ( $post ) {
+			if ( MagicLink::redeem( $claim ) ) {
+				self::redirect( $target );   // exits
+			}
+			return;
+		}
+
+		$name  = trim( (string) $user->display_name );
+		$first = $name ? preg_split( '/\s+/', $name )[0] : '';
+
+		self::page(
+			'Welcome back',
+			'<p>Continue as <strong>' . esc_html( $first ? $first : $user->user_email ) . '</strong>'
+			. ( $first ? ' <span style="color:#7a6f68">(' . esc_html( $user->user_email ) . ')</span>' : '' ) . '?</p>'
+			. '<form method="post" style="margin:22px 0">'
+			. '<button type="submit" style="background:#7a1220;color:#fff;border:0;font:inherit;font-weight:700;padding:13px 28px;border-radius:8px;cursor:pointer">Continue</button>'
+			. '</form>'
+			. '<p style="color:#7a6f68;font-size:13px">This link works once and expires ' . esc_html( self::when( $claim->login_expires ) ) . '. '
+			. 'Not you? <a href="' . esc_url( home_url( '/' ) ) . '" style="color:#7a6f68">Go to the site</a> instead.</p>'
+		);
+	}
+
+	/** "in 12 days" / "today", for the expiry line. */
+	private static function when( $expires ) {
+		$ts = strtotime( (string) $expires . ' UTC' );
+		if ( ! $ts ) {
+			return 'soon';
+		}
+		$days = (int) floor( ( $ts - time() ) / DAY_IN_SECONDS );
+		if ( $days < 1 ) {
+			return 'today';
+		}
+		return sprintf( _n( 'in %d day', 'in %d days', $days, 'cashaadi-ui' ), $days );
 	}
 
 	/* --------------------------------------------------------- unsubscribe */
