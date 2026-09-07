@@ -54,6 +54,8 @@ final class RequestsScreen {
 			'list'    => rest_url( 'csm/v1/requests/list' ),
 			'act'     => rest_url( 'csm/v1/requests/act' ),
 			'upgrade' => site_url( '/membership-pricing/' ),
+			// Matches offer "Message", which is navigation, not an action to POST.
+			'messages' => home_url( '/' . ( function_exists( 'bp_get_messages_slug' ) ? bp_get_messages_slug() : 'messages' ) . '/' ),
 		) );
 
 		AppPage::open( __( 'Requests', 'cashaadi-ui' ), 'requests' );
@@ -172,6 +174,48 @@ final class RequestsScreen {
 			$sent[] = self::person( $sid );
 		}
 
+		/*
+		 * ---- matches ----
+		 *
+		 * Accepted requests vanished. They left Received, they were never in
+		 * Sent, and the bottom nav has no Matches screen — so the only trace of
+		 * a person you matched with was a conversation thread, and there was no
+		 * route back to their profile from anywhere in the app.
+		 *
+		 * Same fallback shape as received: the helper is real, but a guard that
+		 * silently returns nothing is how the received list stayed empty for
+		 * everybody, and once is enough.
+		 */
+		$matches = array();
+		$mids    = array();
+
+		if ( function_exists( 'friends_get_friend_user_ids' ) ) {
+			$mids = (array) friends_get_friend_user_ids( $uid );
+		} else {
+			global $wpdb;
+			$ft   = $wpdb->base_prefix . 'bp_friends';
+			$mids = (array) $wpdb->get_col( $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT IF( initiator_user_id = %d, friend_user_id, initiator_user_id )
+				   FROM {$ft} WHERE ( initiator_user_id = %d OR friend_user_id = %d ) AND is_confirmed = 1",
+				$uid,
+				$uid,
+				$uid
+			) );
+		}
+
+		foreach ( $mids as $mid ) {
+			$mid = (int) $mid;
+			if ( ! $mid || ! get_userdata( $mid ) ) {
+				continue;
+			}
+			// A block after matching should hide them here too.
+			if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $uid, $mid ) ) {
+				continue;
+			}
+			$matches[] = self::person( $mid );
+		}
+
 		/* ---- viewers: gated ---- */
 		$premium = class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid );
 		$rows    = class_exists( '\CAShaadi\Modules\Premium\Premium' )
@@ -278,6 +322,7 @@ final class RequestsScreen {
 			} ) ),
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
+			'matches'      => $matches,
 			'sent'         => $sent,
 			'viewers'      => array_slice( $viewers, 0, $premium ? 200 : 6 ),
 			'viewersTotal' => count( $rows ),

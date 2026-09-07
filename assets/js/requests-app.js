@@ -34,6 +34,7 @@
 		var wrap = el( 'div', 'csm-r-tabs' );
 		[
 			[ 'received', 'Received', ( data.received || [] ).length ],
+			[ 'matches', 'Matches', ( data.matches || [] ).length ],
 			[ 'sent', 'Sent', ( data.sent || [] ).length ],
 			[ 'saved', 'Saved', ( data.saved || [] ).length ],
 			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ]
@@ -77,7 +78,33 @@
 		return row;
 	}
 
+	/** Drop a person from every list they could be in. */
+	function forget( id ) {
+		[ 'received', 'sent', 'saved' ].forEach( function ( key ) {
+			if ( ! data[ key ] ) { return; }
+			data[ key ] = data[ key ].filter( function ( x ) { return x.id !== id; } );
+		} );
+	}
+
+	/**
+	 * Redraw only the tab bar.
+	 *
+	 * Not draw(): a full redraw would rebuild the list and throw away the
+	 * reader's scroll position, which is the thing the local-removal above
+	 * exists to protect.
+	 */
+	function refreshTabs() {
+		var old = root.querySelector( '.csm-r-tabs' );
+		if ( old && old.parentNode ) { old.parentNode.replaceChild( tabs(), old ); }
+	}
+
 	function doAct( p, action, row, button ) {
+		/* "Message" is navigation, not a state change — there is nothing to POST. */
+		if ( 'message' === action ) {
+			window.location.href = CFG.messages || '/messages/';
+			return;
+		}
+
 		/* Was disabled-only: the button greyed out and then nothing visibly
 		   happened until the row vanished. A spinner says the tap registered. */
 		var release = window.csmBusy ? window.csmBusy( button ) : function () { button.disabled = false; };
@@ -92,6 +119,22 @@
 				// and a full reload would lose the reader's place in the list.
 				row.classList.add( 'is-gone' );
 				setTimeout( function () { if ( row.parentNode ) { row.parentNode.removeChild( row ); } }, 220 );
+
+				/*
+				 * The DATA has to lose them too, not just the DOM. The tab labels
+				 * count data.received.length, so removing only the row left
+				 * "Received (8)" above a list of seven — the count appeared to lag
+				 * until a reload, which is what it looked like from outside.
+				 *
+				 * Accepting also makes them a match, so they move rather than
+				 * disappear: dropping them from the source list and adding them to
+				 * matches keeps both counts honest without a refetch.
+				 */
+				forget( p.id );
+				if ( 'accept' === action ) {
+					( data.matches = data.matches || [] ).push( p );
+				}
+				refreshTabs();
 				return;
 			}
 			release();
@@ -130,6 +173,22 @@
 				list.appendChild( personRow( p, [
 					{ kind: 'accept', label: 'Accept', action: 'accept' },
 					{ kind: 'decline', label: 'Decline', action: 'reject' }
+				] ) );
+			} );
+		} else if ( 'matches' === tab ) {
+			if ( ! ( data.matches || [] ).length ) {
+				root.appendChild( emptyBox( 'No matches yet', 'When you accept a request, or someone accepts yours, they will appear here.' ) );
+				return;
+			}
+			/*
+			 * No Accept/Decline here — that is already settled. The row itself
+			 * opens their profile, which is the thing that had no route at all:
+			 * once a request was accepted the person left Received, was never in
+			 * Sent, and the only trace of them was a conversation thread.
+			 */
+			data.matches.forEach( function ( p ) {
+				list.appendChild( personRow( p, [
+					{ kind: 'accept', label: 'Message', action: 'message' }
 				] ) );
 			} );
 		} else if ( 'sent' === tab ) {
