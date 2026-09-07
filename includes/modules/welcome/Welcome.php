@@ -161,7 +161,15 @@ final class Welcome {
 				'photoMax'   => class_exists( '\CAShaadi\Modules\Photos\Gallery' )
 					? \CAShaadi\Modules\Photos\Gallery::max() : 6,
 				// Portrait crop that clears the avatar floor (1080x1350 = 4:5).
-				'cropAspect' => 0.8,
+				/*
+				 * 7/8 — the aspect every surface actually displays at
+				 * (.csm-d-photo, .csm-ph-item, and the 896x1024 avatar
+				 * set_avatar renders). It used to be 0.8, so a member framed a
+				 * 4:5 region and set_avatar then centre-cropped THAT to 7:8 —
+				 * a second, invisible crop nobody chose. Framing and display
+				 * are the same shape now.
+				 */
+				'cropAspect' => 0.875,
 				'cropOutW'   => 1080,
 				/*
 				 * Longest edge of the MASTER — the whole photo, which is what

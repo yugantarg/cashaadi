@@ -70,7 +70,8 @@
 			fetch( btn.getAttribute( 'data-src' ), { credentials: 'same-origin' } )
 				.then( function ( r ) { return r.blob(); } )
 				.then( function ( blob ) {
-					return window.csmCropper( blob, { aspect: 0.8 } );
+					// 7/8: the aspect the grid, Discover and the avatar all use.
+					return window.csmCropper( blob, { aspect: 0.875 } );
 				} )
 				.then( function ( cr ) {
 					say( '' );

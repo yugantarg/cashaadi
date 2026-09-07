@@ -419,6 +419,30 @@ final class Gallery {
 
 	/* -------------------------------------------------------------- renderers */
 
+	/**
+	 * Inline style that shows only the cropped region of an image.
+	 *
+	 * The rectangle is fractions of the source, so the maths is the same one the
+	 * cropper uses in reverse: blow the image up by 1/w and 1/h of the box, then
+	 * shift it left and up by the region's offset. Because the cropper now frames
+	 * at 7/8 and every box that displays a photo is 7/8, this cannot distort.
+	 *
+	 * Returns '' when there is no rectangle, so those photos keep the plain
+	 * object-fit: cover they have always had.
+	 */
+	private static function crop_style( $rect ) {
+		if ( ! is_array( $rect ) || empty( $rect['w'] ) || empty( $rect['h'] ) ) {
+			return '';
+		}
+		return sprintf(
+			' class="is-cropped" style="width:%.4f%%;height:%.4f%%;left:%.4f%%;top:%.4f%%"',
+			100 / $rect['w'],
+			100 / $rect['h'],
+			- ( $rect['x'] / $rect['w'] ) * 100,
+			- ( $rect['y'] / $rect['h'] ) * 100
+		);
+	}
+
 	public static function grid_html( $uid ) {
 		$ids  = self::get( $uid );
 		$max  = self::max();
@@ -428,42 +452,34 @@ final class Gallery {
 			$main = ( 0 === $idx );
 
 			/*
-			 * The MAIN photo is shown as the avatar, not as the attachment.
+			 * EVERY photo is shown through its own crop, not just the main one.
 			 *
-			 * The attachment is the master — the whole picture, uncropped. The
-			 * avatar is the derivative set_avatar() renders THROUGH the stored
-			 * crop, and it is what every other member actually sees. Showing the
-			 * master here made "Adjust crop" look like it had done nothing: the
-			 * owner cropped their face out, the profile obeyed, and this grid
-			 * went on displaying the original.
+			 * Owner: "the other photos are also shown cropped with the same
+			 * dimensions in discover. so we need exactly the same functionality."
+			 * Discover pages through the whole set in one 7/8 box, so a member
+			 * framing their second photo has exactly as much at stake as the
+			 * first — and a grid that showed those uncropped was answering a
+			 * different question from the one the screen exists to answer.
 			 *
-			 * set_avatar() names the file with time(), so a re-crop changes the
-			 * URL and no cache-busting is needed.
+			 * The crop is applied in CSS from the stored rectangle rather than by
+			 * rendering a derivative per photo. Derivatives would mean five more
+			 * files per member on an account that has already run short of
+			 * inodes once, and they would need regenerating on every adjustment.
 			 */
-			if ( $main && function_exists( 'bp_core_fetch_avatar' ) ) {
-				$avatar = (string) bp_core_fetch_avatar( array(
-					'item_id' => $uid,
-					'object'  => 'user',
-					'type'    => 'full',
-					'html'    => false,
-				) );
-				if ( '' !== $avatar ) {
-					$src = $avatar;
-				}
-			}
+			$rect = self::crop_rect( $id );
 			$html .= '<div class="csm-ph-item' . ( $main ? ' is-main' : '' ) . '" data-id="' . (int) $id . '">';
 			// The lightbox still opens the MASTER: the thumbnail answers "what do
 			// others see", the lightbox answers "what did I upload", and both are
 			// worth being able to check.
-			$html .= '<a class="csm-ph-lb" href="' . esc_url( wp_get_attachment_url( $id ) ) . '"><img src="' . esc_url( $src ) . '" alt=""></a>';
+			$html .= '<a class="csm-ph-lb" href="' . esc_url( wp_get_attachment_url( $id ) ) . '">'
+				. '<img src="' . esc_url( $src ) . '" alt=""' . self::crop_style( $rect ) . '></a>';
+			// Every photo can be re-framed: Discover shows them all in the same
+			// 7/8 box, so every one of them has a crop that matters.
+			$html .= '<button type="button" class="csm-ph-crop" data-id="' . (int) $id . '"'
+				. ' data-src="' . esc_url( wp_get_attachment_url( $id ) ) . '">Adjust crop</button>';
+
 			if ( $main ) {
 				$html .= '<span class="csm-ph-badge">Main</span>';
-				/*
-				 * Only on the main photo: it is the one that becomes the avatar,
-				 * so it is the only one whose crop is visible to anybody.
-				 */
-				$html .= '<button type="button" class="csm-ph-crop" data-id="' . (int) $id . '"'
-					. ' data-src="' . esc_url( wp_get_attachment_url( $id ) ) . '">Adjust crop</button>';
 			} else {
 				$html .= '<button type="button" class="csm-ph-setmain" data-id="' . (int) $id . '">Make main</button>';
 			}
