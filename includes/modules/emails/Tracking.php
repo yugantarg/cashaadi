@@ -85,6 +85,19 @@ final class Tracking {
 	}
 
 	/**
+	 * The unsubscribe link for one queued row.
+	 *
+	 * Bodies are written at STAGE time, before a token exists, so a campaign
+	 * writes the marker below and this substitutes the real URL at deliver
+	 * time — the same moment the click links are rewritten.
+	 */
+	const UNSUB_MARKER = '{{csm_unsub}}';
+
+	public static function unsub_url( $token ) {
+		return home_url( '/' . self::PREFIX . '/u/' . rawurlencode( $token ) );
+	}
+
+	/**
 	 * Rewrite an email's links through the click endpoint and append the pixel.
 	 *
 	 * Only OUR OWN links are rewritten. An unsubscribe link, a mailto:, or
@@ -94,6 +107,10 @@ final class Tracking {
 	public static function instrument( $html, $row_id ) {
 		$token = self::token_for( $row_id );
 		$home  = wp_parse_url( home_url(), PHP_URL_HOST );
+
+		// Marker first: the rewriter below deliberately skips /csm-e/ links, so
+		// the unsubscribe URL passes through untouched once it is real.
+		$html = str_replace( self::UNSUB_MARKER, esc_url_raw( self::unsub_url( $token ) ), $html );
 
 		$html = preg_replace_callback(
 			'/href=(["\'])(https?:\/\/[^"\']+)\1/i',
@@ -134,6 +151,9 @@ final class Tracking {
 		if ( 'c' === $kind ) {
 			self::record_click( $token );
 			self::redirect( isset( $_GET['u'] ) ? rawurldecode( wp_unslash( $_GET['u'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		}
+		if ( 'u' === $kind ) {
+			self::unsubscribe( $token );
 		}
 	}
 
@@ -221,5 +241,62 @@ final class Tracking {
 			'open_rate'  => $sent ? round( 100 * (int) $r->opened / $sent, 1 ) : 0.0,
 			'click_rate' => $sent ? round( 100 * (int) $r->clicked / $sent, 1 ) : 0.0,
 		);
+	}
+
+	/* --------------------------------------------------------- unsubscribe */
+
+	/**
+	 * Stop all mail for the member behind this token.
+	 *
+	 * NOT one-click. Gmail, Outlook and every security scanner fetch the links
+	 * in a message before a human sees it, so a GET that opts somebody out
+	 * would unsubscribe people who never touched it. The GET therefore only
+	 * ASKS; the POST is what writes. That is also why there is no nonce — the
+	 * reader is logged out and the token in the URL is the whole authority.
+	 */
+	private static function unsubscribe( $token ) {
+		$row = self::row_by_token( $token );
+
+		if ( ! $row ) {
+			self::page( 'That link has expired', '<p>We could not match this link to an email we sent. If you want to stop receiving mail, write to <a href="mailto:support@cashaadi.in">support@cashaadi.in</a> and we will take care of it.</p>' );
+		}
+
+		$done = ( 'POST' === ( isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( (string) $_SERVER['REQUEST_METHOD'] ) : 'GET' ) );
+
+		if ( $done ) {
+			update_user_meta( (int) $row->user_id, 'csm_remail_optout', 1 );
+			if ( function_exists( 'cashaadi' ) && method_exists( cashaadi(), 'log_event' ) ) {
+				cashaadi()->log_event( 'email_unsubscribed', (int) $row->user_id, array( 'type' => (string) $row->email_type ) );
+			}
+			self::page(
+				'You are unsubscribed',
+				'<p>We will not email you again. Your profile and your messages are untouched — this only stops the email.</p>'
+				. '<p>Changed your mind? Turn them back on under Settings → Email notifications, or write to <a href="mailto:support@cashaadi.in">support@cashaadi.in</a>.</p>'
+			);
+		}
+
+		self::page(
+			'Stop these emails?',
+			'<p>Confirm and we will stop sending email to <strong>' . esc_html( (string) $row->user_email ) . '</strong>.</p>'
+			. '<form method="post" style="margin:22px 0">'
+			. '<button type="submit" style="background:#7a1220;color:#fff;border:0;font:inherit;font-weight:700;padding:13px 28px;border-radius:8px;cursor:pointer">Yes, unsubscribe me</button>'
+			. '</form>'
+			. '<p style="color:#7a6f68;font-size:13px">To keep some emails and drop others, use Settings → Email notifications instead.</p>'
+		);
+	}
+
+	/** A tiny standalone page. These are read by logged-out people, in a browser. */
+	private static function page( $title, $html ) {
+		nocache_headers();
+		status_header( 200 );
+		header( 'Content-Type: text/html; charset=utf-8' );
+		echo '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+			. '<title>' . esc_html( $title ) . '</title></head>'
+			. '<body style="font:16px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;background:#faf7f5;margin:0;padding:40px 20px">'
+			. '<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:28px">'
+			. '<h1 style="font-size:20px;margin:0 0 14px">' . esc_html( $title ) . '</h1>'
+			. $html
+			. '</div></body></html>';
+		exit;
 	}
 }

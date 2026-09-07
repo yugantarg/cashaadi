@@ -34,6 +34,13 @@ final class Campaigns {
 	/** The campaigns this screen knows how to stage. */
 	private static function all() {
 		return array(
+			Announcement::TYPE => array(
+				'title' => 'CAShaadi v2 is now live — the launch announcement',
+				'why'   => 'Every activated member. Accounts that never completed activation are excluded, '
+					. 'which is also what keeps the disposable-domain signups out of the send.',
+				'stage' => array( '\CAShaadi\Modules\Emails\Announcement', 'stage' ),
+				'size'  => array( '\CAShaadi\Modules\Emails\Announcement', 'audience' ),
+			),
 			Engagement::PHOTO_QUALITY_TYPE => array(
 				'title' => 'Low-quality photo — ask for a re-upload',
 				'why'   => 'Members whose stored photo is under 300px across, so it renders soft on a card. '
