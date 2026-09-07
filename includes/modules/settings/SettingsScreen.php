@@ -69,11 +69,33 @@ final class SettingsScreen {
 	 * back on — which they could not do at all before.
 	 */
 	public static function enforce_private_defaults() {
-		if ( get_option( 'csm_visibility_defaults_v2' ) ) {
+		if ( get_option( 'csm_visibility_defaults_v3' ) ) {
 			return;
 		}
-		if ( ! function_exists( 'xprofile_set_field_visibility_level' ) ) {
+		if ( ! function_exists( 'xprofile_set_field_visibility_level' ) || ! function_exists( 'bp_xprofile_update_meta' ) ) {
 			return;   // BuddyPress not ready; try again next request
+		}
+
+		/*
+		 * THE FIELD ITSELF HAS TO ALLOW IT FIRST.
+		 *
+		 * Phone number was configured with allow_custom_visibility = disabled and
+		 * default_visibility = adminsonly. BuddyPress then ignores every per-user
+		 * value for that field and answers with the field default — so the first
+		 * version of this migration wrote 526 members' phone visibility to
+		 * "friends" and xprofile_get_field_visibility_level() went on returning
+		 * adminsonly for all of them. The stored value was right and the reader
+		 * overruled it, which is a fault that looks exactly like a working
+		 * migration until you read a value back.
+		 *
+		 * So the field settings are corrected before the member values, and both
+		 * ship in the plugin rather than being clicked in wp-admin: production
+		 * needs the same change at cutover, and a hand-made one would be the
+		 * kind of environment drift that is only discovered later.
+		 */
+		foreach ( \CAShaadi\Core\Config::DEFAULT_VISIBILITY as $fid => $want ) {
+			bp_xprofile_update_meta( (int) $fid, 'field', 'default_visibility', $want );
+			bp_xprofile_update_meta( (int) $fid, 'field', 'allow_custom_visibility', 'allowed' );
 		}
 
 		global $wpdb;
@@ -96,7 +118,7 @@ final class SettingsScreen {
 			}
 		}
 
-		update_option( 'csm_visibility_defaults_v2', array( 'at' => current_time( 'mysql' ), 'changed' => $changed ), false );
+		update_option( 'csm_visibility_defaults_v3', array( 'at' => current_time( 'mysql' ), 'changed' => $changed ), false );
 	}
 
 	/**
