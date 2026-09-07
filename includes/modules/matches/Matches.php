@@ -36,8 +36,25 @@ final class Matches {
 		// #11637 — "Requests Sent" sub-nav under Friends/Matches.
 		add_action( 'bp_setup_nav', array( __CLASS__, 'setup_nav' ), 100 );
 
-		// #11694 — match request / accepted emails (fire however the match was made).
-		add_action( 'friends_friendship_requested', array( __CLASS__, 'email_on_request' ), 10, 3 );
+		/*
+		 * #11694 — match request / accepted emails.
+		 *
+		 * THE REQUEST EMAIL IS GONE FROM HERE. Discover fires csm_profile_liked
+		 * for the same event, and Engagement::on_liked already emails on it, so
+		 * every request produced TWO emails: this one, and the queued one. A
+		 * member reported getting both.
+		 *
+		 * The queued one is the survivor, and not arbitrarily. bp_send_email()
+		 * goes out the instant the hook fires — around the queue, not through
+		 * it — so this path ignored the master switch, dry-run, quiet hours,
+		 * the hourly and daily caps, and the unsubscribe flag. It was sending
+		 * while the queue was reporting "paused".
+		 *
+		 * Acceptance still goes through here, because accepting from the
+		 * Requests screen calls friends_accept_friendship() directly and never
+		 * fires csm_mutual_match — removing it would mean no acceptance email
+		 * at all. It now at least honours the same opt-outs the queue does.
+		 */
 		add_action( 'friends_friendship_accepted', array( __CLASS__, 'email_on_accepted' ), 10, 3 );
 
 		// Card styling for the Requests Sent screen.
@@ -104,6 +121,30 @@ final class Matches {
 		bp_send_email( 'friends-request', $friend_user_id, $args );
 	}
 
+	/**
+	 * Does this member still want mail from us at all?
+	 *
+	 * This path sends directly rather than through the queue, so none of the
+	 * queue's own refusals apply. Asking the same questions here is the
+	 * difference between a direct send and an unaccountable one — somebody who
+	 * unsubscribed must not keep receiving these.
+	 */
+	private static function may_email( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid || ! get_userdata( $uid ) ) {
+			return false;
+		}
+		if ( get_user_meta( $uid, 'csm_remail_optout', true ) ) {
+			return false;
+		}
+		if ( class_exists( '\CAShaadi\Modules\Emails\Engagement' )
+			&& method_exists( '\CAShaadi\Modules\Emails\Engagement', 'allowed' )
+			&& ! \CAShaadi\Modules\Emails\Engagement::allowed( $uid, 'csm_email_matches' ) ) {
+			return false;
+		}
+		return (bool) apply_filters( 'csm_remail_can_email', true, $uid, 'friends-accepted' );
+	}
+
 	public static function email_on_accepted( $friendship_id, $initiator_user_id, $friend_user_id ) {
 		if ( ! function_exists( 'bp_send_email' ) ) {
 			return;
@@ -111,6 +152,11 @@ final class Matches {
 		$initiator_user_id = (int) $initiator_user_id;
 		$friend_user_id    = (int) $friend_user_id;
 		if ( $initiator_user_id < 1 || $friend_user_id < 1 ) {
+			return;
+		}
+
+		// The initiator is the one being told their request was accepted.
+		if ( ! self::may_email( $initiator_user_id ) ) {
 			return;
 		}
 
