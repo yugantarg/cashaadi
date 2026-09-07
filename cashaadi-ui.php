@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.33.0
+ * Version:           1.34.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.33.0' );
+define( 'CASHAADI_UI_VER', '1.34.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -212,6 +212,13 @@ if ( class_exists( 'CAShaadi\\Modules\\Emails\\Engagement' ) ) {
 	if ( class_exists( 'CAShaadi\\Modules\\Emails\\MagicLink' ) ) {
 		\CAShaadi\Modules\Emails\MagicLink::register();
 	}
+}
+
+// Better Messages: point its avatars and names at our member screen. Ungated —
+// it only rewrites a URL that already exists, and if the plugin is absent the
+// filter never fires.
+if ( class_exists( 'CAShaadi\\Modules\\Messages\\MessagesCompat' ) ) {
+	\CAShaadi\Modules\Messages\MessagesCompat::register();
 }
 
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\DiscoverScreen' ) ) {

@@ -109,7 +109,32 @@ final class RequestsScreen {
 			 * Block" row — i.e. straight out of the app the member was in.
 			 */
 			'url'    => home_url( '/member/' . $uid . '/' ),
+
+			/*
+			 * BuddyPress messages live at /members/<username>/messages/, never at
+			 * /messages/. The Matches tab pointed at the latter, which 404s — and
+			 * with 404-to-301 installed a 404 becomes a redirect to the home page,
+			 * so tapping Message looked like it did nothing at all.
+			 *
+			 * Composing TO them rather than opening the inbox, because "Message"
+			 * on a person's row should reach that person.
+			 */
+			'msgUrl' => self::compose_url( $uid ),
 		);
+	}
+
+	/** A compose-to-this-person URL for the CURRENT member, or '' if unavailable. */
+	private static function compose_url( $recipient_id ) {
+		$me = get_current_user_id();
+		if ( ! $me || ! function_exists( 'bp_members_get_user_url' ) || ! function_exists( 'bp_get_messages_slug' ) ) {
+			return '';
+		}
+		$base = trailingslashit( bp_members_get_user_url( $me ) ) . bp_get_messages_slug() . '/';
+		$user = get_userdata( (int) $recipient_id );
+		if ( ! $user ) {
+			return $base;
+		}
+		return $base . 'compose/?r=' . rawurlencode( $user->user_nicename );
 	}
 
 	/** Friend requests this member has SENT and that are still pending. */

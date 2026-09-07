@@ -1,14 +1,32 @@
 /* Requests: received / sent / viewed me. */
 
+/*
+ * Five tabs (Received, Matches, Sent, Saved, Viewed me) do not fit across a
+ * 375px phone. They used to be `flex: 1` in a row that could neither wrap nor
+ * scroll, so the last one — "Viewed me", the longest label, with a badge — was
+ * pushed outside the frame and could not be reached at all.
+ *
+ * Scrolling rather than wrapping: a second row of tabs under a sticky header
+ * eats the screen on exactly the devices that are already short of it. The
+ * tabs keep their natural width and the strip scrolls sideways on a phone,
+ * while `flex-grow` still spreads them across the full width on a desktop.
+ */
 .csm-r-tabs {
 	position: sticky; top: 57px; z-index: 15;
 	display: flex; gap: 4px;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;              /* Firefox */
 	padding: 10px 12px;
 	background: var(--csm-ground, #f4f6f8);
 	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
 }
+.csm-r-tabs::-webkit-scrollbar { display: none; }
 .csm-r-tab {
-	flex: 1;
+	/* grow to fill on desktop, but never shrink below the label on a phone */
+	flex: 1 0 auto;
+	white-space: nowrap;
 	display: flex; align-items: center; justify-content: center; gap: 6px;
 	min-height: 44px; /* touch minimum */
 	padding: 9px 8px;

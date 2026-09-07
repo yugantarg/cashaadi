@@ -99,9 +99,15 @@
 	}
 
 	function doAct( p, action, row, button ) {
-		/* "Message" is navigation, not a state change — there is nothing to POST. */
+		/*
+		 * "Message" is navigation, not a state change — there is nothing to POST.
+		 * The URL comes from the person, not from config: BuddyPress messages live
+		 * at /members/<username>/messages/, so a site-wide /messages/ 404s, and
+		 * with 404-to-301 that 404 becomes a bounce to the home page — which is
+		 * why this button appeared to do nothing.
+		 */
 		if ( 'message' === action ) {
-			window.location.href = CFG.messages || '/messages/';
+			if ( p.msgUrl ) { window.location.href = p.msgUrl; }
 			return;
 		}
 
