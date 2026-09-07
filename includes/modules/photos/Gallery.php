@@ -426,7 +426,35 @@ final class Gallery {
 		foreach ( $ids as $idx => $id ) {
 			$src  = wp_get_attachment_image_url( $id, 'medium' );
 			$main = ( 0 === $idx );
+
+			/*
+			 * The MAIN photo is shown as the avatar, not as the attachment.
+			 *
+			 * The attachment is the master — the whole picture, uncropped. The
+			 * avatar is the derivative set_avatar() renders THROUGH the stored
+			 * crop, and it is what every other member actually sees. Showing the
+			 * master here made "Adjust crop" look like it had done nothing: the
+			 * owner cropped their face out, the profile obeyed, and this grid
+			 * went on displaying the original.
+			 *
+			 * set_avatar() names the file with time(), so a re-crop changes the
+			 * URL and no cache-busting is needed.
+			 */
+			if ( $main && function_exists( 'bp_core_fetch_avatar' ) ) {
+				$avatar = (string) bp_core_fetch_avatar( array(
+					'item_id' => $uid,
+					'object'  => 'user',
+					'type'    => 'full',
+					'html'    => false,
+				) );
+				if ( '' !== $avatar ) {
+					$src = $avatar;
+				}
+			}
 			$html .= '<div class="csm-ph-item' . ( $main ? ' is-main' : '' ) . '" data-id="' . (int) $id . '">';
+			// The lightbox still opens the MASTER: the thumbnail answers "what do
+			// others see", the lightbox answers "what did I upload", and both are
+			// worth being able to check.
 			$html .= '<a class="csm-ph-lb" href="' . esc_url( wp_get_attachment_url( $id ) ) . '"><img src="' . esc_url( $src ) . '" alt=""></a>';
 			if ( $main ) {
 				$html .= '<span class="csm-ph-badge">Main</span>';
