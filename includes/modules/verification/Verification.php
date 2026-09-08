@@ -59,18 +59,20 @@ final class Verification {
 		Assets::style( 'verification', 'assets/css/verification.css' );
 		Assets::script( 'verification', 'assets/js/verification.js' );
 
-		// OTP checklist config: shown on the member's OWN profile when their phone
-		// isn't verified (raw meta flag, matching #11682).
+		/*
+		 * The OTP checklist prompt is OFF (owner, 2026-09-08): "completely
+		 * remove the phone verification need".
+		 *
+		 * It asked every member who had not verified a phone number to go and
+		 * do it, on their own profile, every visit — for something that now
+		 * gates nothing. A standing prompt for an optional step is just noise,
+		 * and it implied the profile was incomplete when it was not.
+		 *
+		 * Nothing is removed from anyone: csm_phone_verified survives for the
+		 * members who did it, phone_verified() still reports it, and the OTP
+		 * flow still works for anyone who chooses to use it.
+		 */
 		$otp = false;
-		if ( function_exists( 'bp_is_my_profile' ) && bp_is_my_profile() ) {
-			$uid = function_exists( 'bp_displayed_user_id' ) ? bp_displayed_user_id() : get_current_user_id();
-			if ( $uid && '1' !== (string) get_user_meta( $uid, 'csm_phone_verified', true ) ) {
-				$edit = function_exists( 'bp_loggedin_user_url' ) && function_exists( 'bp_get_profile_slug' )
-					? bp_loggedin_user_url( bp_members_get_path_chunks( array( bp_get_profile_slug(), 'edit' ) ) )
-					: home_url( '/' );
-				$otp = array( 'editUrl' => esc_url_raw( $edit ) );
-			}
-		}
 
 		wp_add_inline_script(
 			'cashaadi-verification',

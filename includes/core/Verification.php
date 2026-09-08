@@ -87,15 +87,21 @@ final class Verification {
 	/* ---- CA verification (mirrors #11701) ------------------------------ */
 
 	/**
-	 * Verified CA = phone-verified, not AI-rejected, and an ICAI document
-	 * (field 484) is present.
+	 * Verified CA = the ICAI document (field 484) was reviewed and approved,
+	 * and is still on the profile.
+	 *
+	 * PHONE VERIFICATION IS NOT PART OF THIS ANY MORE (owner, 2026-09-08).
+	 * It used to be, which meant 47 members whose documents had been approved
+	 * carried no badge because they had never done an unrelated OTP. The badge
+	 * describes the qualification; a phone number is not evidence about it.
+	 *
+	 * phone_verified() is untouched and the OTP flow still works — anyone who
+	 * verified keeps the flag, and anyone who wants to still can. It simply no
+	 * longer gates this.
 	 */
 	public static function ca_verified( $user_id = 0 ) {
 		$user_id = $user_id ? (int) $user_id : get_current_user_id();
 		if ( ! $user_id || ! function_exists( 'bp_get_profile_field_data' ) ) {
-			return false;
-		}
-		if ( ! get_user_meta( $user_id, 'csm_phone_verified', true ) ) {
 			return false;
 		}
 		/*
