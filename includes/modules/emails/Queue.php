@@ -457,28 +457,44 @@ final class Queue {
 	}
 
 	/**
-	 * How many emails ONE member may receive in a rolling 24 hours.
+	 * How many BULK emails one member may receive in a rolling 24 hours.
 	 *
-	 * The site-wide caps say nothing about how mail is distributed. In one day
-	 * a single member received seven — five "it's a match", a like and a
-	 * viewed-you — because every notification type is deduped separately and
-	 * none of them counted the others. From the member's side that is not seven
-	 * notifications, it is a site that will not leave them alone.
+	 * Transactional mail is deliberately exempt (owner, 2026-09-08): "I'm fine
+	 * with 5 different it's a match messages. I don't want a reactivation email
+	 * plus a v2 launch email plus a new batch email on the same day."
+	 *
+	 * That is the right distinction. Five match emails are five things that
+	 * actually happened, each one wanted the moment it did. A reactivation, an
+	 * announcement and a weekly batch landing together are three things WE
+	 * decided to send, and their collision says only that nothing was counting.
 	 *
 	 * 0 disables it.
 	 */
-	public static function member_daily_cap() {
-		return (int) apply_filters( 'csm_remail_member_daily_cap', (int) get_option( 'csm_remail_member_daily_cap', 2 ) );
+	public static function bulk_daily_cap() {
+		return (int) apply_filters( 'csm_remail_bulk_daily_cap', (int) get_option( 'csm_remail_bulk_daily_cap', 1 ) );
 	}
 
-	/** How many have actually reached this member in the last 24 hours. */
-	public static function member_sent_today( $user_id ) {
+	/**
+	 * Bulk emails that have reached this member in the last 24 hours.
+	 *
+	 * Counts what the cap governs, so a member who received four match alerts
+	 * is not thereby refused the one announcement — the two are unrelated
+	 * questions and mixing them is what made the first attempt at this wrong.
+	 */
+	public static function member_bulk_sent_today( $user_id ) {
 		global $wpdb;
 		$t     = self::table();
 		$since = get_date_from_gmt( gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
+
+		$not = array();
+		foreach ( self::TRANSACTIONAL_LIKE as $p ) {
+			$not[] = $wpdb->prepare( 'email_type NOT LIKE %s', $p );
+		}
+		$where = $not ? ' AND ' . implode( ' AND ', $not ) : '';
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$t} WHERE user_id = %d AND status = 'sent' AND processed_at >= %s",
+			"SELECT COUNT(*) FROM {$t} WHERE user_id = %d AND status = 'sent' AND processed_at >= %s{$where}",
 			(int) $user_id,
 			$since
 		) );
@@ -650,22 +666,28 @@ final class Queue {
 		$types = self::types();
 		$plan  = self::plan();
 
-		$member_cap = self::member_daily_cap();
+		$bulk_cap = self::bulk_daily_cap();
 
 		foreach ( $rows as $r ) {
 			/*
-			 * Nobody gets more than $member_cap in a day, whatever the type.
+			 * One campaign email per member per day.
 			 *
-			 * This is the ONLY check that looks across types. Everything else
-			 * dedupes within its own kind, which is why one member could collect
-			 * five match emails, a like and a viewed-you in a single day and no
-			 * single rule was broken.
+			 * The ONLY check that looks across types — everything else dedupes
+			 * within its own kind, which is how a reactivation, the launch
+			 * announcement and a weekly batch could all reach the same person on
+			 * the same morning without any single rule being broken.
+			 *
+			 * Transactional mail is exempt: a match, a like or a profile view
+			 * answers something that just happened, and holding those back to
+			 * make room for a campaign would be exactly backwards.
 			 *
 			 * Rows are left PENDING, not cancelled: the mail is still wanted,
 			 * just not today. They go out on the next run once the window has
 			 * moved, oldest first, which is the order due_rows() already uses.
 			 */
-			if ( $live && $member_cap > 0 && self::member_sent_today( (int) $r->user_id ) >= $member_cap ) {
+			if ( $live && $bulk_cap > 0
+				&& ! self::is_transactional( (string) $r->email_type )
+				&& self::member_bulk_sent_today( (int) $r->user_id ) >= $bulk_cap ) {
 				$out['held']++;
 				continue;
 			}
