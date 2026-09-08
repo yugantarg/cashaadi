@@ -289,6 +289,18 @@ final class Engagement {
 		self::match_one( $b, $a );
 	}
 
+	/** A member's own messages inbox, or the app home if BuddyPress cannot say. */
+	private static function messages_url( $uid ) {
+		if ( ! function_exists( 'bp_members_get_user_url' ) || ! function_exists( 'bp_get_messages_slug' ) ) {
+			return home_url( '/discover/' );
+		}
+		$base = bp_members_get_user_url( (int) $uid );
+		if ( ! $base ) {
+			return home_url( '/discover/' );
+		}
+		return trailingslashit( trailingslashit( $base ) . bp_get_messages_slug() );
+	}
+
 	private static function match_one( $to, $other ) {
 		if ( ! self::allowed( $to, 'csm_email_matches' ) ) {
 			return;
@@ -297,7 +309,13 @@ final class Engagement {
 			self::greeting( $to ),
 			'<p>You and <strong>' . esc_html( self::name( $other ) ) . '</strong> have matched on ' . esc_html( self::site() ) . '.</p>'
 			. '<p>You can message each other now — a conversation is already waiting for you.</p>',
-			home_url( '/messages/' ),
+			/*
+			 * NOT home_url('/messages/'). BuddyPress messages live under the
+			 * member — /members/<username>/messages/ — so the site-wide path
+			 * 404s, and with 404-to-301 installed that became a redirect to the
+			 * home page. The match email's only link went nowhere.
+			 */
+			self::messages_url( $to ),
 			'Open the conversation'
 		);
 		Queue::notify( $to, 'csm-match-' . (int) $other, 'It\'s a match on ' . self::site(), $body );

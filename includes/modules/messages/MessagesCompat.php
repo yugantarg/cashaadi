@@ -30,6 +30,40 @@ final class MessagesCompat {
 	public static function register() {
 		// Priority 30: after the bundled addons, so ours is the one that sticks.
 		add_filter( 'better_messages_rest_user_item', array( __CLASS__, 'user_item' ), 30, 3 );
+
+		/*
+		 * Every link Better Messages emails was 404ing.
+		 *
+		 * Its bpProfileSlug setting is "bp-messages", but BuddyPress registers
+		 * the messages component at "messages" — so /members/<user>/bp-messages/
+		 * does not exist. With 404-to-301 installed that 404 becomes a redirect
+		 * to the home page, which is why "You have unread messages" appeared to
+		 * do nothing rather than to error.
+		 *
+		 * Overriding the URL rather than editing the plugin's setting: the
+		 * setting also drives where Better Messages registers its own nav, and
+		 * changing it would move that too. This filter is the seam the plugin
+		 * offers for exactly this — a non-null return replaces the URL.
+		 */
+		add_filter( 'bp_better_messages_page', array( __CLASS__, 'messages_url' ), 10, 2 );
+	}
+
+	/**
+	 * The member's real messages URL, from BuddyPress's own slug.
+	 *
+	 * @param string|null $url     Whatever a previous filter decided; null means "unset".
+	 * @param int         $user_id Whose messages page is wanted.
+	 */
+	public static function messages_url( $url, $user_id ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id || ! function_exists( 'bp_members_get_user_url' ) || ! function_exists( 'bp_get_messages_slug' ) ) {
+			return $url;
+		}
+		$base = bp_members_get_user_url( $user_id );
+		if ( ! $base ) {
+			return $url;
+		}
+		return trailingslashit( trailingslashit( $base ) . bp_get_messages_slug() );
 	}
 
 	/**

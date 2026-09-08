@@ -824,13 +824,24 @@ final class Premium {
 
 	/* ---- profile-view email (#11821) ----------------------------------- */
 
+	/**
+	 * Where "somebody viewed your profile" should land.
+	 *
+	 * WAS /members/<user>/friends/visitors/, the BuddyPress sub-nav this module
+	 * used to register. That URL 404s — and with 404-to-301 installed a 404
+	 * becomes a redirect to the home page, so the email's only link silently
+	 * dropped the reader on the front page. Found by testing every URL in every
+	 * email rather than by anyone reporting it.
+	 *
+	 * /requests/ is where viewers actually live now: it is the app screen with
+	 * the "Viewed me" tab, and it applies the same free/premium masking.
+	 *
+	 * @param int $uid Unused now — the app route is not per-member. Kept so the
+	 *                 signature does not change under its callers.
+	 */
 	private static function pve_visitors_url( $uid ) {
-		$base = function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $uid ) : '';
-		if ( ! $base ) {
-			return site_url( '/' );
-		}
-		$slug = function_exists( 'bp_get_friends_slug' ) ? bp_get_friends_slug() : 'friends';
-		return trailingslashit( trailingslashit( $base ) . $slug . '/visitors' );
+		unset( $uid );
+		return home_url( '/requests/' );
 	}
 
 	public static function pve_html_ct() {
