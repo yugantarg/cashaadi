@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.39.1
+ * Version:           1.40.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.39.1' );
+define( 'CASHAADI_UI_VER', '1.40.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -292,6 +292,14 @@ if ( class_exists( 'CAShaadi\\Modules\\Premium\\Premium' ) ) {
 // #12119) is gated by Config::photos_enabled() and added later.
 if ( class_exists( 'CAShaadi\\Modules\\Photos\\Photos' ) ) {
 	Photos::register();
+}
+
+// Member photographs must not be enumerable by strangers. Ungated and
+// deliberately unconditional: /wp-json/wp/v2/media listed 468 uploads with
+// author ids to anybody, which defeated every blur and privacy choice on the
+// cards. Staff (upload_files) keep the media library.
+if ( class_exists( 'CAShaadi\\Modules\\Photos\\MediaPrivacy' ) ) {
+	\CAShaadi\Modules\Photos\MediaPrivacy::register();
 }
 
 // Verification display: verified-CA badge + OTP checklist item. Gated OFF
