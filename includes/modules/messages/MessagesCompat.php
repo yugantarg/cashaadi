@@ -55,6 +55,26 @@ final class MessagesCompat {
 	 * @param int         $user_id Whose messages page is wanted.
 	 */
 	public static function messages_url( $url, $user_id ) {
+		/*
+		 * ONLY while building a notification.
+		 *
+		 * Overriding this for every caller took the site down: Better Messages
+		 * redirects the standard BuddyPress messages component to its own page
+		 * on template_redirect, and pointing that page back at the BuddyPress
+		 * URL made the two redirect to each other until the browser gave up.
+		 * The member saw the site "go down" on clicking Messages.
+		 *
+		 * The bug being fixed only ever concerned EMAIL, so the fix belongs
+		 * only there. Front-end routing is left exactly as Better Messages
+		 * wants it.
+		 */
+		if ( ! function_exists( 'Better_Messages' )
+			|| ! isset( Better_Messages()->notifications )
+			|| ! method_exists( Better_Messages()->notifications, 'is_sending_notifications' )
+			|| ! Better_Messages()->notifications->is_sending_notifications() ) {
+			return $url;
+		}
+
 		$user_id = (int) $user_id;
 		if ( ! $user_id || ! function_exists( 'bp_members_get_user_url' ) || ! function_exists( 'bp_get_messages_slug' ) ) {
 			return $url;
