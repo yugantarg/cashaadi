@@ -54,6 +54,18 @@
 	}
 	box.appendChild( alt );
 
+	/* Why they are going. Required, and placed FIRST — asking after someone has
+	   typed DELETE and their password reads as a toll gate; asking before it is
+	   a question. The server requires it too. */
+	var f0 = el( 'label', 'csm-del-field' );
+	f0.appendChild( el( 'span', null, 'Why are you leaving?' ) );
+	var reason = el( 'textarea', 'csm-del-input csm-del-reason' );
+	reason.rows = 3;
+	reason.maxLength = 1000;
+	reason.placeholder = 'Found someone, taking a break, something went wrong…';
+	f0.appendChild( reason );
+	box.appendChild( f0 );
+
 	var f1 = el( 'label', 'csm-del-field' );
 	f1.appendChild( el( 'span', null, 'Type DELETE to confirm' ) );
 	var word = el( 'input', 'csm-del-input' );
@@ -86,10 +98,13 @@
 	root.appendChild( box );
 
 	function check() {
-		go.disabled = ( 'DELETE' !== word.value.trim().toUpperCase() ) || ! pw.value;
+		go.disabled = ( 'DELETE' !== word.value.trim().toUpperCase() )
+			|| ! pw.value
+			|| '' === reason.value.trim();
 	}
 	word.addEventListener( 'input', check );
 	pw.addEventListener( 'input', check );
+	reason.addEventListener( 'input', check );
 
 	go.addEventListener( 'click', function () {
 		err.textContent = '';
@@ -99,7 +114,7 @@
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': CFG.nonce },
-			body: JSON.stringify( { confirm: word.value.trim(), password: pw.value } )
+			body: JSON.stringify( { confirm: word.value.trim(), password: pw.value, reason: reason.value.trim() } )
 		} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
 			release();
 			if ( d && d.ok ) {

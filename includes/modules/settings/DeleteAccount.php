@@ -114,8 +114,22 @@ final class DeleteAccount {
 		$confirm  = strtoupper( trim( (string) $request->get_param( 'confirm' ) ) );
 		$password = (string) $request->get_param( 'password' );
 
+		/*
+		 * Why they are leaving, required.
+		 *
+		 * Checked on the server as well as in the form: the button is a
+		 * courtesy, this is the rule. Capped at 1000 characters because it is
+		 * kept in the event log after the account is gone, and trimmed of tags
+		 * because nothing here is ever rendered as HTML.
+		 */
+		$reason = trim( wp_strip_all_tags( (string) $request->get_param( 'reason' ) ) );
+		$reason = mb_substr( $reason, 0, 1000 );
+
 		if ( 'DELETE' !== $confirm ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'Type DELETE to confirm.', 'cashaadi-ui' ) ), 200 );
+		}
+		if ( '' === $reason ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'Please tell us why you are leaving.', 'cashaadi-ui' ) ), 200 );
 		}
 		if ( '' === $password || ! wp_check_password( $password, $user->user_pass, $uid ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That password is not right.', 'cashaadi-ui' ) ), 200 );
@@ -127,7 +141,16 @@ final class DeleteAccount {
 		 * number this feature makes it possible to know.
 		 */
 		if ( function_exists( 'cashaadi' ) ) {
-			cashaadi()->log_event( 'account_deleted', $uid, 0, array( 'at' => current_time( 'mysql' ) ) );
+			cashaadi()->log_event( 'account_deleted', $uid, 0, array(
+				'at' => current_time( 'mysql' ),
+				/*
+				 * The reason goes in the LOG, not on the user — a moment from
+				 * now there is no user row to hang it off. This is the only
+				 * record that survives the deletion, and the only way to learn
+				 * anything from people leaving.
+				 */
+				'reason' => $reason,
+			) );
 		}
 
 		/*

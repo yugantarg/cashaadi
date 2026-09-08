@@ -239,3 +239,7 @@ img.avatar {
 	color: #6b5316; font-size: 13.5px; font-weight: 600; text-align: center;
 }
 .csm-app-paused a { color: #6b5316; font-weight: 700; }
+
+/* Delete account: the "why are you leaving" box. A textarea, so it needs the
+   sizing the single-line inputs get for free. */
+.csm-del-reason { width: 100%; box-sizing: border-box; resize: vertical; min-height: 68px; font: inherit; line-height: 1.5; }
