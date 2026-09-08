@@ -13,7 +13,18 @@
 	if ( ! CFG || ! root ) { return; }
 
 	var data = null;
-	var tab  = 'received';
+	/*
+	 * Which tab to open. The hamburger's "Matches" entry pointed at
+	 * /members/<user>/matches/, a BuddyPress slug that does not exist — the
+	 * component registers "friends" — so it 404'd, and 404-to-301 turned that
+	 * into a bounce to the home page. It now points here, and a hash says which
+	 * tab it meant.
+	 */
+	var VALID_TABS = [ 'received', 'matches', 'sent', 'saved', 'viewers' ];
+	var tab = ( function () {
+		var h = ( window.location.hash || '' ).replace( /^#\/?/, '' );
+		return VALID_TABS.indexOf( h ) !== -1 ? h : 'received';
+	} )();
 
 	function api( url, opts ) {
 		opts = opts || {};

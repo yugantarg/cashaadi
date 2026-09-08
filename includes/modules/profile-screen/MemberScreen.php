@@ -74,7 +74,13 @@ final class MemberScreen {
 			 * Discover — and there is no second copy of that check to drift.
 			 */
 			'act'      => rest_url( 'csm/v1/discover/act' ),
-			'messages' => home_url( '/messages/' ),
+			/*
+			 * NOT home_url('/messages/'). BuddyPress messages live under the
+			 * member — /members/<username>/messages/ — so the site-wide path is
+			 * a 404. It only ever looked like it worked because 404-to-301 was
+			 * turning that 404 into a redirect to the home page.
+			 */
+			'messages' => self::messages_url( get_current_user_id(), $uid ),
 			'back'     => wp_get_referer() ? wp_get_referer() : home_url( '/requests/' ),
 		) );
 
@@ -82,6 +88,25 @@ final class MemberScreen {
 		echo '<div id="csm-member-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
 		AppPage::close( 'requests' );
 		exit;
+	}
+
+	/**
+	 * Compose-to-them, for the viewer.
+	 *
+	 * @param int $me    The viewer.
+	 * @param int $other Who they are looking at.
+	 */
+	private static function messages_url( $me, $other ) {
+		if ( ! $me || ! function_exists( 'bp_members_get_user_url' ) || ! function_exists( 'bp_get_messages_slug' ) ) {
+			return home_url( '/requests/' );
+		}
+		$base = bp_members_get_user_url( (int) $me );
+		if ( ! $base ) {
+			return home_url( '/requests/' );
+		}
+		$inbox = trailingslashit( trailingslashit( $base ) . bp_get_messages_slug() );
+		$user  = get_userdata( (int) $other );
+		return $user ? $inbox . 'compose/?r=' . rawurlencode( $user->user_nicename ) : $inbox;
 	}
 
 	public static function routes() {
