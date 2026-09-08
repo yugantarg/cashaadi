@@ -98,9 +98,29 @@ final class Verification {
 		if ( ! get_user_meta( $user_id, 'csm_phone_verified', true ) ) {
 			return false;
 		}
-		if ( 'rejected' === get_user_meta( $user_id, 'csm_av_status', true ) ) {
+		/*
+		 * APPROVED, not merely "not rejected".
+		 *
+		 * This used to pass anyone whose document field was non-empty and whose
+		 * status was not the literal string 'rejected' — so uploading anything
+		 * at all, a junk PDF included, produced a "Verified CA" badge
+		 * immediately. Unset means AWAITING REVIEW: CaCron sets 'approved' only
+		 * when the model returns 'verify'. Granting the badge before that ran
+		 * meant the badge asserted something nobody had checked.
+		 *
+		 * On this install 113 members carried the badge and only 100 had been
+		 * approved. A verification mark that can be self-issued by uploading a
+		 * file is worse than no mark: everybody else's is devalued by it.
+		 */
+		if ( 'approved' !== get_user_meta( $user_id, 'csm_av_status', true ) ) {
 			return false;
 		}
+
+		/*
+		 * The document still has to be there. An approval is about a specific
+		 * file; if it has since been removed the approval no longer describes
+		 * anything.
+		 */
 		$doc = bp_get_profile_field_data( array( 'field' => Config::FIELD_CA_DOC, 'user_id' => $user_id ) );
 		return '' !== trim( wp_strip_all_tags( (string) $doc ) );
 	}
