@@ -229,7 +229,14 @@ window.csmProfileCard = function ( p ) {
 	 * request already in flight.
 	 */
 	if ( p.photoHidden ) {
-		var reveal = mk( 'button', 'csm-d-reveal' );
+		/*
+		 * Take the corner when nothing else wants it. The button only sits
+		 * lower to clear the Verified CA badge, so on a card without one that
+		 * gap is just a hole. Decided here rather than in CSS because the
+		 * markup already knows the answer — :has() would work but would make
+		 * two places responsible for one fact.
+		 */
+		var reveal = mk( 'button', 'csm-d-reveal' + ( p.verified ? '' : ' is-top' ) );
 		reveal.type = 'button';
 		reveal.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 		reveal.appendChild( mk( 'span', null, 'Unhide photo' ) );

@@ -294,6 +294,9 @@ body.csm-member-view .csm-d-card {
  * The badges are ~24px tall from 14px, so 48px clears them; on a card with no
  * badge the button simply sits a little lower, which reads as deliberate.
  */
+/* No badge above it: take the corner. */
+.csm-d-reveal.is-top { top: 10px; }
+
 .csm-d-reveal {
 	position: absolute; top: 48px; left: 10px; z-index: 4;
 	display: inline-flex; align-items: center; gap: 6px;
