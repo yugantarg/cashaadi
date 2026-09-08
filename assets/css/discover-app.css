@@ -286,8 +286,16 @@ body.csm-member-view .csm-d-card {
    Sits on the photo, top-left, clear of the Verified/NEW badges on the right
    and of the name overlay along the bottom. Deliberately quiet — it explains
    why the picture looks like that; it is not competing with Like. */
+/*
+ * Sits BELOW the badge row, not in it.
+ *
+ * This was top:10px/left:10px while .csm-d-verified is top:14px/left:14px, so
+ * on a verified member's blurred photo the two printed on top of each other.
+ * The badges are ~24px tall from 14px, so 48px clears them; on a card with no
+ * badge the button simply sits a little lower, which reads as deliberate.
+ */
 .csm-d-reveal {
-	position: absolute; top: 10px; left: 10px; z-index: 2;
+	position: absolute; top: 48px; left: 10px; z-index: 4;
 	display: inline-flex; align-items: center; gap: 6px;
 	padding: 7px 12px 7px 10px;
 	border: 0; border-radius: 999px;
