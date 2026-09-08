@@ -364,7 +364,19 @@ final class Engagement {
 	 */
 	private static function send_batch( $ist ) {
 		$week   = strtolower( $ist->format( 'o-\WW' ) );
-		$budget = (int) apply_filters( 'csm_engagement_batch_cap', 150 );
+		$budget = (int) apply_filters( 'csm_engagement_batch_cap', (int) get_option( 'csm_engagement_batch_cap', 150 ) );
+		/*
+		 * 0 turns the weekly batch OFF.
+		 *
+		 * Cancelling the queued rows was tried and could not work: the batch
+		 * is planned PER RUN, across Monday and Tuesday, so cancelling
+		 * Monday's 150 simply left Tuesday's run to queue the next 146
+		 * members and send to them. An instruction to stop the batch has to
+		 * stop the planner, not the rows it already wrote.
+		 */
+		if ( $budget < 1 ) {
+			return;
+		}
 
 		// Keyed viewer_id => pending count, so the KEY is the member.
 		foreach ( self::members_with_pending() as $uid => $count ) {
@@ -399,7 +411,19 @@ final class Engagement {
 	 */
 	private static function send_expiring( $ist ) {
 		$week   = strtolower( $ist->format( 'o-\WW' ) );
-		$budget = (int) apply_filters( 'csm_engagement_batch_cap', 150 );
+		$budget = (int) apply_filters( 'csm_engagement_batch_cap', (int) get_option( 'csm_engagement_batch_cap', 150 ) );
+		/*
+		 * 0 turns the weekly batch OFF.
+		 *
+		 * Cancelling the queued rows was tried and could not work: the batch
+		 * is planned PER RUN, across Monday and Tuesday, so cancelling
+		 * Monday's 150 simply left Tuesday's run to queue the next 146
+		 * members and send to them. An instruction to stop the batch has to
+		 * stop the planner, not the rows it already wrote.
+		 */
+		if ( $budget < 1 ) {
+			return;
+		}
 
 		foreach ( self::members_with_pending() as $uid => $count ) {
 			if ( $budget < 1 ) {

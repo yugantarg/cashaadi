@@ -457,6 +457,34 @@ final class Queue {
 	}
 
 	/**
+	 * How many emails ONE member may receive in a rolling 24 hours.
+	 *
+	 * The site-wide caps say nothing about how mail is distributed. In one day
+	 * a single member received seven — five "it's a match", a like and a
+	 * viewed-you — because every notification type is deduped separately and
+	 * none of them counted the others. From the member's side that is not seven
+	 * notifications, it is a site that will not leave them alone.
+	 *
+	 * 0 disables it.
+	 */
+	public static function member_daily_cap() {
+		return (int) apply_filters( 'csm_remail_member_daily_cap', (int) get_option( 'csm_remail_member_daily_cap', 2 ) );
+	}
+
+	/** How many have actually reached this member in the last 24 hours. */
+	public static function member_sent_today( $user_id ) {
+		global $wpdb;
+		$t     = self::table();
+		$since = get_date_from_gmt( gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$t} WHERE user_id = %d AND status = 'sent' AND processed_at >= %s",
+			(int) $user_id,
+			$since
+		) );
+	}
+
+	/**
 	 * Weekly ceiling.
 	 *
 	 * The daily cap does not bound a week: 300 a day is 2,100 a week, which on a
@@ -622,7 +650,26 @@ final class Queue {
 		$types = self::types();
 		$plan  = self::plan();
 
+		$member_cap = self::member_daily_cap();
+
 		foreach ( $rows as $r ) {
+			/*
+			 * Nobody gets more than $member_cap in a day, whatever the type.
+			 *
+			 * This is the ONLY check that looks across types. Everything else
+			 * dedupes within its own kind, which is why one member could collect
+			 * five match emails, a like and a viewed-you in a single day and no
+			 * single rule was broken.
+			 *
+			 * Rows are left PENDING, not cancelled: the mail is still wanted,
+			 * just not today. They go out on the next run once the window has
+			 * moved, oldest first, which is the order due_rows() already uses.
+			 */
+			if ( $live && $member_cap > 0 && self::member_sent_today( (int) $r->user_id ) >= $member_cap ) {
+				$out['held']++;
+				continue;
+			}
+
 			/*
 			 * Notification rows carry their own body and belong to no reminder
 			 * family, so none of the family/label logic below applies — it would
