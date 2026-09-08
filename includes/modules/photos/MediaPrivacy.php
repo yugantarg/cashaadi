@@ -36,7 +36,17 @@ final class MediaPrivacy {
 		// 1. The enumeration endpoint.
 		add_filter( 'rest_endpoints', array( __CLASS__, 'restrict_media_routes' ), 20 );
 
-		// 2. Attachment permalinks, which redirect straight to the file.
+		/*
+		 * 2. Attachment permalinks, which lead straight to the file.
+		 *
+		 * Hooked to BOTH `wp` and `template_redirect`, at priority 0. Yoast's
+		 * "redirect attachment URLs" runs before template_redirect, so a
+		 * template_redirect handler alone never got the chance — the page had
+		 * already 301'd to the photograph. `wp` fires once the query is parsed,
+		 * which is early enough to answer first and late enough for
+		 * is_attachment() to be meaningful.
+		 */
+		add_action( 'wp', array( __CLASS__, 'block_attachment_pages' ), 0 );
 		add_action( 'template_redirect', array( __CLASS__, 'block_attachment_pages' ), 0 );
 
 		// 3. Keep them out of sitemaps and feeds, which is another way to find them.
@@ -86,8 +96,22 @@ final class MediaPrivacy {
 		if ( ! is_attachment() || self::may_browse() ) {
 			return;
 		}
+
 		global $wp_query;
 		$wp_query->set_404();
+
+		/*
+		 * Clear the queried object as well. Yoast decides whether to redirect
+		 * from the attachment it finds on the query, so leaving it in place
+		 * lets the redirect happen anyway on a request we have already marked
+		 * as not found.
+		 */
+		$wp_query->queried_object    = null;
+		$wp_query->queried_object_id = 0;
+		$wp_query->is_attachment     = false;
+		$wp_query->is_single         = false;
+		$wp_query->is_singular       = false;
+
 		status_header( 404 );
 		nocache_headers();
 	}
