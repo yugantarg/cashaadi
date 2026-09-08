@@ -397,7 +397,27 @@ final class Gallery {
 			wp_send_json_error( array( 'message' => 'Bad request.' ) );
 		}
 
-		$ids      = self::get( $uid );
+		$ids = self::get( $uid );
+
+		/*
+		 * A photo is mandatory, so the last one cannot be removed.
+		 *
+		 * Enforced HERE rather than only in the grid: the button is the polite
+		 * half, this is the half that holds. Without it a member could empty
+		 * their gallery and disappear from Discover without ever being told
+		 * that is what they were doing.
+		 *
+		 * Asking for a replacement first is deliberately gentler than refusing
+		 * outright — nobody is trapped with a photo they dislike, they just
+		 * cannot end up with none.
+		 */
+		if ( in_array( $id, array_map( 'intval', $ids ), true ) && count( $ids ) <= 1 ) {
+			wp_send_json_error( array(
+				'message' => __( 'Add another photo first — your profile needs at least one.', 'cashaadi-ui' ),
+				'code'    => 'last_photo',
+			) );
+		}
+
 		$was_main = ( isset( $ids[0] ) && (int) $ids[0] === $id );
 		$ids      = array_values( array_diff( $ids, array( $id ) ) );
 		self::save( $uid, $ids );
@@ -617,7 +637,17 @@ final class Gallery {
 			} else {
 				$html .= '<button type="button" class="csm-ph-setmain" data-id="' . (int) $id . '">Make main</button>';
 			}
-			$html .= '<button type="button" class="csm-ph-del" data-id="' . (int) $id . '" aria-label="Remove">&times;</button>';
+			/*
+			 * The only photo cannot be removed — a profile needs one. Shown as
+			 * a disabled control with the reason attached rather than hidden:
+			 * a button that quietly vanishes reads as a bug, while one that
+			 * says why reads as a rule. ajax_delete() enforces it regardless.
+			 */
+			$only = ( 1 === count( $ids ) );
+			$html .= '<button type="button" class="csm-ph-del' . ( $only ? ' is-locked' : '' ) . '"'
+				. ' data-id="' . (int) $id . '"'
+				. ( $only ? ' disabled aria-disabled="true" title="' . esc_attr__( 'Add another photo first — your profile needs at least one.', 'cashaadi-ui' ) . '"' : '' )
+				. ' aria-label="' . esc_attr__( 'Remove', 'cashaadi-ui' ) . '">&times;</button>';
 			$html .= '</div>';
 		}
 		$remaining = $max - count( $ids );

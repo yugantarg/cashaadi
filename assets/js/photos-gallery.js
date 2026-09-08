@@ -47,7 +47,23 @@
 					post( 'csm_ph_upload', fd ).then( function ( d ) { if ( d ) { say( 'Photos updated.', true ); } } );
 				};
 			}
-			root.querySelectorAll( '.csm-ph-del' ).forEach( function ( b ) { b.onclick = async function () { if ( ! ( await window.csmConfirm( 'This cannot be undone.', { title: 'Remove this photo?', okText: 'Remove', danger: true } ) ) ) { return; } post( 'csm_ph_delete', { id: b.getAttribute( 'data-id' ) } ); }; } );
+			root.querySelectorAll( '.csm-ph-del' ).forEach( function ( b ) {
+				b.onclick = async function () {
+					/*
+					 * The only photo cannot go: a profile needs one. Say why
+					 * rather than opening a confirm dialog that would be
+					 * refused by the server a moment later.
+					 */
+					if ( b.disabled || b.classList.contains( 'is-locked' ) ) {
+						say( 'Add another photo first — your profile needs at least one.' );
+						return;
+					}
+					if ( ! ( await window.csmConfirm( 'This cannot be undone.', { title: 'Remove this photo?', okText: 'Remove', danger: true } ) ) ) {
+						return;
+					}
+					post( 'csm_ph_delete', { id: b.getAttribute( 'data-id' ) } );
+				};
+			} );
 			root.querySelectorAll( '.csm-ph-setmain' ).forEach( function ( b ) { b.onclick = function () { post( 'csm_ph_main', { id: b.getAttribute( 'data-id' ) } ).then( function ( d ) { if ( d ) { say( 'Main photo updated.', true ); } } ); }; } );
 			root.querySelectorAll( '.csm-ph-crop' ).forEach( function ( b ) { b.onclick = function () { adjust( b ); }; } );
 		}

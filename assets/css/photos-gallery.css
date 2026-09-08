@@ -168,3 +168,8 @@ body.change-avatar #buddypress .bp-avatar .avatar-crop-actions button {
 .csm-ph-cropsave,.csm-ph-cropcancel{border:0;border-radius:999px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer}
 .csm-ph-cropsave{background:#7a1220;color:#fff}
 .csm-ph-cropcancel{background:#eef1f4;color:#2b2b2b}
+
+/* The only photo cannot be removed — a profile needs one. Dimmed rather than
+   hidden: a control that vanishes reads as a bug, one plainly disabled reads as
+   a rule. ajax_delete() refuses it regardless. */
+.csm-ph-del.is-locked,.csm-ph-del[disabled]{opacity:.35;cursor:not-allowed}
