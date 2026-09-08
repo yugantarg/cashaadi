@@ -38,11 +38,28 @@
 
 	function pad( n ) { return ( n < 10 ? '0' : '' ) + n; }
 
-	/** Digits only, at most 8, formatted dd/mm/yyyy as far as they go. */
-	function mask( raw ) {
+	/**
+	 * Digits only, at most 8, formatted dd/mm/yyyy as far as they go.
+	 *
+	 * @param {string}  raw
+	 * @param {boolean} trailing  Close a completed group with its slash straight
+	 *                            away, so two digits show as "18/" rather than
+	 *                            "18". Owner: "the / should appear immediately
+	 *                            after I enter 2 digits. Otherwise the user is
+	 *                            confused — am I supposed to enter a slash?"
+	 *
+	 *                            Only ever true while ADDING. On a backspace the
+	 *                            slash must not grow back the instant it is
+	 *                            deleted, or the field cannot be cleared.
+	 */
+	function mask( raw, trailing ) {
 		var d = String( raw || '' ).replace( /\D/g, '' ).slice( 0, 8 );
-		if ( d.length <= 2 ) { return d; }
-		if ( d.length <= 4 ) { return d.slice( 0, 2 ) + '/' + d.slice( 2 ); }
+		if ( d.length < 2 ) { return d; }
+		if ( 2 === d.length ) { return trailing ? d + '/' : d; }
+		if ( d.length < 4 ) { return d.slice( 0, 2 ) + '/' + d.slice( 2 ); }
+		if ( 4 === d.length ) {
+			return d.slice( 0, 2 ) + '/' + d.slice( 2, 4 ) + ( trailing ? '/' : '' );
+		}
 		return d.slice( 0, 2 ) + '/' + d.slice( 2, 4 ) + '/' + d.slice( 4 );
 	}
 
@@ -104,6 +121,7 @@
 		}
 
 		var lastIso = '';
+		var lastLen = input.value.length;   // fallback delete-detection, see below
 
 		function render() {
 			var d = parse( input.value );
@@ -135,7 +153,7 @@
 			}
 		}
 
-		input.addEventListener( 'input', function () {
+		input.addEventListener( 'input', function ( e ) {
 			/* Re-mask on every keystroke. Caret handling is deliberately simple:
 			   it is pushed to the end unless the member is editing mid-string, in
 			   which case the slashes before the caret are counted so it does not
@@ -143,7 +161,19 @@
 			   events fire in a different order. */
 			var atEnd = ( input.selectionStart === input.value.length );
 			var before = input.value.slice( 0, input.selectionStart ).replace( /\D/g, '' ).length;
-			input.value = mask( input.value );
+
+			/* Add the closing slash only while typing forwards, and only at the
+			   end. Doing it on a delete would put back the character just
+			   removed; doing it mid-string would shove the caret past a slash
+			   the member is trying to type over. inputType is unset on some old
+			   Android keyboards, so fall back to comparing lengths. */
+			var deleting = e && e.inputType
+				? 0 === e.inputType.indexOf( 'delete' )
+				: ( input.value.length < lastLen );
+			var trailing = atEnd && ! deleting;
+
+			input.value = mask( input.value, trailing );
+			lastLen = input.value.length;
 			if ( ! atEnd ) {
 				var pos = before + ( before > 4 ? 2 : before > 2 ? 1 : 0 );
 				try { input.setSelectionRange( pos, pos ); } catch ( e ) {}
