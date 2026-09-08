@@ -413,7 +413,59 @@ final class Gallery {
 			self::set_avatar( $uid, $ids[0] );
 		}
 
+		/*
+		 * Nothing left — so the avatar has to go too.
+		 *
+		 * This was missing, and it meant deleting your last photo did not
+		 * actually remove it. The attachment went and the gallery emptied, but
+		 * the rendered avatar in uploads/avatars/<id>/ stayed on disk, so every
+		 * other member carried on seeing the photograph its owner believed they
+		 * had deleted. bp_core_delete_existing_avatar() was called on account
+		 * deletion and on NSFW auto-hide, but never here.
+		 *
+		 * It also made PhotoOptions::has_photo() lie: that falls back to "is
+		 * there an image in the avatar directory", so the member still counted
+		 * as having a photo and still passed the completion gate with none.
+		 */
+		if ( empty( $ids ) ) {
+			self::clear_avatar( $uid );
+		}
+
 		wp_send_json_success( array( 'html' => self::grid_html( $uid ), 'count' => count( $ids ) ) );
+	}
+
+	/**
+	 * Remove every rendered avatar file for a member.
+	 *
+	 * Same pattern DeleteAccount uses: BuddyPress's own cleanup is hooked to
+	 * wpmu_delete_user, which never fires on a single site, so the files have to
+	 * be swept by hand. The directory sweep also catches the csm-blur-* cache
+	 * derivatives Privacy writes alongside them — leaving those behind would
+	 * keep serving a blurred copy of a photograph that no longer exists.
+	 */
+	public static function clear_avatar( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid ) {
+			return;
+		}
+
+		if ( function_exists( 'bp_core_delete_existing_avatar' ) ) {
+			bp_core_delete_existing_avatar( array( 'item_id' => $uid, 'object' => 'user' ) );
+		}
+
+		if ( ! function_exists( 'bp_core_avatar_upload_path' ) ) {
+			return;
+		}
+		$dir = bp_core_avatar_upload_path() . '/avatars/' . $uid;
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+		foreach ( (array) glob( $dir . '/*' ) as $f ) {
+			if ( is_file( $f ) ) {
+				@unlink( $f ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			}
+		}
+		@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 	}
 
 	/* -------------------------------------------------------- AJAX: set main */
