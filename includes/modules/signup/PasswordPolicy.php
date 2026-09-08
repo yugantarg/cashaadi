@@ -61,9 +61,22 @@ final class PasswordPolicy {
 	 * @param string $name       The field type BuddyPress asked for.
 	 */
 	public static function strip_generated( $attributes, $name ) {
-		if ( 'password' === $name && is_array( $attributes ) ) {
-			unset( $attributes['data-pw'] );
+		if ( 'password' !== $name || ! is_array( $attributes ) ) {
+			return $attributes;
 		}
+
+		unset( $attributes['data-pw'] );
+
+		/*
+		 * BuddyPress sets autocomplete="off", which is the attribute that stops
+		 * Chrome and Safari offering to generate and save a password. Removing
+		 * the pre-filled one and then telling the browser to stay out would
+		 * leave the member with no help at all. "new-password" is the value
+		 * that invites the browser's own suggestion — which is the point:
+		 * theirs is remembered, ours would not be.
+		 */
+		$attributes['autocomplete'] = 'new-password';
+
 		return $attributes;
 	}
 
