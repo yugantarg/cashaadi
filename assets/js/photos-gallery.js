@@ -65,6 +65,19 @@
 				};
 			} );
 			root.querySelectorAll( '.csm-ph-setmain' ).forEach( function ( b ) { b.onclick = function () { post( 'csm_ph_main', { id: b.getAttribute( 'data-id' ) } ).then( function ( d ) { if ( d ) { say( 'Main photo updated.', true ); } } ); }; } );
+
+			/* Reorder. Position 1 is the main photo, so moving into first place
+			   is also how a photo becomes Main — the server redraws the avatar
+			   only when position 1 actually changed. */
+			root.querySelectorAll( '.csm-ph-move' ).forEach( function ( b ) {
+				b.onclick = function () {
+					if ( b.disabled ) { return; }
+					post( 'csm_ph_reorder', {
+						id: b.getAttribute( 'data-id' ),
+						dir: b.getAttribute( 'data-dir' )
+					} ).then( function ( d ) { if ( d ) { say( 'Order updated.', true ); } } );
+				};
+			} );
 			root.querySelectorAll( '.csm-ph-crop' ).forEach( function ( b ) { b.onclick = function () { adjust( b ); }; } );
 		}
 

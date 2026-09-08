@@ -42,6 +42,7 @@ final class Gallery {
 		// AJAX (unchanged actions + the csm_ph nonce).
 		add_action( 'wp_ajax_csm_ph_upload', array( __CLASS__, 'ajax_upload' ) );
 		add_action( 'wp_ajax_csm_ph_delete', array( __CLASS__, 'ajax_delete' ) );
+		add_action( 'wp_ajax_csm_ph_reorder', array( __CLASS__, 'ajax_reorder' ) );
 		add_action( 'wp_ajax_csm_ph_main', array( __CLASS__, 'ajax_main' ) );
 		// Re-crop an existing photo. Possible at all only because the master is
 		// now the whole picture rather than the crop.
@@ -488,6 +489,58 @@ final class Gallery {
 		@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 	}
 
+	/* --------------------------------------------------------- AJAX: reorder */
+
+	/**
+	 * Move one photo one place earlier or later.
+	 *
+	 * A move, not a full ordering: the client sends which photo and which
+	 * direction, and the server does the arithmetic. Accepting a whole order
+	 * from the browser would mean trusting it to be a permutation of what the
+	 * member actually owns, and validating that is more code than doing the
+	 * swap here.
+	 *
+	 * Position 0 IS the main photo — the same fact ajax_main() relies on — so
+	 * moving something into or out of first place re-renders the avatar. Doing
+	 * that only when position 0 actually changed keeps a reorder of photos 3
+	 * and 4 from rewriting an avatar that did not move.
+	 */
+	public static function ajax_reorder() {
+		check_ajax_referer( 'csm_ph', 'nonce' );
+		$uid = get_current_user_id();
+		$id  = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+		$dir = isset( $_POST['dir'] ) ? (int) $_POST['dir'] : 0;
+
+		if ( ! $uid || ! $id || ( 1 !== $dir && -1 !== $dir ) ) {
+			wp_send_json_error( array( 'message' => __( 'Bad request.', 'cashaadi-ui' ) ) );
+		}
+
+		$ids = array_values( array_map( 'intval', (array) self::get( $uid ) ) );
+		$pos = array_search( $id, $ids, true );
+		if ( false === $pos ) {
+			wp_send_json_error( array( 'message' => __( 'Photo not found.', 'cashaadi-ui' ) ) );
+		}
+
+		$to = $pos + $dir;
+		if ( $to < 0 || $to > count( $ids ) - 1 ) {
+			// Already at the end. Not an error — the button is disabled there.
+			wp_send_json_success( array( 'html' => self::grid_html( $uid ), 'count' => count( $ids ) ) );
+		}
+
+		$was_first = $ids[0];
+		$tmp       = $ids[ $to ];
+		$ids[ $to ]  = $ids[ $pos ];
+		$ids[ $pos ] = $tmp;
+
+		self::save( $uid, $ids );
+
+		if ( $ids[0] !== $was_first ) {
+			self::set_avatar( $uid, $ids[0] );
+		}
+
+		wp_send_json_success( array( 'html' => self::grid_html( $uid ), 'count' => count( $ids ) ) );
+	}
+
 	/* -------------------------------------------------------- AJAX: set main */
 
 	public static function ajax_main() {
@@ -620,22 +673,34 @@ final class Gallery {
 			 * files per member on an account that has already run short of
 			 * inodes once, and they would need regenerating on every adjustment.
 			 */
-			$rect = self::crop_rect( $id );
+			$rect  = self::crop_rect( $id );
+			$only  = ( 1 === count( $ids ) );
+			$first = ( 0 === $idx );
+			$last  = ( count( $ids ) - 1 === $idx );
+
+			/*
+			 * A cell wraps the picture AND its controls.
+			 *
+			 * The buttons used to be absolutely positioned inside the tile,
+			 * over the photograph — which meant they covered the thing being
+			 * judged, and on a 140px column "Adjust crop" and "Make main"
+			 * printed on top of each other. They now sit underneath it, where
+			 * they can be read and cannot collide.
+			 *
+			 * What stays ON the photo is only what refers to the photo itself:
+			 * the Main badge and the small remove cross.
+			 */
+			$html .= '<div class="csm-ph-cell" data-id="' . (int) $id . '">';
+
 			$html .= '<div class="csm-ph-item' . ( $main ? ' is-main' : '' ) . '" data-id="' . (int) $id . '">';
 			// The lightbox still opens the MASTER: the thumbnail answers "what do
 			// others see", the lightbox answers "what did I upload", and both are
 			// worth being able to check.
 			$html .= '<a class="csm-ph-lb" href="' . esc_url( wp_get_attachment_url( $id ) ) . '">'
 				. '<img src="' . esc_url( $src ) . '" alt=""' . self::crop_style( $rect ) . '></a>';
-			// Every photo can be re-framed: Discover shows them all in the same
-			// 7/8 box, so every one of them has a crop that matters.
-			$html .= '<button type="button" class="csm-ph-crop" data-id="' . (int) $id . '"'
-				. ' data-src="' . esc_url( wp_get_attachment_url( $id ) ) . '">Adjust crop</button>';
 
 			if ( $main ) {
 				$html .= '<span class="csm-ph-badge">Main</span>';
-			} else {
-				$html .= '<button type="button" class="csm-ph-setmain" data-id="' . (int) $id . '">Make main</button>';
 			}
 			/*
 			 * The only photo cannot be removed — a profile needs one. Shown as
@@ -643,12 +708,39 @@ final class Gallery {
 			 * a button that quietly vanishes reads as a bug, while one that
 			 * says why reads as a rule. ajax_delete() enforces it regardless.
 			 */
-			$only = ( 1 === count( $ids ) );
 			$html .= '<button type="button" class="csm-ph-del' . ( $only ? ' is-locked' : '' ) . '"'
 				. ' data-id="' . (int) $id . '"'
 				. ( $only ? ' disabled aria-disabled="true" title="' . esc_attr__( 'Add another photo first — your profile needs at least one.', 'cashaadi-ui' ) . '"' : '' )
 				. ' aria-label="' . esc_attr__( 'Remove', 'cashaadi-ui' ) . '">&times;</button>';
-			$html .= '</div>';
+			$html .= '</div>';   // .csm-ph-item
+
+			/*
+			 * Order is what Discover pages through, so it is worth controlling.
+			 * Arrows rather than drag-and-drop: this grid is used on a phone,
+			 * where dragging fights the page scroll, and an arrow is reachable
+			 * with one thumb. Moving the first photo is what makes it Main, so
+			 * the two ideas stay one idea.
+			 */
+			$html .= '<div class="csm-ph-tools">';
+			$html .= '<button type="button" class="csm-ph-move" data-id="' . (int) $id . '" data-dir="-1"'
+				. ( $first ? ' disabled aria-disabled="true"' : '' )
+				. ' aria-label="' . esc_attr__( 'Move earlier', 'cashaadi-ui' ) . '">&#8592;</button>';
+
+			// Every photo can be re-framed: Discover shows them all in the same
+			// 7/8 box, so every one of them has a crop that matters.
+			$html .= '<button type="button" class="csm-ph-crop" data-id="' . (int) $id . '"'
+				. ' data-src="' . esc_url( wp_get_attachment_url( $id ) ) . '">' . esc_html__( 'Adjust crop', 'cashaadi-ui' ) . '</button>';
+
+			if ( ! $main ) {
+				$html .= '<button type="button" class="csm-ph-setmain" data-id="' . (int) $id . '">' . esc_html__( 'Make main', 'cashaadi-ui' ) . '</button>';
+			}
+
+			$html .= '<button type="button" class="csm-ph-move" data-id="' . (int) $id . '" data-dir="1"'
+				. ( $last ? ' disabled aria-disabled="true"' : '' )
+				. ' aria-label="' . esc_attr__( 'Move later', 'cashaadi-ui' ) . '">&#8594;</button>';
+			$html .= '</div>';   // .csm-ph-tools
+
+			$html .= '</div>';   // .csm-ph-cell
 		}
 		$remaining = $max - count( $ids );
 		if ( $remaining > 0 ) {

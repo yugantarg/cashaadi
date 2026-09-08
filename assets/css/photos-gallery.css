@@ -19,9 +19,6 @@
 .csm-ph-item img.is-cropped{position:absolute;top:0;left:0;max-width:none;object-fit:fill}
 .csm-ph-item.is-main{outline:3px solid #7a1220;outline-offset:-3px}
 .csm-ph-badge{position:absolute;top:8px;left:8px;background:#7a1220;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
-/* Every tile now carries Adjust crop at bottom-LEFT, so Make main moves to the
-   right — they were both at left:8px and would have sat on top of each other. */
-.csm-ph-setmain{position:absolute;bottom:40px;left:8px;right:8px;background:rgba(255,255,255,.92);border:0;color:#7a1220;font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px;cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .csm-ph-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:16px;line-height:1;cursor:pointer}
 .csm-ph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:7/8;border:2px dashed #cbb9ad;border-radius:12px;color:#7a1220;cursor:pointer;background:#fbf8f5}
 .csm-ph-add span{font-size:34px;line-height:1}
@@ -161,10 +158,6 @@ body.change-avatar #buddypress .bp-avatar .avatar-crop-actions button {
 .csm-photogate-save:hover { background: var(--csm-ground, #f4f6f8); }
 
 /* ---- adjust crop (main photo only) ---- */
-/* Stacked, not side by side. Both were pinned to the bottom corners of a
-   tile barely 150px wide, so "Adjust crop" and "Make main" printed over
-   each other. Full-width rows cannot collide however long the labels get. */
-.csm-ph-crop{position:absolute;bottom:8px;left:8px;right:8px;z-index:2;background:rgba(255,255,255,.92);border:0;color:#7a1220;font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px;cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .csm-ph-cropover{position:fixed;inset:0;z-index:100000;background:rgba(12,16,20,.82);display:flex;align-items:center;justify-content:center;padding:18px}
 .csm-ph-cropbox{width:100%;max-width:420px;background:#fff;border-radius:14px;padding:14px;box-sizing:border-box}
 .csm-ph-cropactions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
@@ -176,3 +169,17 @@ body.change-avatar #buddypress .bp-avatar .avatar-crop-actions button {
    hidden: a control that vanishes reads as a bug, one plainly disabled reads as
    a rule. ajax_delete() refuses it regardless. */
 .csm-ph-del.is-locked,.csm-ph-del[disabled]{opacity:.35;cursor:not-allowed}
+
+/* ---- controls below the photo, not over it ----
+   These were absolutely positioned inside the tile: they covered the very thing
+   being judged, and on a 140px column "Adjust crop" and "Make main" printed on
+   top of each other. A cell now holds the picture and a row of controls beneath
+   it, so they can be read and cannot collide. Only the Main badge and the remove
+   cross stay on the photo, because those refer to the photo itself. */
+.csm-ph-cell{display:flex;flex-direction:column;gap:6px}
+.csm-ph-tools{display:flex;align-items:center;gap:4px}
+.csm-ph-tools button{border:1px solid #e7dcd3;background:#fff;color:#7a1220;font:inherit;font-weight:700;font-size:12px;padding:6px 8px;border-radius:8px;cursor:pointer;min-height:34px}
+/* The two labelled controls share the space; the arrows stay square. */
+.csm-ph-crop,.csm-ph-setmain{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csm-ph-move{flex:0 0 auto;width:34px;line-height:1;font-size:15px}
+.csm-ph-tools button[disabled]{opacity:.3;cursor:not-allowed}
