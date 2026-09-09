@@ -87,9 +87,25 @@ final class Gallery {
 	}
 
 	public static function save( $uid, $ids ) {
-		$ids = array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
-		$ids = array_slice( $ids, 0, self::max() );
+		$before = (array) get_user_meta( (int) $uid, 'csm_photos', true );
+		$ids    = array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
+		$ids    = array_slice( $ids, 0, self::max() );
 		update_user_meta( (int) $uid, 'csm_photos', $ids );
+
+		/*
+		 * Going from no photos to some answers every outstanding "please add a
+		 * photo" request. There is no approval step for those — the upload IS
+		 * the answer — so without this they would sit pending forever and
+		 * nobody who asked would ever be told.
+		 *
+		 * Fired from save() rather than from the upload endpoint so it holds
+		 * however the first photo arrives: the wizard, the gallery, or a legacy
+		 * import.
+		 */
+		if ( empty( $before ) && ! empty( $ids ) && class_exists( '\CAShaadi\Modules\Photos\PhotoRequest' ) ) {
+			\CAShaadi\Modules\Photos\PhotoRequest::resolve_on_upload( (int) $uid );
+		}
+
 		return $ids;
 	}
 
@@ -400,25 +416,6 @@ final class Gallery {
 
 		$ids = self::get( $uid );
 
-		/*
-		 * A photo is mandatory, so the last one cannot be removed.
-		 *
-		 * Enforced HERE rather than only in the grid: the button is the polite
-		 * half, this is the half that holds. Without it a member could empty
-		 * their gallery and disappear from Discover without ever being told
-		 * that is what they were doing.
-		 *
-		 * Asking for a replacement first is deliberately gentler than refusing
-		 * outright — nobody is trapped with a photo they dislike, they just
-		 * cannot end up with none.
-		 */
-		if ( in_array( $id, array_map( 'intval', $ids ), true ) && count( $ids ) <= 1 ) {
-			wp_send_json_error( array(
-				'message' => __( 'Add another photo first — your profile needs at least one.', 'cashaadi-ui' ),
-				'code'    => 'last_photo',
-			) );
-		}
-
 		$was_main = ( isset( $ids[0] ) && (int) $ids[0] === $id );
 		$ids      = array_values( array_diff( $ids, array( $id ) ) );
 		self::save( $uid, $ids );
@@ -702,15 +699,7 @@ final class Gallery {
 			if ( $main ) {
 				$html .= '<span class="csm-ph-badge">Main</span>';
 			}
-			/*
-			 * The only photo cannot be removed — a profile needs one. Shown as
-			 * a disabled control with the reason attached rather than hidden:
-			 * a button that quietly vanishes reads as a bug, while one that
-			 * says why reads as a rule. ajax_delete() enforces it regardless.
-			 */
-			$html .= '<button type="button" class="csm-ph-del' . ( $only ? ' is-locked' : '' ) . '"'
-				. ' data-id="' . (int) $id . '"'
-				. ( $only ? ' disabled aria-disabled="true" title="' . esc_attr__( 'Add another photo first — your profile needs at least one.', 'cashaadi-ui' ) . '"' : '' )
+			$html .= '<button type="button" class="csm-ph-del" data-id="' . (int) $id . '"'
 				. ' aria-label="' . esc_attr__( 'Remove', 'cashaadi-ui' ) . '">&times;</button>';
 			$html .= '</div>';   // .csm-ph-item
 

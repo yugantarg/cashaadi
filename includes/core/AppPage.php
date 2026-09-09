@@ -304,6 +304,17 @@ final class AppPage {
 		Assets::script( 'dob-input', 'assets/js/dob-input.js' );
 		Assets::script( 'app-screens', 'assets/js/app-screens.js', array( 'cashaadi-ui-dialog' ) );
 
+		/*
+		 * What the shared profile card needs, on whichever screen it is drawn.
+		 * The card is rendered by Discover, the member screen and the profile
+		 * preview; giving each of them its own copy of these is how the three
+		 * drift apart.
+		 */
+		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
+			'nonce'     => wp_create_nonce( 'wp_rest' ),
+			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
+		) );
+
 		// The spotlight overlay: the new-account tour and the first-action
 		// explainers both use it, so it belongs on every app screen rather than
 		// being enqueued twice by the two features that happen to need it.

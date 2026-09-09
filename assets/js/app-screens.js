@@ -228,6 +228,40 @@ window.csmProfileCard = function ( p ) {
 	 * The copy comes from the server (Photos\Gallery), gendered and aware of any
 	 * request already in flight.
 	 */
+	/*
+	 * No photo at all — a normal state since photos stopped being mandatory.
+	 * Say so, and offer the one thing the viewer can actually do: ask. Without
+	 * this the card shows a default silhouette and reads as broken.
+	 */
+	if ( p.photoMissing && p.askPhoto ) {
+		var ask = mk( 'button', 'csm-d-ask' + ( p.verified ? '' : ' is-top' ) );
+		ask.type = 'button';
+		ask.disabled = ( 'pending' === p.askPhoto );
+		ask.textContent = ( 'pending' === p.askPhoto ) ? 'Photo asked for' : 'Ask for a photo';
+		ask.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();          // the photo stack pages on tap
+			if ( ask.disabled ) { return; }
+			ask.disabled = true;
+			fetch( ( window.CSM_APP && window.CSM_APP.askPhoto ) || '/wp-json/csm/v1/photo-request', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': ( window.CSM_APP && window.CSM_APP.nonce ) || ''
+				},
+				body: JSON.stringify( { owner: p.id } )
+			} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
+				ask.textContent = ( d && d.ok ) ? 'Photo asked for' : ( ( d && d.message ) || 'That did not work' );
+				ask.disabled = !! ( d && d.ok );
+			} ).catch( function () {
+				ask.textContent = 'Network problem';
+				ask.disabled = false;
+			} );
+		} );
+		media.appendChild( ask );
+	}
+
 	if ( p.photoHidden ) {
 		/*
 		 * Take the corner when nothing else wants it. The button only sits

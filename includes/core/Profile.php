@@ -426,6 +426,26 @@ final class Profile {
 			}
 		}
 
+		/*
+		 * No photo at all is now a normal state, not an unfinished signup
+		 * (owner, 2026-09-09: a photo is no longer mandatory). So the card has
+		 * to say so, and offer the one useful thing a viewer can do about it —
+		 * ask.
+		 *
+		 * 'can' | 'pending' | '' comes from PhotoRequest, which owns the rules
+		 * and the table. Deciding it here would give the app screen and the
+		 * BuddyPress header two different opinions about the same button.
+		 */
+		$out['photoMissing'] = false;
+		$out['askPhoto']     = '';
+		if ( class_exists( '\CAShaadi\Modules\Onboarding\PhotoOptions' )
+			&& ! \CAShaadi\Modules\Onboarding\PhotoOptions::has_photo( $profile_id ) ) {
+			$out['photoMissing'] = true;
+		}
+		if ( $viewer_id && $viewer_id !== $profile_id && class_exists( '\CAShaadi\Modules\Photos\PhotoRequest' ) ) {
+			$out['askPhoto'] = (string) \CAShaadi\Modules\Photos\PhotoRequest::ui_state( $viewer_id, $profile_id );
+		}
+
 		if ( ! function_exists( 'bp_xprofile_get_groups' ) ) {
 			return $out;
 		}

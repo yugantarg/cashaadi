@@ -94,9 +94,17 @@ if ( ! function_exists( 'cashaadi_has_missing_required_fields' ) ) {
 		if ( ! $user_id || ! function_exists( 'bp_xprofile_get_groups' ) ) {
 			return false;
 		}
-		if ( function_exists( 'bp_get_user_has_avatar' ) && ! bp_get_user_has_avatar( $user_id ) ) {
-			return true; // a profile photo is part of completion
-		}
+		/*
+		 * A photo is NOT part of completion (owner, 2026-09-09: photos are no
+		 * longer mandatory). Other members can ask for one through the Request
+		 * photo button instead, which is a better prompt than a profile the
+		 * member is told is unfinished.
+		 *
+		 * The check was unreliable anyway: Photos filters bp_core_avatar_default
+		 * to serve a local placeholder, so bp_get_user_has_avatar() reports true
+		 * for everybody -- see PhotoOptions::has_photo(), which asks the
+		 * filesystem for exactly this reason.
+		 */
 		$groups = bp_xprofile_get_groups( array(
 			'fetch_fields'      => true,
 			'fetch_field_data'  => false,

@@ -33,6 +33,55 @@ final class PhotoRequest {
 		add_action( 'wp_ajax_csm_pr_submit', array( __CLASS__, 'ajax_submit' ) );
 		add_action( 'wp_ajax_csm_pr_act', array( __CLASS__, 'ajax_act' ) );
 		add_shortcode( 'csm_photo_requests', array( __CLASS__, 'inbox_shortcode' ) );
+
+		// The app screens are REST, not admin-ajax. Same table, same rules.
+		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+	}
+
+	public static function routes() {
+		register_rest_route( 'csm/v1', '/photo-request', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_request' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	/** Ask this member for a photo. Same gate as the ajax path. */
+	public static function rest_request( $request ) {
+		$viewer_id = get_current_user_id();
+		$owner_id  = absint( $request->get_param( 'owner' ) );
+
+		$kind = self::kind( $viewer_id, $owner_id );
+		if ( '' === $kind || ! self::can_request( $viewer_id, $owner_id ) ) {
+			return new \WP_REST_Response( array(
+				'ok'      => false,
+				'message' => __( 'That request cannot be sent.', 'cashaadi-ui' ),
+			), 200 );
+		}
+
+		global $wpdb;
+		$t   = self::table();
+		$now = current_time( 'mysql' );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare(
+			"INSERT INTO {$t} (requester_id, owner_id, status, created_at)
+			 VALUES (%d, %d, 'pending', %s)
+			 ON DUPLICATE KEY UPDATE status = 'pending', created_at = %s, acted_at = NULL",
+			$viewer_id,
+			$owner_id,
+			$now,
+			$now
+		) );
+
+		self::notify_owner( $owner_id, $viewer_id, $kind );
+
+		return new \WP_REST_Response( array(
+			'ok'      => true,
+			'state'   => 'pending',
+			'message' => ( 'upload' === $kind )
+				? __( 'Asked — we have let them know.', 'cashaadi-ui' )
+				: __( 'Photo request sent.', 'cashaadi-ui' ),
+		), 200 );
 	}
 
 	private static function table() {
@@ -76,20 +125,74 @@ final class PhotoRequest {
 		return 'approved' === self::status( $viewer_id, $owner_id );
 	}
 
-	private static function can_request( $viewer_id, $owner_id ) {
+	/**
+	 * What a request would be asking FOR, or '' if it cannot be made.
+	 *
+	 * Two different asks share this table, and the difference matters to
+	 * everything downstream:
+	 *
+	 *   'reveal' — the owner HAS a photo and it is blurred. Approving shows it
+	 *              to this one viewer. The original behaviour.
+	 *   'upload' — the owner has NO photo. There is nothing to approve; the
+	 *              request is a note asking them to add one, and it resolves
+	 *              when they do (see resolve_on_upload()).
+	 *
+	 * The second exists because a photo is no longer mandatory (owner,
+	 * 2026-09-09), so profiles without one are now a normal state rather than
+	 * an unfinished signup.
+	 */
+	public static function kind( $viewer_id, $owner_id ) {
 		$viewer_id = (int) $viewer_id;
 		$owner_id  = (int) $owner_id;
 		if ( ! $viewer_id || ! $owner_id || $viewer_id === $owner_id ) {
+			return '';
+		}
+		if ( ! get_userdata( $owner_id ) ) {
+			return '';
+		}
+		// A block in either direction hides the member entirely; do not offer to
+		// contact them through a photo request.
+		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $viewer_id, $owner_id ) ) {
+			return '';
+		}
+
+		$has_photo = class_exists( '\CAShaadi\Modules\Onboarding\PhotoOptions' )
+			&& \CAShaadi\Modules\Onboarding\PhotoOptions::has_photo( $owner_id );
+
+		if ( ! $has_photo ) {
+			return 'upload';
+		}
+		if ( Privacy::is_hidden( $owner_id, $viewer_id ) ) {
+			return 'reveal';
+		}
+		return '';   // they have a photo and this viewer can already see it
+	}
+
+	private static function can_request( $viewer_id, $owner_id ) {
+		if ( '' === self::kind( $viewer_id, $owner_id ) ) {
 			return false;
 		}
-		if ( ! Privacy::is_hidden( $owner_id, $viewer_id ) ) {
-			return false; // nothing hidden to reveal
-		}
-		$status = self::status( $viewer_id, $owner_id );
+		$status = self::status( (int) $viewer_id, (int) $owner_id );
 		if ( 'pending' === $status || 'approved' === $status ) {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * The state the UI should show: 'can', 'pending', or ''.
+	 *
+	 * One call, so the app screen and the BuddyPress header cannot disagree
+	 * about whether a button belongs on the page.
+	 */
+	public static function ui_state( $viewer_id, $owner_id ) {
+		if ( self::can_request( $viewer_id, $owner_id ) ) {
+			return 'can';
+		}
+		if ( 'pending' === self::status( (int) $viewer_id, (int) $owner_id ) ) {
+			return 'pending';
+		}
+		return '';
 	}
 
 	/** Compose: an approved requester is never hidden. */
@@ -109,10 +212,18 @@ final class PhotoRequest {
 		$owner_id  = (int) bp_displayed_user_id();
 		$viewer_id = (int) get_current_user_id();
 
-		if ( self::can_request( $viewer_id, $owner_id ) ) {
-			echo '<div class="csm-pr-wrap"><button type="button" class="csm-pr-btn" data-owner="' . esc_attr( $owner_id ) . '">Request Photo</button> <span class="csm-pr-msg"></span></div>';
-		} elseif ( 'pending' === self::status( $viewer_id, $owner_id ) ) {
-			echo '<div class="csm-pr-wrap"><span class="csm-pr-pending">Photo request sent</span></div>';
+		$state = self::ui_state( $viewer_id, $owner_id );
+
+		if ( 'can' === $state ) {
+			// "Ask for a photo" when there is none, "Request photo" when it is
+			// merely blurred — the two are different asks and the button should
+			// not claim otherwise.
+			$label = ( 'upload' === self::kind( $viewer_id, $owner_id ) )
+				? __( 'Ask for a photo', 'cashaadi-ui' )
+				: __( 'Request photo', 'cashaadi-ui' );
+			echo '<div class="csm-pr-wrap"><button type="button" class="csm-pr-btn" data-owner="' . esc_attr( $owner_id ) . '">' . esc_html( $label ) . '</button> <span class="csm-pr-msg"></span></div>';
+		} elseif ( 'pending' === $state ) {
+			echo '<div class="csm-pr-wrap"><span class="csm-pr-pending">' . esc_html__( 'Asked', 'cashaadi-ui' ) . '</span></div>';
 		}
 	}
 
@@ -139,7 +250,7 @@ final class PhotoRequest {
 			$now,
 			$now
 		) );
-		self::notify_owner( $owner_id, $viewer_id );
+		self::notify_owner( $owner_id, $viewer_id, self::kind( $viewer_id, $owner_id ) );
 		wp_send_json_success( array( 'message' => 'Photo request sent' ) );
 	}
 
@@ -210,22 +321,83 @@ final class PhotoRequest {
 
 	/* ---- notifications ------------------------------------------------- */
 
-	private static function notify_owner( $owner_id, $viewer_id ) {
+	private static function notify_owner( $owner_id, $viewer_id, $kind = 'reveal' ) {
 		$owner = get_userdata( $owner_id );
 		if ( ! $owner || ! is_email( $owner->user_email ) ) {
 			return;
 		}
 		$viewer_name = bp_core_get_user_displayname( $viewer_id );
-		$subject     = 'New photo request on CAShaadi';
-		$body        = $viewer_name . ' has requested to view your photo. Log in to CAShaadi to approve or deny the request.';
+		$site        = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
-		// Queued so the master switch governs it. The type carries the requester,
-		// so one email per requester and a repeated request cannot spam the owner.
+		/*
+		 * The name is withheld on purpose.
+		 *
+		 * "Somebody" rather than "Priya asked you for a photo": naming the
+		 * requester in an inbox tells the owner who is interested before they
+		 * have decided anything, and on a matrimony site that is a disclosure,
+		 * not a courtesy. Who asked is visible on the site, to a member who is
+		 * logged in.
+		 */
+		if ( 'upload' === $kind ) {
+			$subject = 'Someone asked to see your photo on ' . $site;
+			$html    = '<p>Somebody looking at your profile on ' . esc_html( $site )
+				. ' would like to see a photo — you have not added one yet.</p>'
+				. '<p>Profiles with a photo get far more responses. Adding one takes a few seconds from your phone.</p>';
+			$cta     = 'Add a photo';
+			$url     = home_url( '/profile/edit/?g=10' );
+		} else {
+			$subject = 'New photo request on ' . $site;
+			$html    = '<p>Somebody has asked to see your photo on ' . esc_html( $site ) . '.</p>'
+				. '<p>Your photo is blurred for members you have not matched with. You can approve or decline this request.</p>';
+			$cta     = 'View the request';
+			$url     = home_url( '/profile/' );
+		}
+		unset( $viewer_name );
+
+		$body = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">'
+			. $html
+			. '<p style="margin:26px 0"><a href="' . esc_url( $url )
+			. '" style="background:#7a1220;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:8px;display:inline-block">'
+			. esc_html( $cta ) . '</a></p>'
+			. '<p style="color:#7a6f68;font-size:13px">You can turn these emails off in Settings → Email notifications.</p>'
+			. '</div>';
+
+		// Queued so the master switch, the caps and the quiet window all govern
+		// it. The type carries the requester, so a repeated request from the
+		// same person cannot mail the owner twice.
 		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
 			\CAShaadi\Modules\Emails\Queue::notify( $owner_id, 'csm-photo-req-' . (int) $viewer_id, $subject, $body );
 			return;
 		}
 		wp_mail( $owner->user_email, $subject, $body );
+	}
+
+	/**
+	 * A member added a photo: every 'upload' request against them is answered.
+	 *
+	 * Without this the requests would sit pending forever and the asker would
+	 * never be told, because there is no approval step for an upload request —
+	 * the upload IS the answer.
+	 */
+	public static function resolve_on_upload( $owner_id ) {
+		$owner_id = (int) $owner_id;
+		if ( ! $owner_id ) {
+			return;
+		}
+		global $wpdb;
+		$t = self::table();
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$waiting = $wpdb->get_col( $wpdb->prepare( "SELECT requester_id FROM {$t} WHERE owner_id = %d AND status = 'pending'", $owner_id ) );
+		if ( ! $waiting ) {
+			return;
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET status = 'approved', acted_at = %s WHERE owner_id = %d AND status = 'pending'", current_time( 'mysql' ), $owner_id ) );
+
+		foreach ( $waiting as $rid ) {
+			self::notify_requester( (int) $rid, $owner_id );
+		}
 	}
 
 	private static function notify_requester( $requester_id, $owner_id ) {

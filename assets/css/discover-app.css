@@ -309,3 +309,16 @@ body.csm-member-view .csm-d-card {
 }
 .csm-d-reveal:hover { background: rgba(22, 33, 43, .78); }
 .csm-d-reveal svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+/* "Ask for a photo" — same corner treatment as the unhide button, since only
+   one of the two can ever apply to a given card (no photo, or a blurred one). */
+.csm-d-ask {
+	position: absolute; top: 48px; left: 10px; z-index: 4;
+	padding: 7px 12px; border: 0; border-radius: 999px;
+	background: rgba(22, 33, 43, .62);
+	-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+	color: #fff; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.csm-d-ask.is-top { top: 10px; }
+.csm-d-ask:hover { background: rgba(22, 33, 43, .78); }
+.csm-d-ask[disabled] { opacity: .65; cursor: default; }

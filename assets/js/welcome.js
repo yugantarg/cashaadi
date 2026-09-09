@@ -442,11 +442,12 @@
 			} ).catch( function () {} );
 			blurred = field.blur();
 
+			/* A photo is no longer mandatory (owner, 2026-09-09). The step is
+			   still offered first, because a profile with one does far better,
+			   but it can be walked past. Other members can ask for one later. */
 			if ( ! field.hasAny() ) {
-				if ( field.alreadyDone() ) { done(); return go( idx + 1 ); }
 				done();
-				err.textContent = 'Please add at least one photo to continue.';
-				return;
+				return go( idx + 1 );
 			}
 
 			/*
