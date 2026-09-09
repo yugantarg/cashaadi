@@ -276,7 +276,17 @@ final class ProfileEditScreen {
 			}
 		}
 		if ( ! $group ) {
-			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That section does not exist.', 'cashaadi-ui' ) ), 200 );
+			/*
+			 * Carry the index even on failure, so the client can route to a
+			 * section that DOES exist instead of dead-ending. A stale ?g= from
+			 * history or a bookmark is a bad address, not a reason to strand
+			 * somebody who asked for the obvious thing.
+			 */
+			return new \WP_REST_Response( array(
+				'ok'      => false,
+				'message' => __( 'That section does not exist.', 'cashaadi-ui' ),
+				'index'   => self::group_index(),
+			), 200 );
 		}
 
 		/*

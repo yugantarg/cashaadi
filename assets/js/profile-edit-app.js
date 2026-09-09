@@ -356,9 +356,29 @@
 
 	/* ------------------------------------------------------------ routing */
 
-	function load( gid, push ) {
+	function load( gid, push, recovered ) {
 		api( CFG.get + '?id=' + encodeURIComponent( gid ) ).then( function ( d ) {
 			if ( ! d || ! d.ok ) {
+				/*
+				 * An unknown section is a bad address, not a dead end.
+				 *
+				 * "Edit my profile" links to /profile/edit/ with no group, so a
+				 * ?g= in the bar came from history, a bookmark or an old link —
+				 * and ?g=0 in particular is what the URL looked like before the
+				 * screen picked a section for itself. Showing "Section not
+				 * found" there strands somebody who did nothing wrong and asked
+				 * for the obvious thing. Fall through to the first section and
+				 * correct the URL instead.
+				 *
+				 * `recovered` stops this recursing if the first section is
+				 * itself unavailable, which is the only case worth a message.
+				 */
+				if ( ! recovered && d && d.index && d.index[0] && d.index[0].id ) {
+					var firstId = d.index[0].id;
+					history.replaceState( { g: firstId }, '', '?g=' + firstId );
+					load( firstId, false, true );
+					return;
+				}
 				root.innerHTML = '';
 				var box = el( 'div', 'csm-pe-card' );
 				box.appendChild( el( 'h1', 'csm-pe-title', 'Section not found' ) );
