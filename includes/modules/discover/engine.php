@@ -208,6 +208,38 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		$tier_active = (bool) apply_filters( 'csm_rank_active_tier', true );
 		$w_new      = (float) apply_filters( 'csm_rank_weight_new', 2.0 );
 		$w_jitter   = (float) apply_filters( 'csm_rank_weight_jitter', 1.5 );
+
+		/*
+		 * POPULARITY (owner, 2026-09-19): "I want popular profiles to be shown
+		 * more i.e. high like to impression ratio."
+		 *
+		 * The raw ratio is a trap on small numbers: one like on one impression
+		 * is "100%" and would leapfrog a proven 30% profile. So it is smoothed
+		 * toward the site-wide like rate -- (likes + rate*k) / (shown + k) --
+		 * which reads as the site average until a profile has had k impressions
+		 * of real exposure, then converges on its true rate. k=8 means the first
+		 * week or two of showings barely move it.
+		 *
+		 * The weight is sized against the exposure penalty on purpose. A
+		 * profile shown 10+ times sits at the -10 cap; a 33% profile earns
+		 * about +6.6 back, a median 5% one about +1. So among well-shown
+		 * profiles the popular ones surface first -- the ask -- while a
+		 * never-shown profile (0) still beats a popular, heavily-shown one
+		 * (-3.4), so newcomers still get their first look. Raise
+		 * csm_rank_weight_popular above ~30 and popularity beats freshness.
+		 *
+		 * Live at the time of writing: site rate 5.2%; women's ratios run
+		 * 0-33% with a real spread; only five men have enough impressions for
+		 * a ratio to mean anything, so this mostly reorders which women are
+		 * shown, which is where the impressions are.
+		 */
+		$w_popular  = (float) apply_filters( 'csm_rank_weight_popular', 20.0 );
+		$pop_k      = (float) apply_filters( 'csm_rank_popular_smoothing', 8.0 );
+		$site_rate  = (float) $wpdb->get_var(
+			"SELECT COUNT(*) FROM " . $csm->table( 'likes' )
+		) / max( 1, (float) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_seen" ) );
+		$site_rate  = (float) apply_filters( 'csm_rank_popular_prior', $site_rate );
+		$pop_prior  = $site_rate * $pop_k;   // the numerator's smoothing term
 		$days_active = (int) apply_filters( 'csm_rank_active_days', 30 );
 		$days_new    = (int) apply_filters( 'csm_rank_new_days', 30 );
 
@@ -217,8 +249,9 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		$cut_active  = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days_active . ' days', $now ) );
 		$cut_new     = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days_new . ' days', $now ) );
 
-		$seen_tbl = $wpdb->prefix . 'csm_seen';
-		$act_tbl  = $wpdb->prefix . 'bp_activity';
+		$seen_tbl  = $wpdb->prefix . 'csm_seen';
+		$act_tbl   = $wpdb->prefix . 'bp_activity';
+		$likes_tbl = $csm->table( 'likes' );
 
 		$sql = $wpdb->prepare(
 			"SELECT xp.user_id
@@ -227,6 +260,8 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			        ON sn.profile_id = xp.user_id
 			 LEFT JOIN ( SELECT user_id, MAX(date_recorded) seen_at FROM {$act_tbl} WHERE type = 'last_activity' GROUP BY user_id ) ac
 			        ON ac.user_id = xp.user_id
+			 LEFT JOIN ( SELECT profile_id, COUNT(*) liked FROM {$likes_tbl} GROUP BY profile_id ) lk
+			        ON lk.profile_id = xp.user_id
 			 LEFT JOIN {$wpdb->users} u ON u.ID = xp.user_id
 			 WHERE  xp.field_id = %d
 			   AND  xp.value    = %s
@@ -236,6 +271,7 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			        (
 			          ( - LEAST( COALESCE( sn.shown, 0 ), %d ) * %f )
 			        + IF( u.user_registered IS NOT NULL AND u.user_registered > %s, %f, 0 )
+			        + ( %f * ( ( COALESCE( lk.liked, 0 ) + %f ) / ( COALESCE( sn.shown, 0 ) + %f ) ) )
 			        + ( RAND() * %f )
 			        ) DESC
 			 LIMIT  %d",
@@ -247,6 +283,9 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			$w_exposure,
 			$cut_new,
 			$w_new,
+			$w_popular,
+			$pop_prior,
+			$pop_k,
 			$w_jitter,
 			$slots
 		);
