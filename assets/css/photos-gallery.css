@@ -183,3 +183,13 @@ body.change-avatar #buddypress .bp-avatar .avatar-crop-actions button {
 .csm-ph-crop,.csm-ph-setmain{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .csm-ph-move{flex:0 0 auto;width:34px;line-height:1;font-size:15px}
 .csm-ph-tools button[disabled]{opacity:.3;cursor:not-allowed}
+
+/* Phones: the four controls do not fit one row in a 140px column -- "Adjust
+   crop" and "Make main" were ellipsised to nothing. Arrows share the first
+   row (pushed to the two edges), each labelled button takes a full row. */
+@media (max-width:480px){
+  .csm-ph-tools{flex-wrap:wrap}
+  .csm-ph-move{order:0}
+  .csm-ph-move[data-dir="1"]{margin-left:auto}
+  .csm-ph-crop,.csm-ph-setmain{flex:1 1 100%;order:1}
+}

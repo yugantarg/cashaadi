@@ -320,3 +320,16 @@
    type it. */
 .csm-w-height { margin: 6px 0 0; font-size: 13px; color: var(--csm-muted, #5c6a76); }
 .csm-w-height:empty { display: none; }
+
+/* Photo step: main + reorder (v1.50.2). Thumbs are 72px, so the controls are
+   a tap on the picture (make main) and two arrows beneath, not labelled buttons. */
+.csm-w-thumbcell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.csm-w-thumb[role="button"]:not(.is-main) { cursor: pointer; }
+.csm-w-thumbnav { display: flex; gap: 4px; }
+.csm-w-thumbmove {
+	width: 32px; height: 26px; padding: 0;
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 6px;
+	background: var(--csm-surface, #fff); color: var(--csm-blue, #2c5b8c);
+	font-size: 14px; line-height: 1; cursor: pointer;
+}
+.csm-w-thumbmove[disabled] { opacity: .3; cursor: default; }

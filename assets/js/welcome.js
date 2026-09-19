@@ -323,17 +323,51 @@
 		var uploaded = !! s.done;  // an earlier onboarding already uploaded
 		var activeCrop = null;
 
+		/*
+		 * Order matters here and could not be changed (owner, 2026-09-19:
+		 * "can't choose main or reorder in sign up widget"). Photos are still a
+		 * local array at this point — index 0 becomes the avatar on upload — so
+		 * both controls are array moves. The thumbs are 72px wide, so: tap a
+		 * photo to make it main, arrows beneath to shuffle.
+		 */
+		function move( from, to ) {
+			if ( to < 0 || to >= photos.length || from === to ) { return; }
+			var p = photos.splice( from, 1 )[0];
+			photos.splice( to, 0, p );
+			renderThumbs();
+		}
+
 		function renderThumbs() {
 			strip.innerHTML = '';
 			photos.forEach( function ( p, i ) {
+				var cell = el( 'div', 'csm-w-thumbcell' );
+
 				var t = el( 'div', 'csm-w-thumb' + ( i === 0 ? ' is-main' : '' ) );
+				t.setAttribute( 'role', 'button' );
+				t.setAttribute( 'aria-label', i === 0 ? 'Main photo' : 'Make this the main photo' );
+				t.title = i === 0 ? 'Main photo' : 'Tap to make main';
 				var im = el( 'img' ); im.src = p.url; t.appendChild( im );
 				if ( i === 0 ) { t.appendChild( el( 'span', 'csm-w-thumb-main', 'Main' ) ); }
+				if ( i > 0 ) { t.onclick = function () { move( i, 0 ); }; }
+
 				var x = el( 'button', 'csm-w-thumb-x' ); x.type = 'button';
 				x.setAttribute( 'aria-label', 'Remove photo' ); x.innerHTML = '&times;';
-				x.onclick = function () { photos.splice( i, 1 ); renderThumbs(); syncAdd(); };
+				x.onclick = function ( e ) { e.stopPropagation(); photos.splice( i, 1 ); renderThumbs(); syncAdd(); };
 				t.appendChild( x );
-				strip.appendChild( t );
+				cell.appendChild( t );
+
+				if ( photos.length > 1 ) {
+					var nav = el( 'div', 'csm-w-thumbnav' );
+					var l = el( 'button', 'csm-w-thumbmove' ); l.type = 'button'; l.innerHTML = '&#8592;';
+					l.setAttribute( 'aria-label', 'Move earlier' ); l.disabled = ( i === 0 );
+					l.onclick = function () { move( i, i - 1 ); };
+					var r = el( 'button', 'csm-w-thumbmove' ); r.type = 'button'; r.innerHTML = '&#8594;';
+					r.setAttribute( 'aria-label', 'Move later' ); r.disabled = ( i === photos.length - 1 );
+					r.onclick = function () { move( i, i + 1 ); };
+					nav.appendChild( l ); nav.appendChild( r );
+					cell.appendChild( nav );
+				}
+				strip.appendChild( cell );
 			} );
 		}
 
@@ -341,9 +375,11 @@
 			var max = CFG.photoMax || 6;
 			addBtn.textContent = photos.length ? '+ Add another photo' : 'Choose a photo';
 			addBtn.style.display = photos.length >= max ? 'none' : '';
-			note.textContent = photos.length
-				? ( photos.length + ' of ' + max + ' photos' )
-				: 'Add at least one. Drag to reposition, pinch or slide to zoom.';
+			note.textContent = photos.length > 1
+				? ( photos.length + ' of ' + max + ' photos. Tap a photo to make it your main one; use the arrows to reorder.' )
+				: photos.length
+					? ( photos.length + ' of ' + max + ' photos' )
+					: 'A photo is optional, but profiles with one get far more responses. Drag to reposition, pinch or slide to zoom.';
 			if ( photos.length ) { uploaded = false; }
 		}
 
