@@ -322,3 +322,6 @@ body.csm-member-view .csm-d-card {
 .csm-d-ask.is-top { top: 10px; }
 .csm-d-ask:hover { background: rgba(22, 33, 43, .78); }
 .csm-d-ask[disabled] { opacity: .65; cursor: default; }
+
+/* Next at the end of a free set: still a button, dressed as the ask it is. */
+.csm-d-nav.is-upsell { border-color: var(--csm-gold, #a9822b); color: var(--csm-gold, #a9822b); }

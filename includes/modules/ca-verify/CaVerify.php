@@ -34,6 +34,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class CaVerify {
 
 	public static function register() {
+		// A fresh upload restarts the review -- see on_doc_changed().
+		add_action( 'xprofile_data_after_save', array( __CLASS__, 'on_doc_changed' ) );
+
+		/*
+		 * What the ICAI upload accepts. bpxcftr's 'file' type allowed only
+		 * doc/docx/pdf, so a photograph of a membership card -- the thing most
+		 * members actually have to hand -- was refused at upload. Owner,
+		 * 2026-09-19: "ICAI ID in PDF or jpg format."
+		 *
+		 * Word files are dropped: run_ai() cannot read them, so every one
+		 * became manual work and an indefinite "in review" for the member.
+		 * Everything left here is something the model can actually check.
+		 */
+		add_filter( 'bpxcftr_allowed_extensions', array( __CLASS__, 'allowed_extensions' ) );
 		if ( ! Config::ca_verify_enabled() ) {
 			return; // gated OFF until the coordinated cutover
 		}
@@ -42,6 +56,15 @@ final class CaVerify {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );
 		add_action( 'wp_ajax_csm_av_check', array( __CLASS__, 'ajax_check' ) );
 		add_action( 'wp_ajax_csm_av_decide', array( __CLASS__, 'ajax_decide' ) );
+	}
+
+	/** PDF or a photo — the formats run_ai() can read. */
+	public static function allowed_extensions( $ext ) {
+		if ( ! is_array( $ext ) ) {
+			$ext = array();
+		}
+		$ext['file'] = array( 'pdf', 'jpg', 'jpeg', 'png', 'webp' );
+		return $ext;
 	}
 
 	/* ------------------------------------------------------------ options */
@@ -174,7 +197,17 @@ final class CaVerify {
 			. 'supports_claim (boolean — does the document support the CLAIMED level?), full_name (string, or empty), '
 			. 'membership_number (string ICAI/ACA/FCA number if visible, else empty), issuing_body (string), '
 			. 'authenticity_confidence (number 0 to 1), recommendation (one of "verify","reject","manual_review"), '
-			. 'reason (short string). Recommend "verify" only if the document credibly supports the member\'s CLAIMED level.';
+			. 'reason (short string), '
+			/*
+			 * A fixed code as well as prose. The prose is for the reviewer; the
+			 * code selects which of the member-facing sentences in reasons() the
+			 * person is shown and emailed. Without it a rejection could only
+			 * ever say "we could not verify your document", which tells nobody
+			 * what to do differently.
+			 */
+			. 'reason_code (one of "unclear","name","not_icai","incomplete","wrong_level","expired","other" — '
+			. 'the single best category for why it is not verifiable; "other" only if none fits). '
+			. 'Recommend "verify" only if the document credibly supports the member\'s CLAIMED level.';
 
 		if ( 'pdf' === $ext ) {
 			$content = array(
@@ -348,6 +381,9 @@ final class CaVerify {
 		if ( 'rejected' === $s ) {
 			return 'rejected';
 		}
+		if ( 'review' === $s ) {
+			return 'review';   // the model could not decide; a person is looking
+		}
 		// doc() already answers "has anything been uploaded"; a second copy of
 		// that question would be one more thing to keep in step.
 		return self::doc( $uid ) ? 'pending' : 'none';
@@ -366,11 +402,99 @@ final class CaVerify {
 				$reasons = self::reasons();
 				$key     = (string) get_user_meta( (int) $uid, 'csm_av_reason', true );
 				return isset( $reasons[ $key ] ) ? $reasons[ $key ] : $reasons['other'];
+			case 'review':
+				return __( 'Your document needs a closer look from our team. We will email you once it is decided — you do not need to do anything.', 'cashaadi-ui' );
 			case 'pending':
 				return __( 'Your document is being checked. This usually takes a day.', 'cashaadi-ui' );
 			default:
 				return __( 'Upload your ICAI certificate to get the Verified CA badge.', 'cashaadi-ui' );
 		}
+	}
+
+	/**
+	 * Record a rejection and tell the member why, in one place.
+	 *
+	 * Used by both the cron (a clear model "reject") and the admin queue, so
+	 * neither can forget the email. Until 2026-09-19 neither sent one: a
+	 * member found out only by revisiting their profile, which most never did —
+	 * hence "showing in review indefinitely" from the member's side even when
+	 * a decision had been made.
+	 *
+	 * @param int    $uid    The member.
+	 * @param string $reason A key from reasons(); anything else becomes 'other'.
+	 * @param int    $by     Reviewer id, 0 for the model.
+	 */
+	public static function reject( $uid, $reason, $by = 0 ) {
+		$uid    = (int) $uid;
+		$reason = array_key_exists( (string) $reason, self::reasons() ) ? (string) $reason : 'other';
+
+		update_user_meta( $uid, 'csm_av_status', 'rejected' );
+		update_user_meta( $uid, 'csm_av_reason', $reason );
+		update_user_meta( $uid, 'csm_av_decided_by', (int) $by );
+		update_user_meta( $uid, 'csm_av_decided_at', time() );
+		if ( 0 === (int) $by ) {
+			update_user_meta( $uid, 'csm_av_auto', 1 );
+		}
+
+		self::email_rejection( $uid, $reason );
+	}
+
+	/**
+	 * "We could not verify your document — here is why, here is where to fix it."
+	 *
+	 * Queued, so it obeys the master switch and the caps. The type carries the
+	 * decision time so a member rejected, re-uploading and rejected again is
+	 * told the second time too — a fixed type would dedupe the second away.
+	 */
+	private static function email_rejection( $uid, $reason ) {
+		$user = get_userdata( $uid );
+		if ( ! $user || ! is_email( $user->user_email ) ) {
+			return;
+		}
+		$reasons = self::reasons();
+		$why     = isset( $reasons[ $reason ] ) ? $reasons[ $reason ] : $reasons['other'];
+		$site    = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$name    = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : $user->display_name;
+		$first   = trim( (string) preg_split( '/\s+/', trim( (string) $name ) )[0] );
+
+		$body = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">'
+			. '<p>Hi ' . esc_html( $first ? $first : 'there' ) . ',</p>'
+			. '<p>We looked at the ICAI document on your ' . esc_html( $site ) . ' profile and could not verify it yet.</p>'
+			. '<p style="padding:12px 14px;background:#fdf3e7;border-left:4px solid #a9822b;border-radius:6px"><strong>' . esc_html( $why ) . '</strong></p>'
+			. '<p>Upload a replacement and we will check it again — the Verified CA badge is shown as soon as it passes.</p>'
+			. '<p style="margin:26px 0"><a href="' . esc_url( home_url( '/profile/edit/?g=10' ) )
+			. '" style="background:#7a1220;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:8px;display:inline-block">Upload a new document</a></p>'
+			. '<p style="color:#7a6f68;font-size:13px">If you think this is a mistake, reply to this email and a person will look.</p>'
+			. '</div>';
+
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
+			\CAShaadi\Modules\Emails\Queue::notify( $uid, 'csm-ca-rejected-' . time(), 'About your ICAI document on ' . $site, $body );
+			return;
+		}
+		wp_mail( $user->user_email, 'About your ICAI document on ' . $site, $body );
+	}
+
+	/**
+	 * A fresh upload starts the review again.
+	 *
+	 * Without this a rejected member who did exactly what the email asked —
+	 * uploaded a better document — stayed "rejected" forever, because nothing
+	 * watched the field. The model re-checks it on the next sweep.
+	 */
+	public static function on_doc_changed( $data ) {
+		$field_id = is_object( $data ) && isset( $data->field_id ) ? (int) $data->field_id : 0;
+		$uid      = is_object( $data ) && isset( $data->user_id ) ? (int) $data->user_id : 0;
+		if ( $field_id !== (int) Config::FIELD_CA_DOC || ! $uid ) {
+			return;
+		}
+		$status = (string) get_user_meta( $uid, 'csm_av_status', true );
+		if ( 'approved' === $status ) {
+			return;   // an approved member changing their document is a reviewer's call, not an automatic one
+		}
+		delete_user_meta( $uid, 'csm_av_status' );
+		delete_user_meta( $uid, 'csm_av_result' );
+		delete_user_meta( $uid, 'csm_av_reason' );
+		delete_user_meta( $uid, 'csm_av_time' );
 	}
 
 	public static function status_label( $uid ) {
@@ -464,20 +588,16 @@ final class CaVerify {
 		if ( ! $uid || ! in_array( $dec, array( 'approved', 'rejected' ), true ) ) {
 			wp_send_json_error( array( 'error' => 'Bad request.' ) );
 		}
-		update_user_meta( $uid, 'csm_av_status', $dec );
-		update_user_meta( $uid, 'csm_av_decided_by', get_current_user_id() );
-		update_user_meta( $uid, 'csm_av_decided_at', time() );
-
-		/*
-		 * The reason is only meaningful on a rejection, and it is cleared on
-		 * approval so a member who is rejected, re-uploads and is then accepted
-		 * is not left carrying an explanation for a decision that was reversed.
-		 */
 		if ( 'rejected' === $dec ) {
+			// One path for every rejection, so the email cannot be forgotten.
 			$reason = isset( $_POST['reason'] ) ? sanitize_key( wp_unslash( $_POST['reason'] ) ) : '';
-			$reason = array_key_exists( $reason, self::reasons() ) ? $reason : 'other';
-			update_user_meta( $uid, 'csm_av_reason', $reason );
+			self::reject( $uid, $reason, get_current_user_id() );
 		} else {
+			update_user_meta( $uid, 'csm_av_status', $dec );
+			update_user_meta( $uid, 'csm_av_decided_by', get_current_user_id() );
+			update_user_meta( $uid, 'csm_av_decided_at', time() );
+			// Cleared on approval so a member rejected, re-uploaded and then
+			// accepted is not left carrying an explanation for a reversed decision.
 			delete_user_meta( $uid, 'csm_av_reason' );
 		}
 

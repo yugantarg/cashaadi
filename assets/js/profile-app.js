@@ -52,6 +52,11 @@
 			// tried yet", which is exactly what somebody who HAS tried must not
 			// be told — they will upload the same wrong document again.
 			badges.appendChild( link( 'csm-p-badge is-rejected', d.links.verify, 'Not verified — try again' ) );
+		} else if ( 'review' === d.caState ) {
+			// The model could not decide and a person is looking. Not a link:
+			// there is nothing for the member to do, and a tap that leads to
+			// the upload screen would suggest otherwise.
+			badges.appendChild( el( 'span', 'csm-p-badge is-pending', 'Verification with our team' ) );
 		} else if ( 'pending' === d.caState && d.links && d.links.verify ) {
 			badges.appendChild( link( 'csm-p-badge is-pending', d.links.verify, 'Verification in review' ) );
 		} else if ( d.links && d.links.verify ) {
@@ -80,6 +85,15 @@
 			vwarn.appendChild( vtxt );
 			vwarn.appendChild( el( 'span', 'csm-p-nudge-cta', 'Re-upload' ) );
 			root.appendChild( vwarn );
+		} else if ( 'review' === d.caState && d.caNote ) {
+			// Told plainly that a person has it, so "in review" stops reading as
+			// a promise that quietly never arrives.
+			var vinfo = el( 'div', 'csm-p-nudge is-info' );
+			var itxt = el( 'span', 'csm-p-nudge-text' );
+			itxt.appendChild( el( 'strong', null, 'Your ICAI document is with our team' ) );
+			itxt.appendChild( el( 'span', null, d.caNote ) );
+			vinfo.appendChild( itxt );
+			root.appendChild( vinfo );
 		}
 
 		/* ---- a photo too small to look sharp ----

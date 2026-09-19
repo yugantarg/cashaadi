@@ -97,12 +97,22 @@ final class CaCron {
 				continue;
 			}
 			$status = get_user_meta( $uid, 'csm_av_status', true );
-			if ( 'approved' === $status || 'rejected' === $status ) {
-				continue;
+			if ( 'approved' === $status || 'rejected' === $status || 'review' === $status ) {
+				continue;   // decided, or waiting on a person -- not the model's again
 			}
 			$result = get_user_meta( $uid, 'csm_av_result', true );
 			if ( '' !== $result && null !== $result ) {
-				continue;
+				/*
+				 * A transport or model error is not a decision. Those rows were
+				 * skipped forever here -- one bad API minute and the member was
+				 * "pending" for good. Retry after six hours; a real verdict
+				 * (JSON, not "AI error: ...") is still final.
+				 */
+				$is_error = 0 === strpos( (string) $result, 'AI error' );
+				$age      = time() - (int) get_user_meta( $uid, 'csm_av_time', true );
+				if ( ! $is_error || $age < 6 * HOUR_IN_SECONDS ) {
+					continue;
+				}
 			}
 			$out[] = $uid;
 			if ( count( $out ) >= $limit ) {
@@ -150,8 +160,59 @@ final class CaCron {
 			return 'approved';
 		}
 
-		/* manual_review / reject -> leave for the owner, never downgrade */
+		/*
+		 * The two non-verify outcomes used to be treated the same: leave the
+		 * row untouched for the owner. That meant a member whose document the
+		 * model had clearly rejected saw "being checked, usually takes a day"
+		 * indefinitely, and was told nothing. Owner, 2026-09-19: "there should
+		 * be a proper email system and even on the profile screen it needs to
+		 * be clear what exactly is the issue."
+		 *
+		 * A clear "reject" is now acted on: status, a reason the member can act
+		 * on, and an email saying so. The reviewer can still overturn it from
+		 * the queue, and a re-upload restarts the review. "manual_review" stays
+		 * a person's call -- but the member is told THAT, rather than left
+		 * reading a promise of a day.
+		 */
+		if ( 'reject' === $rec ) {
+			$code = is_array( $verdict ) && isset( $verdict['reason_code'] ) ? sanitize_key( (string) $verdict['reason_code'] ) : '';
+			if ( '' === $code || ! array_key_exists( $code, CaVerify::reasons() ) ) {
+				$code = self::guess_reason( is_array( $verdict ) && isset( $verdict['reason'] ) ? (string) $verdict['reason'] : '' );
+			}
+			CaVerify::reject( $uid, $code, 0 );
+			return 'rejected:' . $code;
+		}
+
+		update_user_meta( $uid, 'csm_av_status', 'review' );
 		return 'held:' . $rec;
+	}
+
+	/**
+	 * Map the model's prose reason onto a member-facing key, for models that
+	 * ignore the reason_code instruction. Keyword order matters: "not an ICAI
+	 * document" beats "unclear" if both appear, because the fix is different.
+	 */
+	private static function guess_reason( $text ) {
+		$t = strtolower( (string) $text );
+		if ( '' === $t ) {
+			return 'other';
+		}
+		$map = array(
+			'not_icai'    => array( 'not an icai', 'not icai', 'not a ca', 'unrelated', 'different document', 'not a certificate' ),
+			'wrong_level' => array( 'intermediate', 'ipcc', 'level', 'final', 'membership number', 'does not support' ),
+			'name'        => array( 'name' ),
+			'incomplete'  => array( 'cut off', 'cropped', 'partial', 'incomplete', 'missing part' ),
+			'expired'     => array( 'expired', 'old', 'outdated', 'not current' ),
+			'unclear'     => array( 'blur', 'unclear', 'illegible', 'low resolution', 'cannot read', 'unreadable', 'poor quality' ),
+		);
+		foreach ( $map as $key => $needles ) {
+			foreach ( $needles as $n ) {
+				if ( false !== strpos( $t, $n ) ) {
+					return $key;
+				}
+			}
+		}
+		return 'other';
 	}
 
 	/* ---------- the sweep the cron fires ---------- */

@@ -160,9 +160,21 @@
 		next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
 
 		prev.disabled = ( step( -1 ) < 0 );
-		next.disabled = ( step( 1 ) < 0 );
+		/*
+		 * At the end of a FREE member's set, Next stays live and explains
+		 * itself. A greyed-out arrow at the fifth profile said nothing about
+		 * why -- owner, 2026-09-19: "Premium option should show if I try
+		 * scrolling past 5th profile." Premium members, and anyone with a
+		 * profile still ahead of them, get the plain behaviour.
+		 */
+		var atEnd = ( step( 1 ) < 0 );
+		next.disabled = atEnd && !! meta.isPremium;
+		if ( atEnd && ! meta.isPremium ) { next.classList.add( 'is-upsell' ); }
 		prev.addEventListener( 'click', function () { go( -1 ); } );
-		next.addEventListener( 'click', function () { go( 1 ); } );
+		next.addEventListener( 'click', function () {
+			if ( atEnd && ! meta.isPremium ) { return upsell(); }
+			go( 1 );
+		} );
 
 		bar.appendChild( prev );
 		bar.appendChild( pass );
@@ -190,6 +202,25 @@
 		if ( i < 0 ) { return; }
 		idx = i;
 		draw();
+	}
+
+	/* The Premium prompt, in the same dialog the blurred-photo button uses, so
+	   a free member meets one consistent ask wherever the limit shows. */
+	function upsell() {
+		var freeN = meta.freeQuota || 5, premN = meta.premiumQuota || 10;
+		var note = 'That\u2019s all ' + freeN + ' profiles in your free set for this week. '
+			+ 'Premium members get ' + premN + ' every week, and can see who viewed them.';
+		if ( ! window.csmConfirm ) {
+			if ( meta.upgrade && window.confirm( note + '\n\nSee Premium?' ) ) { window.location.href = meta.upgrade; }
+			return;
+		}
+		window.csmConfirm( note, {
+			title: 'Want more profiles?',
+			okText: 'See Premium',
+			cancelText: 'Not now'
+		} ).then( function ( yes ) {
+			if ( yes && meta.upgrade ) { window.location.href = meta.upgrade; }
+		} );
 	}
 
 	/*
@@ -260,7 +291,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota };
 		idx = 0;
 		draw();
 
