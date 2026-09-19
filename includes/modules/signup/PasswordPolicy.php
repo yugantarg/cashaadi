@@ -95,6 +95,66 @@ final class PasswordPolicy {
 		wp_dequeue_script( 'user-profile' );
 		wp_dequeue_script( 'password-strength-meter' );
 		wp_dequeue_script( 'zxcvbn-async' );
+
+		/*
+		 * The eye came with the meter. user-profile.js is ALSO what binds the
+		 * show/hide button (.wp-hide-pw), so dequeuing it silently killed the
+		 * eye — reported by the owner on 2026-09-19. Rather than reload a
+		 * script that drags 800KB of dictionary back in, bind the button here.
+		 *
+		 * Also: live "passwords match" feedback, which BuddyPress never had.
+		 * The confirm box only reported a mismatch after submit; saying it as
+		 * they type saves a round trip on the one form that must not lose people.
+		 */
+		wp_add_inline_script( 'jquery', self::inline_js(), 'after' );
+		wp_enqueue_script( 'jquery' );
+	}
+
+	private static function inline_js() {
+		return <<<'JS'
+(function(){
+	function ready(fn){ if(document.readyState!=='loading'){fn();} else {document.addEventListener('DOMContentLoaded',fn);} }
+	ready(function(){
+		var pass1 = document.getElementById('pass1');
+		var pass2 = document.getElementById('pass2');
+
+		/* Show / hide. */
+		document.querySelectorAll('.wp-hide-pw').forEach(function(btn){
+			btn.addEventListener('click', function(e){
+				e.preventDefault();
+				var wrap = btn.closest('.wp-pwd') || btn.parentNode;
+				var input = wrap ? wrap.querySelector('input.password-entry, input[type="password"], input[data-shown="1"]') : null;
+				if(!input){ return; }
+				var show = input.type === 'password';
+				input.type = show ? 'text' : 'password';
+				input.setAttribute('data-shown', show ? '1' : '0');
+				var icon = btn.querySelector('.dashicons');
+				if(icon){ icon.classList.toggle('dashicons-visibility', !show); icon.classList.toggle('dashicons-hidden', show); }
+				var label = btn.querySelector('.text');
+				if(label){ label.textContent = show ? 'Hide' : 'Show'; }
+				btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+			});
+		});
+
+		/* Match feedback, live. */
+		if(pass1 && pass2){
+			var note = document.createElement('p');
+			note.className = 'csm-pw-match';
+			note.setAttribute('aria-live','polite');
+			note.style.cssText = 'margin:6px 0 0;font-size:13px;line-height:1.4;';
+			pass2.parentNode.appendChild(note);
+			function check(){
+				if(!pass2.value){ note.textContent=''; return; }
+				var ok = pass1.value === pass2.value;
+				note.textContent = ok ? '✓ Passwords match' : 'Passwords do not match yet';
+				note.style.color = ok ? '#2f7d4f' : '#b23b3b';
+			}
+			pass1.addEventListener('input', check);
+			pass2.addEventListener('input', check);
+		}
+	});
+})();
+JS;
 	}
 
 	/**

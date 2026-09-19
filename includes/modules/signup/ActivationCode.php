@@ -53,6 +53,18 @@ final class ActivationCode {
 		// Issue a code as soon as the signup row exists.
 		add_action( 'bp_core_signup_user', array( __CLASS__, 'on_signup' ), 20, 5 );
 
+		/*
+		 * Only the code goes out. Owner, 2026-09-19: "Activation link emails
+		 * still being sent — only otp should be sent."
+		 *
+		 * Both were going: BuddyPress's activation-link email AND our code
+		 * email, to every signup, because nothing ever told BuddyPress to stop.
+		 * This filter gates only the SEND — the activation key is generated and
+		 * stored before it runs, and that key is what verify() redeems, so the
+		 * code flow is unaffected.
+		 */
+		add_filter( 'bp_core_signup_send_activation_key', '__return_false', 100 );
+
 		// Put the code into BuddyPress's own registration email.
 		add_filter( 'bp_email_get_property', array( __CLASS__, 'inject_code' ), 20, 4 );
 
