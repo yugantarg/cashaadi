@@ -314,3 +314,9 @@
 	width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0;
 	transform: rotate(45deg);
 }
+
+/* Feet-and-inches readout under a height typed in cm — same as the profile
+   editor's, so a new member learns how their height will read where they first
+   type it. */
+.csm-w-height { margin: 6px 0 0; font-size: 13px; color: var(--csm-muted, #5c6a76); }
+.csm-w-height:empty { display: none; }

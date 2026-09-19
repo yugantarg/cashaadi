@@ -128,11 +128,23 @@ final class Welcome {
 			);
 			\CAShaadi\Core\Assets::style( 'cropper', 'assets/css/cropper.css' );
 			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
-			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking', 'cashaadi-cropper' ) );
+			/*
+			 * dob-input: the age readout under a typed date of birth. It was on
+			 * every OTHER screen that edits a date, but not the one screen
+			 * every new member goes through -- so "date of birth on sign up
+			 * doesn't show age". ui-dialog carries csmBusy, which welcome.js
+			 * already asks for and never got: "Continue takes a long time
+			 * after photo -- show processing."
+			 */
+			\CAShaadi\Core\Assets::script( 'dob-input', 'assets/js/dob-input.js' );
+			\CAShaadi\Core\Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking', 'cashaadi-cropper', 'cashaadi-dob-input', 'cashaadi-ui-dialog' ) );
 		} else {
 			\CAShaadi\Core\Assets::style( 'cropper', 'assets/css/cropper.css' );
 			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
-			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-cropper' ) );
+			\CAShaadi\Core\Assets::script( 'dob-input', 'assets/js/dob-input.js' );
+			\CAShaadi\Core\Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-cropper', 'cashaadi-dob-input', 'cashaadi-ui-dialog' ) );
 		}
 
 		wp_localize_script(
@@ -429,6 +441,9 @@ final class Welcome {
 					'options'  => self::options_for( $field ),
 					'multi'    => $multi,
 					'required' => ! empty( $field->is_required ),
+					// Same flag the profile editor sends, so the wizard can show
+					// the feet-and-inches readout under a height typed in cm.
+					'heightNote' => ( $fid === \CAShaadi\Core\Config::FIELD_HEIGHT ),
 				);
 			}
 

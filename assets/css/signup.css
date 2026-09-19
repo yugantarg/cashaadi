@@ -235,3 +235,32 @@ body.activate #activation-form input[type=submit]:hover { background: var(--csm-
 .csm-dob-age { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--csm-muted, #5c6a76); }
 .csm-dob-age:empty { display: none; }
 .csm-dob-age.is-bad { color: var(--csm-danger, #b3261e); }
+
+/* ---- activation screen: no duplicate title, buttons that look like ours (v1.50.1) ----
+   The theme prints the page title as a band above the content. On this screen
+   the card already carries its own heading, so the band was a stray bar
+   between the header and the form. Hidden here, not removed from the theme:
+   every other page still wants it. */
+body.activation .entry-header-title,
+body.activate .entry-header-title { display: none; }
+
+/* Specificity, not taste. The theme's button reset out-ranked
+   .csm-actcode-form button, so both buttons rendered as bare grey outlines.
+   The resend button also sits OUTSIDE the form, so the old selector never
+   reached it at all. */
+.csm-actcode .csm-actcode-form button[type="submit"] {
+	width: 100%; margin-top: 18px; padding: 14px 18px;
+	border: 0; border-radius: 999px;
+	background: var(--csm-green, #6f9f2e); color: #fff;
+	font: inherit; font-size: 15.5px; font-weight: 700; cursor: pointer;
+}
+.csm-actcode .csm-actcode-form button[type="submit"]:hover { background: var(--csm-green-press, #5e8926); }
+/* Secondary: it is the way out, not the way forward. */
+.csm-actcode .csm-actcode-resend-btn {
+	display: inline-block; margin-top: 10px; padding: 10px 16px;
+	border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 999px;
+	background: var(--csm-surface, #fff); color: var(--csm-blue, #2c5b8c);
+	font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.csm-actcode .csm-actcode-resend-btn:hover { border-color: var(--csm-blue, #2c5b8c); }
+.csm-actcode .csm-actcode-resend-btn[disabled] { opacity: .5; cursor: default; }

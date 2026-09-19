@@ -226,6 +226,26 @@
 			dob = window.csmDobInput( node );
 		}
 
+		/*
+		 * Height goes in as centimetres and is shown to others as feet and
+		 * inches. The profile editor has said so under the field since v1.10;
+		 * the wizard never did, so the one place a new member first types their
+		 * height gave them no idea how it would read. Same arithmetic, same
+		 * wording, so the two screens cannot disagree.
+		 */
+		if ( f.heightNote ) {
+			var hnote = el( 'p', 'csm-w-hint csm-w-height' );
+			wrap.appendChild( hnote );
+			var showHeight = function () {
+				var cm = parseInt( node.value, 10 );
+				if ( ! cm || cm < 100 || cm > 260 ) { hnote.textContent = ''; return; }
+				var inches = Math.round( cm / 2.54 );
+				hnote.textContent = 'Others see: ' + Math.floor( inches / 12 ) + '′ ' + ( inches % 12 ) + '″';
+			};
+			node.addEventListener( 'input', showHeight );
+			showHeight();
+		}
+
 		return {
 			node: wrap,
 			value: function () { return dob ? dob.iso() : node.value; },
