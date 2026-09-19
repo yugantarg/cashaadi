@@ -63,15 +63,6 @@ final class Premium {
 		// active). Premium sees the full list; free sees a locked teaser + count.
 		add_shortcode( 'csm_profile_visitors', array( __CLASS__, 'pv_shortcode' ) );
 
-		/*
-		 * Log a decline wherever it happens. Our Requests screen already logs
-		 * one; a decline through BuddyPress's own bell or friends page did not,
-		 * and the request row and its notification are deleted in the process
-		 * -- so a like that was delivered, seen and turned down left no trace at
-		 * all and looked like a like that never arrived. Six of this week's 61
-		 * likes read that way, all on the two most popular profiles.
-		 */
-		add_action( 'friends_friendship_rejected', array( __CLASS__, 'on_bp_rejected' ), 10, 2 );
 		add_action( 'bp_setup_nav', array( __CLASS__, 'pv_subnav' ), 20 );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'premium_assets' ) );
 
@@ -629,16 +620,6 @@ final class Premium {
 	}
 
 	/** Idempotent: record that $rejecter declined $rejected. */
-	/** BuddyPress declined it -- from the bell, its friends page, or anywhere else. */
-	public static function on_bp_rejected( $friendship_id, $friendship = null ) {
-		if ( ! is_object( $friendship ) ) {
-			return;
-		}
-		$rejecter = isset( $friendship->friend_user_id ) ? (int) $friendship->friend_user_id : 0;
-		$rejected = isset( $friendship->initiator_user_id ) ? (int) $friendship->initiator_user_id : 0;
-		self::log_rejection( $rejecter, $rejected, 'buddypress' );
-	}
-
 	public static function log_rejection( $rejecter, $rejected, $source = 'request' ) {
 		$rejecter = (int) $rejecter;
 		$rejected = (int) $rejected;
