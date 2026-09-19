@@ -95,8 +95,25 @@ final class Engine {
 
 	/** Opposite gender string for matching. */
 	public function get_opposite_gender( $user_id ) {
-		$gender = $this->get_gender( $user_id );
-		$opp    = ( 'Male' === $gender ) ? 'Female' : 'Male';
+		$gender = trim( (string) $this->get_gender( $user_id ) );
+
+		/*
+		 * Unknown is unknown, not "Female".
+		 *
+		 * This used to read `'Male' === $gender ? 'Female' : 'Male'`, so an
+		 * EMPTY gender resolved to "show them men" and the engine's own
+		 * `if ( empty( $opposite ) )` guard could never fire. A member who
+		 * signed up without a gender -- six on production, four of them in
+		 * the previous ten days -- was served a tray of his own gender. Found
+		 * when the owner asked why "Aadi S" had no gender.
+		 */
+		if ( 'Male' === $gender ) {
+			$opp = 'Female';
+		} elseif ( 'Female' === $gender ) {
+			$opp = 'Male';
+		} else {
+			$opp = '';   // the caller refuses to serve until the member has answered
+		}
 		return apply_filters( 'csm_opposite_gender', $opp, $user_id, $gender );
 	}
 

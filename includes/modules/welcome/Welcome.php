@@ -412,7 +412,16 @@ final class Welcome {
 				if ( $fid === Config::FIELD_AGE ) {
 					continue; // auto-derived from DOB
 				}
-				if ( in_array( $fid, Config::SIGNUP_FIELDS, true ) ) {
+				/*
+				 * Signup fields are skipped as "already collected" -- but only
+				 * when they actually were. Gender lives in SIGNUP_FIELDS, and a
+				 * member who reached here without one (six on production) was
+				 * never asked again anywhere, and could not set it themselves
+				 * because the profile editor locks it. An empty required field
+				 * is a question, wherever it was supposed to be answered.
+				 */
+				if ( in_array( $fid, Config::SIGNUP_FIELDS, true )
+					&& '' !== trim( (string) self::value_of( $fid, $uid ) ) ) {
 					continue; // collected at sign-up
 				}
 				if ( in_array( (string) $field->name, \CAShaadi\Core\Profile::UNCOUNTED_FIELDS, true ) ) {

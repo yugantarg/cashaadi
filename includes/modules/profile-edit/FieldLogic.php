@@ -75,8 +75,16 @@ final class FieldLogic {
 		if ( ! $uid && isset( $_POST['user_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$uid = (int) $_POST['user_id'];
 		}
-		if ( ! $uid ) {
-			$uid = bp_displayed_user_id() ? bp_displayed_user_id() : get_current_user_id();
+		/*
+		 * Only the displayed user, never the logged-in one. A write that
+		 * carries no user of its own -- an activation, an import, a cron --
+		 * used to fall back to get_current_user_id(), i.e. whoever happened to
+		 * be logged in on the machine doing the activating. That is the wrong
+		 * person's gender being "kept". If we cannot tell whose field this is,
+		 * we cannot know it is locked, so let the write through.
+		 */
+		if ( ! $uid && function_exists( 'bp_displayed_user_id' ) ) {
+			$uid = (int) bp_displayed_user_id();
 		}
 		if ( ! $uid ) {
 			return $value;

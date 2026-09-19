@@ -43,6 +43,20 @@ final class DiscoverScreen {
 			return;
 		}
 
+		/*
+		 * No gender, no Discover. The engine now refuses to serve a member whose
+		 * gender is unknown (it used to serve them men), so this screen would
+		 * show an empty tray with no explanation. Send them to the wizard, which
+		 * now asks the question. Admins are exempt, as everywhere else.
+		 */
+		if ( ! current_user_can( 'manage_options' ) && function_exists( 'cashaadi' ) ) {
+			$g = trim( (string) cashaadi()->get_gender( get_current_user_id() ) );
+			if ( 'Male' !== $g && 'Female' !== $g ) {
+				wp_safe_redirect( home_url( '/welcome/' ) );
+				exit;
+			}
+		}
+
 		AppPage::assets();
 		Assets::style( 'discover-app', 'assets/css/discover-app.css', array( 'cashaadi-app-screens' ) );
 		Assets::script( 'discover-app', 'assets/js/discover-app.js', array( 'cashaadi-app-screens' ) );
