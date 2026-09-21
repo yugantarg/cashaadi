@@ -858,8 +858,28 @@ final class Premium {
 	}
 
 	/**
+	 * Does this member get "someone viewed you" emails at all?
+	 *
+	 * Owner, 2026-09-21: "stop someone viewed you for women". A woman's profile
+	 * is put in front of many men every day, so the once-a-day cap was hit every
+	 * day: 280 of these went to 87 women in one week, on top of a "liked you"
+	 * email per like. Men are viewed far less often and keep the email.
+	 * The excluded list is an option so it can be changed without a deploy.
+	 */
+	public static function view_email_wanted( $viewed ) {
+		$skip = get_option( 'csm_viewed_email_skip_genders', array( 'Female' ) );
+		$skip = array_map( 'strval', (array) apply_filters( 'csm_viewed_email_skip_genders', $skip ) );
+		if ( empty( $skip ) || ! function_exists( 'cashaadi' ) ) {
+			return true;
+		}
+		$g = trim( (string) cashaadi()->get_gender( (int) $viewed ) );
+		return ! in_array( $g, $skip, true );
+	}
+
+	/**
 	 * Tell $viewed that someone looked at them. At most one email per calendar
-	 * day, whatever the source.
+	 * day, whatever the source. Not sent to genders listed in
+	 * csm_viewed_email_skip_genders (women, by default).
 	 *
 	 * Parameterised alongside record_view() so the Discover screen can notify
 	 * without pretending to be a member page.
@@ -874,6 +894,9 @@ final class Premium {
 			return; // never notify about/for admins
 		}
 		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $viewer, $viewed ) ) {
+			return;
+		}
+		if ( ! self::view_email_wanted( $viewed ) ) {
 			return;
 		}
 
