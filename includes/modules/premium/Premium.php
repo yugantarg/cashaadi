@@ -39,6 +39,13 @@ final class Premium {
 		add_action( 'bp_before_member_header_meta', array( __CLASS__, 'upgrade_on_profile' ) );
 		add_action( 'bp_before_directory_members_content', array( __CLASS__, 'upgrade_on_directory' ) );
 
+		// The free level has no checkout. PMPro's own levels page offered "Free"
+		// with a Select button, and its checkout created a bare WP user — no
+		// BuddyPress signup form, so no gender, phone or DOB, and no activation.
+		// Five accounts came in that way in the week to 2026-09-21. Registration
+		// is /register/; the pricing page is ours, not PMPro's.
+		add_action( 'template_redirect', array( __CLASS__, 'close_free_checkout' ), 0 );
+
 		// Checkout hygiene (#11795): stop existing premium members re-buying, and
 		// keep the cart to just the premium product for everyone else.
 		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 20, 2 );
@@ -840,6 +847,26 @@ final class Premium {
 	 * @param int $uid Unused now — the app route is not per-member. Kept so the
 	 *                 signature does not change under its callers.
 	 */
+	/**
+	 * PMPro's levels page and the free-level checkout go to the real entrances:
+	 * logged-out visitors to registration, members to our pricing page.
+	 */
+	public static function close_free_checkout() {
+		if ( ! function_exists( 'pmpro_is_checkout' ) ) {
+			return;
+		}
+		$levels_id   = (int) get_option( 'pmpro_levels_page_id' );
+		$on_levels   = $levels_id && is_page( $levels_id );
+		$level       = isset( $_REQUEST['level'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['level'] ) ) : '';
+		$free_chkout = pmpro_is_checkout() && ( '1' === $level || '' === $level );
+		if ( ! $on_levels && ! $free_chkout ) {
+			return;
+		}
+		$to = is_user_logged_in() ? home_url( '/membership-pricing/' ) : home_url( '/register/' );
+		wp_safe_redirect( $to, 302 );
+		exit;
+	}
+
 	private static function pve_visitors_url( $uid ) {
 		unset( $uid );
 		return home_url( '/requests/' );
