@@ -41,10 +41,28 @@ final class ViewDigest {
 		}
 	}
 
-	/** The type key for the current ISO week, e.g. csm-viewed-digest-2026-w38. */
-	public static function type_key( $now = null ) {
+	/**
+	 * The Sunday this digest belongs to: today if Sunday, else the previous one.
+	 * The Monday catch-up therefore shares Sunday's key, and cannot re-send.
+	 */
+	public static function digest_sunday( $now = null ) {
 		$now = $now ? $now : self::ist_now();
-		return 'csm-viewed-digest-' . $now->format( 'o' ) . '-w' . $now->format( 'W' );
+		return 7 === (int) $now->format( 'N' ) ? $now : $now->modify( 'last sunday' );
+	}
+
+	/** The type key, e.g. csm-viewed-digest-20260927. */
+	public static function type_key( $now = null ) {
+		return 'csm-viewed-digest-' . self::digest_sunday( $now )->format( 'Ymd' );
+	}
+
+	/**
+	 * No digest for Sundays before this date (option csm_view_digest_start,
+	 * Ymd). Lets the first digest wait for a clean week after the daily email
+	 * stopped, rather than re-telling last week's views.
+	 */
+	public static function started( $now = null ) {
+		$from = preg_replace( '/\D/', '', (string) get_option( 'csm_view_digest_start', '' ) );
+		return '' === $from || self::digest_sunday( $now )->format( 'Ymd' ) >= $from;
 	}
 
 	/** Are we inside the send window? Sunday from SEND_HOUR, or any of Monday. */
@@ -56,7 +74,7 @@ final class ViewDigest {
 	}
 
 	public static function tick() {
-		if ( ! self::in_window() ) {
+		if ( ! self::in_window() || ! self::started() ) {
 			return;
 		}
 		self::run();
