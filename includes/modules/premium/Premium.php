@@ -859,7 +859,10 @@ final class Premium {
 		$on_levels   = $levels_id && is_page( $levels_id );
 		$level       = isset( $_REQUEST['level'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['level'] ) ) : '';
 		$free_chkout = pmpro_is_checkout() && ( '1' === $level || '' === $level );
-		if ( ! $on_levels && ! $free_chkout ) {
+		// Any PMPro checkout, logged out, would also create a bare account
+		// ("Account Information" block). Premium is for members: register first.
+		$anon_chkout = pmpro_is_checkout() && ! is_user_logged_in();
+		if ( ! $on_levels && ! $free_chkout && ! $anon_chkout ) {
 			return;
 		}
 		$to = is_user_logged_in() ? home_url( '/membership-pricing/' ) : home_url( '/register/' );
