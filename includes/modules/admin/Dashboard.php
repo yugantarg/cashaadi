@@ -244,9 +244,12 @@ final class Dashboard {
 				'member'     => $member,
 				'gender'     => $gender,
 				'acted'      => $acted,
-				'registered' => strtotime( $u->user_registered ),
+				// Shifted to site time: date_i18n() below treats the stamp as local.
+				'registered' => strtotime( get_date_from_gmt( $u->user_registered ) ),
 				'last_ts'    => $last_ts,
-				'last_human' => $last_ts ? human_time_diff( $last_ts, current_time( 'timestamp' ) ) . ' ago' : 'Never',
+				// $last_ts is UTC, so compare with UTC now — current_time('timestamp')
+				// is site time and made every "ago" 5½ hours too old.
+				'last_human' => $last_ts ? human_time_diff( $last_ts, time() ) . ' ago' : 'Never',
 			);
 		}
 
