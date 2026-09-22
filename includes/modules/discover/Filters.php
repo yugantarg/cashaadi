@@ -274,9 +274,13 @@ final class Filters {
 
 		/*
 		 * Drop profiles this member has not acted on yet, so the new filters
-		 * take effect now rather than next Monday. The weekly grant is counted
-		 * by week_assigned, which these rows keep on their way out, so this
-		 * cannot be used to mint extra profiles — only to re-aim the ones left.
+		 * take effect now rather than next Monday.
+		 *
+		 * This cannot mint extra profiles: csm_refill_tray() sizes the refill as
+		 * tray_size minus the rows already assigned THIS week, and liked/passed
+		 * rows are not deleted here — they stay and keep counting. So the week's
+		 * ceiling is 50 DECISIONS; re-filtering only re-aims what is still
+		 * undecided (verified on live: 5 acted + 45 replacements = 50, not 95).
 		 */
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'csm_tray', array( 'viewer_id' => $uid, 'status' => 'pending' ) );
