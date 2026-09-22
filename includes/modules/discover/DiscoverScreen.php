@@ -175,6 +175,14 @@ final class DiscoverScreen {
 			'premiumQuota' => 10,
 			// This member's own grant, and the filter sheet's state.
 			'quota'        => Discover::quota_for( $viewer_id ),
+			/*
+			 * A 50-profile set cannot be surveyed one card at a time — the
+			 * carousel that works for 5 would be 50 sequential taps. Above this
+			 * many, the app opens on a grid and the carousel becomes the detail
+			 * view you reach by tapping a card (owner, 2026-09-22).
+			 */
+			'grid'         => Discover::quota_for( $viewer_id ) >= (int) apply_filters( 'csm_discover_grid_from', 20 ),
+
 			'filters'      => class_exists( __NAMESPACE__ . '\\Filters' ) ? Filters::state( $viewer_id ) : null,
 			'upgrade'   => site_url( '/membership-pricing/' ),
 		), 200 );

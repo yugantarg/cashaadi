@@ -412,6 +412,8 @@ final class Profile {
 			'id'       => $profile_id,
 			'name'     => $name,
 			'age'      => self::age_of( $profile_id, $hidden ),
+			// Feet and inches, the unit this site shows — '' when hidden or unset.
+			'height'   => self::height_label( self::field( 'Height', $profile_id, $hidden ) ),
 			'city'     => self::field( 'City', $profile_id, $hidden ),
 			'bio'      => self::field( 'Bio', $profile_id, $hidden ),
 			'job'      => self::field( 'Current Job Title', $profile_id, $hidden ),

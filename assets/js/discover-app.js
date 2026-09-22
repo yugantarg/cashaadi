@@ -15,6 +15,8 @@
 	if ( ! CFG || ! root ) { return; }
 
 	var profiles = [];
+	// 'grid' for a large weekly set, 'single' for the one-card carousel.
+	var view = 'single';
 	var idx = 0;
 	var acted = {};   // profile ids already liked/passed this session
 	var viewed = {};  // profile ids already reported as viewed, so nav doesn't re-post
@@ -145,8 +147,7 @@
 		var box  = el( 'div', 'csm-d-sheet' );
 		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
 		box.appendChild( el( 'p', 'csm-d-sheethint',
-			'You get ' + f.quota + ' profiles a week. Ranges must be at least '
-			+ b.ageSpan + ' years and ' + b.inSpan + ' inches wide.' ) );
+			'You get ' + f.quota + ' profiles a week.' ) );
 
 		function num( label, name, min, max, val, fmt ) {
 			var row = el( 'label', 'csm-d-frow' );
@@ -234,13 +235,88 @@
 		validate();
 	}
 
+	/* ------------------------------------------------------------ grid ----
+	 *
+	 * A 50-profile week cannot be surveyed one card at a time. Above the
+	 * server's grid threshold the screen opens on a scrollable grid of plain
+	 * cards — photo, name, age, height — and the full card becomes the detail
+	 * view, reached by tapping one and still navigated with Previous/Next.
+	 *
+	 * Deliberately not a third renderer for the profile itself: tapping a tile
+	 * hands the SAME index to the same draw() the carousel has always used, so
+	 * the two views cannot drift apart.
+	 */
+	function gridCard( p, i ) {
+		var cell = el( 'button', 'csm-d-tile' );
+		cell.type = 'button';
+
+		var ph = document.createElement( 'div' );
+		ph.className = 'csm-d-tilephoto';
+		if ( p.avatar ) {
+			var img = document.createElement( 'img' );
+			img.src = p.avatar;
+			img.alt = '';
+			img.loading = i < 4 ? 'eager' : 'lazy';
+			ph.appendChild( img );
+		}
+		if ( p.isNew ) { ph.appendChild( el( 'span', 'csm-d-tilenew', 'New' ) ); }
+		cell.appendChild( ph );
+
+		var meta2 = [];
+		if ( p.age ) { meta2.push( p.age ); }
+		if ( p.height ) { meta2.push( p.height ); }
+		cell.appendChild( el( 'span', 'csm-d-tilename', p.name || 'Member' ) );
+		cell.appendChild( el( 'span', 'csm-d-tilemeta', meta2.join( '  \u00b7  ' ) ) );
+
+		cell.addEventListener( 'click', function () {
+			idx = i;
+			view = 'single';
+			draw();
+			window.scrollTo( 0, 0 );
+		} );
+		return cell;
+	}
+
+	function drawGrid() {
+		root.innerHTML = '';
+		var fb = filterBar();
+		if ( fb ) { root.appendChild( fb ); }
+
+		/* Profiles decided in the detail view are gone from here when the member
+		   comes back — act() marks them rather than splicing, so the carousel's
+		   indexes stay valid; the grid filters on the same map. */
+		var left = profiles.filter( function ( p ) { return ! acted[ p.id ]; } );
+		if ( ! left.length ) { return empty(); }
+
+		var head = el( 'p', 'csm-d-gridcount',
+			left.length + ( 1 === left.length ? ' profile' : ' profiles' ) + ' waiting for you' );
+		root.appendChild( head );
+
+		var grid = el( 'div', 'csm-d-grid' );
+		profiles.forEach( function ( p, i ) {
+			if ( acted[ p.id ] ) { return; }
+			grid.appendChild( gridCard( p, i ) );
+		} );
+		root.appendChild( grid );
+	}
+
 	function draw() {
+		if ( 'grid' === view ) { return drawGrid(); }
 		var p = profiles[ idx ];
 		if ( ! p ) { return empty(); }
 
 		root.innerHTML = '';
-		var fb = filterBar();
-		if ( fb ) { root.appendChild( fb ); }
+		if ( meta.grid ) {
+			var back = el( 'button', 'csm-d-back' );
+			back.type = 'button';
+			back.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+			back.appendChild( document.createTextNode( 'All profiles' ) );
+			back.addEventListener( 'click', function () { view = 'grid'; draw(); } );
+			root.appendChild( back );
+		} else {
+			var fb = filterBar();
+			if ( fb ) { root.appendChild( fb ); }
+		}
 		// One renderer for Discover, "how others see me" and /member/<id>/ —
 		// see csmProfileCard() in app-screens.js. Three copies of this markup is
 		// how they drifted apart.
@@ -436,6 +512,7 @@
 			profiles = d.profiles || [];
 			meta.filters = d.filters || meta.filters;
 			idx = 0;
+			view = meta.grid ? 'grid' : 'single';
 			draw();
 		} );
 	}
@@ -443,8 +520,9 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid };
 		idx = 0;
+		view = d.grid ? 'grid' : 'single';
 		draw();
 
 		/* The new-account tour, after the first card is on screen so the member

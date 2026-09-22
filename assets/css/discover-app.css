@@ -372,3 +372,50 @@ body.csm-member-view .csm-d-card {
 .csm-d-fclear { background: #f4efec; border: 1px solid #e0d8d4; color: #5a4f4a; }
 .csm-d-fsave { background: #7a1220; border: 1px solid #7a1220; color: #fff; }
 .csm-d-fsave[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* ---- grid view for a large weekly set (v1.61.0) --------------------- */
+
+.csm-d-gridcount { margin: 2px 0 12px; font-size: 13px; color: #7a6f68; }
+
+.csm-d-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 12px;
+	padding-bottom: 96px;   /* clears the bottom nav */
+}
+@media (min-width: 700px) {
+	.csm-d-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.csm-d-tile {
+	display: flex; flex-direction: column; text-align: left;
+	background: #fff; border: 1px solid #ece5e2; border-radius: 12px;
+	padding: 0 0 10px; overflow: hidden; cursor: pointer;
+	font: inherit; color: inherit;
+}
+.csm-d-tile:active { transform: scale(.985); }
+
+.csm-d-tilephoto {
+	position: relative; width: 100%; aspect-ratio: 1 / 1;
+	background: #f4efec; overflow: hidden;
+}
+.csm-d-tilephoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.csm-d-tilenew {
+	position: absolute; top: 8px; left: 8px;
+	background: #7a1220; color: #fff; border-radius: 999px;
+	padding: 3px 9px; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+}
+
+.csm-d-tilename {
+	margin: 9px 10px 0; font-size: 14px; font-weight: 600; color: #2b2b2b;
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.csm-d-tilemeta { margin: 2px 10px 0; font-size: 12.5px; color: #7a6f68; }
+
+.csm-d-back {
+	display: inline-flex; align-items: center; gap: 5px;
+	background: none; border: 0; padding: 4px 0 10px;
+	font: 600 14px/1 inherit; color: #7a1220; cursor: pointer;
+}
+.csm-d-back svg { width: 16px; height: 16px; }

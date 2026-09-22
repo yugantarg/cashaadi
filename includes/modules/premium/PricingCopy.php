@@ -56,28 +56,22 @@ final class PricingCopy {
 
 	/** The replacements themselves, separated from the guards so they can be tested. */
 	public static function swap( $html ) {
-		$n     = (int) self::quota();
-		$spans = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' )
-			? array( Filters::AGE_SPAN_MIN, Filters::IN_SPAN_MIN )
-			: array( 5, 5 );
+		$n = (int) self::quota();
 
 		$swaps = array(
 			// The intro promise.
 			'Upgrade to Premium to see twice as many profiles each week, discover who viewed your profile, and view members’ private photos.'
 				=> sprintf(
-					'Upgrade to Premium to see up to %d profiles a week — filtered to the age and height you are looking for — discover who viewed your profile, and view members’ private photos.',
+					'Upgrade to Premium to see %d profiles a week — filtered to the age and height you are looking for — discover who viewed your profile, and view members’ private photos.',
 					$n
 				),
 			// The headline feature in the Premium column.
 			'<li>10 new profiles every week in Discover (double the free 5)</li>'
 				=> sprintf(
-					'<li><strong>Up to %d new profiles every week</strong> in Discover — ten times the free 5</li>'
-					. '<li><strong>Filter by age and height</strong>, so your %d profiles are the ones you actually want to see'
-					. ' <em>(ranges of at least %d years and %d inches)</em></li>',
+					'<li><strong>%d new profiles every week</strong> in Discover — ten times the free 5</li>'
+					. '<li><strong>Filter by age and height</strong>, so your %d profiles are the ones you actually want to see</li>',
 					$n,
-					$n,
-					$spans[0],
-					$spans[1]
+					$n
 				),
 		);
 
