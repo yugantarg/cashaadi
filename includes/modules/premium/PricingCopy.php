@@ -51,7 +51,11 @@ final class PricingCopy {
 		if ( ! is_page( self::SLUG ) || ! self::applies() ) {
 			return $html;
 		}
+		return self::swap( $html );
+	}
 
+	/** The replacements themselves, separated from the guards so they can be tested. */
+	public static function swap( $html ) {
 		$n     = (int) self::quota();
 		$spans = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' )
 			? array( Filters::AGE_SPAN_MIN, Filters::IN_SPAN_MIN )
