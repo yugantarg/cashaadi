@@ -279,6 +279,9 @@ final class Dashboard {
 
 		echo '<div class="wrap"><h1>Sales Dashboard</h1>';
 		echo '<p style="font-size:13px;color:#555;">Review new users, their activation & profile status, and phone numbers so the sales team can reach out and guide them.</p>';
+		if ( class_exists( __NAMESPACE__ . '\\ActiveUsers' ) ) {
+			echo ActiveUsers::card(); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
 
 		echo '<form method="get" style="margin:15px 0;padding:12px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;">';
 		echo '<input type="hidden" name="page" value="csm-sales-dashboard" />';

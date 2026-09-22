@@ -36,7 +36,7 @@ final class Migrator {
 	 * That decoupling is what lets a module be enabled later, on its own, without
 	 * a coordinated VERSION bump.
 	 */
-	const VERSION = '9';   // 9: email queue records which message an unsubscribe came from
+	const VERSION = '10';  // 10: active-days table for DAU/WAU/MAU
 
 	/**
 	 * Registered schemas: handle => callable returning the CREATE TABLE SQL for

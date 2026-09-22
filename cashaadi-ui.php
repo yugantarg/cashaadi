@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.56.0
+ * Version:           1.57.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.56.0' );
+define( 'CASHAADI_UI_VER', '1.57.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -286,7 +286,7 @@ if ( class_exists( 'CAShaadi\\Modules\\Site\\Site' ) ) {
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\Premium' ) ) {
 	Premium::register();
 }
-// Weekly view digest for members who no longer get the daily view email (v1.56.0).
+// Weekly view digest for members who no longer get the daily view email (v1.57.0).
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\ViewDigest' ) ) {
 	\CAShaadi\Modules\Premium\ViewDigest::register();
 }
@@ -385,6 +385,9 @@ if ( class_exists( 'CAShaadi\\Modules\\Emails\\Monitor' ) ) {
 // csm_profile_pending_label the reminder engine calls by name.
 if ( class_exists( 'CAShaadi\\Modules\\Admin\\Dashboard' ) ) {
 	Dashboard::register();
+	if ( class_exists( 'CAShaadi\\Modules\\Admin\\ActiveUsers' ) ) {
+		\CAShaadi\Modules\Admin\ActiveUsers::register(); // DAU/WAU/MAU (v1.57.0)
+	}
 }
 
 // CA document AI verification (#11815 engine/admin + #12113 cron/email). Gated
