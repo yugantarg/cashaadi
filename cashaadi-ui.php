@@ -287,6 +287,11 @@ if ( class_exists( 'CAShaadi\\Modules\\Premium\\Premium' ) ) {
 	Premium::register();
 }
 // Weekly view digest for members who no longer get the daily view email (v1.54.0).
+// The pricing page names 50 profiles and filters for logged-in women (v1.60.0).
+if ( class_exists( 'CAShaadi\\Modules\\Premium\\PricingCopy' ) ) {
+	\CAShaadi\Modules\Premium\PricingCopy::register();
+}
+
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\ViewDigest' ) ) {
 	\CAShaadi\Modules\Premium\ViewDigest::register();
 }
