@@ -237,8 +237,10 @@ final class Engagement {
 	 * rarely liked more than once a day (137 likes across ~10 weeks among 275
 	 * viewers), and the first hours after a request are when interest is highest.
 	 *
-	 * The liker is NOT named for free members — who liked you is the premium
-	 * feature, and naming them in an email would hand it over.
+	 * The liker is named for everyone (owner, 2026-09-22). The name was never a
+	 * premium feature in the product — RequestsScreen shows every sender to every
+	 * member — so withholding it from free members' inboxes only made the same
+	 * event read two different ways ("Rishav" vs "Someone") and cost clicks.
 	 */
 	public static function on_liked( $liker_id, $liked_id ) {
 		$liker_id = (int) $liker_id;
@@ -253,29 +255,19 @@ final class Engagement {
 			return;
 		}
 
-		/*
-		 * The NAME is withheld from the email, not from the product. A received
-		 * request is not gated anywhere — RequestsScreen builds that list for
-		 * everyone, with names and photos — so the old "Upgrade to Premium to
-		 * see who it is" was selling something the member already had, and told
-		 * a paying member's peers to pay twice. Withholding it here only keeps
-		 * the identity out of an inbox, which is a privacy decision; the answer
-		 * is one tap away on the screen the button already opens.
-		 */
-		$premium = class_exists( '\CAShaadi\Core\Membership' )
-			&& \CAShaadi\Core\Membership::is_premium( $liked_id );
-
-		$who  = $premium ? self::name( $liker_id ) : 'Someone';
+		$who  = trim( (string) self::name( $liker_id ) );
+		if ( '' === $who ) {
+			$who = 'Someone';
+		}
 		$body = self::wrap(
 			self::greeting( $liked_id ),
 			'<p><strong>' . esc_html( $who ) . '</strong> has sent you a match request on ' . esc_html( self::site() ) . '.</p>'
-			. ( $premium ? '' : '<p style="color:#7a6f68;font-size:13px">Open your requests to see who it is.</p>' )
 			. '<p>Accept it and you can start a conversation.</p>',
 			home_url( '/requests/' ),
 			'View your requests'
 		);
 
-		Queue::notify( $liked_id, 'csm-liked-' . $liker_id, 'You have a new match request', $body );
+		Queue::notify( $liked_id, 'csm-liked-' . $liker_id, $who . ' has sent you a match request', $body );
 	}
 
 	/** Both sides matched. Tell each of them, once per pair. */
