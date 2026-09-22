@@ -40,6 +40,8 @@ final class FieldLogic {
 		// Belt and braces for the same problem: the filter above only hides the
 		// option, so a crafted POST could still store it.
 		add_action( 'xprofile_data_before_save', array( __CLASS__, 'reject_placeholder_value' ) );
+		// Height is stored in cm whatever the member typed (5.3 → 160).
+		add_action( 'xprofile_data_before_save', array( __CLASS__, 'normalise_height' ) );
 		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'profile_field_visibility' ), 10, 3 );
 		add_filter( 'bp_get_the_profile_field_value', array( __CLASS__, 'own_dob_as_date' ), 10, 3 );
 		// Age auto-syncs from DOB on every profile-update: the classic form, the
@@ -354,6 +356,19 @@ final class FieldLogic {
 		if ( \CAShaadi\Core\Profile::is_placeholder( $data->value ) ) {
 			$data->value = '';
 		}
+	}
+
+	/**
+	 * Store height as centimetres however it was typed. Same hook and reason as
+	 * reject_placeholder_value(): one guard covers every save path. Unreadable
+	 * input is stored blank rather than as a number that means nothing.
+	 */
+	public static function normalise_height( $data ) {
+		if ( ! is_object( $data ) || (int) $data->field_id !== (int) Config::FIELD_HEIGHT || ! isset( $data->value ) || is_array( $data->value ) ) {
+			return;
+		}
+		$cm = \CAShaadi\Core\Profile::height_cm( $data->value );
+		$data->value = $cm ? (string) $cm : '';
 	}
 
 	/**

@@ -139,14 +139,53 @@ final class Profile {
 		return array_values( array_unique( array_map( 'intval', $hidden ) ) );
 	}
 
-	/** Centimetres to the imperial label used everywhere on this site. */
-	public static function height_label( $cm ) {
-		if ( ! is_numeric( $cm ) ) {
-			return '';
+	/**
+	 * Whatever a member typed as height, in centimetres — or 0 if it cannot be
+	 * read. The field stores cm, but 60 of the first 447 members typed what
+	 * they say out loud: "5.3" (5′3″), "5.10", "6", "1.52" (metres), "152.4".
+	 * Our screens hid those; BuddyPress's own pages printed them raw.
+	 *
+	 *   100–260          cm as intended
+	 *   1.0–2.6          metres
+	 *   3–8 [.inches]    feet and inches; ".3" is 3 inches, ".10" is 10
+	 *   50–90            inches (4′2″–7′6″)
+	 *   anything else    unreadable → 0
+	 *
+	 * Mirrored in welcome.js and profile-edit-app.js for the live note.
+	 */
+	public static function height_cm( $raw ) {
+		$v = trim( (string) $raw );
+		if ( '' === $v || ! preg_match( '/^(\d+)(?:\.(\d{1,2}))?$/', $v, $m ) ) {
+			return 0;
 		}
-		$cm = (int) round( (float) $cm );
-		if ( $cm < 100 || $cm > 260 ) {
-			return ''; // outside the wizard's slider range — treat as unset
+		$whole = (int) $m[1];
+		$frac  = isset( $m[2] ) ? $m[2] : null;
+		$num   = (float) $v;
+
+		if ( $num >= 100 && $num <= 260 ) {
+			return (int) round( $num );
+		}
+		if ( $num >= 1.0 && $num < 2.7 ) {
+			return (int) round( $num * 100 ); // metres
+		}
+		if ( $whole >= 3 && $whole <= 8 ) {
+			$in = null === $frac ? 0 : (int) $frac; // "5.3" → 3 in, "5.10" → 10 in
+			if ( $in > 11 ) {
+				return 0;
+			}
+			return (int) round( $whole * 30.48 + $in * 2.54 );
+		}
+		if ( null === $frac && $whole >= 50 && $whole <= 90 ) {
+			return (int) round( $whole * 2.54 ); // inches
+		}
+		return 0;
+	}
+
+	/** Height, however it was stored, as the imperial label used everywhere on this site. */
+	public static function height_label( $raw ) {
+		$cm = self::height_cm( $raw );
+		if ( ! $cm ) {
+			return '';
 		}
 		$inches = (int) round( $cm / 2.54 );
 		// Literal prime characters: \u{} escapes are not interpreted in single quotes.

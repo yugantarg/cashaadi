@@ -236,9 +236,22 @@
 		if ( f.heightNote ) {
 			var hnote = el( 'p', 'csm-w-hint csm-w-height' );
 			wrap.appendChild( hnote );
+			function csmHeightCm( raw ) {
+				var v = String( raw || '' ).trim(), m = /^(\d+)(?:\.(\d{1,2}))?$/.exec( v );
+				if ( ! m ) { return 0; }
+				var whole = parseInt( m[1], 10 ), frac = m[2], num = parseFloat( v );
+				if ( num >= 100 && num <= 260 ) { return Math.round( num ); }
+				if ( num >= 1 && num < 2.7 ) { return Math.round( num * 100 ); }
+				if ( whole >= 3 && whole <= 8 ) {
+					var inch = frac === undefined ? 0 : parseInt( frac, 10 );
+					return inch > 11 ? 0 : Math.round( whole * 30.48 + inch * 2.54 );
+				}
+				if ( frac === undefined && whole >= 50 && whole <= 90 ) { return Math.round( whole * 2.54 ); }
+				return 0;
+			}
 			var showHeight = function () {
-				var cm = parseInt( node.value, 10 );
-				if ( ! cm || cm < 100 || cm > 260 ) { hnote.textContent = ''; return; }
+				var cm = csmHeightCm( node.value );
+				if ( ! cm ) { hnote.textContent = node.value.trim() ? 'Type it in cm (e.g. 160) or feet.inches (e.g. 5.3).' : ''; return; }
 				var inches = Math.round( cm / 2.54 );
 				hnote.textContent = 'Others see: ' + Math.floor( inches / 12 ) + '′ ' + ( inches % 12 ) + '″';
 			};
