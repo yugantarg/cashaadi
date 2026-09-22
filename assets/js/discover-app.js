@@ -46,7 +46,7 @@
 	function empty( message ) {
 		root.innerHTML = '';
 		var box = el( 'div', 'csm-d-empty' );
-		box.appendChild( el( 'h2', null, 'That\u2019s your ' + ( meta.freeQuota || 5 ) + ' for this week' ) );
+		box.appendChild( el( 'h2', null, 'That\u2019s your ' + ( meta.quota || meta.freeQuota || 5 ) + ' for this week' ) );
 
 		if ( ! message && ! meta.isPremium ) {
 			box.appendChild( el( 'p', null,
@@ -91,7 +91,147 @@
 			box.appendChild( up );
 		}
 
+		if ( meta.filters && meta.filters.eligible ) {
+			var fb2 = filterBar();
+			if ( fb2 ) {
+				if ( meta.filters.filters && meta.filters.filters.age_min ) {
+					box.appendChild( el( 'p', 'csm-d-fhint', 'Your filters are narrowing this. Widen them to see more.' ) );
+				}
+				box.appendChild( fb2 );
+			}
+		}
+
 		root.appendChild( box );
+	}
+
+	/* ---------------------------------------------------------- filters ----
+	 *
+	 * Premium women choose an age and height range (owner, 2026-09-22). The
+	 * spans are floored server-side; the sheet enforces the same minimums live
+	 * so the member is never told "no" after the fact. Saving re-aims the
+	 * unacted part of the tray immediately — the weekly grant is counted
+	 * server-side, so this cannot mint extra profiles.
+	 */
+	function filterBar() {
+		var f = meta.filters;
+		if ( ! f || ! f.eligible ) { return null; }
+		var wrap = el( 'div', 'csm-d-filterbar' );
+		var cur  = f.filters || {};
+		var btn  = el( 'button', 'csm-d-filterbtn' );
+		btn.type = 'button';
+		var on = ( cur.age_min || cur.in_min );
+		btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M7 12h10M10 19h4"/></svg>';
+		btn.appendChild( document.createTextNode( on ? summary( cur ) : 'Filter' ) );
+		if ( on ) { btn.classList.add( 'is-on' ); }
+		btn.addEventListener( 'click', sheet );
+		wrap.appendChild( btn );
+		return wrap;
+	}
+
+	function ftIn( inches ) {
+		return Math.floor( inches / 12 ) + '\u2032' + ( inches % 12 ) + '\u2033';
+	}
+
+	function summary( c ) {
+		var bits = [];
+		if ( c.age_min ) { bits.push( c.age_min + '\u2013' + c.age_max + ' yrs' ); }
+		if ( c.in_min ) { bits.push( ftIn( c.in_min ) + '\u2013' + ftIn( c.in_max ) ); }
+		return bits.join( ' \u00b7 ' );
+	}
+
+	function sheet() {
+		var f = meta.filters, b = f.bounds, cur = f.filters || {};
+		var back = el( 'div', 'csm-d-sheetback' );
+		var box  = el( 'div', 'csm-d-sheet' );
+		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
+		box.appendChild( el( 'p', 'csm-d-sheethint',
+			'You get ' + f.quota + ' profiles a week. Ranges must be at least '
+			+ b.ageSpan + ' years and ' + b.inSpan + ' inches wide.' ) );
+
+		function num( label, name, min, max, val, fmt ) {
+			var row = el( 'label', 'csm-d-frow' );
+			row.appendChild( el( 'span', 'csm-d-flabel', label ) );
+			var sel = document.createElement( 'select' );
+			sel.name = name;
+			var blank = document.createElement( 'option' );
+			blank.value = ''; blank.textContent = 'Any';
+			sel.appendChild( blank );
+			for ( var i = min; i <= max; i++ ) {
+				var o = document.createElement( 'option' );
+				o.value = i;
+				o.textContent = fmt ? fmt( i ) : i;
+				if ( val && i === val ) { o.selected = true; }
+				sel.appendChild( o );
+			}
+			row.appendChild( sel );
+			return { row: row, sel: sel };
+		}
+
+		var aMin = num( 'Age from', 'age_min', b.ageMin, b.ageMax, cur.age_min );
+		var aMax = num( 'Age to', 'age_max', b.ageMin, b.ageMax, cur.age_max );
+		var hMin = num( 'Height from', 'in_min', b.inMin, b.inMax, cur.in_min, ftIn );
+		var hMax = num( 'Height to', 'in_max', b.inMin, b.inMax, cur.in_max, ftIn );
+		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { box.appendChild( n.row ); } );
+
+		var err = el( 'p', 'csm-d-ferr' );
+		box.appendChild( err );
+
+		/* The same rule the server applies, checked as they choose. */
+		function validate() {
+			var msg = '';
+			var a1 = parseInt( aMin.sel.value, 10 ), a2 = parseInt( aMax.sel.value, 10 );
+			var h1 = parseInt( hMin.sel.value, 10 ), h2 = parseInt( hMax.sel.value, 10 );
+			if ( ( a1 && ! a2 ) || ( a2 && ! a1 ) ) { msg = 'Choose both ends of the age range, or leave both on Any.'; }
+			else if ( a1 && a2 && ( a2 - a1 ) < b.ageSpan ) { msg = 'The age range must cover at least ' + b.ageSpan + ' years.'; }
+			else if ( ( h1 && ! h2 ) || ( h2 && ! h1 ) ) { msg = 'Choose both ends of the height range, or leave both on Any.'; }
+			else if ( h1 && h2 && ( h2 - h1 ) < b.inSpan ) { msg = 'The height range must cover at least ' + b.inSpan + ' inches.'; }
+			err.textContent = msg;
+			save.disabled = !! msg;
+			return ! msg;
+		}
+
+		var actions = el( 'div', 'csm-d-sheetact' );
+		var clear = el( 'button', 'csm-d-fclear', 'Clear' );
+		clear.type = 'button';
+		var save = el( 'button', 'csm-d-fsave', 'Apply' );
+		save.type = 'button';
+		actions.appendChild( clear );
+		actions.appendChild( save );
+		box.appendChild( actions );
+
+		function close() { if ( back.parentNode ) { back.parentNode.removeChild( back ); } }
+
+		function send( payload ) {
+			save.disabled = true;
+			save.textContent = 'Applying\u2026';
+			api( CFG.filters, { method: 'POST', body: JSON.stringify( payload ) } ).then( function ( d ) {
+				if ( ! d || ! d.ok ) {
+					err.textContent = ( d && d.error ) || 'That did not save. Try again.';
+					save.disabled = false; save.textContent = 'Apply';
+					return;
+				}
+				meta.filters = d;
+				close();
+				load();
+			} );
+		}
+
+		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) {
+			n.sel.addEventListener( 'change', validate );
+		} );
+		clear.addEventListener( 'click', function () { send( {} ); } );
+		save.addEventListener( 'click', function () {
+			if ( ! validate() ) { return; }
+			send( {
+				age_min: aMin.sel.value, age_max: aMax.sel.value,
+				in_min: hMin.sel.value, in_max: hMax.sel.value
+			} );
+		} );
+		back.addEventListener( 'click', function ( e ) { if ( e.target === back ) { close(); } } );
+
+		back.appendChild( box );
+		document.body.appendChild( back );
+		validate();
 	}
 
 	function draw() {
@@ -99,6 +239,8 @@
 		if ( ! p ) { return empty(); }
 
 		root.innerHTML = '';
+		var fb = filterBar();
+		if ( fb ) { root.appendChild( fb ); }
 		// One renderer for Discover, "how others see me" and /member/<id>/ —
 		// see csmProfileCard() in app-screens.js. Three copies of this markup is
 		// how they drifted apart.
@@ -288,10 +430,20 @@
 		setTimeout( function () { if ( t.parentNode ) { t.parentNode.removeChild( t ); } }, 3200 );
 	}
 
+	function load() {
+		return api( CFG.queue ).then( function ( d ) {
+			if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
+			profiles = d.profiles || [];
+			meta.filters = d.filters || meta.filters;
+			idx = 0;
+			draw();
+		} );
+	}
+
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters };
 		idx = 0;
 		draw();
 

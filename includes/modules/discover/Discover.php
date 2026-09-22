@@ -496,6 +496,21 @@ final class Discover {
 		}
 	}
 
+	/**
+	 * This member's weekly grant — the ONE answer, so the banner, the app's
+	 * empty state and the engine cannot disagree. Mirrors csm_refill_tray():
+	 * free 5, Premium 10, and whatever csm_tray_size makes of it (premium women
+	 * get 50).
+	 */
+	public static function quota_for( $uid ) {
+		$uid  = (int) $uid;
+		$size = 5;
+		if ( function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( 2, $uid ) ) {
+			$size = 10;
+		}
+		return max( 1, (int) apply_filters( 'csm_tray_size', $size, $uid ) );
+	}
+
 	private static function quota_banner_html() {
 		if ( ! is_user_logged_in() || ! function_exists( 'cashaadi' ) ) {
 			return '';
@@ -513,11 +528,7 @@ final class Discover {
 		$tray = $csm->table( 'tray' );
 		$week = $csm->get_week_id();
 
-		// Same authoritative rule as #11599: free = 5, Premium (level 2) = 10.
-		$quota = 5;
-		if ( function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( 2, $uid ) ) {
-			$quota = 10;
-		}
+		$quota = self::quota_for( $uid );
 
 		$total = (int) $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM {$tray} WHERE viewer_id = %d AND week_assigned = %s",
@@ -542,12 +553,12 @@ final class Discover {
 
 		$html  = '<div class="csm-quota-banner" role="note">';
 		$html .= '<strong class="csm-quota-title">How Discover works</strong>';
-		$html .= '<span class="csm-quota-line">You get <strong>' . $quota_esc . ' profiles per week</strong>' . ( 10 === $quota_esc ? ' (Premium)' : '' ) . '. ' . esc_html( $line1 ) . '</span>';
+		$is_prem = \CAShaadi\Core\Membership::is_premium( $uid );
+		$html .= '<span class="csm-quota-line">You get <strong>' . $quota_esc . ' profiles per week</strong>' . ( $is_prem ? ' (Premium)' : '' ) . '. ' . esc_html( $line1 ) . '</span>';
 		$html .= '<span class="csm-quota-line">' . esc_html( $line2 ) . '</span>';
 		$html .= '<span class="csm-quota-line csm-quota-hint">' . esc_html( $line3 ) . '</span>';
 
-		$is_premium = ( 10 === $quota_esc );
-		$exhausted  = ( ! $is_premium && $acted >= $quota );
+		$exhausted  = ( ! $is_prem && $acted >= $quota );
 		if ( $exhausted ) {
 			$html .= '<div class="csm-quota-upgrade">';
 			$html .= '<span class="csm-quota-upgrade-msg">You have used all your free profiles this week.</span>';

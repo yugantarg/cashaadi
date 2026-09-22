@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.59.1
+ * Version:           1.60.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.59.1' );
+define( 'CASHAADI_UI_VER', '1.60.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -286,7 +286,7 @@ if ( class_exists( 'CAShaadi\\Modules\\Site\\Site' ) ) {
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\Premium' ) ) {
 	Premium::register();
 }
-// Weekly view digest for members who no longer get the daily view email (v1.59.1).
+// Weekly view digest for members who no longer get the daily view email (v1.54.0).
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\ViewDigest' ) ) {
 	\CAShaadi\Modules\Premium\ViewDigest::register();
 }
@@ -347,6 +347,9 @@ if ( class_exists( 'CAShaadi\\Modules\\Photos\\Nsfw' ) ) {
 // (Config::discover_enabled); enable in the same change that disables those.
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\Discover' ) ) {
 	Discover::register();
+	if ( class_exists( 'CAShaadi\\Modules\\Discover\\Filters' ) ) {
+		\CAShaadi\Modules\Discover\Filters::register(); // age/height filters, premium women (v1.60.0)
+	}
 }
 
 // Match intro — when two members mutually like each other, seed a Better Messages
@@ -386,7 +389,7 @@ if ( class_exists( 'CAShaadi\\Modules\\Emails\\Monitor' ) ) {
 if ( class_exists( 'CAShaadi\\Modules\\Admin\\Dashboard' ) ) {
 	Dashboard::register();
 	if ( class_exists( 'CAShaadi\\Modules\\Admin\\ActiveUsers' ) ) {
-		\CAShaadi\Modules\Admin\ActiveUsers::register(); // DAU/WAU/MAU (v1.59.1)
+		\CAShaadi\Modules\Admin\ActiveUsers::register(); // DAU/WAU/MAU (v1.57.0)
 	}
 }
 

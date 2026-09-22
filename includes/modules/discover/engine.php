@@ -52,10 +52,12 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		}
 
 		// v3 quota: uniform 5/week base; Premium (PMPro level 2) gets 2x = 10.
+		// Filterable since v1.60.0, where premium women get 50 (Discover\Filters).
 		$tray_size = 5;
 		if ( function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( 2, $viewer_id ) ) {
 			$tray_size = 10;
 		}
+		$tray_size = max( 1, (int) apply_filters( 'csm_tray_size', $tray_size, $viewer_id ) );
 		$opposite = $csm->get_opposite_gender( $viewer_id );
 		if ( empty( $opposite ) ) {
 			return array(); // Gender not set — can't match
@@ -253,6 +255,13 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		$act_tbl   = $wpdb->prefix . 'bp_activity';
 		$likes_tbl = $csm->table( 'likes' );
 
+		/*
+		 * Member-chosen narrowing (age, height), added by Discover\Filters for
+		 * the members entitled to it. Empty for everyone else, so the query is
+		 * byte-identical to what it was for them.
+		 */
+		$extra_where = (string) apply_filters( 'csm_refill_extra_where', '', $viewer_id );
+
 		$sql = $wpdb->prepare(
 			"SELECT xp.user_id
 			 FROM   {$wpdb->prefix}bp_xprofile_data xp
@@ -266,6 +275,7 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			 WHERE  xp.field_id = %d
 			   AND  xp.value    = %s
 			   AND  xp.user_id NOT IN ({$exclude_csv})
+			        {$extra_where}
 			 ORDER  BY
 			        IF( %d = 1 AND ac.seen_at IS NOT NULL AND ac.seen_at > %s, 1, 0 ) DESC,
 			        (

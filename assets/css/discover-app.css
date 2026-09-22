@@ -325,3 +325,50 @@ body.csm-member-view .csm-d-card {
 
 /* Next at the end of a free set: still a button, dressed as the ask it is. */
 .csm-d-nav.is-upsell { border-color: var(--csm-gold, #a9822b); color: var(--csm-gold, #a9822b); }
+
+/* ---- filters (premium women, v1.60.0) ------------------------------- */
+
+.csm-d-filterbar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+
+.csm-d-filterbtn {
+	display: inline-flex; align-items: center; gap: 7px;
+	background: #fff; border: 1px solid #e0d8d4; border-radius: 999px;
+	padding: 7px 14px; font: 600 13px/1 inherit; color: #5a4f4a; cursor: pointer;
+}
+.csm-d-filterbtn svg { width: 15px; height: 15px; }
+.csm-d-filterbtn.is-on { background: #7a1220; border-color: #7a1220; color: #fff; }
+
+.csm-d-sheetback {
+	position: fixed; inset: 0; z-index: 9000;
+	background: rgba(24, 16, 14, .5);
+	display: flex; align-items: flex-end; justify-content: center;
+}
+.csm-d-sheet {
+	background: #fff; width: 100%; max-width: 420px;
+	border-radius: 16px 16px 0 0; padding: 20px 20px 24px;
+	max-height: 86vh; overflow: auto;
+}
+@media (min-width: 560px) {
+	.csm-d-sheetback { align-items: center; }
+	.csm-d-sheet { border-radius: 16px; }
+}
+.csm-d-sheet h2 { margin: 0 0 4px; font-size: 18px; }
+.csm-d-sheethint { margin: 0 0 16px; font-size: 13px; color: #7a6f68; line-height: 1.5; }
+
+.csm-d-frow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.csm-d-flabel { font-size: 14px; color: #2b2b2b; }
+.csm-d-frow select {
+	flex: 0 0 130px; padding: 9px 10px; font-size: 15px;
+	border: 1px solid #ddd3cf; border-radius: 8px; background: #fff;
+}
+
+.csm-d-ferr { min-height: 18px; margin: 4px 0 12px; font-size: 13px; color: #a3231f; }
+.csm-d-fhint { font-size: 13px; color: #7a6f68; margin: 10px 0 6px; }
+
+.csm-d-sheetact { display: flex; gap: 10px; }
+.csm-d-fclear, .csm-d-fsave {
+	flex: 1; padding: 12px; border-radius: 9px; font: 700 15px/1 inherit; cursor: pointer;
+}
+.csm-d-fclear { background: #f4efec; border: 1px solid #e0d8d4; color: #5a4f4a; }
+.csm-d-fsave { background: #7a1220; border: 1px solid #7a1220; color: #fff; }
+.csm-d-fsave[disabled] { opacity: .5; cursor: not-allowed; }

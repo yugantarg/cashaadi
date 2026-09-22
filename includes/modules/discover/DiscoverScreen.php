@@ -61,10 +61,11 @@ final class DiscoverScreen {
 		Assets::style( 'discover-app', 'assets/css/discover-app.css', array( 'cashaadi-app-screens' ) );
 		Assets::script( 'discover-app', 'assets/js/discover-app.js', array( 'cashaadi-app-screens' ) );
 		wp_localize_script( 'cashaadi-discover-app', 'CSM_DISCOVER', array(
-			'nonce' => wp_create_nonce( 'wp_rest' ),
-			'queue' => rest_url( 'csm/v1/discover/queue' ),
-			'act'   => rest_url( 'csm/v1/discover/act' ),
-			'view'  => rest_url( 'csm/v1/discover/view' ),
+			'nonce'   => wp_create_nonce( 'wp_rest' ),
+			'queue'   => rest_url( 'csm/v1/discover/queue' ),
+			'act'     => rest_url( 'csm/v1/discover/act' ),
+			'view'    => rest_url( 'csm/v1/discover/view' ),
+			'filters' => rest_url( 'csm/v1/discover/filters' ),
 		) );
 
 		AppPage::open( __( 'Discover', 'cashaadi-ui' ), 'discover' );
@@ -172,6 +173,9 @@ final class DiscoverScreen {
 			// number the member just hit and what Premium changes it to.
 			'freeQuota'    => 5,
 			'premiumQuota' => 10,
+			// This member's own grant, and the filter sheet's state.
+			'quota'        => Discover::quota_for( $viewer_id ),
+			'filters'      => class_exists( __NAMESPACE__ . '\\Filters' ) ? Filters::state( $viewer_id ) : null,
 			'upgrade'   => site_url( '/membership-pricing/' ),
 		), 200 );
 	}
