@@ -356,9 +356,10 @@ final class Engagement {
 	 */
 	private static function send_batch( $ist ) {
 		$week   = strtolower( $ist->format( 'o-\WW' ) );
-		$budget = (int) apply_filters( 'csm_engagement_batch_cap', (int) get_option( 'csm_engagement_batch_cap', 150 ) );
+		$budget = self::batch_budget();
+		$active = self::active_ids();
 		/*
-		 * 0 turns the weekly batch OFF.
+		 * 0 turns the weekly batch OFF; a negative value means no cap.
 		 *
 		 * Cancelling the queued rows was tried and could not work: the batch
 		 * is planned PER RUN, across Monday and Tuesday, so cancelling
@@ -366,15 +367,18 @@ final class Engagement {
 		 * members and send to them. An instruction to stop the batch has to
 		 * stop the planner, not the rows it already wrote.
 		 */
-		if ( $budget < 1 ) {
+		if ( 0 === $budget ) {
 			return;
 		}
 
 		// Keyed viewer_id => pending count, so the KEY is the member.
 		foreach ( self::members_with_pending() as $uid => $count ) {
 			unset( $count );
-			if ( $budget < 1 ) {
+			if ( 0 === $budget ) {
 				return;
+			}
+			if ( ! isset( $active[ $uid ] ) ) {
+				continue; // dormant: the nudge and win-back emails cover them
 			}
 			if ( ! self::allowed( $uid, 'csm_email_batch' ) ) {
 				continue;
@@ -386,10 +390,48 @@ final class Engagement {
 				home_url( '/discover/' ),
 				'See this week\'s profiles'
 			);
-			if ( Queue::notify( $uid, 'csm-batch-' . $week, 'Your new profiles are ready', $body ) ) {
+			if ( Queue::notify( $uid, 'csm-batch-' . $week, 'Your new profiles are ready', $body ) && $budget > 0 ) {
 				$budget--;
 			}
 		}
+	}
+
+	/**
+	 * Members who have actually used the site lately.
+	 *
+	 * Owner, 2026-09-22: the weekly batch goes to active members only, uncapped.
+	 * The cap existed to protect a new sending domain from a 400-email blast to
+	 * a mostly-dormant list; restricting the audience solves the same problem
+	 * better, because a dormant member is exactly who should NOT get "your new
+	 * profiles are ready" — they get the nudge and win-back emails instead, on
+	 * their own schedule and their own budget.
+	 *
+	 * "Active" is the same signal the DAU/WAU/MAU card uses: a logged-in request
+	 * to the site, via BuddyPress's last-activity stamp (UTC).
+	 *
+	 * @return array<int,true> user_id => true, for O(1) lookup.
+	 */
+	public static function active_ids( $days = null ) {
+		global $wpdb;
+		$days = (int) apply_filters( 'csm_engagement_active_days', null === $days ? (int) get_option( 'csm_engagement_active_days', 30 ) : $days );
+		if ( $days < 1 || ! function_exists( 'bp_core_get_table_prefix' ) ) {
+			return array();
+		}
+		$t   = bp_core_get_table_prefix() . 'bp_activity';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT DISTINCT user_id FROM {$t} WHERE type = 'last_activity' AND date_recorded > DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d DAY)",
+			$days
+		) );
+		return array_fill_keys( array_map( 'intval', (array) $ids ), true );
+	}
+
+	/**
+	 * The weekly batch budget: 0 = OFF, negative = on with no cap, positive = cap.
+	 * Kept as one option so "stop the weekly emails" remains a single switch.
+	 */
+	private static function batch_budget() {
+		return (int) apply_filters( 'csm_engagement_batch_cap', (int) get_option( 'csm_engagement_batch_cap', 150 ) );
 	}
 
 	/**
@@ -403,9 +445,10 @@ final class Engagement {
 	 */
 	private static function send_expiring( $ist ) {
 		$week   = strtolower( $ist->format( 'o-\WW' ) );
-		$budget = (int) apply_filters( 'csm_engagement_batch_cap', (int) get_option( 'csm_engagement_batch_cap', 150 ) );
+		$budget = self::batch_budget();
+		$active = self::active_ids();
 		/*
-		 * 0 turns the weekly batch OFF.
+		 * 0 turns the weekly batch OFF; a negative value means no cap.
 		 *
 		 * Cancelling the queued rows was tried and could not work: the batch
 		 * is planned PER RUN, across Monday and Tuesday, so cancelling
@@ -413,13 +456,16 @@ final class Engagement {
 		 * members and send to them. An instruction to stop the batch has to
 		 * stop the planner, not the rows it already wrote.
 		 */
-		if ( $budget < 1 ) {
+		if ( 0 === $budget ) {
 			return;
 		}
 
 		foreach ( self::members_with_pending() as $uid => $count ) {
-			if ( $budget < 1 ) {
+			if ( 0 === $budget ) {
 				return;
+			}
+			if ( ! isset( $active[ $uid ] ) ) {
+				continue; // dormant: the nudge and win-back emails cover them
 			}
 			if ( ! self::allowed( $uid, 'csm_email_batch' ) ) {
 				continue;
@@ -432,7 +478,7 @@ final class Engagement {
 				home_url( '/discover/' ),
 				'Open Discover'
 			);
-			if ( Queue::notify( $uid, 'csm-expiring-' . $week, 'Your profiles are waiting', $body ) ) {
+			if ( Queue::notify( $uid, 'csm-expiring-' . $week, 'Your profiles are waiting', $body ) && $budget > 0 ) {
 				$budget--;
 			}
 		}
