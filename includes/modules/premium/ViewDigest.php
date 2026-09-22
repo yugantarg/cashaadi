@@ -26,9 +26,18 @@ final class ViewDigest {
 
 	const CRON = 'csm_view_digest_hourly';
 
-	/** IST send window: Sunday from this hour; Monday catches up if missed. */
-	const SEND_DOW  = 7;
-	const SEND_HOUR = 18;
+	/**
+	 * IST send window: Friday from this hour, with a Sunday catch-up.
+	 *
+	 * Saturday is the expiring-profiles email and Monday the new-batch one
+	 * (owner, 2026-09-22: "all expiring emails should be on Saturday"), so the
+	 * digest sits on Friday and its catch-up skips Saturday entirely rather
+	 * than landing two bulk emails on one member in a weekend.
+	 */
+	const SEND_DOW   = 5;
+	const SEND_HOUR  = 18;
+	const CATCH_DOW  = 7;
+	const CATCH_HOUR = 9;
 
 	public static function register() {
 		add_action( self::CRON, array( __CLASS__, 'tick' ) );
@@ -42,17 +51,17 @@ final class ViewDigest {
 	}
 
 	/**
-	 * The Sunday this digest belongs to: today if Sunday, else the previous one.
-	 * The Monday catch-up therefore shares Sunday's key, and cannot re-send.
+	 * The Friday this digest belongs to: today if Friday, else the previous one.
+	 * The Sunday catch-up therefore shares Friday's key, and cannot re-send.
 	 */
-	public static function digest_sunday( $now = null ) {
+	public static function digest_day( $now = null ) {
 		$now = $now ? $now : self::ist_now();
-		return 7 === (int) $now->format( 'N' ) ? $now : $now->modify( 'last sunday' );
+		return self::SEND_DOW === (int) $now->format( 'N' ) ? $now : $now->modify( 'last friday' );
 	}
 
 	/** The type key, e.g. csm-viewed-digest-20260927. */
 	public static function type_key( $now = null ) {
-		return 'csm-viewed-digest-' . self::digest_sunday( $now )->format( 'Ymd' );
+		return 'csm-viewed-digest-' . self::digest_day( $now )->format( 'Ymd' );
 	}
 
 	/**
@@ -62,15 +71,16 @@ final class ViewDigest {
 	 */
 	public static function started( $now = null ) {
 		$from = preg_replace( '/\D/', '', (string) get_option( 'csm_view_digest_start', '' ) );
-		return '' === $from || self::digest_sunday( $now )->format( 'Ymd' ) >= $from;
+		return '' === $from || self::digest_day( $now )->format( 'Ymd' ) >= $from;
 	}
 
-	/** Are we inside the send window? Sunday from SEND_HOUR, or any of Monday. */
+	/** Are we inside the send window? Friday from SEND_HOUR, or Sunday from CATCH_HOUR. */
 	public static function in_window( $now = null ) {
 		$now = $now ? $now : self::ist_now();
 		$dow = (int) $now->format( 'N' );
 		$h   = (int) $now->format( 'G' );
-		return ( self::SEND_DOW === $dow && $h >= self::SEND_HOUR ) || ( 1 === $dow && $h >= 9 );
+		return ( self::SEND_DOW === $dow && $h >= self::SEND_HOUR )
+			|| ( self::CATCH_DOW === $dow && $h >= self::CATCH_HOUR );
 	}
 
 	public static function tick() {
@@ -175,7 +185,7 @@ final class ViewDigest {
 		$msg .= '<p>Hi ' . esc_html( $first ) . ',</p>';
 		$msg .= '<p>Your weekly update from ' . esc_html( $site ) . ': ' . $who . ' in the last 7 days.</p>';
 		$msg .= '<p style="margin:26px 0"><a href="' . $url . '" style="background:#7a1220;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:8px;display:inline-block">See who viewed you</a></p>';
-		$msg .= '<p style="color:#7a6f68;font-size:13px">You are receiving this because members viewed your ' . esc_html( $site ) . ' profile. We send this once a week.</p>';
+		$msg .= '<p style="color:#7a6f68;font-size:13px">You are receiving this because members viewed your ' . esc_html( $site ) . ' profile. We send this once a week, on Fridays.</p>';
 		$msg .= '</div>';
 		return $msg;
 	}
