@@ -41,6 +41,16 @@ final class Welcome {
 	const DONE_META = 'csm_welcome_done';
 
 	/**
+	 * Set when the member has been through the photo step, with or without a
+	 * photo. The photo is optional (owner, 2026-09-09), so "done" for that step
+	 * means "dealt with", not "has one" — otherwise a member who skips it can
+	 * never finish: rest_complete() bounced them back to it, and the wizard
+	 * redrew from its page-load state, which looked like everything they had
+	 * typed was gone (owner, 2026-09-23).
+	 */
+	const PHOTO_SEEN_META = 'csm_welcome_photo_seen';
+
+	/**
 	 * Field ids pushed to the end of the flow, whatever order they sit in.
 	 *
 	 * Phone (277) is the highest-friction question in onboarding and was being
@@ -365,10 +375,10 @@ final class Welcome {
 				'key'      => 'photo',
 				'type'     => 'photo',
 				'label'    => __( 'Add a photo', 'cashaadi-ui' ),
-				'help'     => __( 'Profiles with a photo get far more responses. You need at least one to continue.', 'cashaadi-ui' ),
+				'help'     => '',
 				'value'    => '',
 				'options'  => array(),
-				'done'     => self::has_photo( $uid ),
+				'done'     => self::has_photo( $uid ) || (bool) get_user_meta( $uid, self::PHOTO_SEEN_META, true ),
 			),
 		);
 
@@ -542,8 +552,10 @@ final class Welcome {
 		$uid = get_current_user_id();
 		$key = sanitize_text_field( (string) $request->get_param( 'key' ) );
 
-		// The blur toggle rides along with the photo step.
+		// The blur toggle rides along with the photo step, and is posted every
+		// time the member leaves it — so it doubles as "passed the photo step".
 		if ( 'blur' === $key ) {
+			update_user_meta( $uid, self::PHOTO_SEEN_META, time() );
 			if ( $request->get_param( 'value' ) ) {
 				update_user_meta( $uid, 'csm_photo_private', '1' );
 			} else {

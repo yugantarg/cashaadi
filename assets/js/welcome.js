@@ -392,7 +392,7 @@
 				? ( photos.length + ' of ' + max + ' photos. Tap a photo to make it your main one; use the arrows to reorder.' )
 				: photos.length
 					? ( photos.length + ' of ' + max + ' photos' )
-					: 'A photo is optional, but profiles with one get far more responses. Drag to reposition, pinch or slide to zoom.';
+					: '';
 			if ( photos.length ) { uploaded = false; }
 		}
 
@@ -620,15 +620,11 @@
 				window.location.href = d.redirect;
 				return;
 			}
-			// Server disagrees that we are done — trust it and go back to the gap.
-			if ( d && d.stepKey ) {
-				for ( var i = 0; i < steps.length; i++ ) {
-					if ( steps[ i ].key === d.stepKey ) { idx = i; break; }
-				}
-			} else {
-				idx = 0;
-			}
-			draw();
+			/* Server disagrees that we are done. Reload rather than redraw: the
+			   in-memory steps still hold the values from page load, so redrawing
+			   showed every field blank and made saved answers look erased. A
+			   reload rebuilds from the server and opens on the real gap. */
+			window.location.reload();
 		} ).catch( fail );
 	}
 

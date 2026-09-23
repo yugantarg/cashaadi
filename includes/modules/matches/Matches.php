@@ -50,12 +50,16 @@ final class Matches {
 		 * the hourly and daily caps, and the unsubscribe flag. It was sending
 		 * while the queue was reporting "paused".
 		 *
-		 * Acceptance still goes through here, because accepting from the
-		 * Requests screen calls friends_accept_friendship() directly and never
-		 * fires csm_mutual_match — removing it would mean no acceptance email
-		 * at all. It now at least honours the same opt-outs the queue does.
+		 * Acceptance used to be emailed from here too ("X accepted your
+		 * request"), on the grounds that accepting from the Requests screen
+		 * never fired csm_mutual_match. That stopped being true when
+		 * MatchIntro::on_accept() began turning every acceptance into
+		 * csm_mutual_match — which Engagement::on_match() emails to BOTH people
+		 * as "It's a match", through the queue. So the initiator got two emails
+		 * for one event (owner, 2026-09-23). The match email is the survivor:
+		 * it reaches both sides and honours every queue rule. email_on_accepted()
+		 * is kept, unhooked, for reference.
 		 */
-		add_action( 'friends_friendship_accepted', array( __CLASS__, 'email_on_accepted' ), 10, 3 );
 
 		// Card styling for the Requests Sent screen.
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 20 );

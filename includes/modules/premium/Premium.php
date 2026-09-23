@@ -692,13 +692,47 @@ final class Premium {
 	 *
 	 * @return bool True when a row was written.
 	 */
+	/**
+	 * Is this viewer the site's own people rather than a member?
+	 *
+	 * Owner, 2026-09-23: "Do not send viewed notification for admin." The
+	 * administrator role was already excluded, but that never covered how the
+	 * owner actually browses: through their own test accounts (subscribers),
+	 * or by switching into a member with User Switching — both of which were
+	 * recorded and emailed to real members as genuine interest. 79 such views
+	 * were in real members' lists.
+	 *
+	 *   - administrators;
+	 *   - accounts flagged csm_staff = 1 (the owner's test accounts);
+	 *   - any session an administrator has switched into.
+	 */
+	public static function is_staff( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid ) {
+			return false;
+		}
+		if ( user_can( $uid, 'manage_options' ) ) {
+			return true;
+		}
+		if ( '1' === (string) get_user_meta( $uid, 'csm_staff', true ) ) {
+			return true;
+		}
+		if ( $uid === get_current_user_id() && function_exists( 'current_user_switched' ) ) {
+			$old = current_user_switched();
+			if ( $old && user_can( $old, 'manage_options' ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static function record_view( $viewer, $viewed ) {
 		$viewer = (int) $viewer;
 		$viewed = (int) $viewed;
 		if ( ! $viewer || ! $viewed || $viewer === $viewed ) {
 			return false;
 		}
-		if ( user_can( $viewer, 'manage_options' ) || user_can( $viewed, 'manage_options' ) ) {
+		if ( self::is_staff( $viewer ) || user_can( $viewed, 'manage_options' ) ) {
 			return false; // never record views by or of admins
 		}
 		global $wpdb;
@@ -920,7 +954,7 @@ final class Premium {
 		if ( ! $viewer || ! $viewed || $viewer === $viewed ) {
 			return;
 		}
-		if ( user_can( $viewer, 'manage_options' ) || user_can( $viewed, 'manage_options' ) ) {
+		if ( self::is_staff( $viewer ) || user_can( $viewed, 'manage_options' ) ) {
 			return; // never notify about/for admins
 		}
 		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $viewer, $viewed ) ) {
