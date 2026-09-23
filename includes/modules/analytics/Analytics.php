@@ -186,22 +186,44 @@ final class Analytics {
 	}
 
 	/**
+	 * One xProfile value, as STORED.
+	 *
+	 * xprofile_get_field_data() returns the value a profile page would print,
+	 * which is not the value: the date of birth comes back as "31 years old"
+	 * and the phone number as an HTML tel: anchor. Both are useless to hash —
+	 * the DOB one silently produced no `db` key at all. get_value_byid() reads
+	 * the row itself, which is what every one of these fields needs.
+	 */
+	private static function fb_field( $field_id, $uid ) {
+		if ( ! class_exists( 'BP_XProfile_ProfileData' ) ) {
+			return function_exists( 'xprofile_get_field_data' )
+				? xprofile_get_field_data( $field_id, $uid )
+				: '';
+		}
+		$v = \BP_XProfile_ProfileData::get_value_byid( $field_id, $uid );
+		if ( is_array( $v ) ) {
+			$v = reset( $v );
+		}
+		return (string) $v;
+	}
+
+	/**
 	 * The identity behind this request, unhashed and unnormalised.
 	 *
 	 * Reads the account when there is one, and otherwise the registration POST.
 	 * Nothing here is printed; fb_user_data() hashes every value it uses.
 	 */
 	private static function fb_identity() {
-		if ( is_user_logged_in() && function_exists( 'xprofile_get_field_data' ) ) {
+		if ( is_user_logged_in() ) {
 			$u   = wp_get_current_user();
 			$uid = (int) $u->ID;
 			return array(
 				'email'   => $u->user_email,
-				'name'    => xprofile_get_field_data( Config::FIELD_NAME, $uid ),
-				'phone'   => xprofile_get_field_data( Config::FIELD_PHONE, $uid ),
-				'gender'  => xprofile_get_field_data( Config::FIELD_GENDER, $uid ),
-				'dob'     => xprofile_get_field_data( Config::FIELD_DOB, $uid ),
-				'city'    => xprofile_get_field_data( Config::FIELD_CITY, $uid ),
+				'name'    => self::fb_field( Config::FIELD_NAME, $uid ),
+				'phone'   => self::fb_field( Config::FIELD_PHONE, $uid ),
+				'gender'  => self::fb_field( Config::FIELD_GENDER, $uid ),
+				'dob'     => self::fb_field( Config::FIELD_DOB, $uid ),
+				'city'    => self::fb_field( Config::FIELD_CITY, $uid ),
 				'user_id' => $uid,
 			);
 		}
