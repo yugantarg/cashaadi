@@ -35,8 +35,19 @@ final class Analytics {
 			return; // gated OFF until the coordinated cutover
 		}
 
-		// Meta Pixel base + PageView + CompleteRegistration (#12084).
-		add_action( 'bp_complete_signup', array( __CLASS__, 'flag_fb_registered' ) );
+		/*
+		 * Meta Pixel base + PageView (#12084).
+		 *
+		 * CompleteRegistration is NOT fired here any more (v1.61.1). It used to
+		 * be, flagged on bp_complete_signup — which fires on the registration
+		 * form POST, whose confirmation page renders this pixel. tracking.js
+		 * ALSO fires CompleteRegistration on the first /welcome/ render, so one
+		 * member produced two events. tracking.js keeps it, because its claim
+		 * (Tracking\Events::claim) is once-per-member-ever rather than
+		 * once-per-request, and by /welcome/ the member is logged in, so the
+		 * event carries full advanced matching. Coverage is not lost: every
+		 * member who registered in the 24h to 2026-09-22 reached /welcome/.
+		 */
 		add_action( 'wp_head', array( __CLASS__, 'fb_pixel' ), 1 );
 		add_action( 'wp_footer', array( __CLASS__, 'fb_pixel' ), 5 );
 
@@ -65,8 +76,171 @@ final class Analytics {
 
 	/* ---- Meta Pixel (#12084) ------------------------------------------- */
 
-	public static function flag_fb_registered() {
-		$GLOBALS['csm_fb_registered'] = true;
+	/**
+	 * Manual advanced matching (Meta EMQ).
+	 *
+	 * The pixel was sending no customer information at all — IP, user agent and
+	 * fbp only — which held Event Match Quality at 6.1/10, and Meta's
+	 * "Conversions API with Meta" mirrors the browser event, so the server copy
+	 * was just as thin. Automatic advanced matching cannot read this signup
+	 * form, so the values are supplied here.
+	 *
+	 * EVERY value is SHA-256 hashed after normalising, per Meta's spec: nothing
+	 * identifying is ever written into the page. A value we do not have is
+	 * OMITTED — hash('') is a valid-looking 64-char string that would match
+	 * every other member who is also missing that field, which is worse than
+	 * sending nothing.
+	 *
+	 * Two sources, because the pixel has to work on both sides of activation:
+	 *   - logged in  -> the account and its xProfile fields;
+	 *   - the signup POST -> $_POST, since the member has no account yet and
+	 *     this is the request whose page BuddyPress renders after registering.
+	 *
+	 * @return array<string,string> Meta user-data keys, possibly empty.
+	 */
+	private static function fb_user_data() {
+		$out = array();
+
+		try {
+			$raw = self::fb_identity();
+
+			$email = strtolower( trim( (string) ( $raw['email'] ?? '' ) ) );
+			if ( '' !== $email && is_email( $email ) ) {
+				$out['em'] = self::fb_hash( $email );
+			}
+
+			/*
+			 * Phone: digits only, country code, no plus. Indian mobiles are
+			 * stored bare, so a 10-digit number gets 91; a number that already
+			 * carries it is left alone. The field type renders an HTML tel:
+			 * anchor, hence the tag strip.
+			 */
+			$phone = preg_replace( '/\D+/', '', wp_strip_all_tags( (string) ( $raw['phone'] ?? '' ) ) );
+			$phone = ltrim( (string) $phone, '0' );
+			if ( 10 === strlen( $phone ) ) {
+				$phone = '91' . $phone;
+			}
+			if ( strlen( $phone ) >= 11 && strlen( $phone ) <= 15 ) {
+				$out['ph'] = self::fb_hash( $phone );
+			}
+
+			// Name: first token is fn, the rest ln. Letters only, lowercased.
+			$name = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) ( $raw['name'] ?? '' ) ) ) );
+			if ( '' !== $name ) {
+				$parts = explode( ' ', $name, 2 );
+				$fn    = preg_replace( '/[^a-z]/', '', strtolower( $parts[0] ) );
+				if ( '' !== $fn ) {
+					$out['fn'] = self::fb_hash( $fn );
+				}
+				if ( isset( $parts[1] ) ) {
+					$ln = preg_replace( '/[^a-z]/', '', strtolower( $parts[1] ) );
+					if ( '' !== $ln ) {
+						$out['ln'] = self::fb_hash( $ln );
+					}
+				}
+			}
+
+			$gender = strtolower( trim( (string) ( $raw['gender'] ?? '' ) ) );
+			if ( isset( $gender[0] ) && ( 'm' === $gender[0] || 'f' === $gender[0] ) ) {
+				$out['ge'] = self::fb_hash( $gender[0] );
+			}
+
+			$dob = trim( (string) ( $raw['dob'] ?? '' ) );
+			if ( '' !== $dob ) {
+				$ts = strtotime( $dob );
+				// A sane birth year; strtotime happily parses junk into 1970.
+				if ( $ts && (int) gmdate( 'Y', $ts ) > 1900 && $ts < time() ) {
+					$out['db'] = self::fb_hash( gmdate( 'Ymd', $ts ) );
+				}
+			}
+
+			$city = preg_replace( '/[^a-z]/', '', strtolower( wp_strip_all_tags( (string) ( $raw['city'] ?? '' ) ) ) );
+			if ( '' !== $city ) {
+				$out['ct'] = self::fb_hash( $city );
+			}
+
+			if ( ! empty( $raw['user_id'] ) ) {
+				$out['external_id'] = self::fb_hash( (string) (int) $raw['user_id'] );
+			}
+
+			/*
+			 * Country last, and ONLY alongside a real identifier. On its own it
+			 * identifies nobody — every member is Indian — and adding it
+			 * unconditionally would hang a user-data object off every
+			 * logged-out pageview for no matching benefit.
+			 */
+			if ( $out ) {
+				$out['country'] = self::fb_hash( 'in' );
+			}
+		} catch ( \Throwable $e ) {
+			// A tag must never take the page down: fall back to a plain init.
+			return array();
+		}
+
+		return $out;
+	}
+
+	/** Meta wants lowercase hex SHA-256. */
+	private static function fb_hash( $value ) {
+		return hash( 'sha256', (string) $value );
+	}
+
+	/**
+	 * The identity behind this request, unhashed and unnormalised.
+	 *
+	 * Reads the account when there is one, and otherwise the registration POST.
+	 * Nothing here is printed; fb_user_data() hashes every value it uses.
+	 */
+	private static function fb_identity() {
+		if ( is_user_logged_in() && function_exists( 'xprofile_get_field_data' ) ) {
+			$u   = wp_get_current_user();
+			$uid = (int) $u->ID;
+			return array(
+				'email'   => $u->user_email,
+				'name'    => xprofile_get_field_data( Config::FIELD_NAME, $uid ),
+				'phone'   => xprofile_get_field_data( Config::FIELD_PHONE, $uid ),
+				'gender'  => xprofile_get_field_data( Config::FIELD_GENDER, $uid ),
+				'dob'     => xprofile_get_field_data( Config::FIELD_DOB, $uid ),
+				'city'    => xprofile_get_field_data( Config::FIELD_CITY, $uid ),
+				'user_id' => $uid,
+			);
+		}
+
+		/*
+		 * The registration POST. Read-only and nonce-free on purpose: this does
+		 * not act on the input, it only mirrors what the member just typed into
+		 * a hash. BuddyPress has already validated and stored it by the time
+		 * this page renders.
+		 */
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		if ( empty( $_POST['signup_email'] ) ) {
+			return array();
+		}
+		$post = function ( $key ) {
+			return isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+		};
+
+		// A datebox posts three parts, or one value if the theme flattened it.
+		$dob = $post( 'field_' . Config::FIELD_DOB );
+		if ( '' === $dob ) {
+			$y = $post( 'field_' . Config::FIELD_DOB . '_year' );
+			$m = $post( 'field_' . Config::FIELD_DOB . '_month' );
+			$d = $post( 'field_' . Config::FIELD_DOB . '_day' );
+			if ( $y && $m && $d ) {
+				$dob = $y . '-' . $m . '-' . $d;
+			}
+		}
+
+		return array(
+			'email'   => sanitize_email( wp_unslash( $_POST['signup_email'] ) ),
+			'name'    => $post( 'field_' . Config::FIELD_NAME ),
+			'phone'   => $post( 'field_' . Config::FIELD_PHONE ),
+			'gender'  => $post( 'field_' . Config::FIELD_GENDER ),
+			'dob'     => $dob,
+			'city'    => $post( 'field_' . Config::FIELD_CITY ),
+			'user_id' => 0,
+		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	public static function fb_pixel() {
@@ -76,8 +250,8 @@ final class Analytics {
 		}
 		$printed = true;
 
-		$id  = Config::FB_PIXEL_ID;
-		$reg = ! empty( $GLOBALS['csm_fb_registered'] );
+		$id = Config::FB_PIXEL_ID;
+		$ud = self::fb_user_data();
 		?>
 		<!-- Meta Pixel Code (CAShaadi) -->
 		<script>
@@ -89,9 +263,8 @@ final class Analytics {
 		t.src=v;s=b.getElementsByTagName(e)[0];
 		s.parentNode.insertBefore(t,s)}(window, document,'script',
 		'https://connect.facebook.net/en_US/fbevents.js');
-		fbq('init', '<?php echo esc_js( $id ); ?>');
+		fbq('init', '<?php echo esc_js( $id ); ?>'<?php echo $ud ? ', ' . wp_json_encode( $ud ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput ?>);
 		fbq('track', 'PageView');
-		<?php if ( $reg ) { echo "fbq('track', 'CompleteRegistration');\n"; } ?>
 		</script>
 		<noscript><img height="1" width="1" style="display:none"
 		src="https://www.facebook.com/tr?id=<?php echo esc_attr( $id ); ?>&ev=PageView&noscript=1"/></noscript>
