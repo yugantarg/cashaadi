@@ -427,6 +427,30 @@ final class FieldLogic {
 		}
 
 		/*
+		 * LinkedIn and Instagram: "My matches" by default, the member's choice
+		 * otherwise — decided per VIEWER.
+		 *
+		 * BuddyPress's own list only covers levels it has stored per member; a
+		 * field default is written when a member saves their profile, so for
+		 * everyone who has not re-saved since these fields existed, BuddyPress
+		 * treats them as public. The app's PRIVATE_BY_DEFAULT list is no answer
+		 * either: it hides from every viewer, matches and the owner included.
+		 * So resolve the level (stored choice, else the field default) and hide
+		 * it when this viewer's relationship cannot see that level.
+		 */
+		if ( $shown && function_exists( 'bp_xprofile_get_hidden_field_types_for_user' ) ) {
+			$blocked_levels = (array) bp_xprofile_get_hidden_field_types_for_user( (int) $shown, (int) $viewer );
+			foreach ( array( Config::FIELD_LINKEDIN, Config::FIELD_INSTAGRAM ) as $fid ) {
+				$level = function_exists( 'xprofile_get_field_visibility_level' )
+					? (string) xprofile_get_field_visibility_level( $fid, (int) $shown )
+					: 'friends';
+				if ( in_array( $level, $blocked_levels, true ) ) {
+					$hidden[] = (int) $fid;
+				}
+			}
+		}
+
+		/*
 		 * The ICAI document is a verification artifact, not a profile detail. It
 		 * was rendering on the profile as a "Download file" link to everyone,
 		 * exposing a member's uploaded proof. Only admins — who review it — should
