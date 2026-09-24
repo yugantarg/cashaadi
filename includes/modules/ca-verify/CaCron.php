@@ -133,10 +133,39 @@ final class CaCron {
 		$res = CaVerify::run_ai( $uid );
 
 		if ( ! is_array( $res ) || empty( $res['ok'] ) || empty( $res['verdict'] ) ) {
-			if ( ! $dry ) {
-				$err = ( is_array( $res ) && isset( $res['error'] ) ) ? $res['error'] : 'unknown';
+			$err = ( is_array( $res ) && isset( $res['error'] ) ) ? (string) $res['error'] : 'unknown';
+
+			/*
+			 * A file type the model cannot read is a decision, not an error:
+			 * retrying a .docx forever left the member "in review" for weeks.
+			 * Ask for a PDF or image instead.
+			 */
+			if ( 0 === strpos( $err, 'Unsupported format' ) ) {
+				if ( $dry ) {
+					return 'dry:reject:format';
+				}
 				update_user_meta( $uid, 'csm_av_result', 'AI error: ' . $err );
 				update_user_meta( $uid, 'csm_av_time', time() );
+				CaVerify::reject( $uid, 'format', 0 );
+				return 'rejected:format';
+			}
+
+			if ( $dry ) {
+				return 'dry:error:' . $err;
+			}
+			update_user_meta( $uid, 'csm_av_result', 'AI error: ' . $err );
+			update_user_meta( $uid, 'csm_av_time', time() );
+
+			/*
+			 * Transport errors are retried (pending_ids, after six hours) — but
+			 * not for ever. After three, a person takes it, and the member is
+			 * told that rather than reading "in review" indefinitely.
+			 */
+			$n = (int) get_user_meta( $uid, 'csm_av_attempts', true ) + 1;
+			update_user_meta( $uid, 'csm_av_attempts', $n );
+			if ( $n >= 3 ) {
+				update_user_meta( $uid, 'csm_av_status', 'review' );
+				return 'held:errors';
 			}
 			return 'error';
 		}
@@ -222,9 +251,13 @@ final class CaCron {
 			self::process( $uid, false );
 		}
 
-		/* adapt cadence: still work to do -> hourly; queue clear -> daily */
-		$remaining = self::pending_ids( 1 );
-		self::reschedule( empty( $remaining ) ? 'daily' : 'hourly' );
+		/*
+		 * Always hourly. Dropping to daily when the queue looked clear meant a
+		 * new upload could wait a day; an hourly look at an empty queue costs
+		 * one query. (New uploads also get their own run a minute after upload
+		 * — see CaVerify::on_doc_changed.)
+		 */
+		self::reschedule( 'hourly' );
 	}
 
 	/* ---------- scheduling ---------- */

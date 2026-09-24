@@ -101,6 +101,11 @@ final class CaVerify {
 				$url = trim( wp_strip_all_tags( $raw ) );
 			}
 		}
+		// '-' is bpxcftr's placeholder, left behind when an upload is refused.
+		// It is not a document (2026-09-24: nine members read "in review" on it).
+		if ( '-' === $url ) {
+			$url = '';
+		}
 		// Fallback: scan the plugin's upload folder for this user.
 		if ( '' === $url ) {
 			$up  = wp_get_upload_dir();
@@ -137,7 +142,7 @@ final class CaVerify {
 		$tbl = $bp . 'bp_xprofile_data';
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_col( $wpdb->prepare(
-			"SELECT DISTINCT user_id FROM {$tbl} WHERE field_id = %d AND value <> '' ORDER BY id DESC LIMIT %d",
+			"SELECT DISTINCT user_id FROM {$tbl} WHERE field_id = %d AND value <> '' AND value <> '-' ORDER BY id DESC LIMIT %d",
 			Config::FIELD_CA_DOC, (int) $limit
 		) );
 		return array_map( 'intval', (array) $rows );
@@ -341,6 +346,7 @@ final class CaVerify {
 			'incomplete'  => __( 'Part of the document was cut off. Please upload the full page.', 'cashaadi-ui' ),
 			'wrong_level' => __( 'The document does not support the qualification on your profile. Please upload proof of the level you have claimed.', 'cashaadi-ui' ),
 			'expired'     => __( 'The document could not be verified as current. Please upload a recent ICAI document.', 'cashaadi-ui' ),
+			'format'      => __( 'We could not open that file type. Please upload your ICAI document as a PDF, JPG or PNG.', 'cashaadi-ui' ),
 			'other'       => __( 'We could not verify the document you uploaded. Please upload a clear ICAI certificate, marksheet or membership card showing your name.', 'cashaadi-ui' ),
 		);
 	}
@@ -354,6 +360,7 @@ final class CaVerify {
 			'incomplete'  => 'Cut off / incomplete',
 			'wrong_level' => 'Wrong qualification level',
 			'expired'     => 'Not current',
+			'format'      => 'File type we cannot open',
 			'other'       => 'Other',
 		);
 	}
@@ -487,6 +494,15 @@ final class CaVerify {
 		if ( $field_id !== (int) Config::FIELD_CA_DOC || ! $uid ) {
 			return;
 		}
+		/*
+		 * Only a real upload restarts the review. A refused upload leaves
+		 * bpxcftr's '-' placeholder, and resetting on that told members their
+		 * nothing was "in review" — for weeks (2026-09-24).
+		 */
+		$value = is_object( $data ) && isset( $data->value ) ? trim( (string) $data->value ) : '';
+		if ( '' === $value || '-' === $value ) {
+			return;
+		}
 		$status = (string) get_user_meta( $uid, 'csm_av_status', true );
 		if ( 'approved' === $status ) {
 			return;   // an approved member changing their document is a reviewer's call, not an automatic one
@@ -495,6 +511,15 @@ final class CaVerify {
 		delete_user_meta( $uid, 'csm_av_result' );
 		delete_user_meta( $uid, 'csm_av_reason' );
 		delete_user_meta( $uid, 'csm_av_time' );
+		delete_user_meta( $uid, 'csm_av_attempts' );
+
+		/*
+		 * Check it in minutes, not at the next daily sweep. The sweep picks up
+		 * every pending member, so one early run is all this needs.
+		 */
+		if ( class_exists( __NAMESPACE__ . '\\CaCron' ) ) {
+			wp_schedule_single_event( time() + 60, CaCron::HOOK );
+		}
 	}
 
 	public static function status_label( $uid ) {

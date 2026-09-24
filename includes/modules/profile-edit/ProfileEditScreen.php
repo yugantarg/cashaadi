@@ -140,9 +140,30 @@ final class ProfileEditScreen {
 		 * relative path once the file is moved into place. This is byte-identical
 		 * to what the classic form does — we only changed where the file enters.
 		 */
+		global $wpdb;
+		$tbl  = $wpdb->prefix . 'bp_xprofile_data';
+		$prev = $wpdb->get_var( $wpdb->prepare( "SELECT value FROM {$tbl} WHERE field_id = %d AND user_id = %d", $field, $uid ) );
+
 		$_FILES[ 'field_' . $field ] = $_FILES['file'];
 		xprofile_set_field_data( $field, $uid, '-' );
 		unset( $_FILES[ 'field_' . $field ] );
+
+		/*
+		 * If bpxcftr refused the file, its '-' placeholder is what got stored.
+		 * Put back what was there before, so a refused upload changes nothing —
+		 * it used to leave '-' behind, which read as "document in review" for
+		 * a member who had no document at all (2026-09-24).
+		 */
+		$now = $wpdb->get_var( $wpdb->prepare( "SELECT value FROM {$tbl} WHERE field_id = %d AND user_id = %d", $field, $uid ) );
+		if ( '-' === $now ) {
+			if ( null === $prev || '' === $prev ) {
+				$wpdb->delete( $tbl, array( 'field_id' => $field, 'user_id' => $uid ) );
+			} else {
+				$wpdb->update( $tbl, array( 'value' => $prev ), array( 'field_id' => $field, 'user_id' => $uid ) );
+			}
+			wp_cache_delete( $uid . ':' . $field, 'bp_xprofile_data' );
+			wp_send_json_error( array( 'message' => 'That file could not be uploaded. Please use a PDF, JPG or PNG under the size limit.' ) );
+		}
 
 		$doc = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
 			? \CAShaadi\Modules\CaVerify\CaVerify::doc( $uid )
