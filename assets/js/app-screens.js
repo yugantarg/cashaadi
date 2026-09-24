@@ -356,7 +356,7 @@ window.csmProfileCard = function ( p ) {
 		} catch ( e ) {}
 
 		window.csmConfirm(
-			'You can now add your LinkedIn and Instagram to your profile, right under your Bio. Both are optional.',
+			'You can now add your LinkedIn and Instagram to your profile, right under your Bio. Adding these improves your chances of getting a compatible match.',
 			{ title: 'New: LinkedIn and Instagram', okText: 'Add them', cancelText: 'Not now' }
 		).then( function ( yes ) {
 			if ( yes ) { window.location.href = cfg.url; }
