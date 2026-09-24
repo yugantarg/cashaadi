@@ -55,7 +55,7 @@ final class SocialIntro {
 			}
 		}
 		return array(
-			'url'  => ProfileEditScreen::url( 7 ), // Professional details, where LinkedIn sits
+			'url'  => ProfileEditScreen::url( 1 ), // Basic Details, where both sit under Bio
 			'seen' => rest_url( 'csm/v1/social-intro' ),
 		);
 	}

@@ -356,7 +356,7 @@ window.csmProfileCard = function ( p ) {
 		} catch ( e ) {}
 
 		window.csmConfirm(
-			'You can now add your LinkedIn and Instagram to your profile, under Professional details and Hobbies and Interests. Both are optional, and only your matches can see them unless you change that.',
+			'You can now add your LinkedIn and Instagram to your profile, right under your Bio. Both are optional, and only your matches can see them unless you change that.',
 			{ title: 'New: LinkedIn and Instagram', okText: 'Add them', cancelText: 'Not now' }
 		).then( function ( yes ) {
 			if ( yes ) { window.location.href = cfg.url; }
