@@ -310,7 +310,22 @@ window.csmProfileCard = function ( p ) {
 		var dl = mk( 'dl', 'csm-d-fields' );
 		( g.fields || [] ).forEach( function ( f ) {
 			dl.appendChild( mk( 'dt', null, f.label ) );
-			dl.appendChild( mk( 'dd', null, f.value ) );
+			/* LinkedIn / Instagram carry a url the server rebuilt from a validated
+			   handle on a fixed https host (Core\Social::display), so it is safe
+			   to use as an href. Anything else stays plain text. */
+			if ( f.url && /^https:\/\/www\.(linkedin|instagram)\.com\//.test( f.url ) ) {
+				var dd = mk( 'dd' );
+				var a = document.createElement( 'a' );
+				a.href = f.url;
+				a.target = '_blank';
+				a.rel = 'noopener nofollow ugc';
+				a.className = 'csm-d-social';
+				a.textContent = f.value;
+				dd.appendChild( a );
+				dl.appendChild( dd );
+			} else {
+				dl.appendChild( mk( 'dd', null, f.value ) );
+			}
 		} );
 		sec.appendChild( dl );
 		card.appendChild( sec );
@@ -318,3 +333,33 @@ window.csmProfileCard = function ( p ) {
 
 	return card;
 };
+
+
+/*
+ * One-time popup: existing members can now add LinkedIn and Instagram
+ * (owner, 2026-09-24). The server decides who is eligible; this only shows it,
+ * never on the screens where the fields already are, and records it as seen
+ * the moment it appears so nobody is asked twice.
+ */
+( function () {
+	var cfg = window.CSM_APP && window.CSM_APP.socialIntro;
+	if ( ! cfg || ! cfg.url || typeof window.csmConfirm !== 'function' ) { return; }
+	if ( /^\/(welcome|profile\/edit)\b/.test( window.location.pathname ) ) { return; }
+
+	setTimeout( function () {
+		try {
+			fetch( cfg.seen, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': window.CSM_APP.nonce }
+			} ).catch( function () {} );
+		} catch ( e ) {}
+
+		window.csmConfirm(
+			'You can now add your LinkedIn and Instagram to your profile, under Professional details and Hobbies and Interests. Both are optional, and only your matches can see them unless you change that.',
+			{ title: 'New: LinkedIn and Instagram', okText: 'Add them', cancelText: 'Not now' }
+		).then( function ( yes ) {
+			if ( yes ) { window.location.href = cfg.url; }
+		} );
+	}, 1200 );
+} )();

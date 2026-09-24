@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.62.1
+ * Version:           1.63.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.62.1' );
+define( 'CASHAADI_UI_VER', '1.63.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -248,6 +248,10 @@ if ( class_exists( 'CAShaadi\\Modules\\ProfileScreen\\MemberScreen' ) ) {
 // Replaces the draft AJAX wizard unhooked in v0.58.0.
 if ( class_exists( 'CAShaadi\\Modules\\ProfileEdit\\ProfileEditScreen' ) ) {
 	ProfileEditScreen::register();
+}
+// One-time popup: existing members can now add LinkedIn / Instagram (v1.63.0).
+if ( class_exists( 'CAShaadi\\Modules\\ProfileEdit\\SocialIntro' ) ) {
+	\CAShaadi\Modules\ProfileEdit\SocialIntro::register();
 }
 
 // Settings hub at /settings/. Owns the list, not the editors — account security

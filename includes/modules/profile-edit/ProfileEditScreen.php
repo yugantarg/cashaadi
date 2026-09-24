@@ -390,6 +390,7 @@ final class ProfileEditScreen {
 				 * was added to close.
 				 */
 				'heightNote' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_HEIGHT ),
+				'social'     => \CAShaadi\Core\Social::kind( (int) $field->id ),
 				'ageNote' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_DOB )
 					? self::age_note( $uid )
 					: '',

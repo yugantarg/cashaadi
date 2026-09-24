@@ -26,6 +26,8 @@ final class Config {
 	const FIELD_HEIGHT        = 228; // cm, slider in wizard (#11797/#12132)
 	const FIELD_BIO           = 496; // plain textarea (#11619)
 	const FIELD_DOB           = 586; // datebox (#11611/#11641)
+	const FIELD_LINKEDIN      = 602; // textbox, optional; stored as the canonical profile URL (v1.63.0)
+	const FIELD_INSTAGRAM     = 603; // textbox, optional; stored as the bare username (v1.63.0)
 	const FIELD_CA_DOC        = 484; // ICAI document upload (#11701/#11815)
 	const FIELD_QUALIFICATION = 571; // "CA" / "CA Inter" (#11701)
 	const FIELD_NAME          = 1;   // display name (on the signup form)
@@ -93,12 +95,15 @@ final class Config {
 	 * settings." So it is a real default, not a lock.
 	 */
 	const DEFAULT_VISIBILITY = array(
-		self::FIELD_DOB   => 'adminsonly',
-		self::FIELD_PHONE => 'friends',
+		self::FIELD_DOB       => 'adminsonly',
+		self::FIELD_PHONE     => 'friends',
+		// Contact channels, like the phone: matches by default, member's choice.
+		self::FIELD_LINKEDIN  => 'friends',
+		self::FIELD_INSTAGRAM => 'friends',
 	);
 
 	/** Fields whose default is anything other than public. */
-	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB, self::FIELD_PHONE );
+	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB, self::FIELD_PHONE, self::FIELD_LINKEDIN, self::FIELD_INSTAGRAM );
 
 	/* ---- xProfile group edit order (photo step handled separately) ----- */
 	const GROUP_ORDER = array( 1, 7, 6, 4, 9, 8, 10 );

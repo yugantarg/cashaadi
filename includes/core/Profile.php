@@ -369,6 +369,14 @@ final class Profile {
 			if ( (int) $field->id === Config::FIELD_AGE ) {
 				continue;
 			}
+			/*
+			 * LinkedIn and Instagram are optional extras, not profile content:
+			 * counting them would put "2 details left" on every profile the day
+			 * they were added (owner asked for them as optional, 2026-09-24).
+			 */
+			if ( '' !== Social::kind( $field->id ) ) {
+				continue;
+			}
 			$val = xprofile_get_field_data( $field->id, $uid );
 			if ( is_array( $val ) ) {
 				$val = implode( '', $val );
@@ -561,6 +569,18 @@ final class Profile {
 					if ( '' === $val ) {
 						continue;
 					}
+				}
+				// LinkedIn / Instagram: a link rebuilt from the parsed handle.
+				$social = Social::kind( $field->id );
+				if ( '' !== $social ) {
+					$d = Social::display( $social, class_exists( 'BP_XProfile_ProfileData' )
+						? \BP_XProfile_ProfileData::get_value_byid( $field->id, $profile_id )
+						: $val );
+					if ( ! $d ) {
+						continue;
+					}
+					$rows[] = array( 'label' => (string) $field->name, 'value' => $d['text'], 'url' => $d['url'] );
+					continue;
 				}
 				$rows[] = array( 'label' => (string) $field->name, 'value' => $val );
 			}

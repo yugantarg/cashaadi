@@ -27,6 +27,32 @@
 
 	/* ------------------------------------------------------------ helpers */
 
+	/* LinkedIn / Instagram: the same parsing as Core\Social, for the live note.
+	   Returns { text } for a readable value, null otherwise. */
+	function csmSocialParse( kind, raw ) {
+		var v = String( raw || '' ).trim(), m;
+		if ( ! v ) { return null; }
+		if ( 'linkedin' === kind ) {
+			if ( /linkedin\.com/i.test( v ) ) {
+				m = /linkedin\.com\/(?:in|pub)\/([A-Za-z0-9\-_%]{2,100})/i.exec( v );
+				return m ? { text: 'linkedin.com/in/' + m[1] } : null;
+			}
+			v = v.replace( /^@/, '' );
+			return /^[A-Za-z0-9\-_]{3,100}$/.test( v ) ? { text: 'linkedin.com/in/' + v } : null;
+		}
+		if ( 'instagram' === kind ) {
+			if ( /instagram\.com/i.test( v ) ) {
+				m = /instagram\.com\/([A-Za-z0-9._]{1,30})/i.exec( v );
+				if ( ! m ) { return null; }
+				v = m[1];
+			}
+			v = v.replace( /^@/, '' ).toLowerCase();
+			var reserved = [ 'p', 'reel', 'reels', 'explore', 'stories', 'tv', 'accounts', 'direct', 'about', 'developer', 'legal' ];
+			return ( /^[a-z0-9._]{1,30}$/.test( v ) && reserved.indexOf( v ) < 0 ) ? { text: '@' + v } : null;
+		}
+		return null;
+	}
+
 	function api( url, opts ) {
 		opts = opts || {};
 		opts.credentials = 'same-origin';
@@ -257,6 +283,28 @@
 			};
 			node.addEventListener( 'input', showHeight );
 			showHeight();
+		}
+
+		/* LinkedIn / Instagram: say what will be saved, as they type. The server
+		   stores the same canonical form (Core\Social), and anything it cannot
+		   read is saved blank — so say so here rather than let it vanish. */
+		if ( f.social && node ) {
+			node.placeholder = 'linkedin' === f.social ? 'linkedin.com/in/yourname' : '@yourusername';
+			node.setAttribute( 'autocapitalize', 'off' );
+			node.setAttribute( 'autocorrect', 'off' );
+			node.setAttribute( 'spellcheck', 'false' );
+			var snote = el( 'p', 'csm-w-hint csm-w-height' );
+			var showSocial = function () {
+				var r = csmSocialParse( f.social, node.value );
+				snote.textContent = r
+					? 'Shows as: ' + r.text
+					: ( node.value.trim()
+						? ( 'linkedin' === f.social ? 'That does not look like a LinkedIn profile link.' : 'That does not look like an Instagram username.' )
+						: '' );
+			};
+			node.addEventListener( 'input', showSocial );
+			showSocial();
+			wrap.appendChild( snote );
 		}
 
 		return {

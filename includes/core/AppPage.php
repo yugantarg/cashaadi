@@ -313,6 +313,10 @@ final class AppPage {
 		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
+			// One-time "add LinkedIn / Instagram" popup for existing members.
+			'socialIntro' => class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\SocialIntro' )
+				? \CAShaadi\Modules\ProfileEdit\SocialIntro::payload( get_current_user_id() )
+				: false,
 		) );
 
 		// The spotlight overlay: the new-account tour and the first-action

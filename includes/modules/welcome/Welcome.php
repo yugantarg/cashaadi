@@ -463,6 +463,7 @@ final class Welcome {
 					// Same flag the profile editor sends, so the wizard can show
 					// the feet-and-inches readout under a height typed in cm.
 					'heightNote' => ( $fid === \CAShaadi\Core\Config::FIELD_HEIGHT ),
+					'social'     => \CAShaadi\Core\Social::kind( $fid ),
 				);
 			}
 

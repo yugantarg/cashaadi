@@ -42,6 +42,8 @@ final class FieldLogic {
 		add_action( 'xprofile_data_before_save', array( __CLASS__, 'reject_placeholder_value' ) );
 		// Height is stored in cm whatever the member typed (5.3 → 160).
 		add_action( 'xprofile_data_before_save', array( __CLASS__, 'normalise_height' ) );
+		// LinkedIn / Instagram stored in one canonical form (v1.63.0).
+		add_action( 'xprofile_data_before_save', array( __CLASS__, 'normalise_social' ) );
 		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'profile_field_visibility' ), 10, 3 );
 		add_filter( 'bp_get_the_profile_field_value', array( __CLASS__, 'own_dob_as_date' ), 10, 3 );
 		// Age auto-syncs from DOB on every profile-update: the classic form, the
@@ -363,6 +365,22 @@ final class FieldLogic {
 	 * reject_placeholder_value(): one guard covers every save path. Unreadable
 	 * input is stored blank rather than as a number that means nothing.
 	 */
+	/**
+	 * Store LinkedIn as its profile URL and Instagram as a bare username,
+	 * whatever was pasted. Unreadable input is stored blank rather than kept as
+	 * text that no profile card could turn into a working link.
+	 */
+	public static function normalise_social( $data ) {
+		if ( ! is_object( $data ) || ! isset( $data->value ) || is_array( $data->value ) ) {
+			return;
+		}
+		$kind = \CAShaadi\Core\Social::kind( isset( $data->field_id ) ? $data->field_id : 0 );
+		if ( '' === $kind ) {
+			return;
+		}
+		$data->value = \CAShaadi\Core\Social::normalise( $kind, wp_unslash( (string) $data->value ) );
+	}
+
 	public static function normalise_height( $data ) {
 		if ( ! is_object( $data ) || (int) $data->field_id !== (int) Config::FIELD_HEIGHT || ! isset( $data->value ) || is_array( $data->value ) ) {
 			return;
