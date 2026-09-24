@@ -243,3 +243,16 @@ img.avatar {
 /* Delete account: the "why are you leaving" box. A textarea, so it needs the
    sizing the single-line inputs get for free. */
 .csm-del-reason { width: 100%; box-sizing: border-box; resize: vertical; min-height: 68px; font: inherit; line-height: 1.5; }
+
+/* ---- LinkedIn / Instagram on profile cards: icon only (v1.63.5) ------- */
+.csm-d-social {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 30px; height: 30px; border-radius: 7px;
+	vertical-align: middle; text-decoration: none;
+	-webkit-tap-highlight-color: transparent;
+}
+.csm-d-social svg { width: 26px; height: 26px; display: block; }
+.csm-d-social.is-linkedin { color: #0a66c2; }
+.csm-d-social.is-instagram { color: #d62976; }
+.csm-d-social:hover svg, .csm-d-social:focus-visible svg { opacity: .85; }
+.csm-d-social:focus-visible { outline: 2px solid #7a1220; outline-offset: 2px; }

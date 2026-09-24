@@ -313,14 +313,22 @@ window.csmProfileCard = function ( p ) {
 			/* LinkedIn / Instagram carry a url the server rebuilt from a validated
 			   handle on a fixed https host (Core\Social::display), so it is safe
 			   to use as an href. Anything else stays plain text. */
-			if ( f.url && /^https:\/\/www\.(linkedin|instagram)\.com\//.test( f.url ) ) {
+			var net = f.url && /^https:\/\/www\.(linkedin|instagram)\.com\//.exec( f.url );
+			if ( net ) {
+				/* The icon IS the link (owner, 2026-09-24): a full profile URL
+				   overflowed the card. The handle stays in the accessible name
+				   and the tooltip, so nothing is lost by not printing it. */
 				var dd = mk( 'dd' );
 				var a = document.createElement( 'a' );
 				a.href = f.url;
 				a.target = '_blank';
 				a.rel = 'noopener nofollow ugc';
-				a.className = 'csm-d-social';
-				a.textContent = f.value;
+				a.className = 'csm-d-social is-' + net[1];
+				a.setAttribute( 'aria-label', f.label + ': ' + f.value );
+				a.title = f.value;
+				a.innerHTML = 'linkedin' === net[1]
+					? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="5" fill="currentColor"/><path fill="#fff" d="M7.1 9.6h-2.6V19h2.6V9.6zM5.8 5.2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM19.5 13.6c0-2.6-.6-4.2-3.4-4.2-1.4 0-2.3.7-2.7 1.4h-.1V9.6h-2.5V19h2.6v-4.6c0-1.2.2-2.4 1.8-2.4 1.5 0 1.5 1.4 1.5 2.5V19h2.6v-5.4z"/></svg>'
+					: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><rect x="5.5" y="5.5" width="13" height="13" rx="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16" cy="8" r="1.05" fill="#fff"/></svg>';
 				dd.appendChild( a );
 				dl.appendChild( dd );
 			} else {
