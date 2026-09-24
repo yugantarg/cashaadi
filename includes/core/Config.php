@@ -102,8 +102,17 @@ final class Config {
 		self::FIELD_INSTAGRAM => 'friends',
 	);
 
-	/** Fields whose default is anything other than public. */
-	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB, self::FIELD_PHONE, self::FIELD_LINKEDIN, self::FIELD_INSTAGRAM );
+	/**
+	 * Fields whose default is anything other than public AND whose stored
+	 * xProfile default is still public, so it has to be enforced in code.
+	 *
+	 * LinkedIn and Instagram are deliberately NOT here: they were created with
+	 * default_visibility = friends on the field itself, so BuddyPress applies
+	 * "My matches" correctly on its own. Listing them here put them through
+	 * SettingsScreen::unhide_always_public(), which hides a non-public field
+	 * from every viewer — matches and the owner included (2026-09-24).
+	 */
+	const PRIVATE_BY_DEFAULT_FIELDS = array( self::FIELD_DOB, self::FIELD_PHONE );
 
 	/* ---- xProfile group edit order (photo step handled separately) ----- */
 	const GROUP_ORDER = array( 1, 7, 6, 4, 9, 8, 10 );
