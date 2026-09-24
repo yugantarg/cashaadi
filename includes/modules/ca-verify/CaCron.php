@@ -110,7 +110,17 @@ final class CaCron {
 				 */
 				$is_error = 0 === strpos( (string) $result, 'AI error' );
 				$age      = time() - (int) get_user_meta( $uid, 'csm_av_time', true );
-				if ( ! $is_error || $age < 6 * HOUR_IN_SECONDS ) {
+
+				/*
+				 * A verdict from the earlier prompt carries no decision (it only
+				 * said is_ca_document / supports_claim), so nothing ever acted on
+				 * it and the member read "in review" for weeks. Treat it as not
+				 * yet checked; the current prompt returns a decision.
+				 */
+				$j          = $is_error ? null : json_decode( (string) $result, true );
+				$undecided  = is_array( $j ) && empty( $j['decision'] ) && empty( $j['verdict'] ) && empty( $j['recommendation'] );
+
+				if ( ! $undecided && ( ! $is_error || $age < 6 * HOUR_IN_SECONDS ) ) {
 					continue;
 				}
 			}
