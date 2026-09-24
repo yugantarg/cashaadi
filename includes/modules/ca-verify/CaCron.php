@@ -105,24 +105,19 @@ final class CaCron {
 				/*
 				 * A transport or model error is not a decision. Those rows were
 				 * skipped forever here -- one bad API minute and the member was
-				 * "pending" for good. Retry after six hours; a real verdict
-				 * (JSON, not "AI error: ...") is still final.
+				 * "pending" for good. Retry after six hours.
 				 */
 				$is_error = 0 === strpos( (string) $result, 'AI error' );
 				$age      = time() - (int) get_user_meta( $uid, 'csm_av_time', true );
 
 				/*
-				 * A verdict from the earlier prompt carries no decision (it only
-				 * said is_ca_document / supports_claim), so nothing ever acted on
-				 * it and the member read "in review" for weeks. Treat it as not
-				 * yet checked; the current prompt returns a decision.
+				 * Anyone reaching this point has a stored result but NO status —
+				 * so whatever the model said was never applied. Nineteen members
+				 * sat like that for weeks: their verdicts came from an earlier
+				 * batch that stored results without deciding. Re-check them; the
+				 * only wait is an AI error inside its six-hour back-off.
 				 */
-				// Matched as text: meta storage strips backslashes, so many of those
-				// old results are no longer valid JSON and json_decode() returns null.
-				$undecided = ! $is_error
-					&& ! preg_match( '/"(decision|verdict|recommendation)"\s*:\s*"[a-z_]+"/i', (string) $result );
-
-				if ( ! $undecided && ( ! $is_error || $age < 6 * HOUR_IN_SECONDS ) ) {
+				if ( $is_error && $age < 6 * HOUR_IN_SECONDS ) {
 					continue;
 				}
 			}
