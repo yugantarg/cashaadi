@@ -427,7 +427,7 @@ final class FieldLogic {
 		}
 
 		/*
-		 * LinkedIn and Instagram: "My matches" by default, the member's choice
+		 * LinkedIn and Instagram: Everyone by default, the member's choice
 		 * otherwise — decided per VIEWER.
 		 *
 		 * BuddyPress's own list only covers levels it has stored per member; a

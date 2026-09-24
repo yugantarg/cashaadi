@@ -97,18 +97,19 @@ final class Config {
 	const DEFAULT_VISIBILITY = array(
 		self::FIELD_DOB       => 'adminsonly',
 		self::FIELD_PHONE     => 'friends',
-		// Contact channels, like the phone: matches by default, member's choice.
-		self::FIELD_LINKEDIN  => 'friends',
-		self::FIELD_INSTAGRAM => 'friends',
+		// LinkedIn / Instagram: Everyone by default (owner, 2026-09-24), each
+		// member can narrow it. Public is also the field-level default.
+		self::FIELD_LINKEDIN  => 'public',
+		self::FIELD_INSTAGRAM => 'public',
 	);
 
 	/**
 	 * Fields whose default is anything other than public AND whose stored
 	 * xProfile default is still public, so it has to be enforced in code.
 	 *
-	 * LinkedIn and Instagram are deliberately NOT here: they were created with
-	 * default_visibility = friends on the field itself, so BuddyPress applies
-	 * "My matches" correctly on its own. Listing them here put them through
+	 * LinkedIn and Instagram are deliberately NOT here: their default is
+	 * public, and a member's narrower choice is enforced per viewer in
+	 * FieldLogic::profile_field_visibility(). Listing them here put them through
 	 * SettingsScreen::unhide_always_public(), which hides a non-public field
 	 * from every viewer — matches and the owner included (2026-09-24).
 	 */
