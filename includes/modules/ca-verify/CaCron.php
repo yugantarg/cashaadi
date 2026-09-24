@@ -117,8 +117,10 @@ final class CaCron {
 				 * it and the member read "in review" for weeks. Treat it as not
 				 * yet checked; the current prompt returns a decision.
 				 */
-				$j          = $is_error ? null : json_decode( (string) $result, true );
-				$undecided  = is_array( $j ) && empty( $j['decision'] ) && empty( $j['verdict'] ) && empty( $j['recommendation'] );
+				// Matched as text: meta storage strips backslashes, so many of those
+				// old results are no longer valid JSON and json_decode() returns null.
+				$undecided = ! $is_error
+					&& ! preg_match( '/"(decision|verdict|recommendation)"\s*:\s*"[a-z_]+"/i', (string) $result );
 
 				if ( ! $undecided && ( ! $is_error || $age < 6 * HOUR_IN_SECONDS ) ) {
 					continue;
