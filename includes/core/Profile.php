@@ -369,14 +369,6 @@ final class Profile {
 			if ( (int) $field->id === Config::FIELD_AGE ) {
 				continue;
 			}
-			/*
-			 * LinkedIn and Instagram are optional extras, not profile content:
-			 * counting them would put "2 details left" on every profile the day
-			 * they were added (owner asked for them as optional, 2026-09-24).
-			 */
-			if ( '' !== Social::kind( $field->id ) ) {
-				continue;
-			}
 			$val = xprofile_get_field_data( $field->id, $uid );
 			if ( is_array( $val ) ) {
 				$val = implode( '', $val );
