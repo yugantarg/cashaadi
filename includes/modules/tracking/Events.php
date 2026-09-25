@@ -38,6 +38,20 @@ final class Events {
 	/** Fired once when the account is activated — the Google Ads conversion. */
 	const SIGNUP = 'signup';
 
+	/**
+	 * A signup whose PROFILE is a woman's (owner, 2026-09-25): female profiles
+	 * are the scarcer, more valuable side, and the account holder is often a
+	 * parent — so this reads the profile's Gender field, never who is signed in
+	 * to Facebook. Sent to Meta as the standard event SubmitApplication, because
+	 * this dataset is in a restricted category that strips custom parameters
+	 * (a value on CompleteRegistration would never arrive) but keeps standard
+	 * event names.
+	 *
+	 * Never claimed on its own: it rides the SIGNUP claim, so it fires exactly
+	 * once, on the same page and in the same breath as CompleteRegistration.
+	 */
+	const SIGNUP_FEMALE = 'signup_female';
+
 	/** Fired once when a member first reaches onboarding. */
 	const ONBOARDING_START = 'onboarding_start';
 
@@ -121,6 +135,20 @@ final class Events {
 	}
 
 	/**
+	 * Is this member's profile a woman's? Gender (field 299) as STORED — the
+	 * display accessor can be filtered — against the field's option "Female",
+	 * case-insensitively. Empty or anything else is no.
+	 */
+	public static function is_female_profile( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid || ! class_exists( 'BP_XProfile_ProfileData' ) ) {
+			return false;
+		}
+		$g = trim( (string) \BP_XProfile_ProfileData::get_value_byid( \CAShaadi\Core\Config::FIELD_GENDER, $uid ) );
+		return 0 === strcasecmp( $g, 'Female' );
+	}
+
+	/**
 	 * Everything tracking.js needs, including the events this member still owes.
 	 *
 	 * @param array $claim Event names to claim now (each returned only if unclaimed).
@@ -137,6 +165,11 @@ final class Events {
 			if ( self::claim( $uid, $event ) ) {
 				$pending[] = $event;
 			}
+		}
+
+		// Right after SIGNUP, only when SIGNUP was just claimed — so exactly once.
+		if ( in_array( self::SIGNUP, $pending, true ) && self::is_female_profile( $uid ) ) {
+			$pending[] = self::SIGNUP_FEMALE;
 		}
 
 		return array(

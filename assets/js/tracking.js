@@ -110,6 +110,14 @@
 			ga4:  { name: 'onboarding_complete', params: {} },
 			ads:  false,
 			meta: 'Lead'
+		},
+		/* A woman's profile signed up. Meta only: a standard event, because the
+		   dataset's restricted category strips custom parameters. The server
+		   adds this straight after `signup`, from the same one-time claim. */
+		signup_female: {
+			ga4:  null,
+			ads:  false,
+			meta: 'SubmitApplication'
 		}
 	};
 
