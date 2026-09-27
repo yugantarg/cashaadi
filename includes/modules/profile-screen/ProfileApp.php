@@ -202,6 +202,13 @@ final class ProfileApp {
 				? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( (int) $completion['firstGap'] )
 				: '',
 			'sections'    => $sections,
+			// CA Shaadi cash, for the Refer & earn row's subtitle.
+			'cash'        => class_exists( '\\CAShaadi\\Modules\\Referral\\Referral' )
+				? \CAShaadi\Modules\Referral\Referral::balance( $uid )
+				: 0,
+			'referFemale' => class_exists( '\\CAShaadi\\Modules\\Referral\\Referral' )
+				? \CAShaadi\Modules\Referral\Referral::amount_for_gender( 'female' )
+				: 0,
 			'links'       => array(
 				'public'   => $base,
 				'preview'  => home_url( '/profile/preview/' ),
@@ -225,6 +232,10 @@ final class ProfileApp {
 					? \CAShaadi\Modules\Settings\SettingsScreen::url()
 					: $base . 'settings/',
 				'upgrade'  => site_url( '/membership-pricing/' ),
+				// Refer & earn (owner, 2026-09-27: "should show in the profile").
+				'refer'    => class_exists( '\\CAShaadi\\Modules\\Referral\\ReferralScreen' )
+					? \CAShaadi\Modules\Referral\ReferralScreen::url()
+					: '',
 				// Help belongs IN the Profile section, not only in the page footer —
 				// the footer is where a member looks last, if at all.
 				'support'  => 'mailto:' . \CAShaadi\Core\Config::SUPPORT_EMAIL,

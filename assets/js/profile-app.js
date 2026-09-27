@@ -145,9 +145,16 @@
 		var manage = el( 'section', 'csm-p-sections' );
 		manage.appendChild( el( 'h2', 'csm-p-h', 'Manage' ) );
 		var mlist = el( 'ul', 'csm-p-list' );
-		var rows = [
-			[ 'My photos', d.links.photos ]
-		];
+		var rows = [];
+		/* Refer & earn first: it is the one row here that pays the member. The
+		   subtitle says what they have, or what they could earn. */
+		if ( d.links.refer ) {
+			rows.push( [ 'Refer & earn', d.links.refer,
+				d.cash > 0
+					? '\u20b9' + Number( d.cash ).toLocaleString( 'en-IN' ) + ' CA Shaadi cash'
+					: ( d.referFemale ? 'Earn up to \u20b9' + d.referFemale + ' per friend' : '' ) ] );
+		}
+		rows.push( [ 'My photos', d.links.photos ] );
 		// Who sees what is about the profile, not the account — it belongs here
 		// rather than two taps away under Settings.
 		if ( d.links.visibility ) { rows.push( [ 'Who sees what', d.links.visibility ] ); }
@@ -161,7 +168,9 @@
 			a.appendChild( el( 'span', 'csm-p-label', r[0] ) );
 			// mailto: rows say WHERE they go — a chevron alone would suggest
 			// another in-app screen, and this one leaves for the mail client.
-			if ( 0 === r[1].indexOf( 'mailto:' ) ) {
+			if ( r[2] ) {
+				a.appendChild( el( 'span', 'csm-p-sub', r[2] ) );
+			} else if ( 0 === r[1].indexOf( 'mailto:' ) ) {
 				a.appendChild( el( 'span', 'csm-p-sub', r[1].slice( 7 ) ) );
 			}
 			var chev = el( 'span', 'csm-p-chev' );
