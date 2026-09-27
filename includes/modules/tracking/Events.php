@@ -167,8 +167,16 @@ final class Events {
 			}
 		}
 
-		// Right after SIGNUP, only when SIGNUP was just claimed — so exactly once.
-		if ( in_array( self::SIGNUP, $pending, true ) && self::is_female_profile( $uid ) ) {
+		/*
+		 * Right after SIGNUP, only when SIGNUP was just claimed — so exactly once.
+		 *
+		 * OFF by default since 2026-09-27 (owner): Meta ads stopped delivering
+		 * the day after this went live, and SubmitApplication is the event Meta
+		 * associates with job/loan/housing applications, which it restricts.
+		 * Switch back on with: wp option update csm_track_submitapplication 1
+		 */
+		if ( get_option( 'csm_track_submitapplication', 0 )
+			&& in_array( self::SIGNUP, $pending, true ) && self::is_female_profile( $uid ) ) {
 			$pending[] = self::SIGNUP_FEMALE;
 		}
 
