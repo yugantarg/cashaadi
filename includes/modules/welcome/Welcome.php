@@ -674,6 +674,12 @@ final class Welcome {
 		$first_time = ! get_user_meta( $uid, self::DONE_META, true );
 		if ( $first_time ) {
 			update_user_meta( $uid, self::DONE_META, time() );
+			/*
+			 * Announced once, when the profile is first finished. Referral credits
+			 * hang off this (owner, 2026-09-27); the ledger's unique key makes a
+			 * second firing harmless anyway.
+			 */
+			do_action( 'csm_onboarding_completed', $uid );
 		}
 
 		$events = array();

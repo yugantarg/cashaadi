@@ -236,6 +236,7 @@ final class AppPage {
 			// public view is exactly that, so it belongs here rather than only on
 			// the hub.
 			array( __( 'View as others see me', 'cashaadi-ui' ), home_url( '/profile/preview/' ) ),
+			array( __( 'Refer & earn', 'cashaadi-ui' ), home_url( '/refer/' ) ),
 			array( __( 'Settings', 'cashaadi-ui' ), $settings ),
 			array( __( 'Help & support', 'cashaadi-ui' ), 'mailto:' . Config::SUPPORT_EMAIL ),
 		);
