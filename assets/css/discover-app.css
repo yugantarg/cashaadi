@@ -345,8 +345,20 @@ body.csm-member-view .csm-d-card {
 }
 .csm-d-sheet {
 	background: #fff; width: 100%; max-width: 420px;
-	border-radius: 16px 16px 0 0; padding: 20px 20px 24px;
-	max-height: 86vh; overflow: auto;
+	border-radius: 16px 16px 0 0; padding: 20px 20px 0;
+	/* The VISIBLE screen, not the layout one: on phones 100vh reaches under
+	   the browser's own bottom bar, which hid Clear/Apply (owner, 2026-09-27). */
+	max-height: 86vh;
+	max-height: 86dvh;
+	overflow: auto;
+}
+/* Pinned to the bottom of the sheet, clear of the home indicator and the
+   browser's bottom toolbar (app pages use viewport-fit=cover, so content
+   reaches into that area unless it is padded out of it). */
+.csm-d-sheetact {
+	position: sticky; bottom: 0; background: #fff;
+	padding: 12px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+	margin-top: 4px;
 }
 @media (min-width: 560px) {
 	.csm-d-sheetback { align-items: center; }
@@ -366,6 +378,10 @@ body.csm-member-view .csm-d-card {
 .csm-d-fhint { font-size: 13px; color: #7a6f68; margin: 10px 0 6px; }
 
 .csm-d-sheetact { display: flex; gap: 10px; }
+@media (min-width: 560px) {
+	.csm-d-sheet { padding-bottom: 0; }
+	.csm-d-sheetact { padding-bottom: 20px; }
+}
 .csm-d-fclear, .csm-d-fsave {
 	flex: 1; padding: 12px; border-radius: 9px; font: 700 15px/1 inherit; cursor: pointer;
 }
