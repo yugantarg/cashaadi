@@ -112,6 +112,56 @@ final class Dashboard {
 		return 'Complete';
 	}
 
+	/**
+	 * "Sign-ups by channel" for a date range (IST dates; default last 30 days).
+	 * Members from before attribution existed count as Unknown.
+	 */
+	public static function channel_summary() {
+		if ( ! class_exists( '\\CAShaadi\\Modules\\Tracking\\Attribution' ) ) {
+			return '';
+		}
+		global $wpdb;
+		$tz   = wp_timezone();
+		$to   = isset( $_GET['sto'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $_GET['sto'] ) ? $_GET['sto'] : wp_date( 'Y-m-d' );
+		$from = isset( $_GET['sfrom'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $_GET['sfrom'] ) ? $_GET['sfrom'] : wp_date( 'Y-m-d', strtotime( '-29 days' ) );
+		$a    = ( new \DateTimeImmutable( $from . ' 00:00:00', $tz ) )->setTimezone( new \DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+		$b    = ( new \DateTimeImmutable( $to . ' 23:59:59', $tz ) )->setTimezone( new \DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT COALESCE(NULLIF(m.meta_value,''),'unknown') ch, COUNT(*) n
+			 FROM {$wpdb->users} u
+			 LEFT JOIN {$wpdb->usermeta} m ON m.user_id = u.ID AND m.meta_key = 'csm_channel'
+			 WHERE u.user_registered BETWEEN %s AND %s
+			 GROUP BY ch ORDER BY n DESC",
+			$a,
+			$b
+		) );
+		$total  = 0;
+		foreach ( (array) $rows as $r ) {
+			$total += (int) $r->n;
+		}
+		$labels = \CAShaadi\Modules\Tracking\Attribution::channels();
+
+		$h  = '<div style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin:15px 0">';
+		$h .= '<form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">';
+		$h .= '<input type="hidden" name="page" value="csm-sales-dashboard"><strong style="margin-right:6px">Sign-ups by channel</strong>';
+		$h .= '<input type="date" name="sfrom" value="' . esc_attr( $from ) . '"> to <input type="date" name="sto" value="' . esc_attr( $to ) . '"> <button class="button">Show</button></form>';
+		if ( ! $total ) {
+			return $h . '<p style="margin:0;color:#666">No sign-ups in this range.</p></div>';
+		}
+		$h .= '<table class="widefat striped" style="max-width:480px"><tbody>';
+		foreach ( (array) $rows as $r ) {
+			$h .= sprintf(
+				'<tr><td>%s</td><td style="text-align:right">%d</td><td style="text-align:right;color:#666">%d%%</td></tr>',
+				esc_html( isset( $labels[ $r->ch ] ) ? $labels[ $r->ch ] : $r->ch ),
+				(int) $r->n,
+				(int) round( 100 * $r->n / $total )
+			);
+		}
+		$h .= sprintf( '<tr><td><strong>Total</strong></td><td style="text-align:right"><strong>%d</strong></td><td></td></tr>', $total );
+		return $h . '</tbody></table></div>';
+	}
+
 	/** Map an already-computed label to its rank (no recomputation). */
 	public static function pending_rank_from_label( $label ) {
 		$map = array(
@@ -196,6 +246,7 @@ final class Dashboard {
 
 		$f_pending  = isset( $_GET['fpending'] )  ? sanitize_text_field( $_GET['fpending'] )  : '';
 		$f_member   = isset( $_GET['fmember'] )   ? sanitize_text_field( $_GET['fmember'] )   : '';
+		$f_source   = isset( $_GET['fsrc'] )      ? sanitize_key( $_GET['fsrc'] )             : '';
 		$search     = isset( $_GET['s'] )         ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 		$orderby    = isset( $_GET['orderby'] )   ? sanitize_text_field( $_GET['orderby'] )   : 'registered';
 		$order      = ( isset( $_GET['order'] ) && strtolower( $_GET['order'] ) === 'asc' ) ? 'asc' : 'desc';
@@ -234,6 +285,12 @@ final class Dashboard {
 			if ( $f_member === 'free'    && strtolower( $member ) !== 'free' ) continue;
 			if ( $f_member === 'lead'    && strtolower( $member ) !== 'lead' ) continue;
 
+			// Where they came from (v1.65.4). Members from before then read "Unknown".
+			$src = class_exists( '\\CAShaadi\\Modules\\Tracking\\Attribution' )
+				? \CAShaadi\Modules\Tracking\Attribution::describe( $uid )
+				: array( 'key' => 'unknown', 'label' => 'Unknown', 'campaign' => '' );
+			if ( $f_source !== '' && $src['key'] !== $f_source ) continue;
+
 			$rows[] = array(
 				'id'         => $uid,
 				'name'       => $name,
@@ -250,6 +307,8 @@ final class Dashboard {
 				// $last_ts is UTC, so compare with UTC now — current_time('timestamp')
 				// is site time and made every "ago" 5½ hours too old.
 				'last_human' => $last_ts ? human_time_diff( $last_ts, time() ) . ' ago' : 'Never',
+				'source'     => $src['label'],
+				'campaign'   => $src['campaign'],
 			);
 		}
 
@@ -272,7 +331,7 @@ final class Dashboard {
 		$total = count( $rows );
 
 		$base = admin_url( 'admin.php?page=csm-sales-dashboard' );
-		$qs   = array( 'fpending' => $f_pending, 'fmember' => $f_member, 's' => $search );
+		$qs   = array( 'fpending' => $f_pending, 'fmember' => $f_member, 'fsrc' => $f_source, 's' => $search );
 		$sort_link = function ( $col, $label ) use ( $base, $qs, $orderby, $order ) {
 			$new_order = ( $orderby === $col && $order === 'asc' ) ? 'desc' : 'asc';
 			$url = add_query_arg( array_merge( $qs, array( 'orderby' => $col, 'order' => $new_order ) ), $base );
@@ -285,6 +344,7 @@ final class Dashboard {
 		if ( class_exists( __NAMESPACE__ . '\\ActiveUsers' ) ) {
 			echo ActiveUsers::card(); // phpcs:ignore WordPress.Security.EscapeOutput
 		}
+		echo self::channel_summary(); // phpcs:ignore WordPress.Security.EscapeOutput
 
 		echo '<form method="get" style="margin:15px 0;padding:12px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;">';
 		echo '<input type="hidden" name="page" value="csm-sales-dashboard" />';
@@ -301,6 +361,14 @@ final class Dashboard {
 		echo '<option value="free"'    . selected( $f_member, 'free',    false ) . '>Free</option>';
 		echo '<option value="lead"'    . selected( $f_member, 'lead',    false ) . '>Lead</option>';
 		echo '<option value="premium"' . selected( $f_member, 'premium', false ) . '>Premium</option></select>';
+
+		if ( class_exists( '\\CAShaadi\\Modules\\Tracking\\Attribution' ) ) {
+			echo ' <select name="fsrc"><option value="">Any source</option>';
+			foreach ( \CAShaadi\Modules\Tracking\Attribution::channels() as $k => $label ) {
+				echo '<option value="' . esc_attr( $k ) . '"' . selected( $f_source, $k, false ) . '>' . esc_html( $label ) . '</option>';
+			}
+			echo '</select>';
+		}
 
 		echo ' <button class="button button-primary">Filter</button> ';
 		echo '<a class="button" href="' . esc_url( $base ) . '">Reset</a>';
@@ -319,10 +387,11 @@ final class Dashboard {
 		echo '<th>' . $sort_link( 'acted', 'Acted' ) . '</th>';
 		echo '<th>' . $sort_link( 'registered', 'Registered' ) . '</th>';
 		echo '<th>' . $sort_link( 'last', 'Last active' ) . '</th>';
+		echo '<th>Source</th>';
 		echo '</tr></thead><tbody>';
 
 		if ( ! $rows ) {
-			echo '<tr><td colspan="9">No users match the current filters.</td></tr>';
+			echo '<tr><td colspan="10">No users match the current filters.</td></tr>';
 		}
 		foreach ( $rows as $r ) {
 			$comp_color   = $r['complete'] === 'Complete' ? '#1a7f37' : '#996800';
@@ -343,6 +412,7 @@ final class Dashboard {
 			echo '<td>' . esc_html( $r['acted'] ) . '</td>';
 			echo '<td>' . esc_html( $r['registered'] ? date_i18n( 'j M Y', $r['registered'] ) : '—' ) . '</td>';
 			echo '<td>' . esc_html( $r['last_human'] ) . '</td>';
+			echo '<td>' . esc_html( $r['source'] ) . ( '' !== $r['campaign'] ? '<br><small style="color:#666">' . esc_html( $r['campaign'] ) . '</small>' : '' ) . '</td>';
 			echo '</tr>';
 		}
 		echo '</tbody></table>';
