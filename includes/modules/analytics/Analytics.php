@@ -57,7 +57,15 @@ final class Analytics {
 		add_action( 'wp_footer', array( __CLASS__, 'fb_purchase' ), 6 );
 
 		// GA4 sign_up + purchase (#12112).
-		add_action( 'bp_complete_signup', array( __CLASS__, 'flag_ga_registered' ) );
+		/*
+		 * GA4 sign_up is NOT sent from here any more (v1.65.3). It fired on the
+		 * registration form's confirmation page (bp_complete_signup) while
+		 * tracking.js fired it again on the first /welcome/ visit — two sign_up
+		 * events and two Ads conversions per member, and one for people who
+		 * never verified. tracking.js keeps it: once per member, after email
+		 * verification, the same moment as Meta's CompleteRegistration. Only
+		 * the purchase event remains here.
+		 */
 		add_action( 'wp_footer', array( __CLASS__, 'ga4_events' ), 20 );
 
 		// Google Ads: register the conversion ID on the Google tag Site Kit already
@@ -363,9 +371,6 @@ final class Analytics {
 
 	/* ---- GA4 (#12112) --------------------------------------------------- */
 
-	public static function flag_ga_registered() {
-		$GLOBALS['csm_ga_registered'] = true;
-	}
 
 	/**
 	 * Register the Google Ads conversion ID against the Google tag that is
@@ -393,7 +398,6 @@ final class Analytics {
 		}
 		$printed = true;
 
-		$reg      = ! empty( $GLOBALS['csm_ga_registered'] );
 		$purchase = null;
 		if ( is_user_logged_in() ) {
 			$uid     = get_current_user_id();
@@ -403,7 +407,7 @@ final class Analytics {
 				delete_user_meta( $uid, 'csm_ga_purchase_pending' );
 			}
 		}
-		if ( ! $reg && ! $purchase ) {
+		if ( ! $purchase ) {
 			return;
 		}
 		?>
@@ -411,11 +415,6 @@ final class Analytics {
 		<script>
 		window.dataLayer = window.dataLayer || [];
 		function csmGtag(){ (window.gtag ? window.gtag : function(){ window.dataLayer.push(arguments); }).apply(null, arguments); }
-		<?php if ( $reg ) : ?>
-		csmGtag('event', 'sign_up', { method: 'website' });
-		<?php // Google Ads "Submit lead form" conversion — same moment as sign_up. ?>
-		csmGtag('event', 'conversion', { send_to: <?php echo wp_json_encode( Config::GADS_LEAD_LABEL ); ?> });
-		<?php endif; ?>
 		<?php
 		if ( $purchase ) :
 			$val  = (float) $purchase['value'];

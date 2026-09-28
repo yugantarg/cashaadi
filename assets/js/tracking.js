@@ -98,7 +98,9 @@
 	var MAP = {
 		signup: {
 			ga4:  { name: 'sign_up', params: { method: 'email' } },
-			ads:  true,
+			// No direct Ads conversion (owner, 2026-09-28): Ads imports GA4's
+			// sign_up, so a tag conversion here would count the member twice.
+			ads:  false,
 			meta: 'CompleteRegistration'
 		},
 		onboarding_start: {
