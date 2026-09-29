@@ -112,29 +112,59 @@ final class Attribution {
 		return false;
 	}
 
-	/**
-	 * The channel, from the last touch that carried a signal (else the first).
-	 * Paid click IDs win over everything; a member's own referral link counts
-	 * as a referral even when it was opened from WhatsApp with no referrer.
-	 */
-	public static function classify( $first, $last, $referred = false ) {
-		if ( ! $first && ! $last ) {
-			return $referred ? 'referral' : 'unknown';
+	/** Paid-ad medium values. */
+	private static function is_paid_medium( $med ) {
+		return in_array( strtolower( (string) $med ), array( 'cpc', 'ppc', 'paid', 'paidsearch', 'paid_search', 'paid-search', 'paidsocial', 'paid_social', 'paid-social', 'pmax', 'display', 'cpm', 'ads', 'ad', 'sem' ), true );
+	}
+
+	/** google_ads / meta_ads if this one visit was an ad click, else ''. */
+	private static function paid_channel( $a ) {
+		if ( ! $a ) {
+			return '';
 		}
-		$a   = self::has_signal( $last ) ? $last : ( self::has_signal( $first ) ? $first : ( $last ? $last : $first ) );
-		$src = strtolower( (string) ( $a['utm_source'] ?? '' ) );
-		$med = strtolower( (string) ( $a['utm_medium'] ?? '' ) );
-		$rh  = strtolower( (string) ( $a['rh'] ?? '' ) );
-
-		$paid = in_array( $med, array( 'cpc', 'ppc', 'paid', 'paidsearch', 'paid_search', 'paid-search', 'paidsocial', 'paid_social', 'paid-social', 'pmax', 'display', 'cpm', 'ads', 'ad', 'sem' ), true );
-
+		$src  = strtolower( (string) ( $a['utm_source'] ?? '' ) );
+		$paid = self::is_paid_medium( $a['utm_medium'] ?? '' );
 		if ( ! empty( $a['gclid'] ) || ! empty( $a['gbraid'] ) || ! empty( $a['wbraid'] ) || ( 'google' === $src && $paid ) ) {
 			return 'google_ads';
 		}
 		if ( ! empty( $a['fbclid'] ) || ( in_array( $src, array( 'facebook', 'instagram', 'fb', 'ig', 'meta' ), true ) && $paid ) ) {
 			return 'meta_ads';
 		}
-		if ( $referred || 'referral' === $med ) {
+		return '';
+	}
+
+	/**
+	 * The channel.
+	 *
+	 * An ad click in EITHER visit decides it, the most recent one winning
+	 * (owner, 2026-09-29). The first version only looked at the last visit that
+	 * carried any signal, so someone who clicked a paid Instagram ad and later
+	 * came back through Instagram without the ad's tags read as "Social" — three
+	 * of the first four "Social" sign-ups were paid Instagram clicks.
+	 *
+	 * Without an ad click: a member's referral link, then organic search, social,
+	 * other websites, direct — from the last visit that carried a signal.
+	 */
+	public static function classify( $first, $last, $referred = false ) {
+		$paid = self::paid_channel( $last );
+		if ( '' === $paid ) {
+			$paid = self::paid_channel( $first );
+		}
+		if ( '' !== $paid ) {
+			return $paid;
+		}
+		if ( $referred ) {
+			return 'referral';
+		}
+		if ( ! $first && ! $last ) {
+			return 'unknown';
+		}
+		$a   = self::has_signal( $last ) ? $last : ( self::has_signal( $first ) ? $first : ( $last ? $last : $first ) );
+		$src = strtolower( (string) ( $a['utm_source'] ?? '' ) );
+		$med = strtolower( (string) ( $a['utm_medium'] ?? '' ) );
+		$rh  = strtolower( (string) ( $a['rh'] ?? '' ) );
+
+		if ( 'referral' === $med ) {
 			return 'referral';
 		}
 		if ( 'organic' === $med || preg_match( '/(^|\.)(google|bing|yahoo|duckduckgo|ecosia|yandex|baidu)\./', $rh ) ) {
@@ -148,6 +178,16 @@ final class Attribution {
 			return 'referral';
 		}
 		return 'direct';
+	}
+
+	/** Recompute a member's channel from what was stored at signup. */
+	public static function reclassify( $uid ) {
+		$uid   = (int) $uid;
+		$first = json_decode( (string) get_user_meta( $uid, 'csm_src_first', true ), true );
+		$last  = json_decode( (string) get_user_meta( $uid, 'csm_src_last', true ), true );
+		$ch    = self::classify( is_array( $first ) ? $first : null, is_array( $last ) ? $last : null, (bool) get_user_meta( $uid, 'csm_referred_by', true ) );
+		update_user_meta( $uid, self::CHANNEL, $ch );
+		return $ch;
 	}
 
 	/** For the dashboard: channel key, label, campaign. */
