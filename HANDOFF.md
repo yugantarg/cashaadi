@@ -1,5 +1,7 @@
 # CAShaadi UI — Handoff for local Claude Code
 
+> **Historical (v0.25.8, 2026-08-31).** Current state is in `docs/HANDOVER.md`.
+
 ## CURRENT STATUS (updated 2026-08-31 — MIGRATION COMPLETE on staging2: 8 modules cut over; Emails+OTP intentionally skipped; v0.25.8)
 
 > ## 🏁 STAGING2 CUTOVER COMPLETE
