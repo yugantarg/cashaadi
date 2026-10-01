@@ -98,6 +98,11 @@ since v1.48.1 is listed here.
   restarts the review.
 - The sweep runs hourly, and a real upload also gets its own run a minute later.
   Old verdicts that have a result but no status are re-checked.
+- **Verify-badge popup test (v1.66.0, `VerifyNudge`)**: a one-time popup for
+  members who have uploaded nothing. Each one is assigned to an arm on their
+  first app page load: `csm_vn_arm` is `show` or `control`, set according to
+  `csm_verify_nudge_pct` (0 = off), and `csm_vn_at` records when. Further meta
+  keys are `csm_vn_seen` and `csm_vn_clicked`.
 - **The manual queue still needs a human.** At handover #774, #651 and #653
   were waiting.
 

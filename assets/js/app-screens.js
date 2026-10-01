@@ -371,3 +371,43 @@ window.csmProfileCard = function ( p ) {
 		} );
 	}, 1200 );
 } )();
+
+/*
+ * Sampled one-time popup: "get your Verified CA badge" (owner, 2026-10-01).
+ * The server picks the sample and records the arm; this only shows it, never
+ * on the screens where the upload or the wizard already is, records it as
+ * seen the moment it appears, and records a tap on "Upload now" separately
+ * so the test can tell a click from an upload.
+ */
+( function () {
+	var cfg = window.CSM_APP && window.CSM_APP.verifyNudge;
+	if ( ! cfg || ! cfg.url || typeof window.csmConfirm !== 'function' ) { return; }
+	if ( /^\/(welcome|profile\/edit)\b/.test( window.location.pathname ) ) { return; }
+
+	function mark( clicked ) {
+		try {
+			return fetch( cfg.seen + ( clicked ? '?clicked=1' : '' ), {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': window.CSM_APP.nonce }
+			} ).catch( function () {} );
+		} catch ( e ) {
+			return Promise.resolve();
+		}
+	}
+
+	setTimeout( function () {
+		mark( false );
+		window.csmConfirm(
+			'Upload your ICAI certificate, marksheet or membership card (PDF, JPG or PNG) and your profile shows the Verified CA badge. Members trust verified profiles more, and it usually takes under an hour.',
+			{ title: 'Get your Verified CA badge', okText: 'Upload now', cancelText: 'Not now' }
+		).then( function ( yes ) {
+			if ( ! yes ) { return; }
+			var go = function () { window.location.href = cfg.url; };
+			var p  = mark( true );
+			// Never hold the member on a slow network for a statistic.
+			setTimeout( go, 800 );
+			if ( p && p.then ) { p.then( go, go ); }
+		} );
+	}, 1200 );
+} )();
