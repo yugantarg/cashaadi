@@ -46,6 +46,29 @@ final class PasswordPolicy {
 
 		// 4. The one rule we do keep.
 		add_filter( 'bp_members_validate_user_password', array( __CLASS__, 'validate' ), 10, 3 );
+
+		// 5. Say that rule. WordPress's default hint under the boxes asked for
+		//    twelve characters and symbols (owner, 2026-10-02).
+		add_filter( 'password_hint', array( __CLASS__, 'hint' ) );
+
+		// 6. "Confirm new password" -> "Confirm password (required)", like
+		//    every other label on the form. There is nothing "new" at signup.
+		add_filter( 'gettext', array( __CLASS__, 'confirm_label' ), 10, 3 );
+	}
+
+	public static function hint() {
+		return sprintf(
+			/* translators: %d: minimum password length */
+			__( 'Use at least %d characters.', 'cashaadi-ui' ),
+			self::MIN_LENGTH
+		);
+	}
+
+	public static function confirm_label( $translation, $text, $domain ) {
+		if ( 'buddypress' === $domain && 'Confirm new password' === $text ) {
+			return __( 'Confirm password (required)', 'cashaadi-ui' );
+		}
+		return $translation;
 	}
 
 	/**

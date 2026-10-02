@@ -92,6 +92,14 @@ body.activate #activation-form input[type=text] {
 	font-size: 16px; /* >=16px stops iOS zooming the field on focus */
 	color: var(--csm-ink, #16212b);
 }
+/* Password pair (owner, 2026-10-02): the confirm label sat flush under the
+   first box with a gap below it — BuddyPress puts a <br> after that label and
+   leaves room for the strength meter we removed. */
+body.register #signup-form .user-pass1-wrap { margin: 0 0 16px; }
+body.register #signup-form .user-pass2-wrap br,
+body.register #signup-form #pass-strength-result { display: none; }
+body.register #signup-form .indicator-hint { margin: 8px 0 16px; font-size: 13px; color: var(--csm-muted, #5c6a76); }
+
 body.register #signup-form input:focus,
 body.activate #activation-form input:focus {
 	outline: none;
