@@ -180,7 +180,7 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 * ratio, but it made it worse by never remembering who had already had
 		 * exposure. wp_csm_seen now records that, so the pool can be ranked:
 		 *
-		 *   - EXPOSURE (negative): each past impression costs a point, capped, so
+		 *   - EXPOSURE (negative): each past impression costs something (see below), so
 		 *     the least-shown profiles surface first. This is the "balanced
 		 *     proportions" mechanism — within any group of equally-boosted
 		 *     profiles, whoever has been shown least goes first.
@@ -203,12 +203,43 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 * Every weight is filterable: this is a product judgement, not a constant,
 		 * and it should be tunable from the data once it is running.
 		 */
-		$w_exposure = (float) apply_filters( 'csm_rank_weight_exposure', 1.0 );
-		$w_cap      = (int) apply_filters( 'csm_rank_exposure_cap', 10 );
+		/*
+		 * ORDER (owner, 2026-10-02): "newness > low impressions till now >
+		 * popularity. All 3 matter, but the algo should rank by this."
+		 *
+		 * v1.52.0 capped the exposure penalty at 10 impressions and let
+		 * popularity add up to +20 x like-rate, uncapped. Past ten showings a
+		 * popular woman stopped paying for exposure at all and sat at the top of
+		 * every man's queue: on 2026-10-02 the top 5 of 112 women had 32% of 30
+		 * days' requests, the top 15 had 61%, one had been shown 286 times.
+		 *
+		 * The weights are now ordered by size, so the owner's order holds while
+		 * each term still moves the result:
+		 *   - NEW (+10): registered in the last 30 days. Beats any realistic
+		 *     exposure gap (0 vs 100 showings is 9.2).
+		 *   - EXPOSURE (-2 x ln(1 + showings)): never capped, so every further
+		 *     showing still costs something, with diminishing steps.
+		 *   - POPULARITY (+1 x smoothed like-rate / site rate, at most 4): a
+		 *     4x-popular profile outranks an average one shown about 4-5x less
+		 *     often, not one shown 50x less often.
+		 *   - JITTER: as before, so equal profiles are not served in one order.
+		 *
+		 * And two weekly ceilings, as a TIER under the active tier: a profile
+		 * that has had more than its share of showings, or of requests, in the
+		 * last 7 days goes behind everyone who has not, until its week rolls
+		 * over. A tier rather than an exclusion: if every eligible profile is
+		 * over a ceiling, trays still fill. Stress-tested in a simulation of the
+		 * weekly batch (400 men / 120 women, premium-heavy, a 60%-liked outlier,
+		 * a burst of new members, a 1:1 pool): the top-5 share of requests drops
+		 * from ~40% to ~23%, the level equal exposure alone gives; nobody goes
+		 * unshown; the most popular decile still gets ~1.5x the showings of the
+		 * median; a new member gets ~35-50 showings in week one, not ~200.
+		 */
+		$w_exposure = (float) apply_filters( 'csm_rank_weight_exposure', 2.0 );
 		// Not a weight: activity is a hard tier. Kept as a filter so a site with a
 		// tiny pool can collapse the tiers if dormant profiles must be reachable.
 		$tier_active = (bool) apply_filters( 'csm_rank_active_tier', true );
-		$w_new      = (float) apply_filters( 'csm_rank_weight_new', 2.0 );
+		$w_new      = (float) apply_filters( 'csm_rank_weight_new', 10.0 );
 		$w_jitter   = (float) apply_filters( 'csm_rank_weight_jitter', 1.5 );
 
 		/*
@@ -216,31 +247,17 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 * more i.e. high like to impression ratio."
 		 *
 		 * The raw ratio is a trap on small numbers: one like on one impression
-		 * is "100%" and would leapfrog a proven 30% profile. So it is smoothed
-		 * toward the site-wide like rate -- (likes + rate*k) / (shown + k) --
-		 * which reads as the site average until a profile has had k impressions
-		 * of real exposure, then converges on its true rate. k=8 means the first
-		 * week or two of showings barely move it.
-		 *
-		 * The weight is sized against the exposure penalty on purpose. A
-		 * profile shown 10+ times sits at the -10 cap; a 33% profile earns
-		 * about +6.6 back, a median 5% one about +1. So among well-shown
-		 * profiles the popular ones surface first -- the ask -- while a
-		 * never-shown profile (0) still beats a popular, heavily-shown one
-		 * (-3.4), so newcomers still get their first look. Raise
-		 * csm_rank_weight_popular above ~30 and popularity beats freshness.
-		 *
-		 * Live at the time of writing: site rate 5.2%; women's ratios run
-		 * 0-33% with a real spread; only five men have enough impressions for
-		 * a ratio to mean anything, so this mostly reorders which women are
-		 * shown, which is where the impressions are.
+		 * is "100%". So it is smoothed toward the site-wide like rate --
+		 * (likes + rate*k) / (shown + k) -- and expressed as a multiple of that
+		 * rate, capped at csm_rank_popular_max, so 1.0 is an average profile.
 		 */
-		$w_popular  = (float) apply_filters( 'csm_rank_weight_popular', 20.0 );
+		$w_popular  = (float) apply_filters( 'csm_rank_weight_popular', 1.0 );
+		$pop_max    = (float) apply_filters( 'csm_rank_popular_max', 4.0 );
 		$pop_k      = (float) apply_filters( 'csm_rank_popular_smoothing', 8.0 );
 		$site_rate  = (float) $wpdb->get_var(
 			"SELECT COUNT(*) FROM " . $csm->table( 'likes' )
 		) / max( 1, (float) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_seen" ) );
-		$site_rate  = (float) apply_filters( 'csm_rank_popular_prior', $site_rate );
+		$site_rate  = max( 0.001, (float) apply_filters( 'csm_rank_popular_prior', $site_rate ) );
 		$pop_prior  = $site_rate * $pop_k;   // the numerator's smoothing term
 		$days_active = (int) apply_filters( 'csm_rank_active_days', 30 );
 		$days_new    = (int) apply_filters( 'csm_rank_new_days', 30 );
@@ -250,10 +267,43 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		$now         = (int) current_time( 'timestamp' );
 		$cut_active  = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days_active . ' days', $now ) );
 		$cut_new     = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days_new . ' days', $now ) );
+		$cut_week    = gmdate( 'Y-m-d H:i:s', strtotime( '-7 days', $now ) );     // csm_seen: IST
+		$cut_week_gm = gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS );      // bp_friends: UTC
 
 		$seen_tbl  = $wpdb->prefix . 'csm_seen';
 		$act_tbl   = $wpdb->prefix . 'bp_activity';
 		$likes_tbl = $csm->table( 'likes' );
+		$xp_tbl    = $wpdb->prefix . 'bp_xprofile_data';
+		$fr_tbl    = $wpdb->prefix . 'bp_friends';
+
+		/*
+		 * WEEKLY CEILINGS.
+		 * Showings: csm_rank_weekly_ceiling, or when 0 (default) automatic --
+		 * csm_rank_weekly_ceiling_mult (2) x this gender's average showings in
+		 * the last 7 days, never below 10. Automatic so it follows the size of
+		 * the pool instead of needing retuning as the site grows.
+		 * Requests: csm_rank_weekly_request_cap (default 6; 0 = off) requests
+		 * received in the last 7 days.
+		 */
+		$ceiling = (int) get_option( 'csm_rank_weekly_ceiling', 0 );
+		if ( $ceiling <= 0 ) {
+			$mult       = (float) get_option( 'csm_rank_weekly_ceiling_mult', 2 );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$week_shows = (float) $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$seen_tbl} s
+				 JOIN {$xp_tbl} g ON g.user_id = s.profile_id AND g.field_id = %d AND g.value = %s
+				 WHERE s.last_seen_at > %s",
+				$gender_field_id, $opposite, $cut_week
+			) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$pool_n     = (float) $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$xp_tbl} WHERE field_id = %d AND value = %s",
+				$gender_field_id, $opposite
+			) );
+			$ceiling    = max( 10, (int) ceil( $mult * $week_shows / max( 1.0, $pool_n ) ) );
+		}
+		$req_cap = (int) get_option( 'csm_rank_weekly_request_cap', 6 );
+		$req_cap = $req_cap > 0 ? $req_cap : PHP_INT_MAX;
 
 		/*
 		 * Member-chosen narrowing (age, height), added by Discover\Filters for
@@ -264,9 +314,11 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 
 		$sql = $wpdb->prepare(
 			"SELECT xp.user_id
-			 FROM   {$wpdb->prefix}bp_xprofile_data xp
-			 LEFT JOIN ( SELECT profile_id, COUNT(*) shown FROM {$seen_tbl} GROUP BY profile_id ) sn
+			 FROM   {$xp_tbl} xp
+			 LEFT JOIN ( SELECT profile_id, COUNT(*) shown, SUM( last_seen_at > %s ) shown_wk FROM {$seen_tbl} GROUP BY profile_id ) sn
 			        ON sn.profile_id = xp.user_id
+			 LEFT JOIN ( SELECT friend_user_id, COUNT(*) req_wk FROM {$fr_tbl} WHERE date_created > %s GROUP BY friend_user_id ) rq
+			        ON rq.friend_user_id = xp.user_id
 			 LEFT JOIN ( SELECT user_id, MAX(date_recorded) seen_at FROM {$act_tbl} WHERE type = 'last_activity' GROUP BY user_id ) ac
 			        ON ac.user_id = xp.user_id
 			 LEFT JOIN ( SELECT profile_id, COUNT(*) liked FROM {$likes_tbl} GROUP BY profile_id ) lk
@@ -278,28 +330,47 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			        {$extra_where}
 			 ORDER  BY
 			        IF( %d = 1 AND ac.seen_at IS NOT NULL AND ac.seen_at > %s, 1, 0 ) DESC,
+			        IF( COALESCE( sn.shown_wk, 0 ) >= %d OR COALESCE( rq.req_wk, 0 ) >= %d, 0, 1 ) DESC,
 			        (
-			          ( - LEAST( COALESCE( sn.shown, 0 ), %d ) * %f )
-			        + IF( u.user_registered IS NOT NULL AND u.user_registered > %s, %f, 0 )
-			        + ( %f * ( ( COALESCE( lk.liked, 0 ) + %f ) / ( COALESCE( sn.shown, 0 ) + %f ) ) )
+			          IF( u.user_registered IS NOT NULL AND u.user_registered > %s, %f, 0 )
+			        - ( %f * LN( 1 + COALESCE( sn.shown, 0 ) ) )
+			        + ( %f * LEAST( ( ( COALESCE( lk.liked, 0 ) + %f ) / ( COALESCE( sn.shown, 0 ) + %f ) ) / %f, %f ) )
 			        + ( RAND() * %f )
 			        ) DESC
 			 LIMIT  %d",
+			$cut_week,
+			$cut_week_gm,
 			$gender_field_id,
 			$opposite,
 			$tier_active ? 1 : 0,
 			$cut_active,
-			$w_cap,
-			$w_exposure,
+			$ceiling,
+			min( $req_cap, 1000000 ),
 			$cut_new,
 			$w_new,
+			$w_exposure,
 			$w_popular,
 			$pop_prior,
 			$pop_k,
+			$site_rate,
+			$pop_max,
 			$w_jitter,
 			$slots
 		);
 		$eligible = $wpdb->get_col( $sql );
+
+		// A ranking query that fails must not empty every tray: log it and
+		// serve the same eligible pool unranked.
+		if ( '' !== $wpdb->last_error ) {
+			error_log( '[cashaadi] Discover ranking query failed: ' . $wpdb->last_error );
+			$eligible = $wpdb->get_col( $wpdb->prepare(
+				"SELECT xp.user_id FROM {$xp_tbl} xp
+				 WHERE xp.field_id = %d AND xp.value = %s
+				   AND xp.user_id NOT IN ({$exclude_csv}) {$extra_where}
+				 ORDER BY RAND() LIMIT %d",
+				$gender_field_id, $opposite, $slots
+			) );
+		}
 
 		if ( empty( $eligible ) ) {
 			$csm->log_event( 'pool_exhausted', $viewer_id, 0, array(

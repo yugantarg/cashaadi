@@ -56,9 +56,18 @@ since v1.48.1 is listed here.
   logged out. Both used to create bare WP users with no profile.
 
 ### Discover
-- **Popularity ranking**: a smoothed like/impression ratio, weight
-  `csm_rank_weight_popular` (20). Past about 30, popular profiles start beating
-  newcomers.
+- **Ranking (v1.67.0)**, in the owner's order: newness > fewest impressions so
+  far > popularity. The active tier still comes first.
+  - Score = new (+10, joined in the last 30 days) − 2·ln(1+impressions, never
+    capped) + popularity (like rate as a multiple of the site rate, capped at 4)
+    + jitter.
+  - **Weekly ceilings** form a tier below the active tier. A profile over either
+    one goes to the back for the rest of its rolling week:
+    - Impressions: `csm_rank_weekly_ceiling`, where 0 (auto) means 2× the
+      gender's average for the week, minimum 10.
+    - Requests received: `csm_rank_weekly_request_cap` (6; 0 = off).
+  - Why: under v1.52.0 the top 5 of 112 women got 32% of 30 days' requests.
+    The stress-test simulation lives in the session scratchpad, not the repo.
 - A member with **no gender** is never served. They are sent to the wizard.
 - **Premium women** get 50 profiles a week (`csm_tray_size` filter) and age and
   height filters (minimum 5-year and 5-inch spans), built on
