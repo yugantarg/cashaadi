@@ -160,6 +160,11 @@ final class DeleteAccount {
 				// read reasons by gender, tenure, channel and plan.
 				'gender'  => function_exists( 'xprofile_get_field_data' ) ? (string) xprofile_get_field_data( \CAShaadi\Core\Config::FIELD_GENDER, $uid ) : '',
 				'days'    => (int) floor( ( time() - strtotime( get_userdata( $uid )->user_registered . ' UTC' ) ) / DAY_IN_SECONDS ),
+				// Exact times, so "left within minutes" and "left after weeks"
+				// can be told apart (owner, 2026-10-02). Both IST.
+				'signed_up_at'       => get_date_from_gmt( get_userdata( $uid )->user_registered ),
+				'deleted_at'         => current_time( 'mysql' ),
+				'minutes_after_signup' => (int) floor( ( time() - strtotime( get_userdata( $uid )->user_registered . ' UTC' ) ) / MINUTE_IN_SECONDS ),
 				'channel' => (string) get_user_meta( $uid, 'csm_channel', true ),
 				'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0,
 				// At what point they left (owner, 2026-10-02).

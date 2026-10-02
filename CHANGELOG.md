@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.3 — 2026-10-02
+- The account-deletion record stores the exact sign-up time, the deletion
+  time (both IST) and the minutes in between.
+
 ## 1.69.2 — 2026-10-02
 - Account deletion record now also stores the member's stage: whether they
   finished onboarding, photos, CA verification, profiles seen, likes sent and
