@@ -28,16 +28,15 @@
 
 	var box = el( 'section', 'csm-del-box' );
 	box.appendChild( el( 'h1', 'csm-del-h', 'Delete my account' ) );
-	box.appendChild( el( 'p', 'csm-del-lead', 'This cannot be undone. We cannot restore your account, your photos or your conversations afterwards.' ) );
+	box.appendChild( el( 'p', 'csm-del-lead', 'Your account will be closed and you will not be able to sign in to it again. You can always sign up afresh with the same email.' ) );
 
-	box.appendChild( el( 'h2', 'csm-del-sub', 'What is removed' ) );
+	box.appendChild( el( 'h2', 'csm-del-sub', 'What happens' ) );
 	var ul = el( 'ul', 'csm-del-list' );
 	[
-		'Your profile, and every answer in it',
-		'All your photos',
-		'Your matches, and every conversation with them',
-		'Requests you have sent and received',
-		'Your saved profiles and everyone you have liked or passed'
+		'Your profile is hidden from everyone, everywhere on the site',
+		'Your matches, requests and conversations end; nobody can message you',
+		'You stop receiving all emails from us',
+		'To have all your data erased as well, email support@cashaadi.in'
 	].forEach( function ( t ) { ul.appendChild( el( 'li', null, t ) ); } );
 	box.appendChild( ul );
 

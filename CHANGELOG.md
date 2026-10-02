@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.0 — 2026-10-02
+- "Delete my account" now **closes** the account instead of erasing it
+  (`Settings\Closed`):
+  - All data is kept.
+  - The account is hidden everywhere and treated as blocked by every member.
+  - It can no longer log in, and its roles are removed.
+  - Its email, login and profile slug are replaced with placeholder values, so
+    the same person can sign up again with the same email and get a fresh
+    account. The original values are kept in `csm_closed_*` user meta.
+  - Full erasure is done on email request, by an admin deleting the user in
+    wp-admin.
+  - The screen text and the confirmation email have been updated to match.
+
 ## 1.68.5 — 2026-10-02
 - Account deletion: the reason a member gives is kept. The deletion cleanup
   used to delete that member's event-log rows, including the

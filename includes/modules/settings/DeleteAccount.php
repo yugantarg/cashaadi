@@ -2,6 +2,12 @@
 /**
  * Delete my account.
  *
+ * SINCE v1.69.0 THE MEMBER'S BUTTON CLOSES THE ACCOUNT (Settings\Closed): all
+ * data kept, account hidden, locked and its email freed for a fresh signup.
+ * Nothing below this line runs for a member any more except the checks and
+ * the event log. purge() and the notes on "what gets removed" now describe a
+ * full erasure, which an admin does in wp-admin when a member asks by email.
+ *
  * The Settings screen already offered this, but only as a link to BuddyPress's
  * own /settings/delete-account/ — which drops the member out of the app, and
  * which is switched OFF on this site anyway (bp-disable-account-deletion = 1,
@@ -183,15 +189,13 @@ final class DeleteAccount {
 		 */
 		self::farewell( $user );
 
-		require_once ABSPATH . 'wp-admin/includes/user.php';
-
-		$done = false;
-		if ( function_exists( 'bp_core_delete_account' ) ) {
-			$done = (bool) bp_core_delete_account( $uid );
-		}
-		if ( ! $done ) {
-			$done = (bool) wp_delete_user( $uid );
-		}
+		/*
+		 * CLOSE, not delete (owner, 2026-10-02): every row is kept, the account
+		 * is hidden, locked and its email freed for a fresh signup. See
+		 * Settings\Closed. Full erasure is by email request, done by an admin
+		 * in wp-admin, where purge() below still runs on delete_user.
+		 */
+		$done = Closed::close( $uid );
 
 		if ( ! $done ) {
 			return new \WP_REST_Response( array(
@@ -206,7 +210,7 @@ final class DeleteAccount {
 	}
 
 	/**
-	 * "Your account has been deleted."
+	 * "Your account has been deleted." (It is closed: see Settings\Closed.)
 	 *
 	 * Deliberately not through the email queue — see the call site. wp_mail() is
 	 * pluggable and Brevo overrides it here, so this goes out the same way every
@@ -215,8 +219,9 @@ final class DeleteAccount {
 	private static function farewell( $user ) {
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		$body = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">'
-			. '<p>Your ' . esc_html( $site ) . ' account has been deleted, along with your profile, photos and conversations.</p>'
-			. '<p>There is nothing left to undo — we cannot restore it. You are welcome to sign up again at any time.</p>'
+			. '<p>Your ' . esc_html( $site ) . ' account has been deleted. Your profile is no longer visible to anyone and you can no longer sign in to it.</p>'
+			. '<p>You are welcome to sign up again at any time with the same email address; you will start with a new account.</p>'
+			. '<p>If you would like all of your data erased as well, reply to this email or write to support@cashaadi.in.</p>'
 			. '<p style="color:#7a6f68;font-size:13px">If this was not you, reply to this email immediately.</p>'
 			. '</div>';
 

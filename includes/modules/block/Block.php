@@ -152,6 +152,10 @@ final class Block {
 			$uid, $uid
 		) );
 		$cache[ $uid ] = array_map( 'intval', (array) $ids );
+		// Closed accounts are hidden from everyone, as if blocked by all.
+		if ( class_exists( '\CAShaadi\Modules\Settings\Closed' ) ) {
+			$cache[ $uid ] = array_values( array_unique( array_merge( $cache[ $uid ], \CAShaadi\Modules\Settings\Closed::ids() ) ) );
+		}
 		return $cache[ $uid ];
 	}
 
@@ -160,6 +164,12 @@ final class Block {
 		$a = (int) $a; $b = (int) $b;
 		if ( ! $a || ! $b ) {
 			return false;
+		}
+		// A closed account is unreachable by anyone: no messages, requests,
+		// profile views, photo requests or match emails.
+		if ( class_exists( '\CAShaadi\Modules\Settings\Closed' )
+			&& ( \CAShaadi\Modules\Settings\Closed::is_closed( $a ) || \CAShaadi\Modules\Settings\Closed::is_closed( $b ) ) ) {
+			return true;
 		}
 		global $wpdb;
 		$t = self::table();
