@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.68.4 — 2026-10-02
+- Attribution: a new `linkedin_ads` channel for sign-ups from LinkedIn ads
+  (utm_source=linkedin with a paid medium). These were previously counted as
+  plain Social.
+
 ## 1.68.3 — 2026-10-02
 - LinkedIn sign-up conversion switched on: conversion ID 31535817.
 

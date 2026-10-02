@@ -12,7 +12,8 @@
  * on the registration form submit (accounts exist before email verification)
  * — both cookies are read, sanitised and stored:
  *   csm_src_first / csm_src_last  JSON
- *   csm_channel                   google_ads | meta_ads | organic_search |
+ *   csm_channel                   google_ads | meta_ads | linkedin_ads |
+ *                                 organic_search |
  *                                 social | referral | direct | unknown
  *
  * `unknown` = no cookie at all (script blocked, or the account predates this).
@@ -37,6 +38,7 @@ final class Attribution {
 		return array(
 			'google_ads'     => 'Google Ads',
 			'meta_ads'       => 'Meta Ads',
+			'linkedin_ads'   => 'LinkedIn Ads',
 			'organic_search' => 'Organic search',
 			'social'         => 'Social',
 			'referral'       => 'Referral',
@@ -117,7 +119,7 @@ final class Attribution {
 		return in_array( strtolower( (string) $med ), array( 'cpc', 'ppc', 'paid', 'paidsearch', 'paid_search', 'paid-search', 'paidsocial', 'paid_social', 'paid-social', 'pmax', 'display', 'cpm', 'ads', 'ad', 'sem' ), true );
 	}
 
-	/** google_ads / meta_ads if this one visit was an ad click, else ''. */
+	/** google_ads / meta_ads / linkedin_ads if this one visit was an ad click, else ''. */
 	private static function paid_channel( $a ) {
 		if ( ! $a ) {
 			return '';
@@ -129,6 +131,11 @@ final class Attribution {
 		}
 		if ( ! empty( $a['fbclid'] ) || ( in_array( $src, array( 'facebook', 'instagram', 'fb', 'ig', 'meta' ), true ) && $paid ) ) {
 			return 'meta_ads';
+		}
+		// LinkedIn ads carry utm_source=linkedin & utm_medium=paid-social
+		// (account-level tracking parameters, set 2026-10-02).
+		if ( in_array( $src, array( 'linkedin', 'li' ), true ) && $paid ) {
+			return 'linkedin_ads';
 		}
 		return '';
 	}
