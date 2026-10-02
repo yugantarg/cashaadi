@@ -56,18 +56,34 @@ since v1.48.1 is listed here.
   logged out. Both used to create bare WP users with no profile.
 
 ### Discover
-- **Ranking (v1.67.0)**, in the owner's order: newness > fewest impressions so
-  far > popularity. The active tier still comes first.
-  - Score = new (+10, joined in the last 30 days) − 2·ln(1+impressions, never
-    capped) + popularity (like rate as a multiple of the site rate, capped at 4)
-    + jitter.
-  - **Weekly ceilings** form a tier below the active tier. A profile over either
-    one goes to the back for the rest of its rolling week:
-    - Impressions: `csm_rank_weekly_ceiling`, where 0 (auto) means 2× the
-      gender's average for the week, minimum 10.
-    - Requests received: `csm_rank_weekly_request_cap` (6; 0 = off).
-  - Why: under v1.52.0 the top 5 of 112 women got 32% of 30 days' requests.
-    The stress-test simulation lives in the session scratchpad, not the repo.
+- **Ranking (v1.68.0, `Discover\Ranker`, algo `points-v1`)** gives each profile
+  a points score per viewer. Points are in option `csm_rank_points`:
+  - Matching, up to 18: same mother tongue +4, same community +4, same
+    religion +3, age fit +3 (man between 1 year younger and 5 years older than
+    the woman) or +1 (6–8 years older), same city +2, same diet +2. A blank
+    field on either side earns 0.
+  - Newness +5, for members who joined in the last 30 days.
+  - Few impressions: 0 to +5. Never shown = +5; the most-shown profile in the
+    pool = 0.
+  - Popularity: 0 to +3, from the like rate as a multiple of the site rate.
+  - Popular-to-popular: 0 to +3, for viewer and profile being equally popular.
+  - Random: 0 to +5.
+  - The active tier comes first, then the **weekly ceilings** (from v1.67.0):
+    - impressions: `csm_rank_weekly_ceiling`, where 0 (auto) means 2× the
+      gender's weekly average, minimum 10;
+    - requests received: `csm_rank_weekly_request_cap` (6).
+    A profile over either ceiling goes behind everyone else, but is not
+    excluded.
+  - Profile edits count from the next tray refill.
+- **Impression log `wp_csm_impressions`** (v1.68.0, `Discover\Impressions`)
+  has one row per profile served. Each row holds the slot, pool size, algo,
+  experiment and arm, tier, score, every score part as JSON, and a JSON
+  snapshot of BOTH members at that moment.
+  - Outcomes live elsewhere and join on the (viewer, profile) pair:
+    `csm_seen.action`, `bp_friends`, `csm_rejections`, `csm_profile_views`,
+    Better Messages and blocks.
+  - Nothing ranks off this table. It exists for the data-driven algorithm,
+    planned in about 6 months.
 - A member with **no gender** is never served. They are sent to the wizard.
 - **Premium women** get 50 profiles a week (`csm_tray_size` filter) and age and
   height filters (minimum 5-year and 5-inch spans), built on

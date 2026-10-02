@@ -47,6 +47,8 @@ final class Discover {
 		// The permanent "who was shown to whom" record. The tray is a queue and
 		// cannot serve as history; see Seen for the full reasoning.
 		Migrator::register( 'seen', array( Seen::class, 'schema' ) );
+		// Every serving, with its score parts and both members' details then.
+		Migrator::register( 'impressions', array( Impressions::class, 'schema' ) );
 		add_action( 'init', array( Seen::class, 'backfill' ), 20 );
 
 		// The event log the engine has always written to and never had. Creating
