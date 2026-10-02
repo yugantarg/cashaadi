@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.2 — 2026-10-02
+- Account deletion record now also stores the member's stage: whether they
+  finished onboarding, photos, CA verification, profiles seen, likes sent and
+  received, times shown, requests in, matches, and days since last active.
+
 ## 1.69.1 — 2026-10-02
 - The delete screen and the confirmation email no longer mention data
   retention or erasure requests. That is covered by the Privacy Policy

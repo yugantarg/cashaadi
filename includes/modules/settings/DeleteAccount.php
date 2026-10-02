@@ -162,6 +162,8 @@ final class DeleteAccount {
 				'days'    => (int) floor( ( time() - strtotime( get_userdata( $uid )->user_registered . ' UTC' ) ) / DAY_IN_SECONDS ),
 				'channel' => (string) get_user_meta( $uid, 'csm_channel', true ),
 				'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0,
+				// At what point they left (owner, 2026-10-02).
+				'stage'   => self::stage( $uid ),
 			) );
 		}
 
@@ -207,6 +209,37 @@ final class DeleteAccount {
 		wp_logout();
 
 		return new \WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/**
+	 * Where the member had got to when they left: enough to see whether people
+	 * go before finishing their profile, before any match, after matches that
+	 * went nowhere, and so on. Every lookup is guarded; a missing number is
+	 * null, never a reason to block the deletion.
+	 */
+	private static function stage( $uid ) {
+		global $wpdb;
+		$uid = (int) $uid;
+		$q   = function ( $sql ) use ( $wpdb ) {
+			$v = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- built from ints below
+			return null === $v ? null : (int) $v;
+		};
+		$seen    = $wpdb->prefix . 'csm_seen';
+		$friends = $wpdb->prefix . 'bp_friends';
+		$photos  = get_user_meta( $uid, 'csm_photos', true );
+		$last    = function_exists( 'bp_get_user_last_activity' ) ? bp_get_user_last_activity( $uid ) : '';
+		return array(
+			'onboarded'      => get_user_meta( $uid, 'csm_welcome_done', true ) ? 1 : 0,
+			'photos'         => is_array( $photos ) ? count( $photos ) : 0,
+			'ca_verified'    => (string) get_user_meta( $uid, 'csm_av_status', true ),
+			'profiles_seen'  => $q( "SELECT COUNT(*) FROM {$seen} WHERE viewer_id = {$uid}" ),
+			'likes_sent'     => $q( "SELECT COUNT(*) FROM {$seen} WHERE viewer_id = {$uid} AND action = 'liked'" ),
+			'times_shown'    => $q( "SELECT COUNT(*) FROM {$seen} WHERE profile_id = {$uid}" ),
+			'likes_received' => $q( "SELECT COUNT(*) FROM {$seen} WHERE profile_id = {$uid} AND action = 'liked'" ),
+			'requests_in'    => $q( "SELECT COUNT(*) FROM {$friends} WHERE friend_user_id = {$uid}" ),
+			'matches'        => $q( "SELECT COUNT(*) FROM {$friends} WHERE is_confirmed = 1 AND ( initiator_user_id = {$uid} OR friend_user_id = {$uid} )" ),
+			'idle_days'      => $last ? (int) floor( ( time() - strtotime( $last . ' UTC' ) ) / DAY_IN_SECONDS ) : null,
+		);
 	}
 
 	/**
