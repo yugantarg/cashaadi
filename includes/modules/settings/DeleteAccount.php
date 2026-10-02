@@ -219,9 +219,8 @@ final class DeleteAccount {
 	private static function farewell( $user ) {
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		$body = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">'
-			. '<p>Your ' . esc_html( $site ) . ' account has been deleted. Your profile is no longer visible to anyone and you can no longer sign in to it.</p>'
-			. '<p>You are welcome to sign up again at any time with the same email address; you will start with a new account.</p>'
-			. '<p>If you would like all of your data erased as well, reply to this email or write to support@cashaadi.in.</p>'
+			. '<p>Your ' . esc_html( $site ) . ' account has been deleted and your profile is no longer on the site.</p>'
+			. '<p>You are welcome to sign up again at any time.</p>'
 			. '<p style="color:#7a6f68;font-size:13px">If this was not you, reply to this email immediately.</p>'
 			. '</div>';
 

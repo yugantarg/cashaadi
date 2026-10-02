@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.1 — 2026-10-02
+- The delete screen and the confirmation email no longer mention data
+  retention or erasure requests. That is covered by the Privacy Policy
+  only (owner).
+
 ## 1.69.0 — 2026-10-02
 - "Delete my account" now **closes** the account instead of erasing it
   (`Settings\Closed`):
