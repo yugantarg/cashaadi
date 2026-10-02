@@ -77,6 +77,9 @@ final class Analytics {
 		add_filter( 'wpseo_opengraph_image', array( __CLASS__, 'og_fallback' ), 20 );
 		add_filter( 'wpseo_twitter_image', array( __CLASS__, 'og_fallback' ), 20 );
 
+		// LinkedIn Insight Tag (logged-out, non-member pages) + sign-up conversion.
+		LinkedIn::register();
+
 		// Avatar alt text (#11697).
 		add_filter( 'bp_core_fetch_avatar', array( __CLASS__, 'avatar_alt_bp' ), 20, 2 );
 		add_filter( 'get_avatar', array( __CLASS__, 'avatar_alt_wp' ), 20, 2 );
