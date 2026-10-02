@@ -3,6 +3,9 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.68.3 — 2026-10-02
+- LinkedIn sign-up conversion switched on: conversion ID 31535817.
+
 ## 1.68.2 — 2026-10-02
 - Register form: the password hint now says "Use at least 8 characters."
   instead of WordPress's default (twelve characters and symbols).
