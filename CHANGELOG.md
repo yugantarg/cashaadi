@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.68.5 — 2026-10-02
+- Account deletion: the reason a member gives is kept. The deletion cleanup
+  used to delete that member's event-log rows, including the
+  `account_deleted` record written a moment before, so every reason was lost.
+  The record now also stores gender, days since joining, channel and premium.
+
 ## 1.68.4 — 2026-10-02
 - Attribution: a new `linkedin_ads` channel for sign-ups from LinkedIn ads
   (utm_source=linkedin with a paid medium). These were previously counted as

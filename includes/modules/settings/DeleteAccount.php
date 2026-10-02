@@ -150,6 +150,12 @@ final class DeleteAccount {
 				 * anything from people leaving.
 				 */
 				'reason' => $reason,
+				// Who left, in terms that survive the user row: enough to
+				// read reasons by gender, tenure, channel and plan.
+				'gender'  => function_exists( 'xprofile_get_field_data' ) ? (string) xprofile_get_field_data( \CAShaadi\Core\Config::FIELD_GENDER, $uid ) : '',
+				'days'    => (int) floor( ( time() - strtotime( get_userdata( $uid )->user_registered . ' UTC' ) ) / DAY_IN_SECONDS ),
+				'channel' => (string) get_user_meta( $uid, 'csm_channel', true ),
+				'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0,
 			) );
 		}
 
@@ -303,9 +309,17 @@ final class DeleteAccount {
 			if ( $full !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) {
 				continue;
 			}
+			/*
+			 * The departure record itself is kept. It was written a moment
+			 * ago as an event_log row with this user as actor, and this purge
+			 * used to delete it along with everything else -- so every reason
+			 * any member gave was lost the instant it was saved (found
+			 * 2026-10-02). It holds a user id and the reason, nothing else.
+			 */
+			$keep = 'csm_event_log' === $table ? " AND event_type <> 'account_deleted'" : '';
 			foreach ( $cols as $col ) {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$wpdb->query( $wpdb->prepare( "DELETE FROM {$full} WHERE {$col} = %d", $user_id ) );
+				$wpdb->query( $wpdb->prepare( "DELETE FROM {$full} WHERE {$col} = %d{$keep}", $user_id ) );
 			}
 		}
 
