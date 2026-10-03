@@ -172,6 +172,21 @@
 /* empty state: when more arrive, and a Premium route for free members */
 .csm-d-countdown { font-size: 15px; color: var(--csm-ink, #16212b); font-weight: 600; }
 .csm-d-left { margin-top: 4px !important; font-size: 13.5px; color: var(--csm-muted, #5c6a76); }
+/* "While you wait" next steps on the end-of-week screen (v1.71.0). */
+.csm-d-next {
+	margin: 22px auto 0; padding: 18px;
+	background: var(--csm-surface, #fff);
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 18px; text-align: left;
+}
+.csm-d-next h3 { margin: 0 0 10px; font-family: var(--csm-serif, Georgia, serif); font-size: 17px; font-weight: 600; }
+.csm-d-next-item {
+	display: block; padding: 11px 0; border-top: 1px solid var(--csm-hair, #e4eaf0);
+	color: var(--csm-ink, #16212b); text-decoration: none;
+}
+.csm-d-next-item:first-of-type { border-top: 0; padding-top: 0; }
+.csm-d-next-item strong { display: block; font-size: 14.5px; }
+.csm-d-next-item span { display: block; font-size: 13px; color: var(--csm-muted, #5c6a76); margin-top: 2px; }
+
 .csm-d-upsell {
 	margin: 26px auto 0; padding: 20px 18px;
 	background: var(--csm-surface, #fff);

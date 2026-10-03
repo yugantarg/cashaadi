@@ -78,13 +78,32 @@
 			box.appendChild( el( 'p', null, 'New profiles arrive every week.' ) );
 		}
 
+		/*
+		 * While you wait (owner, 2026-10-03): new members finished their set in
+		 * minutes, found nothing else to do and deleted their account. Up to
+		 * three useful things, chosen on the server for this member.
+		 */
+		if ( ! message && meta.nextSteps && meta.nextSteps.length ) {
+			var ws = el( 'div', 'csm-d-next' );
+			ws.appendChild( el( 'h3', null, 'While you wait' ) );
+			meta.nextSteps.forEach( function ( st ) {
+				var row = document.createElement( 'a' );
+				row.className = 'csm-d-next-item';
+				row.href = st.url;
+				row.appendChild( el( 'strong', null, st.title ) );
+				row.appendChild( el( 'span', null, st.body ) );
+				ws.appendChild( row );
+			} );
+			box.appendChild( ws );
+		}
+
 		// Premium raises the weekly quota, so this is the one place it is genuinely
 		// useful rather than nagging. Never shown to members who already pay.
 		if ( ! meta.isPremium && meta.upgrade && ! message ) {
 			var up = el( 'div', 'csm-d-upsell' );
 			up.appendChild( el( 'h3', null, 'Want to see more now?' ) );
 			up.appendChild( el( 'p', null,
-				'Premium doubles your weekly set to ' + ( meta.premiumQuota || 10 ) + ' profiles.' ) );
+				'Premium raises your weekly set to ' + ( meta.premiumQuota || 10 ) + ' profiles.' ) );
 			var a = document.createElement( 'a' );
 			a.className = 'csm-d-upsell-cta';
 			a.href = meta.upgrade;
@@ -520,7 +539,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [] };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

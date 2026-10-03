@@ -696,7 +696,7 @@ final class SettingsScreen {
 				: '',
 			// The reversible door, offered BEFORE the permanent one.
 			'pauseUrl'  => ( class_exists( '\CAShaadi\Modules\Settings\Deactivate' )
-				&& \CAShaadi\Modules\Settings\Deactivate::offered() )
+				&& \CAShaadi\Modules\Settings\Deactivate::offered_to() )
 				? \CAShaadi\Modules\Settings\Deactivate::url()
 				: '',
 			'paused'    => class_exists( '\CAShaadi\Modules\Settings\Deactivate' )

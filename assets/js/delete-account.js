@@ -47,10 +47,14 @@
 		pl.href = CFG.pause;
 		alt.appendChild( pl );
 		alt.appendChild( document.createTextNode( ' — you disappear from Discover and the emails stop, and nothing is lost.' ) );
+		// Offered first, as a card, not as a footnote (owner, 2026-10-03:
+		// new members were deleting minutes after joining).
+		alt.style.cssText = 'padding:14px 16px;border:1px solid #d6dfe7;border-radius:14px;background:#f6f9fb;font-size:14px;line-height:1.5';
+		box.insertBefore( alt, box.children[ 2 ] || null );
 	} else {
 		alt.textContent = 'If you only want a break, you can stop the emails in Settings → Email notifications instead, and your profile stays as it is.';
+		box.appendChild( alt );
 	}
-	box.appendChild( alt );
 
 	/* Why they are going. Required, and placed FIRST — asking after someone has
 	   typed DELETE and their password reads as a toll gate; asking before it is

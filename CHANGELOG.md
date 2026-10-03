@@ -3,6 +3,22 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.71.0 — 2026-10-03
+- **Gender and Date of birth can each be changed once** (`ProfileEdit\OnceFields`).
+  - The change is made in the profile editor, after a warning that it can never
+    be changed again. After that the field is read-only.
+  - The rule is enforced on the server on every save path. Admins are exempt.
+  - Clearing either field is refused.
+  - A gender change clears pending Discover queue entries on both sides.
+  - Changes are logged as the `once_field_changed` event.
+- Sign-up form: "Gender" is now labelled "Gender of the bride / groom".
+- Discover end-of-week screen:
+  - "While you wait" shows up to three next steps: requests waiting, add photos,
+    get verified, finish profile.
+  - The free and Premium numbers are now correct for women (15 / 50).
+- "Pause my profile" is offered to members in their first 7 days, and always
+  to anyone already paused. On the delete screen it appears first, as a card.
+
 ## 1.70.0 — 2026-10-03
 - Free women get **15 profiles a week** from Monday 2026-10-05 (IST)
   (`Discover\FreeFemale`).

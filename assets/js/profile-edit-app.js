@@ -209,7 +209,7 @@
 			var roBox = el( 'div', 'csm-pe-readonly' );
 			var roVal = f.multi ? ( f.value || [] ).join( ', ' ) : ( f.value || '' );
 			roBox.appendChild( el( 'span', 'csm-pe-readonly-val', roVal || '—' ) );
-			roBox.appendChild( el( 'span', 'csm-pe-readonly-note', 'Set when you signed up — this can\u2019t be changed.' ) );
+			roBox.appendChild( el( 'span', 'csm-pe-readonly-note', 'Already changed once \u2014 this can\u2019t be changed again.' ) );
 			wrap.appendChild( roBox );
 			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
 		}
@@ -356,6 +356,18 @@
 		var controls = [];
 		( data.fields || [] ).forEach( function ( f ) {
 			var c = fieldControl( f );
+			/*
+			 * Gender and Date of birth can be changed once (v1.71.0). Say so
+			 * under the field, and remember the starting value so submit() can
+			 * tell a real change and warn before it is spent.
+			 */
+			c.fid   = f.id;
+			c.label = f.label;
+			c.once  = !! f.once;
+			if ( c.once && ! c.skip ) {
+				c.initial = JSON.stringify( c.read() );
+				c.node.appendChild( el( 'span', 'csm-pe-readonly-note', 'You can change this only once.' ) );
+			}
 			controls.push( c );
 			card.appendChild( c.node );
 		} );
@@ -375,6 +387,24 @@
 	}
 
 	function submit( gid, controls, button, msg ) {
+		var changed = controls.filter( function ( c ) {
+			return c.once && ! c.skip && JSON.stringify( c.read() ) !== c.initial;
+		} );
+		if ( ! changed.length ) { return send( gid, controls, button, msg, [] ); }
+
+		var names = changed.map( function ( c ) { return c.label; } ).join( ' and ' );
+		var ask   = typeof window.csmConfirm === 'function'
+			? window.csmConfirm(
+				names + ' can be changed only once. After this change it can never be changed again. Please make sure it is correct.',
+				{ title: 'Change ' + names + '?', okText: 'Yes, change it', cancelText: 'Cancel', danger: true }
+			)
+			: Promise.resolve( window.confirm( names + ' can be changed only once. After this it can never be changed again. Continue?' ) );
+		ask.then( function ( yes ) {
+			if ( yes ) { send( gid, controls, button, msg, changed.map( function ( c ) { return c.fid; } ) ); }
+		} );
+	}
+
+	function send( gid, controls, button, msg, confirmOnce ) {
 		button.disabled = true;
 		msg.textContent = '';
 		msg.className = 'csm-pe-msg';
@@ -391,11 +421,13 @@
 		api( CFG.save, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify( { id: gid, values: values } )
+			body: JSON.stringify( { id: gid, values: values, confirm_once: confirmOnce } )
 		} ).then( function ( d ) {
 			button.disabled = false;
 			if ( d && d.ok ) {
 				setDirty( false );
+				// A one-time change was just spent: reload so the field shows locked.
+				if ( confirmOnce.length ) { load( gid, false ); return; }
 				msg.textContent = 'Saved.';
 				msg.className = 'csm-pe-msg is-ok';
 				return;

@@ -69,7 +69,16 @@ final class FieldLogic {
 
 	/* ---- #11621 — server-side gender lock (tamper-proof) ------------------ */
 	public static function gender_lock( $value, $field, $field_type_obj ) {
-		if ( ! is_object( $field ) || (int) $field->id !== Config::FIELD_GENDER ) {
+		/*
+		 * Gender and Date of birth (OnceFields, v1.71.0): both keep their stored
+		 * value on every write path, except the one approved change written
+		 * from the app editor, and administrators.
+		 */
+		$fid = is_object( $field ) ? (int) $field->id : 0;
+		if ( Config::FIELD_GENDER !== $fid && (int) Config::FIELD_DOB !== $fid ) {
+			return $value;
+		}
+		if ( OnceFields::$unlocked === $fid || current_user_can( 'manage_options' ) ) {
 			return $value;
 		}
 		$uid = 0;
@@ -92,6 +101,13 @@ final class FieldLogic {
 		}
 		if ( ! $uid ) {
 			return $value;
+		}
+		if ( (int) Config::FIELD_DOB === $fid ) {
+			$existing = OnceFields::stored( $uid, $fid );
+			if ( '' === $existing || OnceFields::same( $fid, $existing, is_array( $value ) ? reset( $value ) : $value ) ) {
+				return $value; // first value, or the same date re-saved
+			}
+			return $existing;
 		}
 		$existing = xprofile_get_field_data( Config::FIELD_GENDER, $uid );
 		if ( is_array( $existing ) ) {

@@ -171,8 +171,13 @@ final class DiscoverScreen {
 			// The authoritative weekly quota (Discover engine #11599): free 5,
 			// Premium (PMPro level 2) 10. Surfaced so the empty state can name the
 			// number the member just hit and what Premium changes it to.
-			'freeQuota'    => 5,
-			'premiumQuota' => 10,
+			// Women: free 15 (FreeFemale, from 2026-10-05) and Premium 50
+			// (Filters); men: 5 and 10.
+			'freeQuota'    => self::free_quota( $viewer_id ),
+			'premiumQuota' => self::premium_quota( $viewer_id ),
+			// What to do while waiting for next Monday (owner, 2026-10-03:
+			// members finished their set in minutes and left).
+			'nextSteps'    => self::next_steps( $viewer_id ),
 			// This member's own grant, and the filter sheet's state.
 			'quota'        => Discover::quota_for( $viewer_id ),
 			/*
@@ -186,6 +191,72 @@ final class DiscoverScreen {
 			'filters'      => class_exists( __NAMESPACE__ . '\\Filters' ) ? Filters::state( $viewer_id ) : null,
 			'upgrade'   => site_url( '/membership-pricing/' ),
 		), 200 );
+	}
+
+	private static function is_female( $uid ) {
+		return function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
+	}
+
+	private static function free_quota( $uid ) {
+		return self::is_female( $uid ) && class_exists( __NAMESPACE__ . '\\FreeFemale' ) ? FreeFemale::quota_for_women() : 5;
+	}
+
+	private static function premium_quota( $uid ) {
+		return self::is_female( $uid ) && class_exists( __NAMESPACE__ . '\\Filters' ) ? (int) Filters::QUOTA_PREMIUM_FEMALE : 10;
+	}
+
+	/**
+	 * Up to three things worth doing until the next set arrives, most useful
+	 * first, each only when it applies to this member.
+	 *
+	 * @return array<int,array{title:string,body:string,url:string}>
+	 */
+	private static function next_steps( $uid ) {
+		$uid   = (int) $uid;
+		$steps = array();
+
+		// Requests waiting for an answer: the most valuable thing on the site.
+		if ( function_exists( 'friends_get_friendship_request_user_ids' ) ) {
+			$n = count( (array) friends_get_friendship_request_user_ids( $uid ) );
+			if ( $n ) {
+				$steps[] = array(
+					'title' => sprintf( _n( '%d person wants to match with you', '%d people want to match with you', $n, 'cashaadi-ui' ), $n ),
+					'body'  => __( 'Answer their requests.', 'cashaadi-ui' ),
+					'url'   => home_url( '/requests/' ),
+				);
+			}
+		}
+
+		$photos = get_user_meta( $uid, 'csm_photos', true );
+		$count  = is_array( $photos ) ? count( $photos ) : 0;
+		if ( $count < 3 && function_exists( 'bp_members_get_user_url' ) ) {
+			$steps[] = array(
+				'title' => 0 === $count ? __( 'Add a photo', 'cashaadi-ui' ) : __( 'Add more photos', 'cashaadi-ui' ),
+				'body'  => __( 'Profiles with photos get far more requests.', 'cashaadi-ui' ),
+				'url'   => trailingslashit( bp_members_get_user_url( $uid ) ) . 'profile/change-avatar/',
+			);
+		}
+
+		if ( class_exists( '\\CAShaadi\\Modules\\CaVerify\\CaVerify' ) && 'none' === \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid ) ) {
+			$steps[] = array(
+				'title' => __( 'Get your Verified CA badge', 'cashaadi-ui' ),
+				'body'  => __( 'Upload your ICAI certificate. Members trust verified profiles more.', 'cashaadi-ui' ),
+				'url'   => home_url( '/profile/edit/?g=10' ),
+			);
+		}
+
+		if ( class_exists( '\\CAShaadi\\Core\\Profile' ) ) {
+			$c = \CAShaadi\Core\Profile::completion( $uid );
+			if ( is_array( $c ) && ! empty( $c['outstanding'] ) ) {
+				$steps[] = array(
+					'title' => __( 'Finish your profile', 'cashaadi-ui' ),
+					'body'  => sprintf( _n( '%d detail left. Complete profiles are shown more.', '%d details left. Complete profiles are shown more.', (int) $c['outstanding'], 'cashaadi-ui' ), (int) $c['outstanding'] ),
+					'url'   => home_url( '/profile/edit/' ),
+				);
+			}
+		}
+
+		return array_slice( $steps, 0, 3 );
 	}
 
 	/**

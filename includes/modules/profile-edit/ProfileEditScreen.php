@@ -399,8 +399,13 @@ final class ProfileEditScreen {
 					? rawurldecode( basename( (string) wp_parse_url( (string) self::file_url( $field->id, $uid, $raw ), PHP_URL_PATH ) ) )
 					: '',
 				'accept' => self::accept_for( (string) $field->type ),
-				// Gender is fixed after sign-up: shown, never editable here.
-				'readonly' => ( (int) $field->id === \CAShaadi\Core\Config::FIELD_GENDER ),
+				/*
+				 * Gender and Date of birth can be changed ONCE (OnceFields,
+				 * v1.71.0): editable with a warning until that change is used,
+				 * then shown read-only.
+				 */
+				'once'     => OnceFields::is_once( $field->id ) && '' !== OnceFields::stored( $uid, $field->id ) && ! OnceFields::used( $uid, $field->id ),
+				'readonly' => OnceFields::is_once( $field->id ) && '' !== OnceFields::stored( $uid, $field->id ) && OnceFields::used( $uid, $field->id ),
 				// Age lives under Date of birth as a read-only note, since it is
 				// derived from it and is not an editable field of its own.
 				/*
@@ -431,6 +436,7 @@ final class ProfileEditScreen {
 		$uid    = get_current_user_id();
 		$gid    = absint( $request->get_param( 'id' ) );
 		$values = $request->get_param( 'values' );
+		$confirmed = (array) $request->get_param( 'confirm_once' );
 
 		if ( ! is_array( $values ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'Nothing to save.', 'cashaadi-ui' ) ), 200 );
@@ -488,6 +494,11 @@ final class ProfileEditScreen {
 			 * BuddyPress represents "no answer", and leaves completion counts honest.
 			 */
 			$empty = is_array( $clean ) ? empty( $clean ) : ( '' === trim( $clean ) );
+			// Clearing Gender or Date of birth would reopen them as "first
+			// value": never allowed once set.
+			if ( $empty && OnceFields::is_once( $fid ) && '' !== OnceFields::stored( $uid, $fid ) ) {
+				continue;
+			}
 			if ( $empty ) {
 				if ( function_exists( 'xprofile_delete_field_data' ) ) {
 					xprofile_delete_field_data( $fid, $uid );
@@ -496,7 +507,25 @@ final class ProfileEditScreen {
 				continue;
 			}
 
-			if ( xprofile_set_field_data( $fid, $uid, $clean ) ) {
+			// Gender / Date of birth: one confirmed change, ever (OnceFields).
+			$once_old = null;
+			if ( OnceFields::is_once( $fid ) ) {
+				$ok = OnceFields::check( $uid, $fid, $clean, $confirmed );
+				if ( true !== $ok ) {
+					$errors[ 'field_' . $fid ] = $ok;
+					continue;
+				}
+				$once_old              = OnceFields::stored( $uid, $fid );
+				OnceFields::$unlocked = $fid;
+			}
+
+			$written = xprofile_set_field_data( $fid, $uid, $clean );
+			OnceFields::$unlocked = 0;
+			if ( $written && null !== $once_old ) {
+				OnceFields::consumed( $uid, $fid, $once_old, $clean );
+			}
+
+			if ( $written ) {
 				$saved++;
 			} else {
 				$errors[ 'field_' . $fid ] = __( 'We could not save this one.', 'cashaadi-ui' );

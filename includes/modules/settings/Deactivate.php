@@ -55,6 +55,26 @@ final class Deactivate {
 		return defined( 'CASHAADI_PAUSE_ENABLED' ) && CASHAADI_PAUSE_ENABLED;
 	}
 
+	/**
+	 * Offered to THIS member? Site-wide flag, or (owner, 2026-10-03) anyone in
+	 * their first 7 days — new members were deleting minutes after joining —
+	 * or anyone already paused, who must always be able to come back.
+	 */
+	public static function offered_to( $uid = 0 ) {
+		$uid = $uid ? (int) $uid : get_current_user_id();
+		if ( self::offered() ) {
+			return true;
+		}
+		if ( ! $uid ) {
+			return false;
+		}
+		if ( self::is_paused( $uid ) ) {
+			return true;
+		}
+		$u = get_userdata( $uid );
+		return $u && ( time() - strtotime( $u->user_registered . ' UTC' ) ) < 7 * DAY_IN_SECONDS;
+	}
+
 	public static function register() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
@@ -152,7 +172,7 @@ final class Deactivate {
 	/* ---------------------------------------------------------------- screen */
 
 	public static function maybe_render() {
-		if ( ! self::offered() ) {
+		if ( ! self::offered_to() ) {
 			return;
 		}
 		if ( ! AppPage::claim( 'settings/pause' ) ) {
