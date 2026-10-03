@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.4 — 2026-10-03
+- Sales Dashboard: new **Registered** tile (excludes admins and deleted
+  accounts; also shows how many are activated) and **Paid users** tile
+  (premium now; also shows how many ever paid more than ₹0), next to
+  DAU/WAU/MAU.
+- The DAU chart and "Sign-ups by channel" are collapsed and expand on click.
+  The channel table stays open after you pick a date range.
+
 ## 1.69.3 — 2026-10-02
 - The account-deletion record stores the exact sign-up time, the deletion
   time (both IST) and the minutes in between.

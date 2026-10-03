@@ -142,12 +142,16 @@ final class Dashboard {
 		}
 		$labels = \CAShaadi\Modules\Tracking\Attribution::channels();
 
-		$h  = '<div style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin:15px 0">';
-		$h .= '<form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">';
-		$h .= '<input type="hidden" name="page" value="csm-sales-dashboard"><strong style="margin-right:6px">Sign-ups by channel</strong>';
+		// Collapsed until asked for (owner, 2026-10-03); stays open after a
+		// date range is submitted, so the result is not hidden.
+		$open = isset( $_GET['sfrom'] ) || isset( $_GET['sto'] ) ? ' open' : '';
+		$h  = '<details' . $open . ' style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin:15px 0">';
+		$h .= '<summary style="cursor:pointer;font-weight:600">Sign-ups by channel</summary>';
+		$h .= '<form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0">';
+		$h .= '<input type="hidden" name="page" value="csm-sales-dashboard">';
 		$h .= '<input type="date" name="sfrom" value="' . esc_attr( $from ) . '"> to <input type="date" name="sto" value="' . esc_attr( $to ) . '"> <button class="button">Show</button></form>';
 		if ( ! $total ) {
-			return $h . '<p style="margin:0;color:#666">No sign-ups in this range.</p></div>';
+			return $h . '<p style="margin:0;color:#666">No sign-ups in this range.</p></details>';
 		}
 		$h .= '<table class="widefat striped" style="max-width:480px"><tbody>';
 		foreach ( (array) $rows as $r ) {
@@ -159,7 +163,7 @@ final class Dashboard {
 			);
 		}
 		$h .= sprintf( '<tr><td><strong>Total</strong></td><td style="text-align:right"><strong>%d</strong></td><td></td></tr>', $total );
-		return $h . '</tbody></table></div>';
+		return $h . '</tbody></table></details>';
 	}
 
 	/** Map an already-computed label to its rank (no recomputation). */

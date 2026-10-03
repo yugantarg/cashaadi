@@ -179,20 +179,65 @@ final class ActiveUsers {
 				. '<div style="font-size:12px;color:#666">' . esc_html( $sub ) . ' · ' . $pct . '% of members' . ( $from_table ? '' : ' · from BuddyPress last-activity' ) . '</div>'
 				. '</div>';
 		}
+		// Registered and paid, next to the activity tiles (owner, 2026-10-03).
+		foreach ( self::totals() as $t ) {
+			$h .= '<div style="flex:1 1 150px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px">'
+				. '<div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em">' . esc_html( $t[0] ) . '</div>'
+				. '<div style="font-size:28px;font-weight:600;line-height:1.2">' . number_format_i18n( $t[1] ) . '</div>'
+				. '<div style="font-size:12px;color:#666">' . esc_html( $t[2] ) . '</div>'
+				. '</div>';
+		}
 		$h .= '</div>';
 
 		$series = self::daily_series( 30 );
 		if ( count( $series ) >= 2 ) {
 			$max = max( 1, max( $series ) );
-			$h  .= '<div style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin-bottom:15px">'
-				. '<div style="font-size:12px;color:#666;margin-bottom:8px">Daily active members, last ' . count( $series ) . ' days</div>'
-				. '<div style="display:flex;align-items:flex-end;gap:3px;height:60px">';
+			// Collapsed until asked for (owner, 2026-10-03).
+			$h  .= '<details style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin-bottom:15px">'
+				. '<summary style="cursor:pointer;font-weight:600">Daily active members, last ' . count( $series ) . ' days</summary>'
+				. '<div style="display:flex;align-items:flex-end;gap:3px;height:60px;margin-top:10px">';
 			foreach ( $series as $day => $n ) {
 				$px = max( 2, round( 56 * $n / $max ) );
 				$h .= '<div title="' . esc_attr( $day . ': ' . $n ) . '" style="flex:1;height:' . $px . 'px;background:#7a1220;border-radius:2px 2px 0 0"></div>';
 			}
-			$h .= '</div></div>';
+			$h .= '</div></details>';
 		}
 		return $h;
+	}
+
+	/**
+	 * [ label, number, note ] for the Registered and Paid tiles.
+	 *
+	 * Registered: accounts that are not admins and not closed (deleted by the
+	 * member, Settings\Closed). Paid: members on the premium level now, with
+	 * how many of them ever paid more than zero (a fully cash-paid or free
+	 * premium is premium, but not revenue).
+	 */
+	private static function totals() {
+		global $wpdb;
+		$closed = class_exists( '\CAShaadi\Modules\Settings\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array();
+		$not_closed = $closed ? ' AND ID NOT IN (' . implode( ',', array_map( 'intval', $closed ) ) . ')' : '';
+		$registered = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE 1=1" . self::not_admin_sql( 'ID' ) . $not_closed );
+		$activated  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_status = 0" . self::not_admin_sql( 'ID' ) . $not_closed );
+
+		$out = array( array( 'Registered', $registered, number_format_i18n( $activated ) . ' activated · excludes deleted' ) );
+
+		$mu = $wpdb->prefix . 'pmpro_memberships_users';
+		if ( $mu === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $mu ) ) ) {
+			$level   = (int) \CAShaadi\Core\Config::PMPRO_PREMIUM_LEVEL;
+			$premium = (int) $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(DISTINCT user_id) FROM {$mu} WHERE status = 'active' AND membership_id = %d" . self::not_admin_sql( 'user_id' ),
+				$level
+			) );
+			$orders = $wpdb->prefix . 'pmpro_membership_orders';
+			$paid   = 0;
+			if ( $orders === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $orders ) ) ) {
+				$paid = (int) $wpdb->get_var(
+					"SELECT COUNT(DISTINCT user_id) FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' )
+				);
+			}
+			$out[] = array( 'Paid users', $premium, 'premium now · ' . number_format_i18n( $paid ) . ' ever paid > ₹0' );
+		}
+		return $out;
 	}
 }
