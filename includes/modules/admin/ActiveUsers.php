@@ -185,6 +185,7 @@ final class ActiveUsers {
 				. '<div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em">' . esc_html( $t[0] ) . '</div>'
 				. '<div style="font-size:28px;font-weight:600;line-height:1.2">' . number_format_i18n( $t[1] ) . '</div>'
 				. '<div style="font-size:12px;color:#666">' . esc_html( $t[2] ) . '</div>'
+				. ( isset( $t[3] ) ? '<div style="font-size:12px;color:#666">' . esc_html( $t[3] ) . '</div>' : '' )
 				. '</div>';
 		}
 		$h .= '</div>';
@@ -230,13 +231,23 @@ final class ActiveUsers {
 				$level
 			) );
 			$orders = $wpdb->prefix . 'pmpro_membership_orders';
-			$paid   = 0;
+			$paid    = 0;
+			$revenue = 0.0;
 			if ( $orders === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $orders ) ) ) {
-				$paid = (int) $wpdb->get_var(
-					"SELECT COUNT(DISTINCT user_id) FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' )
+				// Successful orders only: refunded, cancelled and failed ones are
+				// not revenue. Admin test orders are left out.
+				$row = $wpdb->get_row(
+					"SELECT COUNT(DISTINCT user_id) n, COALESCE(SUM(total),0) amt FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' )
 				);
+				$paid    = $row ? (int) $row->n : 0;
+				$revenue = $row ? (float) $row->amt : 0.0;
 			}
-			$out[] = array( 'Paid users', $premium, 'premium now · ' . number_format_i18n( $paid ) . ' ever paid > ₹0' );
+			$out[] = array(
+				'Paid users',
+				$premium,
+				'premium now · ' . number_format_i18n( $paid ) . ' ever paid > ₹0',
+				'Lifetime revenue ₹' . number_format_i18n( $revenue ),
+			);
 		}
 		return $out;
 	}
