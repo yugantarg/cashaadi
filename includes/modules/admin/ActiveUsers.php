@@ -95,7 +95,7 @@ final class ActiveUsers {
 		return $only ? " AND {$col} IN (" . implode( ',', array_map( 'intval', $only ) ) . ')' : ' AND 1=0';
 	}
 
-	/** Members whose profile Gender is Female (the profile, not the account holder). */
+	/** Members whose Gender is Female. There is one Gender field: the person the profile is for. */
 	private static function female_ids() {
 		static $ids = null;
 		if ( null === $ids ) {
@@ -108,9 +108,9 @@ final class ActiveUsers {
 		return $ids;
 	}
 
-	/** The small "(N female)" after a headline number (owner, 2026-10-03). */
+	/** The small "(NF)" after a headline number (owner, 2026-10-03). */
 	private static function fem( $n ) {
-		return '<span style="font-size:15px;font-weight:400;color:#666"> (' . number_format_i18n( $n ) . ' female)</span>';
+		return '<span style="font-size:15px;font-weight:400;color:#666"> (' . number_format_i18n( $n ) . 'F)</span>';
 	}
 
 	private static function not_admin_sql( $col = 'user_id' ) {
