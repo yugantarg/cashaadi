@@ -257,9 +257,16 @@ final class Dashboard {
 
 		$pending_emails = self::pending_signup_emails();
 
+		/*
+		 * Same population as the Registered tile (owner, 2026-10-03: the two
+		 * did not match): no administrators, no closed (member-deleted)
+		 * accounts, whose rows are kept but are not members any more.
+		 */
 		$args = array(
-			'number'  => -1,
-			'fields'  => array( 'ID', 'user_login', 'user_email', 'user_registered', 'display_name' ),
+			'number'       => -1,
+			'fields'       => array( 'ID', 'user_login', 'user_email', 'user_registered', 'display_name' ),
+			'role__not_in' => array( 'administrator' ),
+			'exclude'      => class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array(),
 		);
 		if ( $search !== '' ) {
 			$args['search']         = '*' . $search . '*';
