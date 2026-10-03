@@ -411,3 +411,31 @@ window.csmProfileCard = function ( p ) {
 		} );
 	}, 1200 );
 } )();
+
+/*
+ * One-time popup: free women now get 15 profiles a week (owner, 2026-10-03).
+ * Only for women who joined before the change; the server decides who and
+ * when. Marked seen the moment it is shown.
+ */
+( function () {
+	var cfg = window.CSM_APP && window.CSM_APP.ff15;
+	if ( ! cfg || typeof window.csmConfirm !== 'function' ) { return; }
+	if ( /^\/(welcome|profile\/edit)\b/.test( window.location.pathname ) ) { return; }
+
+	setTimeout( function () {
+		try {
+			fetch( cfg.seen, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': window.CSM_APP.nonce }
+			} ).catch( function () {} );
+		} catch ( e ) {}
+
+		window.csmConfirm(
+			'From this week you will see ' + cfg.quota + ' new profiles every week in Discover, instead of 5. Free, nothing to do.',
+			{ title: 'Now ' + cfg.quota + ' profiles a week', okText: 'See them', cancelText: 'Later' }
+		).then( function ( yes ) {
+			if ( yes && ! /^\/discover\b/.test( window.location.pathname ) ) { window.location.href = cfg.url; }
+		} );
+	}, 1200 );
+} )();

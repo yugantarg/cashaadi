@@ -311,17 +311,24 @@ final class AppPage {
 		 * preview; giving each of them its own copy of these is how the three
 		 * drift apart.
 		 */
+		// One popup per page, most time-sensitive first: "15 profiles a week"
+		// for women who joined before it (v1.70.0), then LinkedIn/Instagram,
+		// then the sampled verify nudge.
+		$ff15 = class_exists( '\\CAShaadi\\Modules\\Discover\\FreeFemale' )
+			? \CAShaadi\Modules\Discover\FreeFemale::payload( get_current_user_id() )
+			: false;
 		// One-time "add LinkedIn / Instagram" popup for existing members.
-		$social = class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\SocialIntro' )
+		$social = ! $ff15 && class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\SocialIntro' )
 			? \CAShaadi\Modules\ProfileEdit\SocialIntro::payload( get_current_user_id() )
 			: false;
 		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
+			'ff15'        => $ff15,
 			'socialIntro' => $social,
 			// Sampled one-time "get your Verified CA badge" popup. One popup per
 			// page: while the social one is pending this is not even assigned.
-			'verifyNudge' => ! $social && class_exists( '\\CAShaadi\\Modules\\CaVerify\\VerifyNudge' )
+			'verifyNudge' => ! $ff15 && ! $social && class_exists( '\\CAShaadi\\Modules\\CaVerify\\VerifyNudge' )
 				? \CAShaadi\Modules\CaVerify\VerifyNudge::payload( get_current_user_id() )
 				: false,
 		) );

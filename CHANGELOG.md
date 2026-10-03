@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.70.0 — 2026-10-03
+- Free women get **15 profiles a week** from Monday 2026-10-05 (IST)
+  (`Discover\FreeFemale`).
+  - Applied through `csm_tray_size`, so Discover, its banner and the engine
+    all agree. Premium women keep 50. Men are unchanged.
+  - The date and number can be changed with the `csm_free_female_from` and
+    `csm_free_female_quota` options.
+- One-time "Now 15 profiles a week" popup for free women who joined before
+  that date, shown on their first app page from that date.
+- Pricing page, logged-in women only, from that date: the free column and the
+  intro say 15 a week. The Premium line reads "50 … vs 15 on the free plan".
+- The new-member tour title uses the member's actual weekly number.
+
 ## 1.69.11 — 2026-10-03
 - Fix: members who haven't verified their email were missing from the Sales
   Dashboard list. They have no role yet, and the "not administrator" role

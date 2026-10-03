@@ -11,6 +11,9 @@
  * replacements against the copy that is actually there, and any that no longer
  * match are skipped rather than guessed at. Gated on gender only — a FREE woman
  * is exactly who this is meant to persuade.
+ *
+ * Owner, 2026-10-03: free women get 15 a week from 2026-10-05; the free column
+ * and intro say so for logged-in women from that date (Discover\FreeFemale).
  */
 
 namespace CAShaadi\Modules\Premium;
@@ -56,7 +59,10 @@ final class PricingCopy {
 
 	/** The replacements themselves, separated from the guards so they can be tested. */
 	public static function swap( $html ) {
-		$n = (int) self::quota();
+		$n    = (int) self::quota();
+		$free = class_exists( '\\CAShaadi\\Modules\\Discover\\FreeFemale' )
+			? (int) \CAShaadi\Modules\Discover\FreeFemale::quota_for_women()
+			: 5;
 
 		$swaps = array(
 			// The intro promise.
@@ -68,12 +74,23 @@ final class PricingCopy {
 			// The headline feature in the Premium column.
 			'<li>10 new profiles every week in Discover (double the free 5)</li>'
 				=> sprintf(
-					'<li><strong>%d new profiles every week</strong> in Discover — ten times the free 5</li>'
+					'<li><strong>%d new profiles every week</strong> in Discover — vs %d on the free plan</li>'
 					. '<li><strong>Filter by age and height</strong>, so your %d profiles are the ones you actually want to see</li>',
 					$n,
+					$free,
 					$n
 				),
 		);
+
+		/*
+		 * The free plan for women: 15 a week from 2026-10-05 (FreeFemale). Only
+		 * once it is live, so the page never promises what Discover does not
+		 * yet give.
+		 */
+		if ( 5 !== $free ) {
+			$swaps['<li>See 5 profiles per week</li>']    = sprintf( '<li>See %d profiles per week</li>', $free );
+			$swaps['Start free with 5 profiles a week'] = sprintf( 'Start free with %d profiles a week', $free );
+		}
 
 		foreach ( $swaps as $from => $to ) {
 			if ( false !== strpos( $html, $from ) ) {
