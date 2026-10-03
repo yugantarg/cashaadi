@@ -207,6 +207,43 @@ final class ActiveUsers {
 	}
 
 	/**
+	 * [ customers who paid > 0, net revenue ] from WooCommerce, where Premium is
+	 * actually bought (the product grants the PMPro level). Completed and
+	 * processing orders, net of refunds; admins' own test orders excluded.
+	 * Falls back to PMPro's order table only when WooCommerce is absent.
+	 */
+	private static function revenue() {
+		global $wpdb;
+		$admins = self::admin_ids();
+		if ( function_exists( 'wc_get_orders' ) ) {
+			$ids   = wc_get_orders( array( 'status' => array( 'wc-completed', 'wc-processing' ), 'limit' => -1, 'return' => 'ids' ) );
+			$users = array();
+			$sum   = 0.0;
+			foreach ( (array) $ids as $id ) {
+				$o = wc_get_order( $id );
+				if ( ! $o || in_array( (int) $o->get_customer_id(), $admins, true ) ) {
+					continue;
+				}
+				$net = (float) $o->get_total() - (float) $o->get_total_refunded();
+				if ( $net <= 0 ) {
+					continue;
+				}
+				$sum += $net;
+				$users[ $o->get_customer_id() ? (int) $o->get_customer_id() : 'g' . $id ] = true;
+			}
+			return array( count( $users ), $sum );
+		}
+		$orders = $wpdb->prefix . 'pmpro_membership_orders';
+		if ( $orders !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $orders ) ) ) {
+			return array( 0, 0.0 );
+		}
+		$row = $wpdb->get_row(
+			"SELECT COUNT(DISTINCT user_id) n, COALESCE(SUM(total),0) amt FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' )
+		);
+		return array( $row ? (int) $row->n : 0, $row ? (float) $row->amt : 0.0 );
+	}
+
+	/**
 	 * [ label, number, note ] for the Registered and Paid tiles.
 	 *
 	 * Registered: accounts that are not admins and not closed (deleted by the
@@ -230,18 +267,7 @@ final class ActiveUsers {
 				"SELECT COUNT(DISTINCT user_id) FROM {$mu} WHERE status = 'active' AND membership_id = %d" . self::not_admin_sql( 'user_id' ),
 				$level
 			) );
-			$orders = $wpdb->prefix . 'pmpro_membership_orders';
-			$paid    = 0;
-			$revenue = 0.0;
-			if ( $orders === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $orders ) ) ) {
-				// Successful orders only: refunded, cancelled and failed ones are
-				// not revenue. Admin test orders are left out.
-				$row = $wpdb->get_row(
-					"SELECT COUNT(DISTINCT user_id) n, COALESCE(SUM(total),0) amt FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' )
-				);
-				$paid    = $row ? (int) $row->n : 0;
-				$revenue = $row ? (float) $row->amt : 0.0;
-			}
+			list( $paid, $revenue ) = self::revenue();
 			$out[] = array(
 				'Paid users',
 				$premium,

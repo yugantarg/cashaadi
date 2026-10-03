@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.6 — 2026-10-03
+- Lifetime revenue and "ever paid" now come from WooCommerce orders, where
+  Premium is actually bought: completed and processing orders, net of
+  refunds, excluding admins. PMPro's order table is used only if WooCommerce
+  is absent.
+
 ## 1.69.5 — 2026-10-03
 - Paid users tile: a "Lifetime revenue" line, the sum of successful PMPro
   orders above ₹0. Admin orders are excluded.
