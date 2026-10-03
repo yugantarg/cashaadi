@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.7 — 2026-10-03
+- Paid users is now counted from WooCommerce: customers with an order above
+  ₹0 after refunds. It no longer uses the PMPro premium level.
+
 ## 1.69.6 — 2026-10-03
 - Lifetime revenue and "ever paid" now come from WooCommerce orders, where
   Premium is actually bought: completed and processing orders, net of

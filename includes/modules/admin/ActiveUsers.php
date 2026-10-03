@@ -247,9 +247,8 @@ final class ActiveUsers {
 	 * [ label, number, note ] for the Registered and Paid tiles.
 	 *
 	 * Registered: accounts that are not admins and not closed (deleted by the
-	 * member, Settings\Closed). Paid: members on the premium level now, with
-	 * how many of them ever paid more than zero (a fully cash-paid or free
-	 * premium is premium, but not revenue).
+	 * member, Settings\Closed). Paid: WooCommerce customers who paid more
+	 * than zero, net of refunds, with lifetime revenue.
 	 */
 	private static function totals() {
 		global $wpdb;
@@ -260,21 +259,17 @@ final class ActiveUsers {
 
 		$out = array( array( 'Registered', $registered, number_format_i18n( $activated ) . ' activated · excludes deleted' ) );
 
-		$mu = $wpdb->prefix . 'pmpro_memberships_users';
-		if ( $mu === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $mu ) ) ) {
-			$level   = (int) \CAShaadi\Core\Config::PMPRO_PREMIUM_LEVEL;
-			$premium = (int) $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(DISTINCT user_id) FROM {$mu} WHERE status = 'active' AND membership_id = %d" . self::not_admin_sql( 'user_id' ),
-				$level
-			) );
-			list( $paid, $revenue ) = self::revenue();
-			$out[] = array(
-				'Paid users',
-				$premium,
-				'premium now · ' . number_format_i18n( $paid ) . ' ever paid > ₹0',
-				'Lifetime revenue ₹' . number_format_i18n( $revenue ),
-			);
-		}
+		// Paid users = customers with a WooCommerce order above ₹0 after
+		// refunds (owner, 2026-10-03: "even paid users should come through
+		// WooCommerce"), not PMPro's level, which a ₹0 or cash-paid
+		// checkout also grants.
+		list( $paid, $revenue ) = self::revenue();
+		$out[] = array(
+			'Paid users',
+			$paid,
+			'paid > ₹0 on WooCommerce',
+			'Lifetime revenue ₹' . number_format_i18n( $revenue ),
+		);
 		return $out;
 	}
 }
