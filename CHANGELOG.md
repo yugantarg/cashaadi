@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.8 — 2026-10-03
+- Sales Dashboard: each of the five headline numbers (DAU, WAU, MAU,
+  Registered, Paid users) shows its female count in brackets. "Female" means
+  the profile's Gender field.
+- Registered now reads "excludes N deleted".
+- Removed the "paid > ₹0 on WooCommerce" line.
+
 ## 1.69.7 — 2026-10-03
 - Paid users is now counted from WooCommerce: customers with an order above
   ₹0 after refunds. It no longer uses the PMPro premium level.

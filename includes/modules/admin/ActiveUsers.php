@@ -87,6 +87,32 @@ final class ActiveUsers {
 		return $ids;
 	}
 
+	/** " AND col IN (...)" for a subset of members; null = no filter. */
+	private static function only_sql( $only, $col = 'user_id' ) {
+		if ( null === $only ) {
+			return '';
+		}
+		return $only ? " AND {$col} IN (" . implode( ',', array_map( 'intval', $only ) ) . ')' : ' AND 1=0';
+	}
+
+	/** Members whose profile Gender is Female (the profile, not the account holder). */
+	private static function female_ids() {
+		static $ids = null;
+		if ( null === $ids ) {
+			global $wpdb;
+			$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+				"SELECT user_id FROM {$wpdb->prefix}bp_xprofile_data WHERE field_id = %d AND value = 'Female'",
+				\CAShaadi\Core\Config::FIELD_GENDER
+			) ) );
+		}
+		return $ids;
+	}
+
+	/** The small "(N female)" after a headline number (owner, 2026-10-03). */
+	private static function fem( $n ) {
+		return '<span style="font-size:15px;font-weight:400;color:#666"> (' . number_format_i18n( $n ) . ' female)</span>';
+	}
+
 	private static function not_admin_sql( $col = 'user_id' ) {
 		$ids = self::admin_ids();
 		return $ids ? " AND {$col} NOT IN (" . implode( ',', $ids ) . ')' : '';
@@ -96,13 +122,13 @@ final class ActiveUsers {
 	 * Distinct members active in the $days days ending $end (inclusive), from
 	 * our table. $end is a Y-m-d in site time; default today.
 	 */
-	public static function active( $days, $end = null ) {
+	public static function active( $days, $end = null, $only = null ) {
 		global $wpdb;
 		$end   = $end ? $end : current_time( 'Y-m-d' );
 		$start = gmdate( 'Y-m-d', strtotime( $end . ' -' . ( (int) $days - 1 ) . ' days' ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $wpdb->get_var( $wpdb->prepare(
-			'SELECT COUNT(DISTINCT user_id) FROM ' . self::table() . ' WHERE day BETWEEN %s AND %s' . self::not_admin_sql(),
+			'SELECT COUNT(DISTINCT user_id) FROM ' . self::table() . ' WHERE day BETWEEN %s AND %s' . self::not_admin_sql() . self::only_sql( $only ),
 			$start, $end
 		) );
 	}
@@ -112,7 +138,7 @@ final class ActiveUsers {
 	 * "now" from day one, before our table has history; used as the figure
 	 * until the table has covered the window.
 	 */
-	public static function active_bp( $days ) {
+	public static function active_bp( $days, $only = null ) {
 		global $wpdb;
 		if ( ! function_exists( 'bp_core_get_table_prefix' ) ) {
 			return 0;
@@ -120,7 +146,7 @@ final class ActiveUsers {
 		$t = bp_core_get_table_prefix() . 'bp_activity';
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(DISTINCT user_id) FROM {$t} WHERE type = 'last_activity' AND date_recorded > DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d DAY)" . self::not_admin_sql(),
+			"SELECT COUNT(DISTINCT user_id) FROM {$t} WHERE type = 'last_activity' AND date_recorded > DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d DAY)" . self::not_admin_sql() . self::only_sql( $only ),
 			(int) $days
 		) );
 	}
@@ -172,10 +198,11 @@ final class ActiveUsers {
 			// Our table once it covers the window; BuddyPress's stamp until then.
 			$from_table = $hist >= $days;
 			$n          = $from_table ? self::active( $days ) : self::active_bp( $days );
+			$nf         = $from_table ? self::active( $days, null, self::female_ids() ) : self::active_bp( $days, self::female_ids() );
 			$pct        = round( 100 * $n / $total );
 			$h .= '<div style="flex:1 1 150px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px">'
 				. '<div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em">' . esc_html( $label ) . '</div>'
-				. '<div style="font-size:28px;font-weight:600;line-height:1.2">' . number_format_i18n( $n ) . '</div>'
+				. '<div style="font-size:28px;font-weight:600;line-height:1.2">' . number_format_i18n( $n ) . self::fem( $nf ) . '</div>'
 				. '<div style="font-size:12px;color:#666">' . esc_html( $sub ) . ' · ' . $pct . '% of members' . ( $from_table ? '' : ' · from BuddyPress last-activity' ) . '</div>'
 				. '</div>';
 		}
@@ -183,9 +210,8 @@ final class ActiveUsers {
 		foreach ( self::totals() as $t ) {
 			$h .= '<div style="flex:1 1 150px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px">'
 				. '<div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em">' . esc_html( $t[0] ) . '</div>'
-				. '<div style="font-size:28px;font-weight:600;line-height:1.2">' . number_format_i18n( $t[1] ) . '</div>'
-				. '<div style="font-size:12px;color:#666">' . esc_html( $t[2] ) . '</div>'
-				. ( isset( $t[3] ) ? '<div style="font-size:12px;color:#666">' . esc_html( $t[3] ) . '</div>' : '' )
+				. '<div style="font-size:28px;font-weight:600;line-height:1.2">' . number_format_i18n( $t[1] ) . self::fem( $t[2] ) . '</div>'
+				. '<div style="font-size:12px;color:#666">' . esc_html( $t[3] ) . '</div>'
 				. '</div>';
 		}
 		$h .= '</div>';
@@ -231,16 +257,16 @@ final class ActiveUsers {
 				$sum += $net;
 				$users[ $o->get_customer_id() ? (int) $o->get_customer_id() : 'g' . $id ] = true;
 			}
-			return array( count( $users ), $sum );
+			return array( count( $users ), $sum, array_map( 'intval', array_filter( array_keys( $users ), 'is_int' ) ) );
 		}
 		$orders = $wpdb->prefix . 'pmpro_membership_orders';
 		if ( $orders !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $orders ) ) ) {
-			return array( 0, 0.0 );
+			return array( 0, 0.0, array() );
 		}
-		$row = $wpdb->get_row(
-			"SELECT COUNT(DISTINCT user_id) n, COALESCE(SUM(total),0) amt FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' )
-		);
-		return array( $row ? (int) $row->n : 0, $row ? (float) $row->amt : 0.0 );
+		$where = "FROM {$orders} WHERE status = 'success' AND total > 0" . self::not_admin_sql( 'user_id' );
+		$amt   = (float) $wpdb->get_var( "SELECT COALESCE(SUM(total),0) {$where}" );
+		$ids   = array_map( 'intval', (array) $wpdb->get_col( "SELECT DISTINCT user_id {$where}" ) );
+		return array( count( $ids ), $amt, $ids );
 	}
 
 	/**
@@ -252,24 +278,23 @@ final class ActiveUsers {
 	 */
 	private static function totals() {
 		global $wpdb;
-		$closed = class_exists( '\CAShaadi\Modules\Settings\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array();
+		$closed     = class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) ? array_values( array_diff( \CAShaadi\Modules\Settings\Closed::ids(), self::admin_ids() ) ) : array();
 		$not_closed = $closed ? ' AND ID NOT IN (' . implode( ',', array_map( 'intval', $closed ) ) . ')' : '';
-		$registered = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE 1=1" . self::not_admin_sql( 'ID' ) . $not_closed );
-		$activated  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_status = 0" . self::not_admin_sql( 'ID' ) . $not_closed );
-
-		$out = array( array( 'Registered', $registered, number_format_i18n( $activated ) . ' activated · excludes deleted' ) );
+		$base       = "SELECT COUNT(*) FROM {$wpdb->users} WHERE 1=1" . self::not_admin_sql( 'ID' ) . $not_closed;
+		$registered = (int) $wpdb->get_var( $base );
+		$reg_f      = (int) $wpdb->get_var( $base . self::only_sql( self::female_ids(), 'ID' ) );
+		$activated  = (int) $wpdb->get_var( $base . ' AND user_status = 0' );
 
 		// Paid users = customers with a WooCommerce order above ₹0 after
-		// refunds (owner, 2026-10-03: "even paid users should come through
-		// WooCommerce"), not PMPro's level, which a ₹0 or cash-paid
-		// checkout also grants.
-		list( $paid, $revenue ) = self::revenue();
-		$out[] = array(
-			'Paid users',
-			$paid,
-			'paid > ₹0 on WooCommerce',
-			'Lifetime revenue ₹' . number_format_i18n( $revenue ),
+		// refunds (owner, 2026-10-03), not PMPro's level, which a ₹0 or
+		// cash-paid checkout also grants.
+		list( $paid, $revenue, $payers ) = self::revenue();
+		$paid_f = count( array_intersect( $payers, self::female_ids() ) );
+
+		// [ label, number, female, note ]
+		return array(
+			array( 'Registered', $registered, $reg_f, number_format_i18n( $activated ) . ' activated · excludes ' . number_format_i18n( count( $closed ) ) . ' deleted' ),
+			array( 'Paid users', $paid, $paid_f, 'Lifetime revenue ₹' . number_format_i18n( $revenue ) ),
 		);
-		return $out;
 	}
 }
