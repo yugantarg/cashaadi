@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.69.11 — 2026-10-03
+- Fix: members who haven't verified their email were missing from the Sales
+  Dashboard list. They have no role yet, and the "not administrator" role
+  filter dropped them. Admins are now excluded by ID instead.
+
 ## 1.69.10 — 2026-10-03
 - Sales Dashboard user list: administrators and deleted (closed) accounts
   are excluded, so its unfiltered total matches the Registered tile.

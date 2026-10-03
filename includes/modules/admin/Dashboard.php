@@ -265,8 +265,15 @@ final class Dashboard {
 		$args = array(
 			'number'       => -1,
 			'fields'       => array( 'ID', 'user_login', 'user_email', 'user_registered', 'display_name' ),
-			'role__not_in' => array( 'administrator' ),
-			'exclude'      => class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array(),
+			/*
+			 * Admins by id, NOT role__not_in: that becomes a meta query on
+			 * capabilities, and members who have not verified their email
+			 * have no role yet, so it silently dropped every one of them.
+			 */
+			'exclude'      => array_merge(
+				array_map( 'intval', get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) ) ),
+				class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array()
+			),
 		);
 		if ( $search !== '' ) {
 			$args['search']         = '*' . $search . '*';
