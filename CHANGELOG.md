@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.74.2 — 2026-10-04
+- Verification-popup test ended. Setting `csm_verify_nudge_pct` to 0 now also
+  stops popups for members already in the show group. Their recorded groups
+  are kept, so the result can still be read.
+
 ## 1.74.1 — 2026-10-04
 - Data is kept permanently for every member. The 400-day prune of daily
   activity (`csm_active_days`) and the 180-day prune of the event log are

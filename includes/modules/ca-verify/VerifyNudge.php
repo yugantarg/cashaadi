@@ -14,8 +14,9 @@
  * 'show' is marked seen the moment the popup is shown, and a click on
  * "Upload now" is recorded separately.
  *
- * csm_verify_nudge_pct = 0 (or the option unset) assigns nobody new; members
- * already assigned keep their arm.
+ * csm_verify_nudge_pct = 0 (or the option unset) ends the test: nobody is
+ * assigned and no popup is shown, including to members already in 'show'.
+ * Arms already recorded are kept, so the result can still be read.
  */
 
 namespace CAShaadi\Modules\CaVerify;
@@ -43,6 +44,11 @@ final class VerifyNudge {
 	public static function payload( $uid ) {
 		$uid = (int) $uid;
 		if ( ! $uid || user_can( $uid, 'manage_options' ) ) {
+			return false;
+		}
+		// pct 0 ends the test outright: no new arms AND no pending popups
+		// (owner, 2026-10-04: ended once the Discover card asked everyone).
+		if ( (int) get_option( self::PCT_OPT, 0 ) <= 0 ) {
 			return false;
 		}
 		$arm = (string) get_user_meta( $uid, self::ARM_META, true );
