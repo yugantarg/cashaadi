@@ -3,6 +3,22 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.74.0 — 2026-10-04
+- Member details ("what they were") moved out of the daily table into a
+  **change history**, `wp_csm_member_state`:
+  - A row is written only when something differs from the member's previous
+    row: gender, age, premium, quota, photos, verified, paused, closed, details
+    left.
+  - It is triggered by a profile edit, a photo / verification / pause / close
+    change or a membership change, plus a nightly check for changes nothing
+    announces, such as a Premium expiry.
+  - `wp csm journey states` records a one-time starting row for everyone.
+- `wp_csm_member_day` now has rows only for days something happened.
+- **Conversation history**, `wp_csm_convo_day`: one row per pair per day they
+  messaged, with each side's message count. One-to-one conversations only. It
+  can be rebuilt with backfill.
+- Export: `member_state` and `convo_day`.
+
 ## 1.73.0 — 2026-10-04
 - **Member journey data** (`Analytics\Journey`). Read-only: nothing ranks or
   decides off it.
