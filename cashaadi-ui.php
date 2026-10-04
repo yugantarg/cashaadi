@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.72.0
+ * Version:           1.73.0
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.72.0' );
+define( 'CASHAADI_UI_VER', '1.73.0' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -115,6 +115,12 @@ if ( class_exists( 'CAShaadi\\Core\\Health' ) ) {
 add_action( 'init', array( Migrator::class, 'run' ) );
 
 // --- Modules ------------------------------------------------------------
+// Member journey rails: daily member timeline, purchase/pricing/match events,
+// WP-CLI backfill and export (v1.73.0). Read-only for the product.
+if ( class_exists( 'CAShaadi\\Modules\\Analytics\\Journey' ) ) {
+	\CAShaadi\Modules\Analytics\Journey::register();
+}
+
 // Profile-edit field logic & guards (partial-save, gender/email lock, bio
 // plain, age-sync, height guard). Mirrors WPCode #11624/#11621/#11619/#11611/
 // #11797/#11625; runs safely alongside them until those snippets are disabled.

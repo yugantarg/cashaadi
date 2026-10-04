@@ -160,7 +160,13 @@ final class Engine {
 		$days   = (int) apply_filters( 'csm_event_log_days', 180 );
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $days . ' days', (int) current_time( 'timestamp' ) ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$t} WHERE created_at < %s", $cutoff ) );
+		/*
+		 * Kept forever: deletion reasons, purchases, pricing visits, matches and
+		 * one-time field changes are the record the journey analysis depends on
+		 * (Analytics\Journey::KEEP_EVENTS). Everything else ages out.
+		 */
+		$keep = "'account_deleted','purchase','pricing_view','match_made','once_field_changed'";
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$t} WHERE created_at < %s AND event_type NOT IN ({$keep})", $cutoff ) );
 	}
 
 	/**

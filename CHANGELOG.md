@@ -3,6 +3,27 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.73.0 — 2026-10-04
+- **Member journey data** (`Analytics\Journey`). Read-only: nothing ranks or
+  decides off it.
+  - New `wp_csm_member_day` table, written nightly at 02:30 IST, one row per
+    member per day:
+    - what happened: active, profiles served (with their average match points
+      and popularity), likes and passes given, likes received, requests sent
+      and received, matches, messages sent and received, new profile viewers;
+    - what they were that night: gender, premium, quota, photos, verified,
+      paused.
+  - New events:
+    - `purchase`: the order plus the member's journey totals to date, their
+      channel, and what sent them to the pricing page;
+    - `pricing_view`: each pricing-page visit (at most hourly per member),
+      with the referring screen or `?src=`;
+    - `match_made`.
+  - The event log keeps these types, plus `account_deleted` and
+    `once_field_changed`, forever. They were previously pruned after 180 days.
+  - WP-CLI: `wp csm journey backfill --days=90`, `wp csm journey nightly`,
+    `wp csm journey export member_day|events|impressions`.
+
 ## 1.72.0 — 2026-10-04
 - **+5 profiles a week for adding a photo, +5 for an approved CA
   verification** (`Discover\Boost`):
