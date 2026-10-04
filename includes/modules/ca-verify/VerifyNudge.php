@@ -55,7 +55,7 @@ final class VerifyNudge {
 		if ( 'control' === $arm || get_user_meta( $uid, self::SEEN_META, true ) ) {
 			return false;
 		}
-		if ( 'none' !== CaVerify::member_state( $uid ) ) {
+		if ( 'none' !== CaVerify::member_state( $uid ) || '' === CaVerify::claim( $uid ) ) {
 			return false; // uploaded, decided or in review
 		}
 		if ( '' === $arm ) {

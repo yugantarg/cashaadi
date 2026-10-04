@@ -241,12 +241,13 @@ final class DiscoverScreen {
 			);
 		}
 
-		if ( class_exists( '\\CAShaadi\\Modules\\CaVerify\\CaVerify' ) && 'none' === \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid ) ) {
+		if ( class_exists( '\\CAShaadi\\Modules\\CaVerify\\CaVerify' ) && 'none' === \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid )
+			&& '' !== \CAShaadi\Modules\CaVerify\CaVerify::claim( $uid ) ) {
 			$steps[] = array(
-				'title' => __( 'Get your Verified CA badge', 'cashaadi-ui' ),
+				'title' => __( 'Get your Verified badge', 'cashaadi-ui' ),
 				'body'  => class_exists( __NAMESPACE__ . '\\Boost' )
-					? sprintf( __( 'Upload your ICAI certificate. Get %d more profiles every week once approved.', 'cashaadi-ui' ), Boost::per() )
-					: __( 'Upload your ICAI certificate. Members trust verified profiles more.', 'cashaadi-ui' ),
+					? sprintf( __( 'Upload your %1$s. Get %2$d more profiles every week once approved.', 'cashaadi-ui' ), \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ), Boost::per() )
+					: sprintf( __( 'Upload your %s. Members trust verified profiles more.', 'cashaadi-ui' ), \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ) ),
 				'url'   => home_url( '/profile/edit/?g=10' ),
 			);
 		}

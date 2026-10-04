@@ -45,7 +45,7 @@ final class Boost {
 		}
 		$photo  = self::has_photo( $uid );
 		$verify = self::verify_state( $uid );
-		$need_v = ! in_array( $verify, array( 'approved', 'pending' ), true ); // pending: nothing to do yet
+		$need_v = self::can_verify( $uid ) && ! in_array( $verify, array( 'approved', 'pending' ), true ); // pending: nothing to do yet
 		if ( $photo && ! $need_v ) {
 			return false;
 		}
@@ -55,12 +55,18 @@ final class Boost {
 			$parts[] = sprintf( 'add a photo (+%d)', self::per() );
 		}
 		if ( $need_v ) {
-			$parts[] = sprintf( 'verify your CA by uploading your ICAI certificate (+%d)', self::per() );
+			$parts[] = sprintf(
+				'inter' === \CAShaadi\Modules\CaVerify\CaVerify::claim( $uid )
+					? 'verify your CA Inter status by uploading your %s (+%d)'
+					: 'verify your CA by uploading your %s (+%d)',
+				\CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ),
+				self::per()
+			);
 		}
 		$n = self::per() * count( $parts );
 		return array(
 			'title' => sprintf( 'Get %d more profiles this week', $n ),
-			'body'  => ucfirst( implode( ' and ', $parts ) ) . '. Verifying and adding a photo increase your chances 5 times.',
+			'body'  => ucfirst( implode( ' and ', $parts ) ) . ( self::can_verify( $uid ) ? '. Verifying and adding a photo increase your chances 5 times.' : '. Adding a photo increases your chances 5 times.' ),
 			'url'   => $photo ? $st['verifyUrl'] : $st['photoUrl'],
 			'seen'  => rest_url( 'csm/v1/boost-seen' ),
 		);
@@ -101,6 +107,11 @@ final class Boost {
 		return '';
 	}
 
+	/** Is verification offered to this member at all? CA and CA Inter only. */
+	public static function can_verify( $uid ) {
+		return class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) && '' !== \CAShaadi\Modules\CaVerify\CaVerify::claim( (int) $uid );
+	}
+
 	public static function extra( $uid ) {
 		$uid = (int) $uid;
 		return self::per() * ( ( self::has_photo( $uid ) ? 1 : 0 ) + ( 'approved' === (string) get_user_meta( $uid, 'csm_av_status', true ) ? 1 : 0 ) );
@@ -117,6 +128,10 @@ final class Boost {
 			'per'       => self::per(),
 			'photo'     => self::has_photo( $uid ),
 			'verify'    => self::verify_state( $uid ),
+			// CA / CA Inter only; CA Inter members are asked for their CA Inter ID.
+			'canVerify' => self::can_verify( $uid ),
+			'claim'     => class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ? \CAShaadi\Modules\CaVerify\CaVerify::claim( $uid ) : '',
+			'docLabel'  => class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ? \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ) : '',
 			'photoUrl'  => function_exists( 'bp_members_get_user_url' ) ? trailingslashit( bp_members_get_user_url( $uid ) ) . 'profile/change-avatar/' : home_url( '/profile/' ),
 			'verifyUrl' => home_url( '/profile/edit/?g=10' ),
 		);

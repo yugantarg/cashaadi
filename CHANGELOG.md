@@ -3,6 +3,15 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.75.1 — 2026-10-04
+- Verification is offered only to members whose Qualification is CA or CA
+  Inter. This covers the popup, the Discover card and the "While you wait"
+  suggestions, with a new `CaVerify::claim()` check.
+- CA Inter members are asked for their **CA Inter ID** (ICAI registration card
+  or Intermediate marksheet), not an ICAI certificate.
+- Members with any other qualification see only the photo offer, and their
+  verification note says it's for CA and CA Inter members.
+
 ## 1.75.0 — 2026-10-04
 - **Combined one-time popup:** "Get 10 more profiles this week". It tells the
   member to add a photo and/or verify their CA (+5 each), says that this

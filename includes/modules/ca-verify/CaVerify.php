@@ -401,6 +401,31 @@ final class CaVerify {
 	 * written for a reviewer, mentions confidence scores, and would be a poor
 	 * and occasionally alarming thing to show the person it judged.
 	 */
+	/**
+	 * The member's claimed qualification, as verification needs it:
+	 * 'ca' (CA / CA Final), 'inter' (CA Inter), or '' (anything else, or blank).
+	 * Only 'ca' and 'inter' are offered verification (owner, 2026-10-04).
+	 */
+	public static function claim( $uid ) {
+		$raw = class_exists( '\BP_XProfile_ProfileData' )
+			? strtolower( trim( wp_strip_all_tags( (string) \BP_XProfile_ProfileData::get_value_byid( Config::FIELD_QUALIFICATION, (int) $uid ) ) ) )
+			: '';
+		if ( '' === $raw ) {
+			return '';
+		}
+		if ( false !== strpos( $raw, 'inter' ) ) {
+			return 'inter';
+		}
+		return ( 'ca' === $raw || 0 === strpos( $raw, 'ca ' ) || false !== strpos( $raw, 'chartered' ) ) ? 'ca' : '';
+	}
+
+	/** What to upload, in the member's terms: CA Inter members are asked for their CA Inter ID. */
+	public static function doc_label( $uid ) {
+		return 'inter' === self::claim( $uid )
+			? __( 'CA Inter ID (ICAI registration card or Intermediate marksheet)', 'cashaadi-ui' )
+			: __( 'ICAI certificate', 'cashaadi-ui' );
+	}
+
 	public static function member_note( $uid ) {
 		switch ( self::member_state( $uid ) ) {
 			case 'approved':
@@ -414,7 +439,11 @@ final class CaVerify {
 			case 'pending':
 				return __( 'Your document is being checked. This usually takes a day.', 'cashaadi-ui' );
 			default:
-				return __( 'Upload your ICAI certificate to get the Verified CA badge.', 'cashaadi-ui' );
+				if ( '' === self::claim( $uid ) ) {
+					return __( 'Verification is available to members who are CA or CA Inter.', 'cashaadi-ui' );
+				}
+				/* translators: %s: document to upload */
+				return sprintf( __( 'Upload your %s to get the Verified badge.', 'cashaadi-ui' ), self::doc_label( $uid ) );
 		}
 	}
 

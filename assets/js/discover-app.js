@@ -153,8 +153,10 @@
 	 */
 	function boostCard() {
 		var b = meta.boost;
-		if ( ! b || ! b.per || ( b.photo && 'approved' === b.verify ) ) { return null; }
-		var todo = ( b.photo ? 0 : 1 ) + ( 'approved' === b.verify ? 0 : 1 );
+		// Verification is offered to CA and CA Inter members only.
+		var canV = !! b && b.canVerify;
+		if ( ! b || ! b.per || ( b.photo && ( ! canV || 'approved' === b.verify ) ) ) { return null; }
+		var todo = ( b.photo ? 0 : 1 ) + ( canV && 'approved' !== b.verify ? 1 : 0 );
 		var box = el( 'div', 'csm-d-boost' );
 		box.appendChild( el( 'strong', 'csm-d-boost-h', 'Get ' + ( todo * b.per ) + ' more profiles this week' ) );
 		function row( text, href, done, note ) {
@@ -166,14 +168,18 @@
 			return r;
 		}
 		box.appendChild( row( b.photo ? 'Photo added' : 'Add a photo', b.photoUrl, b.photo ) );
-		var vDone = 'approved' === b.verify;
-		box.appendChild( row(
-			vDone ? 'CA verified' : 'Verify your CA (upload your ICAI certificate)',
-			b.verifyUrl,
-			vDone,
-			'pending' === b.verify ? 'In review \u2014 the extra profiles arrive once approved' : ''
-		) );
-		box.appendChild( el( 'p', 'csm-d-boost-foot', 'Verifying and adding a photo increase your chances 5 times.' ) );
+		if ( canV ) {
+			var vDone = 'approved' === b.verify;
+			var inter = 'inter' === b.claim;
+			box.appendChild( row(
+				vDone ? ( inter ? 'CA Inter verified' : 'CA verified' )
+					: ( inter ? 'Verify your CA Inter status' : 'Verify your CA' ) + ' (upload your ' + ( b.docLabel || 'ICAI certificate' ) + ')',
+				b.verifyUrl,
+				vDone,
+				'pending' === b.verify ? 'In review \u2014 the extra profiles arrive once approved' : ''
+			) );
+		}
+		box.appendChild( el( 'p', 'csm-d-boost-foot', canV ? 'Verifying and adding a photo increase your chances 5 times.' : 'Adding a photo increases your chances 5 times.' ) );
 		return box;
 	}
 
