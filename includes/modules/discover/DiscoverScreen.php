@@ -178,6 +178,8 @@ final class DiscoverScreen {
 			// What to do while waiting for next Monday (owner, 2026-10-03:
 			// members finished their set in minutes and left).
 			'nextSteps'    => self::next_steps( $viewer_id ),
+			// +5 a week for a photo, +5 for a verified badge (v1.72.0).
+			'boost'        => class_exists( __NAMESPACE__ . '\\Boost' ) ? Boost::state( $viewer_id ) : null,
 			// This member's own grant, and the filter sheet's state.
 			'quota'        => Discover::quota_for( $viewer_id ),
 			/*
@@ -232,7 +234,9 @@ final class DiscoverScreen {
 		if ( $count < 3 && function_exists( 'bp_members_get_user_url' ) ) {
 			$steps[] = array(
 				'title' => 0 === $count ? __( 'Add a photo', 'cashaadi-ui' ) : __( 'Add more photos', 'cashaadi-ui' ),
-				'body'  => __( 'Profiles with photos get far more requests.', 'cashaadi-ui' ),
+				'body'  => 0 === $count && class_exists( __NAMESPACE__ . '\\Boost' )
+					? sprintf( __( 'Get %d more profiles every week, and far more requests.', 'cashaadi-ui' ), Boost::per() )
+					: __( 'Profiles with photos get far more requests.', 'cashaadi-ui' ),
 				'url'   => trailingslashit( bp_members_get_user_url( $uid ) ) . 'profile/change-avatar/',
 			);
 		}
@@ -240,7 +244,9 @@ final class DiscoverScreen {
 		if ( class_exists( '\\CAShaadi\\Modules\\CaVerify\\CaVerify' ) && 'none' === \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid ) ) {
 			$steps[] = array(
 				'title' => __( 'Get your Verified CA badge', 'cashaadi-ui' ),
-				'body'  => __( 'Upload your ICAI certificate. Members trust verified profiles more.', 'cashaadi-ui' ),
+				'body'  => class_exists( __NAMESPACE__ . '\\Boost' )
+					? sprintf( __( 'Upload your ICAI certificate. Get %d more profiles every week once approved.', 'cashaadi-ui' ), Boost::per() )
+					: __( 'Upload your ICAI certificate. Members trust verified profiles more.', 'cashaadi-ui' ),
 				'url'   => home_url( '/profile/edit/?g=10' ),
 			);
 		}

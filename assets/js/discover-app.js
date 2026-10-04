@@ -133,6 +133,37 @@
 	 * unacted part of the tray immediately — the weekly grant is counted
 	 * server-side, so this cannot mint extra profiles.
 	 */
+	/*
+	 * "Get up to 10 more profiles this week" (owner, 2026-10-04): +5 for a
+	 * photo, +5 for a verified CA badge. Shown above the profiles until both
+	 * are done; each row turns into a tick once it is earned.
+	 */
+	function boostCard() {
+		var b = meta.boost;
+		if ( ! b || ! b.per || ( b.photo && 'approved' === b.verify ) ) { return null; }
+		var todo = ( b.photo ? 0 : 1 ) + ( 'approved' === b.verify ? 0 : 1 );
+		var box = el( 'div', 'csm-d-boost' );
+		box.appendChild( el( 'strong', 'csm-d-boost-h', 'Get ' + ( todo * b.per ) + ' more profiles this week' ) );
+		function row( text, href, done, note ) {
+			var r = document.createElement( done ? 'span' : 'a' );
+			r.className = 'csm-d-boost-row' + ( done ? ' is-done' : '' );
+			if ( ! done ) { r.href = href; }
+			r.appendChild( el( 'span', null, ( done ? '\u2713 ' : '+' + b.per + ' \u00b7 ' ) + text ) );
+			if ( note ) { r.appendChild( el( 'em', null, note ) ); }
+			return r;
+		}
+		box.appendChild( row( b.photo ? 'Photo added' : 'Add a photo', b.photoUrl, b.photo ) );
+		var vDone = 'approved' === b.verify;
+		box.appendChild( row(
+			vDone ? 'CA verified' : 'Verify your CA (upload your ICAI certificate)',
+			b.verifyUrl,
+			vDone,
+			'pending' === b.verify ? 'In review \u2014 the extra profiles arrive once approved' : ''
+		) );
+		box.appendChild( el( 'p', 'csm-d-boost-foot', 'Verifying and adding a photo increase your chances 5 times.' ) );
+		return box;
+	}
+
 	function filterBar() {
 		var f = meta.filters;
 		if ( ! f || ! f.eligible ) { return null; }
@@ -300,6 +331,8 @@
 		root.innerHTML = '';
 		var fb = filterBar();
 		if ( fb ) { root.appendChild( fb ); }
+		var bc = boostCard();
+		if ( bc ) { root.appendChild( bc ); }
 
 		/* Profiles decided in the detail view are gone from here when the member
 		   comes back — act() marks them rather than splicing, so the carousel's
@@ -335,6 +368,11 @@
 		} else {
 			var fb = filterBar();
 			if ( fb ) { root.appendChild( fb ); }
+		}
+		// On the first card only, so it does not repeat on every profile.
+		if ( 0 === idx ) {
+			var bc2 = boostCard();
+			if ( bc2 ) { root.appendChild( bc2 ); }
 		}
 		// One renderer for Discover, "how others see me" and /member/<id>/ —
 		// see csmProfileCard() in app-screens.js. Three copies of this markup is
@@ -539,7 +577,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [] };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

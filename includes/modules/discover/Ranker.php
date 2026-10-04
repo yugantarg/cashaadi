@@ -2,6 +2,8 @@
 /**
  * Discover ranking: a points score per (viewer, profile) pair.
  *
+ * v1.72.0 adds 'photo' (+4) and 'verified' (+3): profile completeness.
+ *
  * Owner, 2026-10-02: "Same language, community, age bracket etc should
  * contribute points towards someone getting shown to someone. And so does
  * newness, low impressions in past, and popularity." Popular profiles get a
@@ -64,6 +66,8 @@ final class Ranker {
 			'popular'      => 3,   // own like-rate, as a multiple of the site's, capped
 			'pop_match'    => 3,   // viewer and profile equally popular
 			'random'       => 5,   // uniform 0..random
+			'photo'        => 4,   // has at least one photo (v1.72.0)
+			'verified'     => 3,   // ICAI verification approved (v1.72.0)
 			'new_days'     => 30,
 			'popular_max'  => 4,   // like-rate multiple that earns the full 'popular'
 			'smoothing'    => 8,   // showings before a like-rate counts
@@ -89,6 +93,7 @@ final class Ranker {
 		$me    = isset( $attrs[ $viewer_id ] ) ? $attrs[ $viewer_id ] : array();
 		$me_p  = self::popularity( self::own_stats( $viewer_id ), $rate, $P );
 
+		$trust     = self::trust( $ids );
 		$max_shown = 0;
 		foreach ( $pool as $r ) {
 			$max_shown = max( $max_shown, (int) $r->shown );
@@ -109,6 +114,10 @@ final class Ranker {
 			$parts['popular']   = $P['popular'] * min( $pp, $P['popular_max'] ) / max( 1, $P['popular_max'] );
 			$parts['pop_match'] = self::pop_match( $me_p, $pp, $P );
 			$parts['random']    = $P['random'] * ( wp_rand( 0, 10000 ) / 10000 );
+			// Profile completeness (owner, 2026-10-04): a photo and a verified
+			// badge are shown more, which is what the Discover card promises.
+			$parts['photo']     = ! empty( $trust[ $id ]['photo'] ) ? $P['photo'] : 0;
+			$parts['verified']  = ! empty( $trust[ $id ]['verified'] ) ? $P['verified'] : 0;
 
 			$over = ( (int) $r->shown_wk >= $ceiling ) || ( (int) $r->req_wk >= $req_cap );
 			$tier = ( $tier_active && ! (int) $r->active ? 0 : 2 ) + ( $over ? 0 : 1 );
@@ -124,6 +133,30 @@ final class Ranker {
 			return $y['tier'] <=> $x['tier'] ?: $y['score'] <=> $x['score'];
 		} );
 		return array_slice( $out, 0, (int) $slots );
+	}
+
+	/** [ uid => [ photo => bool, verified => bool ] ] for many members, one query. */
+	public static function trust( array $uids ) {
+		global $wpdb;
+		$uids = array_values( array_unique( array_filter( array_map( 'intval', $uids ) ) ) );
+		if ( ! $uids ) {
+			return array();
+		}
+		$rows = $wpdb->get_results(
+			"SELECT user_id, meta_key, meta_value FROM {$wpdb->usermeta}
+			 WHERE meta_key IN ('csm_photos','csm_av_status') AND user_id IN (" . implode( ',', $uids ) . ')'
+		);
+		$out = array();
+		foreach ( (array) $rows as $r ) {
+			$id = (int) $r->user_id;
+			if ( 'csm_photos' === $r->meta_key ) {
+				$v = maybe_unserialize( $r->meta_value );
+				$out[ $id ]['photo'] = is_array( $v ) && count( $v ) > 0;
+			} else {
+				$out[ $id ]['verified'] = 'approved' === (string) $r->meta_value;
+			}
+		}
+		return $out;
 	}
 
 	/** Points earned by being alike. Blank on either side earns nothing. */

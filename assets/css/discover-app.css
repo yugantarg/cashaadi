@@ -450,3 +450,14 @@ body.csm-member-view .csm-d-card {
 	font: 600 14px/1 inherit; color: #7a1220; cursor: pointer;
 }
 .csm-d-back svg { width: 16px; height: 16px; }
+
+/* "Get N more profiles this week" card (v1.72.0). */
+.csm-d-boost {
+	margin: 0 0 14px; padding: 14px 16px;
+	background: #fbf6ec; border: 1px solid #ecdcb8; border-radius: 16px;
+}
+.csm-d-boost-h { display: block; font-size: 15px; margin-bottom: 8px; color: var(--csm-ink, #16212b); }
+.csm-d-boost-row { display: block; padding: 7px 0; font-size: 14px; color: var(--csm-ink, #16212b); text-decoration: none; font-weight: 600; }
+.csm-d-boost-row.is-done { color: #2f7d4f; font-weight: 500; }
+.csm-d-boost-row em { display: block; font-style: normal; font-weight: 400; font-size: 12.5px; color: var(--csm-muted, #5c6a76); }
+.csm-d-boost-foot { margin: 8px 0 0; font-size: 12.5px; color: var(--csm-muted, #5c6a76); }

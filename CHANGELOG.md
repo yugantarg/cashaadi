@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.72.0 — 2026-10-04
+- **+5 profiles a week for adding a photo, +5 for an approved CA
+  verification** (`Discover\Boost`):
+  - Applied through `csm_tray_size`, so it counts from the moment it's earned.
+  - The amount is set by option `csm_boost_per`.
+- Discover: a "Get N more profiles this week" card above the profiles. Each row
+  ticks off when done; an upload still in review says so. The card ends with
+  "Verifying and adding a photo increase your chances 5 times."
+- Ranking (`points-v1`): profiles get +4 for having a photo and +3 for being
+  verified, so complete profiles are shown more. Both points appear in the
+  impression log.
+- "While you wait" suggestions mention the extra profiles.
+
 ## 1.71.0 — 2026-10-03
 - **Gender and Date of birth can each be changed once** (`ProfileEdit\OnceFields`).
   - The change is made in the profile editor, after a warning that it can never
