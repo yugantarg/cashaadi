@@ -439,3 +439,28 @@ window.csmProfileCard = function ( p ) {
 		} );
 	}, 1200 );
 } )();
+
+/*
+ * One-time popup: "Get 10 more profiles this week" for a photo and CA
+ * verification (owner, 2026-10-04). The server decides who and what is left;
+ * marked seen the moment it is shown. The same offer is repeated on the
+ * Discover card and at the end of the week's profiles.
+ */
+( function () {
+	var cfg = window.CSM_APP && window.CSM_APP.boostPopup;
+	if ( ! cfg || typeof window.csmConfirm !== 'function' ) { return; }
+	if ( /^\/(welcome|profile\/edit)\b/.test( window.location.pathname ) ) { return; }
+
+	setTimeout( function () {
+		try {
+			fetch( cfg.seen, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': window.CSM_APP.nonce }
+			} ).catch( function () {} );
+		} catch ( e ) {}
+
+		window.csmConfirm( cfg.body, { title: cfg.title, okText: 'Do it now', cancelText: 'Later' } )
+			.then( function ( yes ) { if ( yes ) { window.location.href = cfg.url; } } );
+	}, 1200 );
+} )();

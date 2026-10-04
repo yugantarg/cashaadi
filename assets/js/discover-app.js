@@ -79,6 +79,19 @@
 		}
 
 		/*
+		 * The +5 / +5 offer again, at the moment it matters most: the member
+		 * has just run out of profiles (owner, 2026-10-04).
+		 */
+		var boostEnd = ! message ? boostCard() : null;
+		if ( boostEnd ) {
+			box.appendChild( boostEnd );
+			// Photo and verification are on the card; do not list them twice.
+			meta.nextSteps = ( meta.nextSteps || [] ).filter( function ( st ) {
+				return ! meta.boost || ( st.url !== meta.boost.photoUrl && st.url !== meta.boost.verifyUrl );
+			} );
+		}
+
+		/*
 		 * While you wait (owner, 2026-10-03): new members finished their set in
 		 * minutes, found nothing else to do and deleted their account. Up to
 		 * three useful things, chosen on the server for this member.

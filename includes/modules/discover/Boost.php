@@ -25,8 +25,56 @@ final class Boost {
 
 	const PER = 5;
 
+	const POPUP_SEEN = 'csm_boost_popup_seen';
+
 	public static function register() {
 		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 30, 2 );
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+	}
+
+	/**
+	 * One-time popup with the same offer (owner, 2026-10-04: "build the
+	 * combined popup"). It replaces the verify-only popup, whose test showed a
+	 * one-time prompt more than doubled ICAI uploads (6.3% to 14.4%). Shown
+	 * once to a member with something left to earn; a payload, or false.
+	 */
+	public static function popup( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid || ! self::per() || user_can( $uid, 'manage_options' ) || get_user_meta( $uid, self::POPUP_SEEN, true ) ) {
+			return false;
+		}
+		$photo  = self::has_photo( $uid );
+		$verify = self::verify_state( $uid );
+		$need_v = ! in_array( $verify, array( 'approved', 'pending' ), true ); // pending: nothing to do yet
+		if ( $photo && ! $need_v ) {
+			return false;
+		}
+		$st    = self::state( $uid );
+		$parts = array();
+		if ( ! $photo ) {
+			$parts[] = sprintf( 'add a photo (+%d)', self::per() );
+		}
+		if ( $need_v ) {
+			$parts[] = sprintf( 'verify your CA by uploading your ICAI certificate (+%d)', self::per() );
+		}
+		$n = self::per() * count( $parts );
+		return array(
+			'title' => sprintf( 'Get %d more profiles this week', $n ),
+			'body'  => ucfirst( implode( ' and ', $parts ) ) . '. Verifying and adding a photo increase your chances 5 times.',
+			'url'   => $photo ? $st['verifyUrl'] : $st['photoUrl'],
+			'seen'  => rest_url( 'csm/v1/boost-seen' ),
+		);
+	}
+
+	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/boost-seen', array(
+			'methods'             => 'POST',
+			'callback'            => function () {
+				update_user_meta( get_current_user_id(), self::POPUP_SEEN, time() );
+				return new \WP_REST_Response( array( 'ok' => true ), 200 );
+			},
+			'permission_callback' => 'is_user_logged_in',
+		) );
 	}
 
 	public static function per() {

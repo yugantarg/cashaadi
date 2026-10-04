@@ -3,6 +3,18 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.75.0 — 2026-10-04
+- **Combined one-time popup:** "Get 10 more profiles this week". It tells the
+  member to add a photo and/or verify their CA (+5 each), says that this
+  increases their chances 5 times, and links to the first thing left to do.
+  - Shown once to anyone with something left to earn. A verification already
+    in review doesn't count as something left.
+  - It replaces the verify-only popup. That test showed a one-time prompt more
+    than doubled ICAI uploads: 6.3% without the popup, 14.4% with it, 270 vs
+    271 members.
+- Discover end-of-week screen: the same offer is repeated at the top.
+  Photo and verification are no longer listed again under "While you wait".
+
 ## 1.74.2 — 2026-10-04
 - Verification-popup test ended. Setting `csm_verify_nudge_pct` to 0 now also
   stops popups for members already in the show group. Their recorded groups
