@@ -26,7 +26,7 @@
  * 1c. wp_csm_convo_day — message history per conversation: one row per pair
  *    per day they messaged, with each side's count. Kept even if Better
  *    Messages' own rows are later deleted.
- * 2. Events in wp_csm_event_log, kept forever (exempt from the 180-day prune):
+ * 2. Events in wp_csm_event_log (the whole log is kept permanently, v1.74.1):
  *    - purchase: the order, and the member's journey totals up to that moment
  *      plus where their last pricing-page visit came from;
  *    - pricing_view: each visit to the pricing page (at most hourly per

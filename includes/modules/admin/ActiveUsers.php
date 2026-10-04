@@ -10,7 +10,7 @@
  * BuddyPress keeps one timestamp per member, which gives today's numbers but
  * no history. This keeps one row per member per day (wp_csm_active_days) so
  * DAU can be charted and yesterday's figure never changes under us. Rows are
- * tiny (user id + date) and are pruned after 400 days.
+ * tiny (user id + date) and are kept permanently (v1.74.1).
  *
  * Admins are recorded but excluded from every count: the owner's test logins
  * are not members.
@@ -33,9 +33,13 @@ final class ActiveUsers {
 		// Late enough that the user is known; runs on every logged-in request
 		// but does one usermeta read (cached) unless the day has changed.
 		add_action( 'init', array( __CLASS__, 'touch' ), 50 );
-		add_action( 'csm_active_days_prune', array( __CLASS__, 'prune' ) );
-		if ( ! wp_next_scheduled( 'csm_active_days_prune' ) ) {
-			wp_schedule_event( time() + 3600, 'daily', 'csm_active_days_prune' );
+		/*
+		 * No pruning (owner, 2026-10-04: "we don't know when someone pays or
+		 * leaves, so keep data for all users permanently"). The old daily
+		 * prune event is unscheduled if it is still queued.
+		 */
+		if ( wp_next_scheduled( 'csm_active_days_prune' ) ) {
+			wp_clear_scheduled_hook( 'csm_active_days_prune' );
 		}
 	}
 

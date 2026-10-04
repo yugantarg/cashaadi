@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.74.1 — 2026-10-04
+- Data is kept permanently for every member. The 400-day prune of daily
+  activity (`csm_active_days`) and the 180-day prune of the event log are
+  switched off.
+
 ## 1.74.0 — 2026-10-04
 - Member details ("what they were") moved out of the daily table into a
   **change history**, `wp_csm_member_state`:

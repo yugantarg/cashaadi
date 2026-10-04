@@ -56,7 +56,8 @@ final class Discover {
 		// behind a table_exists() guard.
 		Migrator::register( 'event_log', array( \CAShaadi\Core\Engine::class, 'event_schema' ) );
 		add_action( 'init', array( __CLASS__, 'ensure_saved_status' ), 15 );
-		add_action( 'wp_scheduled_delete', array( \CAShaadi\Core\Engine::class, 'prune_events' ) );
+		// Event log is kept permanently for every member (owner, 2026-10-04);
+		// Engine::prune_events() stays available but is no longer scheduled.
 
 		// #11600 — lazy weekly reset on every front-end load.
 		add_action( 'template_redirect', 'csm_maybe_weekly_reset' );
