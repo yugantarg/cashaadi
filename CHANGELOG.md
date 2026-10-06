@@ -3,6 +3,17 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.76.0 — 2026-10-06
+- **First-week photo floor:** during a member's first 7 days, at least 4
+  (men) or 8 (women) of the week's Discover profiles have a photo.
+  - Those are the best-ranked profiles that have a photo, and they are shown
+    first. The rest fill in the normal order.
+  - If fewer are available, the slots still fill.
+  - Options: `csm_first_week_photos_m` and `csm_first_week_photos_f`.
+  - Logged as `photo_floor` in the impression parts.
+  - Why: in new members' first hours, 33% of the profiles they were shown had
+    no photo, and quick leavers called the site "fake" or "random".
+
 ## 1.75.1 — 2026-10-04
 - Verification is offered only to members whose Qualification is CA or CA
   Inter. This covers the popup, the Discover card and the "While you wait"

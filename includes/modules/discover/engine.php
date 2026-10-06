@@ -298,8 +298,24 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			$opposite
 		);
 		$pool     = (array) $wpdb->get_results( $sql );
+
+		/*
+		 * First week: at least 4 (men) / 8 (women) of the week's profiles have a
+		 * photo (owner, 2026-10-06). Count the ones already served this week and
+		 * ask the ranker for the rest.
+		 */
+		$photo_need = 0;
+		$floor      = \CAShaadi\Modules\Discover\Ranker::photo_floor( $viewer_id );
+		if ( $floor > 0 ) {
+			$week_ids   = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+				"SELECT profile_id FROM {$tray_tbl} WHERE viewer_id = %d AND week_assigned = %s",
+				$viewer_id, $week_id
+			) ) );
+			$have       = count( array_filter( \CAShaadi\Modules\Discover\Ranker::trust( $week_ids ), function ( $t ) { return ! empty( $t['photo'] ); } ) );
+			$photo_need = max( 0, $floor - $have );
+		}
 		$ranked   = '' === $wpdb->last_error
-			? \CAShaadi\Modules\Discover\Ranker::rank( $viewer_id, $pool, $slots, $tier_active, $ceiling, $req_cap )
+			? \CAShaadi\Modules\Discover\Ranker::rank( $viewer_id, $pool, $slots, $tier_active, $ceiling, $req_cap, $photo_need )
 			: array();
 		$eligible = wp_list_pluck( $ranked, 'id' );
 

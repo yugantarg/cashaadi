@@ -82,7 +82,7 @@ final class Ranker {
 	 * @param array $pool rows: user_id, shown, shown_wk, req_wk, liked, active, registered
 	 * @return array of [ 'id', 'score', 'tier', 'parts' ]
 	 */
-	public static function rank( $viewer_id, array $pool, $slots, $tier_active, $ceiling, $req_cap ) {
+	public static function rank( $viewer_id, array $pool, $slots, $tier_active, $ceiling, $req_cap, $min_photo = 0 ) {
 		if ( empty( $pool ) ) {
 			return array();
 		}
@@ -132,7 +132,40 @@ final class Ranker {
 		usort( $out, function ( $x, $y ) {
 			return $y['tier'] <=> $x['tier'] ?: $y['score'] <=> $x['score'];
 		} );
+
+		/*
+		 * First-week photo floor (owner, 2026-10-06): a third of the profiles
+		 * new members saw had no photo, and the ones who left within minutes
+		 * called the site "fake" and "random". The best-ranked $min_photo
+		 * profiles WITH a photo are taken first and shown first; the rest of
+		 * the slots fill in normal order. Fewer available is fine: never an
+		 * empty slot for the sake of the rule.
+		 */
+		$min_photo = min( (int) $min_photo, (int) $slots );
+		if ( $min_photo > 0 ) {
+			$first = array();
+			$rest  = array();
+			foreach ( $out as $row ) {
+				if ( count( $first ) < $min_photo && ! empty( $trust[ $row['id'] ]['photo'] ) ) {
+					$row['parts']['photo_floor'] = 1;
+					$first[] = $row;
+				} else {
+					$rest[] = $row;
+				}
+			}
+			$out = array_merge( $first, $rest );
+		}
 		return array_slice( $out, 0, (int) $slots );
+	}
+
+	/** First-week photo floor for a viewer: men 4, women 8 (options), else 0. */
+	public static function photo_floor( $viewer_id ) {
+		$u = get_userdata( (int) $viewer_id );
+		if ( ! $u || ( time() - strtotime( $u->user_registered . ' UTC' ) ) >= 7 * DAY_IN_SECONDS ) {
+			return 0;
+		}
+		$female = function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( (int) $viewer_id ) );
+		return $female ? (int) get_option( 'csm_first_week_photos_f', 8 ) : (int) get_option( 'csm_first_week_photos_m', 4 );
 	}
 
 	/** [ uid => [ photo => bool, verified => bool ] ] for many members, one query. */
