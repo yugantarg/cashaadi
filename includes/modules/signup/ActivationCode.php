@@ -50,6 +50,10 @@ final class ActivationCode {
 	const RESEND_MAX = 5;
 
 	public static function register() {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'csm signup', __NAMESPACE__ . '\\SignupCli' );
+		}
+
 		// Issue a code as soon as the signup row exists.
 		add_action( 'bp_core_signup_user', array( __CLASS__, 'on_signup' ), 20, 5 );
 
@@ -99,12 +103,12 @@ final class ActivationCode {
 	 * Generate, store and return a fresh 4-digit code for an address.
 	 * Uses wp_rand() (CSPRNG-backed), never mt_rand().
 	 */
-	public static function issue( $email ) {
+	public static function issue( $email, $ttl = self::TTL ) {
 		$code = str_pad( (string) wp_rand( 0, 9999 ), 4, '0', STR_PAD_LEFT );
 		set_transient(
 			self::key_for( $email ),
 			array( 'hash' => self::hash( $code ), 'tries' => 0 ),
-			self::TTL
+			(int) $ttl
 		);
 		return $code;
 	}
@@ -173,7 +177,7 @@ final class ActivationCode {
 	 * Minimal, template-free code email. Deliberately independent of BuddyPress's
 	 * email system so a broken template cannot block activation.
 	 */
-	private static function send_code_email( $email, $code, $context = 'signup' ) {
+	private static function send_code_email( $email, $code, $context = 'signup', $ttl = self::TTL ) {
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
 		$subject = sprintf(
@@ -184,9 +188,18 @@ final class ActivationCode {
 		);
 
 		$msg  = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#16212b;max-width:460px;margin:0 auto;text-align:center">';
-		$msg .= '<p style="margin:0 0 16px">Welcome to ' . esc_html( $site ) . '. Enter this code to activate your account:</p>';
+		if ( 'recovery' === $context ) {
+			$msg .= '<p style="margin:0 0 16px">Sorry, your ' . esc_html( $site ) . ' sign-up code did not reach you because of a problem on our side. Here is a new one to activate your account:</p>';
+		} else {
+			$msg .= '<p style="margin:0 0 16px">Welcome to ' . esc_html( $site ) . '. Enter this code to activate your account:</p>';
+		}
 		$msg .= '<p style="margin:0 0 14px;font-size:36px;font-weight:700;letter-spacing:.22em">' . esc_html( $code ) . '</p>';
-		$msg .= '<p style="margin:0;color:#5c6a76;font-size:13px">This code expires in 15 minutes. If you did not sign up, you can ignore this email.</p>';
+		if ( 'recovery' === $context ) {
+			$url  = add_query_arg( 'email', rawurlencode( $email ), self::activate_url() );
+			$msg .= '<p style="margin:0 0 16px"><a href="' . esc_url( $url ) . '" style="display:inline-block;background:#16212b;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px">Enter your code</a></p>';
+		}
+		$expiry = $ttl >= HOUR_IN_SECONDS ? sprintf( '%d hours', (int) round( $ttl / HOUR_IN_SECONDS ) ) : sprintf( '%d minutes', (int) round( $ttl / MINUTE_IN_SECONDS ) );
+		$msg   .= '<p style="margin:0;color:#5c6a76;font-size:13px">This code expires in ' . esc_html( $expiry ) . '. If you did not sign up, you can ignore this email.</p>';
 		$msg .= '</div>';
 
 		$ct = function () { return 'text/html'; };
@@ -216,6 +229,7 @@ final class ActivationCode {
 		// every code email failed silently all night). Read by Analytics\Funnel.
 		$err = (string) get_transient( 'csm_remail_mail_error' );
 		do_action( 'csm_code_email', $email, $ok && '' === $err, $err, $context );
+		return $ok && '' === $err;
 	}
 
 	/**
@@ -364,6 +378,20 @@ final class ActivationCode {
 
 		wp_safe_redirect( $res['redirect'] );
 		exit;
+	}
+
+	/**
+	 * Send a fresh code to someone still awaiting activation, outside the
+	 * member-facing resend limits (WP-CLI only: `wp csm signup recover`).
+	 * For people whose code email failed, e.g. the 8 Oct 2026 ZeptoMail outage.
+	 *
+	 * @return string 'sent', 'failed' or 'not_pending'.
+	 */
+	public static function recover( $email, $ttl ) {
+		if ( '' === self::activation_key_for( $email ) ) {
+			return 'not_pending';
+		}
+		return self::send_code_email( $email, self::issue( $email, $ttl ), 'recovery', $ttl ) ? 'sent' : 'failed';
 	}
 
 	/* ------------------------------------------------------------ resend */

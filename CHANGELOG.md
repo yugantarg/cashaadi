@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.77.1 — 2026-10-08
+- `wp csm signup recover --since="2026-10-08 00:00" [--dry-run]` sends a
+  fresh code to everyone who signed up in the window and never activated.
+  Each person gets one email, with an apology, a code valid for 48 hours
+  (`--hours`), and an "Enter your code" button that opens the activation page
+  with their email filled in. Addresses that already have an account are
+  skipped. It stops if the first 3 sends fail.
+
 ## 1.77.0 — 2026-10-08
 - New **sign-up funnel tracker** (`Analytics\Funnel`, table `wp_csm_funnel`).
   It records each step from opening /register/ to finishing onboarding:
