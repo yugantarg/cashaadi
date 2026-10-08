@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.77.2 — 2026-10-08
+- `wp csm audience [--exclude=IDs]` prints a Meta customer list (email,
+  phone, name, city, country, gender, birth year) of every registered member
+  except admins and closed accounts, as CSV on stdout. Used as a lookalike
+  seed; nothing is stored on the server.
+
 ## 1.77.1 — 2026-10-08
 - `wp csm signup recover --since="2026-10-08 00:00" [--dry-run]` sends a
   fresh code to everyone who signed up in the window and never activated.

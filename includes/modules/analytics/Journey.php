@@ -74,6 +74,7 @@ final class Journey {
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm journey', __NAMESPACE__ . '\\JourneyCli' );
+			\WP_CLI::add_command( 'csm audience', __NAMESPACE__ . '\\AudienceCli' );
 		}
 	}
 
