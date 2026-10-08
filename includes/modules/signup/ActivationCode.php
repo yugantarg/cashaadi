@@ -166,14 +166,14 @@ final class ActivationCode {
 		//
 		// This mail is plain wp_mail() and depends on no BuddyPress template, so
 		// the member gets a usable code even when that path is broken.
-		self::send_code_email( $user_email, $code );
+		self::send_code_email( $user_email, $code, 'signup' );
 	}
 
 	/**
 	 * Minimal, template-free code email. Deliberately independent of BuddyPress's
 	 * email system so a broken template cannot block activation.
 	 */
-	private static function send_code_email( $email, $code ) {
+	private static function send_code_email( $email, $code, $context = 'signup' ) {
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
 		$subject = sprintf(
@@ -206,10 +206,16 @@ final class ActivationCode {
 		 * Safe to leak: nothing else reads it, and it is cleared immediately.
 		 */
 		$GLOBALS['csm_mail_always_send'] = true;
-		wp_mail( $email, $subject, $msg );
+		delete_transient( 'csm_remail_mail_error' );
+		$ok = wp_mail( $email, $subject, $msg );
 		unset( $GLOBALS['csm_mail_always_send'] );
 
 		remove_filter( 'wp_mail_content_type', $ct );
+
+		// Whether it actually went (8 Oct 2026: the ZeptoMail credits ran out and
+		// every code email failed silently all night). Read by Analytics\Funnel.
+		$err = (string) get_transient( 'csm_remail_mail_error' );
+		do_action( 'csm_code_email', $email, $ok && '' === $err, $err, $context );
 	}
 
 	/**
@@ -282,19 +288,23 @@ final class ActivationCode {
 		// Deliberately uniform failure: never reveal whether the address exists,
 		// whether a code was issued, or whether attempts were exhausted.
 		if ( ! $email || ! self::verify( $email, $code ) ) {
+			do_action( 'csm_code_attempt', $email, false, 0, 'bad_code' );
 			return $fail;
 		}
 
 		$key = self::activation_key_for( $email );
 		if ( '' === $key ) {
+			do_action( 'csm_code_attempt', $email, false, 0, 'no_pending_signup' );
 			return $fail;
 		}
 
 		$user_id = bp_core_activate_signup( $key );
 		if ( is_wp_error( $user_id ) || empty( $user_id ) ) {
+			do_action( 'csm_code_attempt', $email, false, 0, is_wp_error( $user_id ) ? 'activate: ' . $user_id->get_error_code() : 'activate_failed' );
 			$fail['message'] = __( 'We could not activate that account. Please try the link in your email.', 'cashaadi-ui' );
 			return $fail;
 		}
+		do_action( 'csm_code_attempt', $email, true, (int) $user_id, '' );
 
 		$user = get_user_by( 'id', (int) $user_id );
 		if ( ! $user ) {
@@ -421,7 +431,8 @@ final class ActivationCode {
 		// Only actually send for an address with a pending signup — but say the
 		// same thing either way.
 		if ( '' !== self::activation_key_for( $email ) ) {
-			self::send_code_email( $email, self::issue( $email ) );
+			do_action( 'csm_code_resend', $email );
+			self::send_code_email( $email, self::issue( $email ), 'resend' );
 		}
 
 		return $generic;

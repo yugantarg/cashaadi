@@ -362,7 +362,13 @@ final class Dashboard {
 		if ( class_exists( __NAMESPACE__ . '\\ActiveUsers' ) ) {
 			echo ActiveUsers::card(); // phpcs:ignore WordPress.Security.EscapeOutput
 		}
+		if ( class_exists( '\\CAShaadi\\Modules\\Analytics\\Funnel' ) ) {
+			echo \CAShaadi\Modules\Analytics\Funnel::alert(); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
 		echo self::channel_summary(); // phpcs:ignore WordPress.Security.EscapeOutput
+		if ( class_exists( '\\CAShaadi\\Modules\\Analytics\\Funnel' ) ) {
+			echo \CAShaadi\Modules\Analytics\Funnel::summary(); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
 
 		echo '<form method="get" style="margin:15px 0;padding:12px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;">';
 		echo '<input type="hidden" name="page" value="csm-sales-dashboard" />';

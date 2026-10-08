@@ -3,6 +3,20 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.77.0 — 2026-10-08
+- New **sign-up funnel tracker** (`Analytics\Funnel`, table `wp_csm_funnel`).
+  It records each step from opening /register/ to finishing onboarding:
+  page opened, form started, form submitted, form rejected (and which fields),
+  code issued, code email sent or **failed (with the error)**, new code asked
+  for, wrong code entered, account created, onboarding opened, each
+  onboarding step, onboarding finished.
+- The Sales Dashboard has a collapsible "Sign-up funnel" section with people
+  per step, step-to-step drop-off, why forms were rejected, onboarding steps,
+  and a by-day table.
+- A red alert at the top of the Sales Dashboard when sign-up code emails (or
+  any ZeptoMail send) failed in the last 24 hours. This follows the 8 Oct
+  outage, when the ZeptoMail credits ran out and code emails failed silently.
+
 ## 1.76.1 — 2026-10-06
 - The 1.76.0 first-week photo floor is withdrawn (owner). Instead, the ranking
   weights rise from +4 to **+10 for a photo** and from +3 to **+6 for

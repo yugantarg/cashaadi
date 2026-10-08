@@ -353,5 +353,7 @@ final class Zepto {
 	 */
 	private static function record_error( $message ) {
 		set_transient( 'csm_remail_mail_error', 'zeptomail: ' . $message, 5 * MINUTE_IN_SECONDS );
+		// Kept beyond the 5 minutes, for the Sales Dashboard alert (Analytics\Funnel).
+		update_option( 'csm_mail_error_last', array( 'at' => time(), 'msg' => substr( (string) $message, 0, 300 ) ), false );
 	}
 }

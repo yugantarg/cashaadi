@@ -105,6 +105,8 @@ final class Welcome {
 		status_header( 200 );
 		nocache_headers();
 
+		do_action( 'csm_welcome_view', get_current_user_id() ); // Analytics\Funnel
+
 		self::enqueue();
 		self::render();
 		exit;
@@ -552,6 +554,7 @@ final class Welcome {
 	public static function rest_step( $request ) {
 		$uid = get_current_user_id();
 		$key = sanitize_text_field( (string) $request->get_param( 'key' ) );
+		do_action( 'csm_welcome_step', $uid, $key ); // Analytics\Funnel
 
 		// The blur toggle rides along with the photo step, and is posted every
 		// time the member leaves it — so it doubles as "passed the photo step".
