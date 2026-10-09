@@ -626,14 +626,14 @@ final class Engagement {
 	}
 
 	/** "Hi Anita," — first name only, falling back to something that is not blank. */
-	private static function greeting( $uid ) {
+	public static function greeting( $uid ) {
 		$parts = preg_split( '/\s+/', trim( (string) self::name( $uid ) ) );
 		$first = ( $parts && '' !== $parts[0] ) ? $parts[0] : 'there';
 		return 'Hi ' . $first . ',';
 	}
 
 	/** One house style for every engagement email. */
-	private static function wrap( $greeting, $html, $url, $cta ) {
+	public static function wrap( $greeting, $html, $url, $cta ) {
 		return '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#2b2b2b;max-width:520px;margin:0 auto">'
 			. '<p>' . esc_html( $greeting ) . '</p>'
 			. $html

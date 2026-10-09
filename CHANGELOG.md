@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.78.0 — 2026-10-09
+- **Unanswered match requests** (`Matches\RequestsWaiting`). On 9 Oct 2,446
+  requests were pending, 94% waiting on women; 60% of those women had not been
+  back since the request arrived.
+  - Weekly reminder email "N people are waiting for your answer" (names up to
+    three), to members with pending requests who have been away 3+ days and
+    got a request after their last visit. Respects the "Match activity" email
+    switch; skips paused and closed accounts. Type `csm-reqwait-<week>`.
+  - Popup on login "N match requests waiting" → /requests/. Shown again only
+    when a new request has arrived. It comes after the 15-profiles popup and
+    before the boost, social and verify popups.
+  - Requests from blocked or closed accounts are not counted.
+
 ## 1.77.2 — 2026-10-08
 - `wp csm audience [--exclude=IDs]` prints a Meta customer list (email,
   phone, name, city, country, gender, birth year) of every registered member
