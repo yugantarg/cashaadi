@@ -284,7 +284,13 @@ document.addEventListener('focusin',function f(e){if(e.target&&e.target.form){se
 		if ( is_array( $mail ) && ! empty( $mail['at'] ) && time() - (int) $mail['at'] < DAY_IN_SECONDS && '' === $h ) {
 			$h .= sprintf( '<strong>An email failed to send at %s IST.</strong> <code>%s</code>', esc_html( wp_date( 'j M H:i', (int) $mail['at'] ) ), esc_html( (string) $mail['msg'] ) );
 		}
-		return '' === $h ? '' : '<div class="notice notice-error" style="padding:10px 12px;margin:15px 0">' . $h . ' Check the ZeptoMail credits first.</div>';
+		if ( '' === $h ) {
+			return '';
+		}
+		// A network error (cURL ...) is a one-off hiccup between the server and
+		// ZeptoMail; an HTTP error is ZeptoMail refusing, most often for credits.
+		$hint = false !== strpos( $h, 'HTTP ' ) ? ' Check the ZeptoMail credits first.' : ' This was a network timeout reaching ZeptoMail, not a credits problem. One-off timeouts need no action; if they repeat, tell your developer.';
+		return '<div class="notice notice-error" style="padding:10px 12px;margin:15px 0">' . $h . $hint . '</div>';
 	}
 
 	public static function summary() {

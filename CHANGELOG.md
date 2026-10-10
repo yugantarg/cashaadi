@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.78.1 — 2026-10-10
+- ZeptoMail sends retry once (after 2 s, 25 s timeout) on a network error such
+  as a cURL timeout. HTTP errors (credits, auth) are not retried.
+- The Sales Dashboard mail alert tells a network timeout apart from a ZeptoMail
+  refusal, and only suggests checking credits for the latter.
+
 ## 1.78.0 — 2026-10-09
 - **Unanswered match requests** (`Matches\RequestsWaiting`). On 9 Oct 2,446
   requests were pending, 94% waiting on women; 60% of those women had not been

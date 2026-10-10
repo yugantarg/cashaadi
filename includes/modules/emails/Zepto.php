@@ -161,7 +161,7 @@ final class Zepto {
 			'htmlbody' => (string) ( $atts['message'] ?? '' ),
 		);
 
-		$response = wp_remote_post( (string) apply_filters( 'csm_zepto_endpoint', self::ENDPOINT ), array(
+		$args = array(
 			'timeout' => 15,
 			'headers' => array(
 				'Authorization' => self::token(),
@@ -169,7 +169,22 @@ final class Zepto {
 				'Accept'        => 'application/json',
 			),
 			'body'    => wp_json_encode( $body ),
-		) );
+		);
+		$url      = (string) apply_filters( 'csm_zepto_endpoint', self::ENDPOINT );
+		$response = wp_remote_post( $url, $args );
+
+		/*
+		 * One retry on a network error (10 Oct 2026: "cURL error 28: timed out
+		 * after 15002 ms with 0 bytes received" lost an email, and a failed queue
+		 * row is final). HTTP errors are not retried: those are ZeptoMail saying
+		 * no (credits, auth), which a second try will not change. A rare
+		 * duplicate is the lesser harm next to a lost sign-up code.
+		 */
+		if ( is_wp_error( $response ) ) {
+			sleep( 2 );
+			$args['timeout'] = 25;
+			$response        = wp_remote_post( $url, $args );
+		}
 
 		if ( is_wp_error( $response ) ) {
 			self::record_error( $response->get_error_message() );
