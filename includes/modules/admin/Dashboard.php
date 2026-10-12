@@ -365,9 +365,6 @@ final class Dashboard {
 		if ( class_exists( '\\CAShaadi\\Modules\\Analytics\\Funnel' ) ) {
 			echo \CAShaadi\Modules\Analytics\Funnel::alert(); // phpcs:ignore WordPress.Security.EscapeOutput
 		}
-		if ( class_exists( '\\CAShaadi\\Modules\\Photos\\PhotoHold' ) ) {
-			echo \CAShaadi\Modules\Photos\PhotoHold::summary(); // phpcs:ignore WordPress.Security.EscapeOutput
-		}
 		echo self::channel_summary(); // phpcs:ignore WordPress.Security.EscapeOutput
 		if ( class_exists( '\\CAShaadi\\Modules\\Analytics\\Funnel' ) ) {
 			echo \CAShaadi\Modules\Analytics\Funnel::summary(); // phpcs:ignore WordPress.Security.EscapeOutput
@@ -424,8 +421,7 @@ final class Dashboard {
 			$comp_color   = $r['complete'] === 'Complete' ? '#1a7f37' : '#996800';
 			$profile_url  = function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $r['id'] ) : get_edit_user_link( $r['id'] );
 			echo '<tr>';
-			$hold_ui      = class_exists( '\\CAShaadi\\Modules\\Photos\\PhotoHold' ) ? \CAShaadi\Modules\Photos\PhotoHold::controls( $r['id'] ) : '';
-			echo '<td><a href="' . esc_url( $profile_url ) . '">' . esc_html( $r['name'] ) . '</a>' . ( '' !== $hold_ui ? '<br><small>' . $hold_ui . '</small>' : '' ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput
+			echo '<td><a href="' . esc_url( $profile_url ) . '">' . esc_html( $r['name'] ) . '</a></td>';
 			$phone_disp = $r['phone'] !== '' ? $r['phone'] : '—';
 			$phone_digits = preg_replace( '/[^0-9+]/', '', $r['phone'] );
 			if ( $phone_digits !== '' ) {

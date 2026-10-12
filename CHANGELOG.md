@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.81.1 — 2026-10-12
+- Reports and photo holds move off the Sales Dashboard (owner: "don't
+  clutter sales dashboard with this") to their own admin page, **Reports**,
+  whose menu item shows how many need a human. The Hold links are gone from
+  the dashboard member list; holding by hand is from the member's profile.
+
 ## 1.81.0 — 2026-10-12
 - **Reports are checked by OpenAI first** (`Photos\ReportReview`).
   - 1 report: the profile is hidden at once and, about 30 s later, its photos

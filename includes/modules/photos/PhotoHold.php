@@ -60,6 +60,7 @@ final class PhotoHold {
 		add_action( 'bp_after_member_header', array( __CLASS__, 'profile_controls' ), 5 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( ReportReview::CRON, array( ReportReview::class, 'run' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 	}
 
 	/** Distinct members who have reported $uid since an admin last cleared it. */
@@ -337,7 +338,7 @@ final class PhotoHold {
 		if ( ! self::is_held( $uid ) ) {
 			self::hold( $uid, sanitize_key( (string) ( $_GET['reason'] ?? 'other' ) ), get_current_user_id() );
 		}
-		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=csm-sales-dashboard' ) );
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=csm-reports' ) );
 		exit;
 	}
 
@@ -348,7 +349,7 @@ final class PhotoHold {
 			wp_die( 'Not allowed.' );
 		}
 		self::release( $uid, get_current_user_id() );
-		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=csm-sales-dashboard' ) );
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=csm-reports' ) );
 		exit;
 	}
 
@@ -363,7 +364,40 @@ final class PhotoHold {
 		}
 	}
 
-	/** "Photo holds" panel for the Sales Dashboard; new photos first. */
+	/**
+	 * Its own admin page, "Reports" (owner, 2026-10-12: "don't clutter sales
+	 * dashboard with this"). The menu shows a count of what needs a human.
+	 */
+	public static function menu() {
+		$n     = self::needs_review_count();
+		$title = 'Reports' . ( $n ? ' <span class="awaiting-mod">' . (int) $n . '</span>' : '' );
+		add_menu_page( 'Reports', $title, 'manage_options', 'csm-reports', array( __CLASS__, 'page' ), 'dashicons-flag', 4 );
+	}
+
+	private static function needs_review( $hold ) {
+		return ! empty( $hold['fixed_at'] ) || ( 'reported' === $hold['reason'] && 'pending' !== ( $hold['ai'] ?? '' ) && 'retry' !== ( $hold['ai'] ?? '' ) );
+	}
+
+	public static function needs_review_count() {
+		$n = 0;
+		foreach ( self::held_ids() as $uid ) {
+			$h = self::get( $uid );
+			if ( $h && self::needs_review( $h ) ) {
+				$n++;
+			}
+		}
+		return $n;
+	}
+
+	public static function page() {
+		echo '<div class="wrap"><h1>Reports and photo holds</h1>';
+		echo '<p style="color:#666">Hidden profiles: reported by members, or held by an admin. To hold a profile yourself, open it while logged in as admin and use the yellow strip.</p>';
+		$s = self::summary();
+		echo '' !== $s ? $s : '<p>Nothing is on hold.</p>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		echo '</div>';
+	}
+
+	/** The holds table; what needs a human first. */
 	public static function summary() {
 		$ids = self::held_ids();
 		if ( ! $ids ) {
@@ -380,10 +414,10 @@ final class PhotoHold {
 			return ( (int) ! empty( $b[1]['fixed_at'] ) <=> (int) ! empty( $a[1]['fixed_at'] ) ) ?: ( $b[1]['at'] <=> $a[1]['at'] );
 		} );
 		$needs  = function ( $hold ) {
-			return ! empty( $hold['fixed_at'] ) || ( 'reported' === $hold['reason'] && 'pending' !== ( $hold['ai'] ?? '' ) );
+			return self::needs_review( $hold );
 		};
 		$review = count( array_filter( $rows, function ( $r ) use ( $needs ) { return $needs( $r[1] ); } ) );
-		$h  = '<details' . ( $review ? ' open' : '' ) . ' style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin:15px 0">';
+		$h  = '<details open style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin:15px 0">';
 		$h .= '<summary style="cursor:pointer;font-weight:600">Photo holds: ' . count( $rows ) . ( $review ? ' (<span style="color:#b32d2e">' . $review . ' to review</span>)' : '' ) . '</summary>';
 		$h .= '<table class="widefat striped" style="margin-top:10px"><thead><tr><th>Member</th><th>Photo</th><th>Reason</th><th>Held</th><th>Status</th><th></th></tr></thead><tbody>';
 		foreach ( $rows as $r ) {
