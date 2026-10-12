@@ -59,7 +59,11 @@ final class PhotoHold {
 		add_action( 'bp_members_avatar_uploaded', array( __CLASS__, 'on_avatar' ), 10, 1 );
 		add_action( 'bp_after_member_header', array( __CLASS__, 'profile_controls' ), 5 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+		add_action( ReportReview::CRON, array( ReportReview::class, 'run' ) );
 	}
+
+	/** Distinct members who have reported $uid since an admin last cleared it. */
+	const REPORTERS = 'csm_reporters';
 
 	/* ------------------------------------------------------------ report */
 
@@ -72,18 +76,30 @@ final class PhotoHold {
 	}
 
 	/**
-	 * A member reports a profile. Owner, 2026-10-12: "Even a single report
-	 * should be enough for now" — so one report puts the profile on hold until
-	 * an admin looks. Capped per reporter per day so one person cannot hide
-	 * half the site.
+	 * A member reports a profile (owner, 2026-10-12, revised the same day):
+	 *
+	 *   1 report   - hidden at once, and the profile goes to OpenAI
+	 *                (ReportReview). Passed: restored silently, the member is
+	 *                never told. Not passed: stays hidden for a human, and the
+	 *                member is emailed.
+	 *   2+ reports - from different members: hidden until a human reviews it,
+	 *                whatever the AI said.
+	 *
+	 * Capped per reporter per day, and one member counts once per profile.
 	 */
 	public static function rest_report( $request ) {
 		$me     = get_current_user_id();
 		$target = (int) $request->get_param( 'target' );
 		$reason = sanitize_key( (string) $request->get_param( 'reason' ) );
 		$reason = isset( self::REPORT_REASONS[ $reason ] ) ? $reason : 'other';
+		$thanks = new \WP_REST_Response( array( 'ok' => true, 'message' => 'Thank you. We have hidden this profile while we review it.' ), 200 );
 		if ( ! $target || $target === $me || ! get_userdata( $target ) || user_can( $target, 'manage_options' ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'That did not work.' ), 200 );
+		}
+		$reporters = get_user_meta( $target, self::REPORTERS, true );
+		$reporters = is_array( $reporters ) ? array_map( 'intval', $reporters ) : array();
+		if ( in_array( $me, $reporters, true ) ) {
+			return $thanks; // already counted
 		}
 		$k = 'csm_reports_' . $me . '_' . gmdate( 'Ymd' );
 		$n = (int) get_transient( $k );
@@ -92,17 +108,33 @@ final class PhotoHold {
 		}
 		set_transient( $k, $n + 1, DAY_IN_SECONDS );
 
+		$reporters[] = $me;
+		update_user_meta( $target, self::REPORTERS, $reporters );
+		$count = count( $reporters );
 		if ( function_exists( 'cashaadi' ) ) {
-			cashaadi()->log_event( 'profile_reported', $me, $target, array( 'reason' => $reason ) );
+			cashaadi()->log_event( 'profile_reported', $me, $target, array( 'reason' => $reason, 'count' => $count ) );
 		}
+
 		$h = self::get( $target );
-		if ( ! $h ) {
-			self::hold( $target, 'reported', $me, self::REPORT_REASONS[ $reason ] );
+		if ( 1 === $count && ! $h ) {
+			// Hidden now; the member hears nothing unless the AI does not pass it.
+			self::hold( $target, 'reported', $me, self::REPORT_REASONS[ $reason ], false, array( 'ai' => 'pending', 'reports' => 1 ) );
+			wp_schedule_single_event( time() + 30, ReportReview::CRON, array( $target ) );
+		} elseif ( ! $h ) {
+			// Reported again after the AI passed it: a human decides now.
+			self::hold( $target, 'reported', $me, self::REPORT_REASONS[ $reason ], true, array( 'ai' => 'skipped', 'human' => 1, 'reports' => $count ) );
 		} else {
-			$h['reports'] = (int) ( $h['reports'] ?? 1 ) + 1;
+			$h['reports'] = $count;
+			if ( $count >= 2 && empty( $h['human'] ) ) {
+				$h['human'] = 1;
+				if ( empty( $h['emailed'] ) ) {
+					self::email( $target, 'held', $h['reason'] );
+					$h['emailed'] = 1;
+				}
+			}
 			update_user_meta( $target, self::META, $h );
 		}
-		return new \WP_REST_Response( array( 'ok' => true, 'message' => 'Thank you. We have hidden this profile while we review it.' ), 200 );
+		return $thanks;
 	}
 
 	/* ------------------------------------------------------------- state */
@@ -129,10 +161,10 @@ final class PhotoHold {
 		return $ids;
 	}
 
-	public static function hold( $uid, $reason, $by, $note = '' ) {
+	public static function hold( $uid, $reason, $by, $note = '', $notify = true, $extra = array() ) {
 		$uid    = (int) $uid;
 		$reason = isset( self::REASONS[ $reason ] ) ? $reason : 'other';
-		update_user_meta( $uid, self::META, array( 'at' => time(), 'reason' => $reason, 'by' => (int) $by, 'fixed_at' => 0, 'note' => (string) $note, 'reports' => 'reported' === $reason ? 1 : 0 ) );
+		update_user_meta( $uid, self::META, array_merge( array( 'at' => time(), 'reason' => $reason, 'by' => (int) $by, 'fixed_at' => 0, 'note' => (string) $note, 'reports' => 0, 'emailed' => $notify ? 1 : 0 ), $extra ) );
 
 		// Out of the trays they already sit in (unacted rows only), as a pause does.
 		global $wpdb;
@@ -142,12 +174,19 @@ final class PhotoHold {
 			$wpdb->query( $wpdb->prepare( "DELETE FROM {$tray} WHERE profile_id = %d AND status = 'pending'", $uid ) );
 		}
 
-		self::email( $uid, 'held', $reason );
+		if ( $notify ) {
+			self::email( $uid, 'held', $reason );
+		}
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'photo_hold', (int) $by, $uid, array( 'reason' => $reason ) );
 		}
 	}
 
+	/**
+	 * $by 0 = the AI passed it: no email (the member was never told), and the
+	 * reporters are kept, so one more report goes straight to a human. An admin
+	 * release clears them.
+	 */
 	public static function release( $uid, $by ) {
 		$uid = (int) $uid;
 		$h   = self::get( $uid );
@@ -155,7 +194,12 @@ final class PhotoHold {
 			return;
 		}
 		delete_user_meta( $uid, self::META );
-		self::email( $uid, 'released', $h['reason'] );
+		if ( $by ) {
+			delete_user_meta( $uid, self::REPORTERS );
+		}
+		if ( ! empty( $h['emailed'] ) ) {
+			self::email( $uid, 'released', $h['reason'] );
+		}
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'photo_release', (int) $by, $uid, array( 'reason' => $h['reason'], 'held_at' => (int) $h['at'], 'new_photo' => ! empty( $h['fixed_at'] ) ) );
 		}
@@ -202,7 +246,7 @@ final class PhotoHold {
 	/** Banner for the held member's own app screens; '' otherwise. */
 	public static function banner( $uid ) {
 		$h = self::get( $uid );
-		if ( ! $h ) {
+		if ( ! $h || empty( $h['emailed'] ) ) { // not told yet (AI still checking)
 			return '';
 		}
 		$msg = empty( $h['fixed_at'] )
@@ -213,7 +257,7 @@ final class PhotoHold {
 			. '</div>';
 	}
 
-	private static function email( $uid, $kind, $reason ) {
+	public static function email( $uid, $kind, $reason ) {
 		if ( ! class_exists( '\CAShaadi\Modules\Emails\Queue' ) || ! class_exists( '\CAShaadi\Modules\Emails\Engagement' ) ) {
 			return;
 		}
@@ -335,9 +379,12 @@ final class PhotoHold {
 		usort( $rows, function ( $a, $b ) {
 			return ( (int) ! empty( $b[1]['fixed_at'] ) <=> (int) ! empty( $a[1]['fixed_at'] ) ) ?: ( $b[1]['at'] <=> $a[1]['at'] );
 		} );
-		$review = count( array_filter( $rows, function ( $r ) { return ! empty( $r[1]['fixed_at'] ); } ) );
+		$needs  = function ( $hold ) {
+			return ! empty( $hold['fixed_at'] ) || ( 'reported' === $hold['reason'] && 'pending' !== ( $hold['ai'] ?? '' ) );
+		};
+		$review = count( array_filter( $rows, function ( $r ) use ( $needs ) { return $needs( $r[1] ); } ) );
 		$h  = '<details' . ( $review ? ' open' : '' ) . ' style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:12px 16px;margin:15px 0">';
-		$h .= '<summary style="cursor:pointer;font-weight:600">Photo holds: ' . count( $rows ) . ( $review ? ' (<span style="color:#b32d2e">' . $review . ' new photo' . ( 1 === $review ? '' : 's' ) . ' to review</span>)' : '' ) . '</summary>';
+		$h .= '<summary style="cursor:pointer;font-weight:600">Photo holds: ' . count( $rows ) . ( $review ? ' (<span style="color:#b32d2e">' . $review . ' to review</span>)' : '' ) . '</summary>';
 		$h .= '<table class="widefat striped" style="margin-top:10px"><thead><tr><th>Member</th><th>Photo</th><th>Reason</th><th>Held</th><th>Status</th><th></th></tr></thead><tbody>';
 		foreach ( $rows as $r ) {
 			list( $uid, $hold ) = $r;
@@ -349,9 +396,12 @@ final class PhotoHold {
 				. '<td>' . esc_html( self::REASONS[ $hold['reason'] ] ?? $hold['reason'] )
 				. ( ! empty( $hold['note'] ) ? '<br><small>' . esc_html( $hold['note'] ) . '</small>' : '' )
 				. ( ! empty( $hold['reports'] ) && (int) $hold['reports'] > 1 ? '<br><small style="color:#b32d2e">' . (int) $hold['reports'] . ' reports</small>' : '' )
+				. ( ! empty( $hold['ai'] ) ? '<br><small>AI: ' . esc_html( 'pending' === $hold['ai'] ? 'checking…' : ( 'skipped' === $hold['ai'] ? 'not used (2+ reports)' : $hold['ai'] ) ) . ( ! empty( $hold['ai_why'] ) ? ' — ' . esc_html( $hold['ai_why'] ) : '' ) . '</small>' : '' )
 				. ( 'reported' === $hold['reason'] && ! empty( $hold['by'] ) && get_userdata( (int) $hold['by'] ) ? '<br><small>by ' . esc_html( get_userdata( (int) $hold['by'] )->display_name ) . '</small>' : '' ) . '</td>'
 				. '<td>' . esc_html( wp_date( 'j M H:i', (int) $hold['at'] ) ) . '</td>'
-				. '<td>' . ( ! empty( $hold['fixed_at'] ) ? '<strong style="color:#b32d2e">New photo ' . esc_html( wp_date( 'j M H:i', (int) $hold['fixed_at'] ) ) . ': review</strong>' : 'Waiting for a new photo' ) . '</td>'
+				. '<td>' . ( ! empty( $hold['fixed_at'] )
+					? '<strong style="color:#b32d2e">New photo ' . esc_html( wp_date( 'j M H:i', (int) $hold['fixed_at'] ) ) . ': review</strong>'
+					: ( 'pending' === ( $hold['ai'] ?? '' ) ? 'AI checking' : ( $needs( $hold ) ? '<strong style="color:#b32d2e">Needs your review</strong>' : 'Waiting for a new photo' ) ) ) . '</td>'
 				. '<td><a class="button" href="' . esc_url( self::action_url( 'csm_photo_release', $uid ) ) . '">Release</a></td></tr>';
 		}
 		return $h . '</tbody></table></details>';

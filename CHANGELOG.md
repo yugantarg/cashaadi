@@ -3,6 +3,21 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.81.0 — 2026-10-12
+- **Reports are checked by OpenAI first** (`Photos\ReportReview`).
+  - 1 report: the profile is hidden at once and, about 30 s later, its photos
+    (up to 4, read from disk) and profile text (no contact details) go to
+    OpenAI (the CA Verify key and model; override with option
+    `csm_report_ai_model`). Pass: visible again, and the member is never
+    told. Not passed: stays hidden, the member is emailed, and it waits for
+    a human. An API error retries once after 10 minutes, then goes to a human.
+  - 2+ reports from different members: hidden until a human releases it,
+    whatever the AI said. A member counts once per profile.
+  - The "Photo holds" panel shows the AI's decision and reasons, and "Needs
+    your review" for anything waiting on you. An admin release clears the
+    report count; an AI pass keeps it, so one more report goes to a human.
+  - Event `report_ai_review` (decision, confidence, reasons) is logged.
+
 ## 1.80.0 — 2026-10-12
 - **Report profile**: a quiet "Report profile" link at the foot of every
   profile card (Discover and member pages). Reasons: fake profile or photo,
