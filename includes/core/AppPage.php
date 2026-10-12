@@ -338,6 +338,8 @@ final class AppPage {
 		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
+			'me'        => get_current_user_id(),
+			'report'    => rest_url( 'csm/v1/report' ),
 			'ff15'        => $ff15,
 			'reqsPopup'   => $reqs,
 			'boostPopup'  => $boost,

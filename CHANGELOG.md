@@ -3,6 +3,17 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.80.0 — 2026-10-12
+- **Report profile**: a quiet "Report profile" link at the foot of every
+  profile card (Discover and member pages). Reasons: fake profile or photo,
+  inappropriate photo or text, rude or abusive, something else.
+  - One report puts the profile on hold (owner: "even a single report should
+    be enough for now"): hidden from Discover and the directory, and an
+    email "Your profile is under review" asks them to update their photo and
+    About me. The admin releases it from the "Photo holds" panel, which shows
+    the reason, who reported, and the count of further reports.
+  - Up to 5 reports per member per day. Event `profile_reported` is logged.
+
 ## 1.79.0 — 2026-10-12
 - **Photo hold** (`Photos\PhotoHold`) for profiles that look fake: a photo
   that is not a person, or does not match the profile's gender.

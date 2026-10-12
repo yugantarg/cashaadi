@@ -36,7 +36,19 @@ final class PhotoHold {
 		'nonhuman' => 'Photo is not of a person',
 		'gender'   => 'Photo does not match the profile\'s gender',
 		'other'    => 'Photo does not look genuine',
+		'reported' => 'Reported by a member',
 	);
+
+	/** What a member can report a profile for (Report profile, v1.80.0). */
+	const REPORT_REASONS = array(
+		'fake'     => 'Fake profile or photo',
+		'content'  => 'Inappropriate photo or text',
+		'abusive'  => 'Rude or abusive',
+		'other'    => 'Something else',
+	);
+
+	/** Reports one member may file per day. */
+	const REPORTS_PER_DAY = 5;
 
 	public static function register() {
 		add_action( 'admin_post_csm_photo_hold', array( __CLASS__, 'admin_hold' ) );
@@ -46,6 +58,51 @@ final class PhotoHold {
 		add_action( 'updated_user_meta', array( __CLASS__, 'on_meta' ), 10, 3 );
 		add_action( 'bp_members_avatar_uploaded', array( __CLASS__, 'on_avatar' ), 10, 1 );
 		add_action( 'bp_after_member_header', array( __CLASS__, 'profile_controls' ), 5 );
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+	}
+
+	/* ------------------------------------------------------------ report */
+
+	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/report', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_report' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	/**
+	 * A member reports a profile. Owner, 2026-10-12: "Even a single report
+	 * should be enough for now" — so one report puts the profile on hold until
+	 * an admin looks. Capped per reporter per day so one person cannot hide
+	 * half the site.
+	 */
+	public static function rest_report( $request ) {
+		$me     = get_current_user_id();
+		$target = (int) $request->get_param( 'target' );
+		$reason = sanitize_key( (string) $request->get_param( 'reason' ) );
+		$reason = isset( self::REPORT_REASONS[ $reason ] ) ? $reason : 'other';
+		if ( ! $target || $target === $me || ! get_userdata( $target ) || user_can( $target, 'manage_options' ) ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'That did not work.' ), 200 );
+		}
+		$k = 'csm_reports_' . $me . '_' . gmdate( 'Ymd' );
+		$n = (int) get_transient( $k );
+		if ( $n >= self::REPORTS_PER_DAY ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'You have sent several reports today. We are looking into them.' ), 200 );
+		}
+		set_transient( $k, $n + 1, DAY_IN_SECONDS );
+
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'profile_reported', $me, $target, array( 'reason' => $reason ) );
+		}
+		$h = self::get( $target );
+		if ( ! $h ) {
+			self::hold( $target, 'reported', $me, self::REPORT_REASONS[ $reason ] );
+		} else {
+			$h['reports'] = (int) ( $h['reports'] ?? 1 ) + 1;
+			update_user_meta( $target, self::META, $h );
+		}
+		return new \WP_REST_Response( array( 'ok' => true, 'message' => 'Thank you. We have hidden this profile while we review it.' ), 200 );
 	}
 
 	/* ------------------------------------------------------------- state */
@@ -72,10 +129,10 @@ final class PhotoHold {
 		return $ids;
 	}
 
-	public static function hold( $uid, $reason, $by ) {
+	public static function hold( $uid, $reason, $by, $note = '' ) {
 		$uid    = (int) $uid;
 		$reason = isset( self::REASONS[ $reason ] ) ? $reason : 'other';
-		update_user_meta( $uid, self::META, array( 'at' => time(), 'reason' => $reason, 'by' => (int) $by, 'fixed_at' => 0 ) );
+		update_user_meta( $uid, self::META, array( 'at' => time(), 'reason' => $reason, 'by' => (int) $by, 'fixed_at' => 0, 'note' => (string) $note, 'reports' => 'reported' === $reason ? 1 : 0 ) );
 
 		// Out of the trays they already sit in (unacted rows only), as a pause does.
 		global $wpdb;
@@ -149,7 +206,7 @@ final class PhotoHold {
 			return '';
 		}
 		$msg = empty( $h['fixed_at'] )
-			? 'Your profile is hidden until you add a clear photo of yourself.'
+			? ( 'reported' === $h['reason'] ? 'Your profile is hidden while we review it. A clear photo of yourself helps.' : 'Your profile is hidden until you add a clear photo of yourself.' )
 			: 'Thanks for the new photo. We\'re checking it, and your profile will be visible again soon.';
 		return '<div class="csm-app-paused"><span>' . esc_html( $msg ) . '</span>'
 			. ( empty( $h['fixed_at'] ) ? '<a href="' . esc_url( self::photo_url( $uid ) ) . '">Update photo</a>' : '' )
@@ -168,6 +225,18 @@ final class PhotoHold {
 				'gender'   => 'your profile photo does not appear to match your profile',
 				'other'    => 'your profile photo does not look like a genuine photo of you',
 			);
+			if ( 'reported' === $reason ) {
+				$body = \CAShaadi\Modules\Emails\Engagement::wrap(
+					$hi,
+					'<p>A member has reported your ' . esc_html( $site ) . ' profile, so we have hidden it for now while we review it.</p>'
+					. '<p>The most common reason is a photo that is not a clear photo of you, or a profile with very little about you. If that applies, please update your photo and your About me, and we will check it quickly.</p>'
+					. '<p>Your matches and conversations are not affected.</p>',
+					self::photo_url( $uid ),
+					'Update my profile'
+				);
+				Queue::notify( $uid, 'csm-photohold-' . time(), 'Your profile is under review', $body );
+				return;
+			}
 			$body = \CAShaadi\Modules\Emails\Engagement::wrap(
 				$hi,
 				'<p>We have temporarily hidden your ' . esc_html( $site ) . ' profile because ' . esc_html( $why[ $reason ] ?? $why['other'] ) . '.</p>'
@@ -277,7 +346,10 @@ final class PhotoHold {
 			$img = function_exists( 'bp_core_fetch_avatar' ) ? bp_core_fetch_avatar( array( 'item_id' => $uid, 'type' => 'thumb', 'width' => 48, 'height' => 48, 'html' => true ) ) : '';
 			$h  .= '<tr><td><a href="' . esc_url( $url ) . '">' . esc_html( $u ? $u->display_name : '#' . $uid ) . '</a></td>'
 				. '<td>' . $img . '</td>'
-				. '<td>' . esc_html( self::REASONS[ $hold['reason'] ] ?? $hold['reason'] ) . '</td>'
+				. '<td>' . esc_html( self::REASONS[ $hold['reason'] ] ?? $hold['reason'] )
+				. ( ! empty( $hold['note'] ) ? '<br><small>' . esc_html( $hold['note'] ) . '</small>' : '' )
+				. ( ! empty( $hold['reports'] ) && (int) $hold['reports'] > 1 ? '<br><small style="color:#b32d2e">' . (int) $hold['reports'] . ' reports</small>' : '' )
+				. ( 'reported' === $hold['reason'] && ! empty( $hold['by'] ) && get_userdata( (int) $hold['by'] ) ? '<br><small>by ' . esc_html( get_userdata( (int) $hold['by'] )->display_name ) . '</small>' : '' ) . '</td>'
 				. '<td>' . esc_html( wp_date( 'j M H:i', (int) $hold['at'] ) ) . '</td>'
 				. '<td>' . ( ! empty( $hold['fixed_at'] ) ? '<strong style="color:#b32d2e">New photo ' . esc_html( wp_date( 'j M H:i', (int) $hold['fixed_at'] ) ) . ': review</strong>' : 'Waiting for a new photo' ) . '</td>'
 				. '<td><a class="button" href="' . esc_url( self::action_url( 'csm_photo_release', $uid ) ) . '">Release</a></td></tr>';

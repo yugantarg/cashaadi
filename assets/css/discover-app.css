@@ -51,6 +51,12 @@
 
 /* ---- body ---- */
 .csm-d-bio { padding: 18px 18px 4px; }
+/* Report profile (v1.80.0): quiet, at the foot of the card. */
+.csm-d-report { padding: 14px 18px 18px; text-align: center; }
+.csm-d-report-open { background: none; border: 0; color: var(--csm-faint, #93a2ae); font-size: 13px; text-decoration: underline; cursor: pointer; }
+.csm-d-report-q { margin: 0 0 10px; font-size: 14px; color: var(--csm-ink, #16212b); }
+.csm-d-report-why { display: block; width: 100%; margin: 6px 0 0; padding: 10px 12px; background: var(--csm-surface, #fff); border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 10px; font-size: 14px; color: var(--csm-ink, #16212b); cursor: pointer; text-align: left; }
+.csm-d-report-why:disabled { opacity: .5; }
 .csm-d-bio p { margin: 0; font-size: 15px; line-height: 1.6; }
 
 .csm-d-group { padding: 18px 18px 0; }

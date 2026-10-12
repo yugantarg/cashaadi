@@ -339,6 +339,40 @@ window.csmProfileCard = function ( p ) {
 		card.appendChild( sec );
 	} );
 
+	/* Report profile (owner, 2026-10-12). One report hides the profile until
+	   an admin reviews it. Reasons open inline: a dialog cannot hold a list. */
+	var app = window.CSM_APP || {};
+	if ( p.id && app.report && String( p.id ) !== String( app.me ) ) {
+		var rep = mk( 'section', 'csm-d-report' );
+		var open = mk( 'button', 'csm-d-report-open', 'Report profile' );
+		open.type = 'button';
+		rep.appendChild( open );
+		open.addEventListener( 'click', function () {
+			open.remove();
+			rep.appendChild( mk( 'p', 'csm-d-report-q', 'What is wrong with this profile?' ) );
+			[ [ 'fake', 'Fake profile or photo' ], [ 'content', 'Inappropriate photo or text' ], [ 'abusive', 'Rude or abusive' ], [ 'other', 'Something else' ] ].forEach( function ( r ) {
+				var b = mk( 'button', 'csm-d-report-why', r[1] );
+				b.type = 'button';
+				b.addEventListener( 'click', function () {
+					rep.querySelectorAll( 'button' ).forEach( function ( x ) { x.disabled = true; } );
+					fetch( app.report, {
+						method: 'POST',
+						credentials: 'same-origin',
+						headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': app.nonce || '' },
+						body: JSON.stringify( { target: p.id, reason: r[0] } )
+					} ).then( function ( x ) { return x.json(); } ).then( function ( d ) {
+						rep.innerHTML = '';
+						rep.appendChild( mk( 'p', 'csm-d-report-q', ( d && d.message ) || 'Thank you.' ) );
+					} ).catch( function () {
+						rep.querySelectorAll( 'button' ).forEach( function ( x ) { x.disabled = false; } );
+					} );
+				} );
+				rep.appendChild( b );
+			} );
+		} );
+		card.appendChild( rep );
+	}
+
 	return card;
 };
 
