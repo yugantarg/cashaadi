@@ -160,6 +160,11 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			}
 		}
 
+		// Photo holds (v1.79.0): hidden until an admin releases them.
+		if ( class_exists( '\CAShaadi\Modules\Photos\PhotoHold' ) ) {
+			$exclude = array_merge( $exclude, \CAShaadi\Modules\Photos\PhotoHold::held_ids() );
+		}
+
 		$exclude     = array_unique( $exclude );
 		$exclude_csv = implode( ',', $exclude ); // safe — every value intval'd
 

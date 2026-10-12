@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.79.0 — 2026-10-12
+- **Photo hold** (`Photos\PhotoHold`) for profiles that look fake: a photo
+  that is not a person, or does not match the profile's gender.
+  - An admin holds a member from the Sales Dashboard list ("Hold: not a
+    person · wrong gender · not genuine") or from the member's profile page.
+  - While held: not in Discover (and pulled from unacted trays), not in the
+    directory; the member sees a banner and gets one email asking for a clear
+    photo of themselves. Matches and conversations are untouched.
+  - A new photo marks the hold "new photo: review" at the top of the
+    dashboard's "Photo holds" panel. The hold stays until an admin presses
+    Release, which emails "your profile is visible again".
+  - Events `photo_hold` and `photo_release` are logged.
+
 ## 1.78.2 — 2026-10-12
 - Fix: the Discover "Next profile" button was drawn as a white card with a
   big margin, out of line with the other buttons. The "While you wait" panel

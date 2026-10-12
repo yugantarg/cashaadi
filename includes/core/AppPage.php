@@ -173,6 +173,9 @@ final class AppPage {
 		<main class="csm-app-main" id="csm-app-main">
 		<?php
 		self::paused_banner();
+		if ( is_user_logged_in() && class_exists( '\CAShaadi\Modules\Photos\PhotoHold' ) ) {
+			echo \CAShaadi\Modules\Photos\PhotoHold::banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
 	}
 
 	/**
