@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.78.2 — 2026-10-12
+- Fix: the Discover "Next profile" button was drawn as a white card with a
+  big margin, out of line with the other buttons. The "While you wait" panel
+  (v1.71.0) used the same class name, `csm-d-next`; it is now `csm-d-wait`.
+
 ## 1.78.1 — 2026-10-10
 - ZeptoMail sends retry once (after 2 s, 25 s timeout) on a network error such
   as a cURL timeout. HTTP errors (credits, auth) are not retried.

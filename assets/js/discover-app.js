@@ -97,7 +97,7 @@
 		 * three useful things, chosen on the server for this member.
 		 */
 		if ( ! message && meta.nextSteps && meta.nextSteps.length ) {
-			var ws = el( 'div', 'csm-d-next' );
+			var ws = el( 'div', 'csm-d-wait' );
 			ws.appendChild( el( 'h3', null, 'While you wait' ) );
 			meta.nextSteps.forEach( function ( st ) {
 				var row = document.createElement( 'a' );
