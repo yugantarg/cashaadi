@@ -210,6 +210,15 @@ final class CaCron {
 		 * a person's call -- but the member is told THAT, rather than left
 		 * reading a promise of a day.
 		 */
+		/*
+		 * Owner, 2026-10-16: "I am getting a few more false rejections". A
+		 * genuine ICAI document the model thinks is the wrong level (a CA
+		 * Final admit card for a CA Inter claim was the case) goes to a
+		 * person, not to an automatic rejection email.
+		 */
+		if ( 'reject' === $rec && is_array( $verdict ) && ! empty( $verdict['is_ca_document'] ) ) {
+			$rec = 'manual_review';
+		}
 		if ( 'reject' === $rec ) {
 			$code = is_array( $verdict ) && isset( $verdict['reason_code'] ) ? sanitize_key( (string) $verdict['reason_code'] ) : '';
 			if ( '' === $code || ! array_key_exists( $code, CaVerify::reasons() ) ) {

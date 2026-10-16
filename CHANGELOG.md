@@ -3,6 +3,17 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.82.0 — 2026-10-16
+- CA Verify: for a CA Inter claim, any CA Final document (admit card,
+  registration, result or marksheet) now counts as proof, since only
+  students who cleared Intermediate can sit Final.
+- CA Verify: the AI no longer auto-rejects a genuine ICAI document. If it
+  thinks the level is wrong, the member goes to the review queue instead of
+  getting a rejection email. Auto-rejection stays for files that are clearly
+  not ICAI documents, unreadable, or someone else's.
+- CA Verify queue: search by name, email or member ID, and filter by status
+  (needs review, approved, rejected, not checked yet).
+
 ## 1.81.1 — 2026-10-12
 - Reports and photo holds move off the Sales Dashboard (owner: "don't
   clutter sales dashboard with this") to their own admin page, **Reports**,

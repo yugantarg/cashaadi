@@ -184,7 +184,7 @@ final class CaVerify {
 		$cl = strtolower( $claim_raw );
 		if ( 'ca inter' === $cl || false !== strpos( $cl, 'inter' ) ) {
 			$claim_label = 'CA Inter (Intermediate — a CA student who has cleared/enrolled at the Intermediate level, NOT yet a full member)';
-			$claim_rule  = 'Because the claim is CA Inter, ACCEPTABLE proof includes: an ICAI Intermediate (IPCC) exam result / marksheet showing a pass, an ICAI Intermediate registration / student / SRN card, or an ICAI Intermediate certificate. A membership (ACA/FCA) number is NOT expected and MUST NOT be required. Recommend "verify" if the document credibly shows ICAI Intermediate status for this person.';
+			$claim_rule  = 'Because the claim is CA Inter, ACCEPTABLE proof includes: an ICAI Intermediate (IPCC) exam result / marksheet showing a pass, an ICAI Intermediate registration / student / SRN card, or an ICAI Intermediate certificate. ANY CA FINAL document also proves Intermediate was passed, because ICAI only lets a student register for, or sit, CA Final after clearing Intermediate: a CA Final admit card, Final registration, Final exam result or marksheet (pass or fail) is sufficient (owner, 2026-10-16). A membership (ACA/FCA) number is NOT expected and MUST NOT be required. Recommend "verify" if the document credibly shows ICAI Intermediate status for this person.';
 		} elseif ( 'ca' === $cl || 'ca final' === $cl || false !== strpos( $cl, 'final' ) ) {
 			$claim_label = 'CA (fully qualified Chartered Accountant / CA Final — a member of ICAI)';
 			$claim_rule  = 'Because the claim is full CA, ACCEPTABLE proof is EITHER (a) evidence of ICAI MEMBERSHIP — an ICAI membership certificate, an ACA/FCA membership number, or a Certificate of Practice (COP); OR (b) evidence of having PASSED the CA Final examination — a CA Final pass/completion certificate, an ICAI Final examination Statement of Marks or marksheet, or an official ICAI Final examination result that shows a PASS. Any one of these is sufficient — recommend "verify". Only an Intermediate-only document (Intermediate exam result, IPCC/Intermediate student or registration card) or a document that is not an ICAI/CA credential at all is NOT sufficient for a full-CA claim — recommend "manual_review" or "reject" in that case.';
@@ -212,7 +212,8 @@ final class CaVerify {
 			 */
 			. 'reason_code (one of "unclear","name","not_icai","incomplete","wrong_level","expired","other" — '
 			. 'the single best category for why it is not verifiable; "other" only if none fits). '
-			. 'Recommend "verify" only if the document credibly supports the member\'s CLAIMED level.';
+			. 'Recommend "verify" only if the document credibly supports the member\'s CLAIMED level. '
+			. 'Recommend "reject" only when the file is clearly not an ICAI/CA document, is unreadable, or is clearly someone else\'s; when it is a genuine ICAI document and you are unsure whether it supports the claim, recommend "manual_review".';
 
 		if ( 'pdf' === $ext ) {
 			$content = array(
@@ -569,7 +570,41 @@ final class CaVerify {
 		$ids = self::members_with_docs();
 		$has_key = Secrets::has( 'openai' );
 
+		// Search by name, email, username or member ID (owner, 2026-10-16).
+		$q = isset( $_GET['s'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : '';
+		$st = isset( $_GET['st'] ) ? sanitize_key( wp_unslash( $_GET['st'] ) ) : '';
+		$all = count( $ids );
+		if ( '' !== $q || '' !== $st ) {
+			$ids = array_values( array_filter( $ids, function ( $uid ) use ( $q, $st ) {
+				if ( '' !== $st ) {
+					$s = (string) get_user_meta( $uid, 'csm_av_status', true );
+					if ( ( 'none' === $st && '' !== $s ) || ( 'none' !== $st && $s !== $st ) ) {
+						return false;
+					}
+				}
+				if ( '' === $q ) {
+					return true;
+				}
+				if ( ctype_digit( ltrim( $q, '#' ) ) ) {
+					return (int) ltrim( $q, '#' ) === (int) $uid;
+				}
+				$u = get_userdata( $uid );
+				$hay = strtolower( ( $u ? $u->display_name . ' ' . $u->user_email . ' ' . $u->user_login : '' ) . ' ' . ( function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : '' ) );
+				return false !== strpos( $hay, strtolower( $q ) );
+			} ) );
+		}
+
 		echo '<div class="wrap"><h1>CA Verify — Queue</h1>';
+		echo '<form method="get" style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+			. '<input type="hidden" name="page" value="csm-ca-verify">'
+			. '<input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Name, email or member ID" style="min-width:240px">'
+			. '<select name="st"><option value="">Any status</option>';
+		foreach ( array( 'review' => 'Needs review', 'approved' => 'Approved', 'rejected' => 'Rejected', 'none' => 'Not checked yet' ) as $k => $label ) {
+			echo '<option value="' . esc_attr( $k ) . '"' . selected( $st, $k, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select> <button class="button button-primary">Search</button>'
+			. ( '' !== $q || '' !== $st ? ' <a class="button" href="' . esc_url( admin_url( 'admin.php?page=csm-ca-verify' ) ) . '">Clear</a> <span>' . count( $ids ) . ' of ' . (int) $all . '</span>' : '' )
+			. '</form>';
 		if ( ! $has_key ) {
 			echo '<div class="notice notice-warning"><p>No OpenAI API key set yet. Add it under <a href="' . esc_url( admin_url( 'admin.php?page=csm-ca-verify-settings' ) ) . '">Settings</a> before running AI checks.</p></div>';
 		}
