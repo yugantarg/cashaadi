@@ -199,6 +199,70 @@
 			// uploader this screen replaced. f.nativeUrl stays in the payload in
 			// case it is wanted later; it is simply not rendered.
 
+			/* Extra pages for the ICAI document (owner, 2026-10-16: "some
+			   people have separate group 1 and group 2 results"). Saved the
+			   moment each finishes, like the main file. */
+			if ( Array.isArray( f.extras ) ) {
+				var xb = el( 'div', 'csm-pe-extra' );
+				var xlist = el( 'p', 'csm-pe-file-status' );
+				var xpick = el( 'label', 'csm-pe-file-btn' );
+				var xin = document.createElement( 'input' );
+				xin.type = 'file';
+				xin.accept = '.pdf,.jpg,.jpeg,.png,.webp';
+				xin.hidden = true;
+				var xclear = el( 'button', 'csm-pe-extra-clear', 'Remove extra pages' );
+				xclear.type = 'button';
+				var drawX = function ( list ) {
+					xlist.textContent = '';
+					xlist.className = 'csm-pe-file-status' + ( list.length ? ' is-ok' : '' );
+					if ( ! list.length ) {
+						xlist.textContent = 'Result on more than one page (e.g. Group 1 and Group 2)? Add the other pages here.';
+					}
+					list.forEach( function ( x, i ) {
+						var a = document.createElement( 'a' );
+						a.href = x.url; a.target = '_blank'; a.rel = 'noopener';
+						a.textContent = 'Extra page ' + ( i + 1 ) + ': ' + x.name;
+						xlist.appendChild( a );
+						xlist.appendChild( document.createElement( 'br' ) );
+					} );
+					xpick.textContent = 'Add another page';
+					xpick.appendChild( xin );
+					xpick.style.display = list.length >= 3 ? 'none' : '';
+					xclear.style.display = list.length ? '' : 'none';
+				};
+				var xpost = function ( fd, busyText ) {
+					xlist.textContent = busyText;
+					uploading++; refreshSaveState();
+					fetch( CFG.upload, { method: 'POST', credentials: 'same-origin', body: fd } )
+						.then( function ( r ) { return r.json(); } )
+						.then( function ( d ) {
+							if ( d && d.success && d.data ) { drawX( d.data.extras || [] ); }
+							else { xlist.textContent = ( d && d.data && d.data.message ) || 'That did not work. Try a PDF, JPG or PNG.'; xlist.className = 'csm-pe-file-status is-bad'; }
+						} )
+						.catch( function () { xlist.textContent = 'Network error, please try again.'; xlist.className = 'csm-pe-file-status is-bad'; } )
+						.then( function () { xin.value = ''; uploading--; refreshSaveState(); } );
+				};
+				xin.addEventListener( 'change', function () {
+					if ( ! xin.files || ! xin.files.length ) { return; }
+					var fd = new FormData();
+					fd.append( 'action', 'csm_av_extra' );
+					fd.append( 'nonce', CFG.uploadNonce );
+					fd.append( 'file', xin.files[0] );
+					xpost( fd, 'Uploading…' );
+				} );
+				xclear.addEventListener( 'click', function () {
+					var fd = new FormData();
+					fd.append( 'action', 'csm_av_extra_clear' );
+					fd.append( 'nonce', CFG.uploadNonce );
+					xpost( fd, 'Removing…' );
+				} );
+				drawX( f.extras );
+				xb.appendChild( xlist );
+				xb.appendChild( xpick );
+				xb.appendChild( xclear );
+				box.appendChild( xb );
+			}
+
 			wrap.appendChild( box );
 			return { node: wrap, key: 'field_' + f.id, read: function () { return null; }, skip: true };
 		}

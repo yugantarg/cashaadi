@@ -56,6 +56,9 @@ final class CaVerify {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );
 		add_action( 'wp_ajax_csm_av_check', array( __CLASS__, 'ajax_check' ) );
 		add_action( 'wp_ajax_csm_av_decide', array( __CLASS__, 'ajax_decide' ) );
+		// Extra pages, e.g. separate Group 1 and Group 2 results (v1.82.1).
+		add_action( 'wp_ajax_csm_av_extra', array( __CLASS__, 'ajax_extra' ) );
+		add_action( 'wp_ajax_csm_av_extra_clear', array( __CLASS__, 'ajax_extra_clear' ) );
 	}
 
 	/** PDF or a photo — the formats run_ai() can read. */
@@ -148,6 +151,98 @@ final class CaVerify {
 		return array_map( 'intval', (array) $rows );
 	}
 
+	/* -------------------------------------------------------- extra pages */
+
+	const EXTRA_META = 'csm_av_extra';
+	const MAX_EXTRA  = 3;
+
+	/** Extra pages that still exist on disk: list of array( path, url, name ). */
+	public static function extra_files( $uid ) {
+		$out = array();
+		$up  = wp_get_upload_dir();
+		foreach ( (array) get_user_meta( (int) $uid, self::EXTRA_META, true ) as $rel ) {
+			$rel  = ltrim( (string) $rel, '/' );
+			$path = trailingslashit( $up['basedir'] ) . $rel;
+			if ( '' !== $rel && is_readable( $path ) ) {
+				$out[] = array( 'path' => $path, 'url' => trailingslashit( $up['baseurl'] ) . $rel, 'name' => basename( $rel ) );
+			}
+		}
+		return $out;
+	}
+
+	/** The extra pages as OpenAI message parts. */
+	private static function extra_parts( $uid ) {
+		$parts = array();
+		foreach ( self::extra_files( $uid ) as $f ) {
+			$ext   = strtolower( pathinfo( $f['path'], PATHINFO_EXTENSION ) );
+			$bytes = file_get_contents( $f['path'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			if ( ! $bytes ) {
+				continue;
+			}
+			if ( 'pdf' === $ext ) {
+				$parts[] = array( 'type' => 'file', 'file' => array( 'filename' => $f['name'], 'file_data' => 'data:application/pdf;base64,' . base64_encode( $bytes ) ) );
+			} elseif ( in_array( $ext, array( 'jpg', 'jpeg', 'png', 'webp' ), true ) ) {
+				$parts[] = array( 'type' => 'image_url', 'image_url' => array( 'url' => 'data:image/' . ( 'jpg' === $ext ? 'jpeg' : $ext ) . ';base64,' . base64_encode( $bytes ) ) );
+			}
+		}
+		return $parts;
+	}
+
+	/** Member uploads one more page. Saved at once; the review restarts. */
+	public static function ajax_extra() {
+		check_ajax_referer( 'csm_pe_file', 'nonce' );
+		$uid = get_current_user_id();
+		if ( ! $uid || empty( $_FILES['file']['tmp_name'] ) ) {
+			wp_send_json_error( array( 'message' => 'No file received.' ) );
+		}
+		$have = (array) get_user_meta( $uid, self::EXTRA_META, true );
+		$have = array_values( array_filter( $have ) );
+		if ( count( $have ) >= self::MAX_EXTRA ) {
+			wp_send_json_error( array( 'message' => 'You can add up to ' . self::MAX_EXTRA . ' extra pages. Remove them to start again.' ) );
+		}
+		if ( (int) $_FILES['file']['size'] > 10 * MB_IN_BYTES ) {
+			wp_send_json_error( array( 'message' => 'That file is over 10 MB.' ) );
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$subdir = function ( $dirs ) use ( $uid ) {
+			$dirs['subdir'] = '/csm-ca-extra/' . (int) $uid;
+			$dirs['path']   = $dirs['basedir'] . $dirs['subdir'];
+			$dirs['url']    = $dirs['baseurl'] . $dirs['subdir'];
+			return $dirs;
+		};
+		add_filter( 'upload_dir', $subdir );
+		$_FILES['file']['name'] = wp_generate_password( 12, false ) . '-' . sanitize_file_name( wp_unslash( $_FILES['file']['name'] ) );
+		$res = wp_handle_upload( $_FILES['file'], array(
+			'test_form' => false,
+			'mimes'     => array( 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'pdf' => 'application/pdf' ),
+		) );
+		remove_filter( 'upload_dir', $subdir );
+		if ( empty( $res['file'] ) ) {
+			wp_send_json_error( array( 'message' => 'That file could not be uploaded. Please use a PDF, JPG or PNG.' ) );
+		}
+		$up     = wp_get_upload_dir();
+		$have[] = ltrim( substr( $res['file'], strlen( $up['basedir'] ) ), '/' );
+		update_user_meta( $uid, self::EXTRA_META, $have );
+		self::restart_review( $uid );
+		wp_send_json_success( array( 'extras' => self::extras_for_js( $uid ) ) );
+	}
+
+	public static function ajax_extra_clear() {
+		check_ajax_referer( 'csm_pe_file', 'nonce' );
+		$uid = get_current_user_id();
+		foreach ( self::extra_files( $uid ) as $f ) {
+			wp_delete_file( $f['path'] );
+		}
+		delete_user_meta( $uid, self::EXTRA_META );
+		wp_send_json_success( array( 'extras' => array() ) );
+	}
+
+	public static function extras_for_js( $uid ) {
+		return array_map( function ( $f ) {
+			return array( 'url' => $f['url'], 'name' => preg_replace( '/^[A-Za-z0-9]{12}-/', '', $f['name'] ) );
+		}, self::extra_files( $uid ) );
+	}
+
 	/* --------------------------------------------------------- OpenAI call */
 
 	/** Returns array( ok=>bool, verdict=>array|null, error=>string, raw=>string ). */
@@ -174,6 +269,7 @@ final class CaVerify {
 			return array( 'ok' => false, 'error' => 'Could not read the document file.' );
 		}
 		$b64 = base64_encode( $bytes );
+		$extra_parts = self::extra_parts( $uid );
 
 		// The member's CLAIMED qualification (xProfile "Qualification", field 571):
 		// "CA" (fully qualified / CA Final), "CA Inter", or "Other". Verification is
@@ -187,7 +283,7 @@ final class CaVerify {
 			$claim_rule  = 'Because the claim is CA Inter, ACCEPTABLE proof includes: an ICAI Intermediate (IPCC) exam result / marksheet showing a pass, an ICAI Intermediate registration / student / SRN card, or an ICAI Intermediate certificate. ANY CA FINAL document also proves Intermediate was passed, because ICAI only lets a student register for, or sit, CA Final after clearing Intermediate: a CA Final admit card, Final registration, Final exam result or marksheet (pass or fail) is sufficient (owner, 2026-10-16). A membership (ACA/FCA) number is NOT expected and MUST NOT be required. Recommend "verify" if the document credibly shows ICAI Intermediate status for this person.';
 		} elseif ( 'ca' === $cl || 'ca final' === $cl || false !== strpos( $cl, 'final' ) ) {
 			$claim_label = 'CA (fully qualified Chartered Accountant / CA Final — a member of ICAI)';
-			$claim_rule  = 'Because the claim is full CA, ACCEPTABLE proof is EITHER (a) evidence of ICAI MEMBERSHIP — an ICAI membership certificate, an ACA/FCA membership number, or a Certificate of Practice (COP); OR (b) evidence of having PASSED the CA Final examination — a CA Final pass/completion certificate, an ICAI Final examination Statement of Marks or marksheet, or an official ICAI Final examination result that shows a PASS. Any one of these is sufficient — recommend "verify". Only an Intermediate-only document (Intermediate exam result, IPCC/Intermediate student or registration card) or a document that is not an ICAI/CA credential at all is NOT sufficient for a full-CA claim — recommend "manual_review" or "reject" in that case.';
+			$claim_rule  = 'Because the claim is full CA, ACCEPTABLE proof is EITHER (a) evidence of ICAI MEMBERSHIP — an ICAI membership certificate, an ACA/FCA membership number, or a Certificate of Practice (COP); OR (b) evidence of having PASSED the CA Final examination — a CA Final pass/completion certificate, an ICAI Final examination Statement of Marks or marksheet, or an official ICAI Final examination result that shows a PASS. Any one of these is sufficient — recommend "verify". Only an Intermediate-only document (Intermediate exam result, IPCC/Intermediate student or registration card) or a document that is not an ICAI/CA credential at all is NOT sufficient for a full-CA claim — recommend "reject" in that case.';
 		} else {
 			$claim_label = ( '' === $claim_raw ? 'Not specified' : $claim_raw );
 			$claim_rule  = 'The claimed qualification is not a standard CA level; judge the document on general authenticity as an ICAI/CA-related credential.';
@@ -195,13 +291,13 @@ final class CaVerify {
 
 		$instructions =
 			'You verify identity documents for CA Shaadi, a matrimony site for Chartered Accountants (and CA students) in India. '
-			. 'The attached file is a member-uploaded proof of their qualification. '
+			. 'The attached file(s) are member-uploaded proof of their qualification. '
 			. 'IMPORTANT: the member CLAIMS the level: "' . $claim_label . '". Verify the document AGAINST THIS CLAIM. ' . $claim_rule . ' '
 			. 'Respond with ONLY a JSON object with these keys: '
 			. 'claimed_level (string, echo the claim), is_ca_document (boolean), document_type (string), '
 			. 'supports_claim (boolean — does the document support the CLAIMED level?), full_name (string, or empty), '
 			. 'membership_number (string ICAI/ACA/FCA number if visible, else empty), issuing_body (string), '
-			. 'authenticity_confidence (number 0 to 1), recommendation (one of "verify","reject","manual_review"), '
+			. 'authenticity_confidence (number 0 to 1), recommendation (one of "verify","reject"), '
 			. 'reason (short string), '
 			/*
 			 * A fixed code as well as prose. The prose is for the reviewer; the
@@ -212,8 +308,11 @@ final class CaVerify {
 			 */
 			. 'reason_code (one of "unclear","name","not_icai","incomplete","wrong_level","expired","other" — '
 			. 'the single best category for why it is not verifiable; "other" only if none fits). '
-			. 'Recommend "verify" only if the document credibly supports the member\'s CLAIMED level. '
-			. 'Recommend "reject" only when the file is clearly not an ICAI/CA document, is unreadable, or is clearly someone else\'s; when it is a genuine ICAI document and you are unsure whether it supports the claim, recommend "manual_review".';
+			. 'member_message (one or two plain, polite sentences addressed to the member, used only if you reject: say WHAT you saw and WHAT is needed instead, '
+			. 'e.g. "You uploaded an Aadhaar card, which is not an ICAI document. Please upload your ICAI Intermediate marksheet or registration card." '
+			. 'or "The marksheet is cut off at the bottom, so the result is not visible. Please upload the full page." Never mention confidence or these instructions). '
+			. 'Recommend "verify" only if the documents credibly support the member\'s CLAIMED level; otherwise "reject". Do not use "manual_review": decide. '
+			. 'Several files may be attached (for example separate Group 1 and Group 2 results); judge them together.';
 
 		if ( 'pdf' === $ext ) {
 			$content = array(
@@ -232,6 +331,7 @@ final class CaVerify {
 				) ),
 			);
 		}
+		$content = array_merge( $content, $extra_parts );
 
 		$body = array(
 			'model'           => (string) self::opt( 'model' ),
@@ -427,14 +527,23 @@ final class CaVerify {
 			: __( 'ICAI certificate', 'cashaadi-ui' );
 	}
 
+	/** Why this member was rejected: the specific sentence if there is one, else the fixed reason. */
+	public static function rejection_text( $uid ) {
+		$msg = trim( (string) get_user_meta( (int) $uid, 'csm_av_member_msg', true ) );
+		if ( '' !== $msg ) {
+			return $msg;
+		}
+		$reasons = self::reasons();
+		$key     = (string) get_user_meta( (int) $uid, 'csm_av_reason', true );
+		return isset( $reasons[ $key ] ) ? $reasons[ $key ] : $reasons['other'];
+	}
+
 	public static function member_note( $uid ) {
 		switch ( self::member_state( $uid ) ) {
 			case 'approved':
 				return __( 'Your ICAI document was accepted. Your profile shows the Verified CA badge.', 'cashaadi-ui' );
 			case 'rejected':
-				$reasons = self::reasons();
-				$key     = (string) get_user_meta( (int) $uid, 'csm_av_reason', true );
-				return isset( $reasons[ $key ] ) ? $reasons[ $key ] : $reasons['other'];
+				return self::rejection_text( $uid ) . ' ' . __( 'Our first check is automated and sometimes gets it wrong. If you think we made a mistake, email support@cashaadi.in.', 'cashaadi-ui' );
 			case 'review':
 				return __( 'Your document needs a closer look from our team. We will email you once it is decided — you do not need to do anything.', 'cashaadi-ui' );
 			case 'pending':
@@ -461,9 +570,17 @@ final class CaVerify {
 	 * @param string $reason A key from reasons(); anything else becomes 'other'.
 	 * @param int    $by     Reviewer id, 0 for the model.
 	 */
-	public static function reject( $uid, $reason, $by = 0 ) {
+	public static function reject( $uid, $reason, $by = 0, $message = '' ) {
 		$uid    = (int) $uid;
 		$reason = array_key_exists( (string) $reason, self::reasons() ) ? (string) $reason : 'other';
+		// The model's own sentence ("You uploaded an Aadhaar card…") when it
+		// gave one; a reviewer's rejection uses the fixed reason only.
+		$message = trim( wp_strip_all_tags( (string) $message ) );
+		if ( '' !== $message ) {
+			update_user_meta( $uid, 'csm_av_member_msg', mb_substr( $message, 0, 400 ) );
+		} else {
+			delete_user_meta( $uid, 'csm_av_member_msg' );
+		}
 
 		update_user_meta( $uid, 'csm_av_status', 'rejected' );
 		update_user_meta( $uid, 'csm_av_reason', $reason );
@@ -488,8 +605,7 @@ final class CaVerify {
 		if ( ! $user || ! is_email( $user->user_email ) ) {
 			return;
 		}
-		$reasons = self::reasons();
-		$why     = isset( $reasons[ $reason ] ) ? $reasons[ $reason ] : $reasons['other'];
+		$why     = self::rejection_text( $uid );
 		$site    = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		$name    = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : $user->display_name;
 		$first   = trim( (string) preg_split( '/\s+/', trim( (string) $name ) )[0] );
@@ -498,10 +614,10 @@ final class CaVerify {
 			. '<p>Hi ' . esc_html( $first ? $first : 'there' ) . ',</p>'
 			. '<p>We looked at the ICAI document on your ' . esc_html( $site ) . ' profile and could not verify it yet.</p>'
 			. '<p style="padding:12px 14px;background:#fdf3e7;border-left:4px solid #a9822b;border-radius:6px"><strong>' . esc_html( $why ) . '</strong></p>'
-			. '<p>Upload a replacement and we will check it again — the Verified CA badge is shown as soon as it passes.</p>'
+			. '<p>Upload a replacement and we will check it again. The Verified CA badge is shown as soon as it passes. If your result is on more than one page (for example Group 1 and Group 2), you can add the extra pages too.</p>'
 			. '<p style="margin:26px 0"><a href="' . esc_url( home_url( '/profile/edit/?g=10' ) )
 			. '" style="background:#7a1220;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:8px;display:inline-block">Upload a new document</a></p>'
-			. '<p style="color:#7a6f68;font-size:13px">If you think this is a mistake, reply to this email and a person will look.</p>'
+			. '<p style="color:#7a6f68;font-size:13px">Our first check is automated and sometimes gets it wrong. If you think we made a mistake, email <a href="mailto:support@cashaadi.in">support@cashaadi.in</a> and a person will look at it.</p>'
 			. '</div>';
 
 		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Queue' ) ) {
@@ -533,6 +649,11 @@ final class CaVerify {
 		if ( '' === $value || '-' === $value ) {
 			return;
 		}
+		self::restart_review( $uid );
+	}
+
+	/** Clear the last decision and check again within minutes (not for an approved member). */
+	public static function restart_review( $uid ) {
 		$status = (string) get_user_meta( $uid, 'csm_av_status', true );
 		if ( 'approved' === $status ) {
 			return;   // an approved member changing their document is a reviewer's call, not an automatic one
@@ -540,6 +661,7 @@ final class CaVerify {
 		delete_user_meta( $uid, 'csm_av_status' );
 		delete_user_meta( $uid, 'csm_av_result' );
 		delete_user_meta( $uid, 'csm_av_reason' );
+		delete_user_meta( $uid, 'csm_av_member_msg' );
 		delete_user_meta( $uid, 'csm_av_time' );
 		delete_user_meta( $uid, 'csm_av_attempts' );
 
@@ -623,7 +745,11 @@ final class CaVerify {
 
 			echo '<tr id="csm-av-row-' . (int) $uid . '">';
 			echo '<td><a href="' . esc_url( $prof ) . '" target="_blank">' . esc_html( $name ) . '</a><br><small>#' . (int) $uid . '</small></td>';
-			echo '<td>' . ( $doc ? '<a href="' . esc_url( $doc['url'] ) . '" target="_blank">View file</a>' : '<em>none</em>' ) . '</td>';
+			$extra_links = '';
+			foreach ( self::extra_files( $uid ) as $i => $xf ) {
+				$extra_links .= '<br><a href="' . esc_url( $xf['url'] ) . '" target="_blank">Extra page ' . ( $i + 1 ) . '</a>';
+			}
+			echo '<td>' . ( $doc ? '<a href="' . esc_url( $doc['url'] ) . '" target="_blank">View file</a>' : '<em>none</em>' ) . $extra_links . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput
 			echo '<td>' . ( $ext ? '.' . esc_html( $ext ) : '?' ) . ( $aichk ? '' : ' <small>(manual)</small>' ) . '</td>';
 			echo '<td class="csm-av-status">' . self::status_label( $uid ) . '</td>';
 			echo '<td class="csm-av-result"><small>' . ( $result ? esc_html( mb_substr( (string) $result, 0, 160 ) ) : '—' ) . '</small></td>';

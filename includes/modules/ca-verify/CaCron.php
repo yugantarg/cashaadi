@@ -211,25 +211,22 @@ final class CaCron {
 		 * reading a promise of a day.
 		 */
 		/*
-		 * Owner, 2026-10-16: "I am getting a few more false rejections". A
-		 * genuine ICAI document the model thinks is the wrong level (a CA
-		 * Final admit card for a CA Inter claim was the case) goes to a
-		 * person, not to an automatic rejection email.
+		 * Every answer that is not "verify" is a rejection the member is told
+		 * about, with a specific reason (owner, 2026-10-16: "I don't want to
+		 * leave things in pending queue because monitoring is difficult").
+		 * The email admits the first check is automated and can be wrong, and
+		 * gives the support address.
 		 */
-		if ( 'reject' === $rec && is_array( $verdict ) && ! empty( $verdict['is_ca_document'] ) ) {
-			$rec = 'manual_review';
-		}
-		if ( 'reject' === $rec ) {
+		if ( 'verify' !== $rec ) {
 			$code = is_array( $verdict ) && isset( $verdict['reason_code'] ) ? sanitize_key( (string) $verdict['reason_code'] ) : '';
 			if ( '' === $code || ! array_key_exists( $code, CaVerify::reasons() ) ) {
 				$code = self::guess_reason( is_array( $verdict ) && isset( $verdict['reason'] ) ? (string) $verdict['reason'] : '' );
 			}
-			CaVerify::reject( $uid, $code, 0 );
+			$msg = is_array( $verdict ) && ! empty( $verdict['member_message'] ) ? (string) $verdict['member_message'] : '';
+			CaVerify::reject( $uid, $code, 0, $msg );
 			return 'rejected:' . $code;
 		}
-
-		update_user_meta( $uid, 'csm_av_status', 'review' );
-		return 'held:' . $rec;
+		return 'held:' . $rec; // unreachable: kept so the function always returns
 	}
 
 	/**

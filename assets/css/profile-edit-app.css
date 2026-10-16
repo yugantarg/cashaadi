@@ -159,3 +159,7 @@
    cleared, so a finished upload still looked in progress. */
 .csm-pe-file-status.is-ok  { color: var(--csm-green-press, #5e8926); font-weight: 600; }
 .csm-pe-file-status.is-bad { color: #96262a; }
+
+/* Extra pages for the ICAI document (v1.82.1). */
+.csm-pe-extra { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--csm-hair, #e4eaf0); }
+.csm-pe-extra-clear { margin-left: 10px; background: none; border: 0; color: var(--csm-muted, #5c6a76); font-size: 13px; text-decoration: underline; cursor: pointer; }

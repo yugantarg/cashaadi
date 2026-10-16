@@ -399,6 +399,10 @@ final class ProfileEditScreen {
 					? rawurldecode( basename( (string) wp_parse_url( (string) self::file_url( $field->id, $uid, $raw ), PHP_URL_PATH ) ) )
 					: '',
 				'accept' => self::accept_for( (string) $field->type ),
+				// Extra pages for the ICAI document (Group 1 / Group 2 results).
+				'extras' => (int) $field->id === (int) Config::FIELD_CA_DOC && class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' )
+					? \CAShaadi\Modules\CaVerify\CaVerify::extras_for_js( $uid )
+					: null,
 				/*
 				 * Gender and Date of birth can be changed ONCE (OnceFields,
 				 * v1.71.0): editable with a warning until that change is used,

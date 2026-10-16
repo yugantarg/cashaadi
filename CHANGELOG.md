@@ -3,14 +3,24 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.82.1 — 2026-10-16
+- CA Verify decides every document: verify or reject, never "review"
+  (owner: "I don't want to leave things in pending queue"). Withdraws the
+  1.82.0 change that sent genuine ICAI documents to the queue.
+- Rejections say exactly what was wrong, in the AI's own sentence for this
+  member (e.g. "You uploaded an Aadhaar card, which is not an ICAI document.
+  Please upload…"), stored as `csm_av_member_msg`. Reviewer rejections use the
+  fixed reason. The email and the profile note both say the first check is
+  automated and sometimes wrong, and to email support@cashaadi.in.
+- Extra pages: under the ICAI upload, "Add another page" (up to 3, PDF/JPG/
+  PNG, 10 MB each) for results split across pages such as Group 1 and
+  Group 2. All pages go to the AI together and appear in the admin queue.
+  Adding a page restarts the check.
+
 ## 1.82.0 — 2026-10-16
 - CA Verify: for a CA Inter claim, any CA Final document (admit card,
   registration, result or marksheet) now counts as proof, since only
   students who cleared Intermediate can sit Final.
-- CA Verify: the AI no longer auto-rejects a genuine ICAI document. If it
-  thinks the level is wrong, the member goes to the review queue instead of
-  getting a rejection email. Auto-rejection stays for files that are clearly
-  not ICAI documents, unreadable, or someone else's.
 - CA Verify queue: search by name, email or member ID, and filter by status
   (needs review, approved, rejected, not checked yet).
 
