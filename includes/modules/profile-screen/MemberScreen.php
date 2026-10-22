@@ -158,6 +158,8 @@ final class MemberScreen {
 			'profile'    => $profile,
 			'friendship' => $status,          // is_friend | pending | awaiting_response | not_friends
 			'tray'       => $state,           // pending | saved | liked | passed | ''
+			// Premium: may send a request to someone who viewed them (v1.83.0).
+			'canRequest' => class_exists( '\\CAShaadi\\Modules\\Discover\\Discover' ) && \CAShaadi\Modules\Discover\Discover::can_request_direct( $viewer, $uid ),
 		), 200 );
 	}
 }

@@ -145,6 +145,43 @@ final class Discover {
 	 * @param  string $status     'liked' or 'passed'.
 	 * @return array{ok:bool,is_mutual:bool,remaining:int}
 	 */
+	/**
+	 * A Premium member may send a request to someone who viewed their profile,
+	 * even though that person is not in their weekly set (owner, 2026-10-22:
+	 * "who viewed me is visible but I still can't send requests"). The same
+	 * rules the tray enforces are checked here instead: opposite gender, not
+	 * blocked, not closed, paused or on hold, and no friendship either way yet.
+	 */
+	public static function can_request_direct( $viewer_id, $profile_id ) {
+		$viewer_id  = (int) $viewer_id;
+		$profile_id = (int) $profile_id;
+		if ( ! $viewer_id || ! $profile_id || $viewer_id === $profile_id
+			|| ! \CAShaadi\Core\Membership::is_premium( $viewer_id ) || ! get_userdata( $profile_id ) ) {
+			return false;
+		}
+		global $wpdb;
+		$views = $wpdb->prefix . 'csm_profile_views';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( ! $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$views} WHERE viewer_id = %d AND viewed_id = %d LIMIT 1", $profile_id, $viewer_id ) ) ) {
+			return false; // only people who viewed this member
+		}
+		$csm = function_exists( 'cashaadi' ) ? cashaadi() : null;
+		if ( ! $csm || trim( (string) $csm->get_gender( $profile_id ) ) !== trim( (string) $csm->get_opposite_gender( $viewer_id ) ) ) {
+			return false;
+		}
+		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $viewer_id, $profile_id ) ) {
+			return false;
+		}
+		if ( ( class_exists( '\\CAShaadi\\Modules\\Settings\\Deactivate' ) && \CAShaadi\Modules\Settings\Deactivate::is_paused( $profile_id ) )
+			|| ( class_exists( '\\CAShaadi\\Modules\\Photos\\PhotoHold' ) && \CAShaadi\Modules\Photos\PhotoHold::is_held( $profile_id ) ) ) {
+			return false;
+		}
+		if ( function_exists( 'friends_check_friendship_status' ) && 'not_friends' !== friends_check_friendship_status( $viewer_id, $profile_id ) ) {
+			return false;
+		}
+		return true;
+	}
+
 	public static function act( $viewer_id, $profile_id, $status ) {
 		$viewer_id  = (int) $viewer_id;
 		$profile_id = (int) $profile_id;
@@ -190,7 +227,7 @@ final class Discover {
 			array_merge( array( $status, $now, $viewer_id, $profile_id ), $from )
 		) );
 
-		if ( ! $claimed ) {
+		if ( ! $claimed && ! ( 'liked' === $status && self::can_request_direct( $viewer_id, $profile_id ) ) ) {
 			return array( 'ok' => false, 'is_mutual' => false, 'remaining' => 0 );
 		}
 

@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.83.0 — 2026-10-22
+- Premium members can send a request to anyone who viewed their profile
+  ("Who viewed me"), even if that person is not in their weekly set. The
+  member page shows **Send request** instead of "This profile is not in your
+  current set". The server checks it is a viewer, the opposite gender, not
+  blocked, paused, on hold or already connected. It does not use up a
+  weekly profile.
+
 ## 1.82.2 — 2026-10-22
 - One report no longer hides a profile. It stays visible while OpenAI checks
   it, and is hidden only if the AI finds it clearly fake or spam (a cartoon

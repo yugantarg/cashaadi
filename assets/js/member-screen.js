@@ -39,10 +39,16 @@
 			body: JSON.stringify( { profile_id: d.profile.id, action: what } )
 		} ).then( function ( r ) { return r.json(); } ).then( function ( res ) {
 			release();
+			if ( ! res || ! res.ok ) {
+				toast( 'That did not go through. Please try again.' );
+				return;
+			}
 			if ( res && res.isMutual ) {
 				toast( 'You and ' + d.profile.name + ' liked each other.', 'It\u2019s a match!' );
 			} else if ( 'save' === what ) {
 				toast( 'Saved. Find them under Requests \u2192 Saved.' );
+			} else if ( 'like' === what ) {
+				toast( 'Request sent.' );
 			}
 			/* Unlike Discover there is no next card to advance to — this screen
 			   IS the one profile. Go back to where they came from, after the
@@ -140,6 +146,21 @@
 
 		if ( 'saved' === d.tray || 'pending' === d.tray ) {
 			return decide( d );
+		}
+
+		/* Premium, and this person viewed them: send a request straight away
+		   (owner, 2026-10-22). The server re-checks every rule. */
+		if ( d.canRequest ) {
+			var w5 = el( 'div', 'csm-mb-actions' );
+			var req = el( 'button', 'csm-mb-primary', 'Send request' );
+			req.type = 'button';
+			req.addEventListener( 'click', function () {
+				var go = function () { act( d, 'like', req ); };
+				if ( window.csmCoach ) { window.csmCoach.explain( 'like', go ); } else { go(); }
+			} );
+			w5.appendChild( req );
+			w5.appendChild( el( 'p', 'csm-mb-note', 'They viewed your profile. If they accept, you can message each other.' ) );
+			return w5;
 		}
 
 		// Not in the tray and no relationship: nothing honest to offer — the
