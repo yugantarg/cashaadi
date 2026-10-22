@@ -3,6 +3,15 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.82.2 — 2026-10-22
+- One report no longer hides a profile. It stays visible while OpenAI checks
+  it, and is hidden only if the AI finds it clearly fake or spam (a cartoon
+  with a throwaway bio, offensive content, asking for money, an obvious
+  scam). Anything plausibly real passes; when in doubt, it passes. A hidden
+  profile is emailed and waits on the Reports page for you.
+- 2+ reports from different members still hide the profile until you
+  release it. The reporter now sees "Thank you. We will review this profile."
+
 ## 1.82.1 — 2026-10-16
 - CA Verify decides every document: verify or reject, never "review"
   (owner: "I don't want to leave things in pending queue"). Withdraws the

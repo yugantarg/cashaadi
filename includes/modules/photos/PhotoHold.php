@@ -79,10 +79,10 @@ final class PhotoHold {
 	/**
 	 * A member reports a profile (owner, 2026-10-12, revised the same day):
 	 *
-	 *   1 report   - hidden at once, and the profile goes to OpenAI
-	 *                (ReportReview). Passed: restored silently, the member is
-	 *                never told. Not passed: stays hidden for a human, and the
-	 *                member is emailed.
+	 *   1 report   - stays visible; the profile goes to OpenAI (ReportReview),
+	 *                which hides it only if it is clearly fake or spam. Then
+	 *                the member is emailed and a human decides. (Revised
+	 *                2026-10-22: "if it is plausibly valid account don't hide".)
 	 *   2+ reports - from different members: hidden until a human reviews it,
 	 *                whatever the AI said.
 	 *
@@ -93,7 +93,7 @@ final class PhotoHold {
 		$target = (int) $request->get_param( 'target' );
 		$reason = sanitize_key( (string) $request->get_param( 'reason' ) );
 		$reason = isset( self::REPORT_REASONS[ $reason ] ) ? $reason : 'other';
-		$thanks = new \WP_REST_Response( array( 'ok' => true, 'message' => 'Thank you. We have hidden this profile while we review it.' ), 200 );
+		$thanks = new \WP_REST_Response( array( 'ok' => true, 'message' => 'Thank you. We will review this profile.' ), 200 );
 		if ( ! $target || $target === $me || ! get_userdata( $target ) || user_can( $target, 'manage_options' ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'That did not work.' ), 200 );
 		}
@@ -118,10 +118,12 @@ final class PhotoHold {
 
 		$h = self::get( $target );
 		if ( 1 === $count && ! $h ) {
-			// Hidden now; the member hears nothing unless the AI does not pass it.
-			self::hold( $target, 'reported', $me, self::REPORT_REASONS[ $reason ], false, array( 'ai' => 'pending', 'reports' => 1 ) );
+			// Stays visible; the AI hides it only if it is clearly fake or spam
+			// (owner, 2026-10-22: "if it is plausibly valid account don't hide").
+			update_user_meta( $target, ReportReview::PENDING, array( 'by' => $me, 'note' => self::REPORT_REASONS[ $reason ], 'at' => time() ) );
 			wp_schedule_single_event( time() + 30, ReportReview::CRON, array( $target ) );
 		} elseif ( ! $h ) {
+			delete_user_meta( $target, ReportReview::PENDING ); // a human decides now
 			// Reported again after the AI passed it: a human decides now.
 			self::hold( $target, 'reported', $me, self::REPORT_REASONS[ $reason ], true, array( 'ai' => 'skipped', 'human' => 1, 'reports' => $count ) );
 		} else {
@@ -197,6 +199,7 @@ final class PhotoHold {
 		delete_user_meta( $uid, self::META );
 		if ( $by ) {
 			delete_user_meta( $uid, self::REPORTERS );
+			delete_user_meta( $uid, ReportReview::PENDING );
 		}
 		if ( ! empty( $h['emailed'] ) ) {
 			self::email( $uid, 'released', $h['reason'] );

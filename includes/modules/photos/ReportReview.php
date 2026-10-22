@@ -10,9 +10,11 @@
  * profile text, minus contact details. The same OpenAI key and model as CA
  * Verify.
  *
- *   pass   -> PhotoHold::release( $uid, 0 ): visible again, no email.
- *   hold   -> stays hidden; the member is emailed; a human decides.
- *   error  -> one retry 10 minutes later; then left for a human, emailed.
+ * The profile stays visible while it is checked (owner, 2026-10-22).
+ *   pass   -> nothing happens; the member never knows.
+ *   hold   -> only when clearly fake or spam: hidden, the member is emailed,
+ *             and it waits on the Reports page for a human.
+ *   error  -> one retry 10 minutes later; then left visible and logged.
  *
  * Owner: non-human photos alone are fine. The model is told to judge the
  * profile as a whole: a cartoon plus a joke bio ("hi lol") is the case to
@@ -33,55 +35,48 @@ final class ReportReview {
 	const CRON       = 'csm_report_ai_review';
 	const MAX_PHOTOS = 4;
 
+	/** A first report waiting for the AI: array( by, note, at, retry? ). The profile stays visible. */
+	const PENDING = 'csm_report_ai';
+
 	public static function run( $uid ) {
 		$uid = (int) $uid;
-		$h   = PhotoHold::get( $uid );
-		if ( ! $h || 'reported' !== $h['reason'] || ! empty( $h['human'] ) || ! in_array( $h['ai'] ?? '', array( 'pending', 'retry' ), true ) ) {
-			return; // released, escalated, or already decided
+		$p   = get_user_meta( $uid, self::PENDING, true );
+		if ( ! is_array( $p ) || PhotoHold::is_held( $uid ) ) {
+			delete_user_meta( $uid, self::PENDING );
+			return; // escalated to a human, released, or already held
 		}
 
-		$r = self::ask( $uid, (string) ( $h['note'] ?? '' ) );
+		$r = self::ask( $uid, (string) ( $p['note'] ?? '' ) );
 
-		$h = PhotoHold::get( $uid ); // may have changed during the call
-		if ( ! $h || ! empty( $h['human'] ) ) {
-			return;
+		if ( ! is_array( get_user_meta( $uid, self::PENDING, true ) ) || PhotoHold::is_held( $uid ) ) {
+			return; // a second report arrived during the call: a human has it
 		}
-
 		if ( ! $r['ok'] ) {
-			if ( 'pending' === $h['ai'] ) {
-				$h['ai']     = 'retry';
-				$h['ai_why'] = substr( $r['error'], 0, 200 );
-				update_user_meta( $uid, PhotoHold::META, $h );
+			if ( empty( $p['retry'] ) ) {
+				$p['retry'] = 1;
+				update_user_meta( $uid, self::PENDING, $p );
 				wp_schedule_single_event( time() + 10 * MINUTE_IN_SECONDS, self::CRON, array( $uid ) );
 				return;
 			}
-			$h['ai']     = 'error';
-			$h['ai_why'] = substr( $r['error'], 0, 200 );
-			self::to_human( $uid, $h );
+			// Could not check twice: the profile stays visible (it was only one
+			// report); the error is logged for the record.
+			delete_user_meta( $uid, self::PENDING );
+			if ( function_exists( 'cashaadi' ) ) {
+				cashaadi()->log_event( 'report_ai_review', 0, $uid, array( 'decision' => 'error', 'reasons' => substr( $r['error'], 0, 200 ) ) );
+			}
 			return;
 		}
 
-		$v       = $r['verdict'];
-		$why     = substr( implode( '; ', array_map( 'strval', (array) ( $v['reasons'] ?? array() ) ) ), 0, 300 );
-		$pass    = 'pass' === ( $v['decision'] ?? '' );
+		$v    = $r['verdict'];
+		$why  = substr( implode( '; ', array_map( 'strval', (array) ( $v['reasons'] ?? array() ) ) ), 0, 300 );
+		$fake = 'hold' === ( $v['decision'] ?? '' );
+		delete_user_meta( $uid, self::PENDING );
 		if ( function_exists( 'cashaadi' ) ) {
-			cashaadi()->log_event( 'report_ai_review', 0, $uid, array( 'decision' => $pass ? 'pass' : 'hold', 'confidence' => (float) ( $v['confidence'] ?? 0 ), 'reasons' => $why ) );
+			cashaadi()->log_event( 'report_ai_review', 0, $uid, array( 'decision' => $fake ? 'hold' : 'pass', 'confidence' => (float) ( $v['confidence'] ?? 0 ), 'reasons' => $why ) );
 		}
-		if ( $pass ) {
-			PhotoHold::release( $uid, 0 );
-			return;
+		if ( $fake ) {
+			PhotoHold::hold( $uid, 'reported', (int) ( $p['by'] ?? 0 ), (string) ( $p['note'] ?? '' ), true, array( 'ai' => 'hold', 'ai_why' => $why, 'reports' => 1 ) );
 		}
-		$h['ai']     = 'hold';
-		$h['ai_why'] = $why;
-		self::to_human( $uid, $h );
-	}
-
-	private static function to_human( $uid, $h ) {
-		if ( empty( $h['emailed'] ) ) {
-			PhotoHold::email( $uid, 'held', $h['reason'] );
-			$h['emailed'] = 1;
-		}
-		update_user_meta( $uid, PhotoHold::META, $h );
 	}
 
 	/** @return array{ok:bool,verdict?:array,error?:string} */
@@ -93,10 +88,10 @@ final class ReportReview {
 
 		$text = self::profile_text( $uid );
 		$prompt = "You review a reported profile on CAShaadi.in, a matrimonial site for Indian chartered accountants (CA) and CA students. "
-			. "A member reported it as: \"{$report_reason}\". Decide whether it should be visible to members.\n\n"
-			. "Answer \"hold\" when the profile as a whole looks fake, a joke, spam or abusive. For example: a cartoon, celebrity, stock or AI-generated photo together with a throwaway bio like \"hi lol\"; "
-			. "sexual or offensive photos or text; asking members to contact them off-site or for money; clear signs of a scam; photos that clearly show a different gender from the profile's stated gender.\n"
-			. "Answer \"pass\" for an ordinary, sincere profile, even if it is short or has no photo. A non-human photo on its own (a pet, scenery) is acceptable if the rest of the profile looks genuine.\n\n"
+			. "A member reported it as: \"{$report_reason}\". Decide whether to HIDE it.\n\n"
+			. "Answer \"hold\" ONLY when it is CLEARLY fake or spam: for example a cartoon, celebrity or stock photo together with a throwaway bio like \"hi lol\"; "
+			. "sexual or offensive photos or text; asking members for money or to contact them off-site; obvious scam or spam.\n"
+			. "Answer \"pass\" whenever the account is plausibly a real person, even if the profile is short, has no photo, has a non-human photo, or you are unsure. When in doubt, pass.\n\n"
 			. "Reply in JSON only: {\"decision\":\"pass\" or \"hold\",\"confidence\":0 to 1,\"reasons\":[short strings]}.\n\n"
 			. "PROFILE:\n" . $text;
 
