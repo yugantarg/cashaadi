@@ -318,6 +318,7 @@ final class Referral {
 			return;
 		}
 		$orders = wc_get_orders( array(
+			'type'         => 'shop_order', // never a refund record
 			'status'       => array( 'pending' ),
 			'date_created' => '<' . ( time() - 2 * HOUR_IN_SECONDS ),
 			'meta_key'     => self::ORDER_META,

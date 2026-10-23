@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.83.2 — 2026-10-23
+- Fix: the Sales Dashboard's activity tiles crashed after the first
+  WooCommerce refund. A refund is stored as its own order record with no
+  customer; lifetime revenue now reads real orders only (refunds are still
+  subtracted from each order's total).
+
 ## 1.83.1 — 2026-10-23
 - Sales Dashboard: each panel (activity tiles, email alert, sign-ups by
   channel, sign-up funnel) is drawn separately; one that fails shows its

@@ -258,12 +258,15 @@ final class ActiveUsers {
 		global $wpdb;
 		$admins = self::admin_ids();
 		if ( function_exists( 'wc_get_orders' ) ) {
-			$ids   = wc_get_orders( array( 'status' => array( 'wc-completed', 'wc-processing' ), 'limit' => -1, 'return' => 'ids' ) );
+			// 'type' => 'shop_order': a refund is stored as its own "order"
+			// (status completed, no customer), and loading one here crashed the
+			// dashboard the first time a refund was made (2026-10-23).
+			$ids   = wc_get_orders( array( 'type' => 'shop_order', 'status' => array( 'wc-completed', 'wc-processing' ), 'limit' => -1, 'return' => 'ids' ) );
 			$users = array();
 			$sum   = 0.0;
 			foreach ( (array) $ids as $id ) {
 				$o = wc_get_order( $id );
-				if ( ! $o || in_array( (int) $o->get_customer_id(), $admins, true ) ) {
+				if ( ! $o instanceof \WC_Order || in_array( (int) $o->get_customer_id(), $admins, true ) ) {
 					continue;
 				}
 				$net = (float) $o->get_total() - (float) $o->get_total_refunded();
