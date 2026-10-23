@@ -243,6 +243,18 @@ final class ActiveUsers {
 	 * Falls back to PMPro's order table only when WooCommerce is absent.
 	 */
 	private static function revenue() {
+		// Loading every order is the heavy part of this page; an hour is fresh
+		// enough for a lifetime total.
+		$cached = get_transient( 'csm_au_revenue' );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+		$r = self::revenue_uncached();
+		set_transient( 'csm_au_revenue', $r, HOUR_IN_SECONDS );
+		return $r;
+	}
+
+	private static function revenue_uncached() {
 		global $wpdb;
 		$admins = self::admin_ids();
 		if ( function_exists( 'wc_get_orders' ) ) {

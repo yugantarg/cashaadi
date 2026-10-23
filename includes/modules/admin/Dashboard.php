@@ -359,15 +359,26 @@ final class Dashboard {
 
 		echo '<div class="wrap"><h1>Sales Dashboard</h1>';
 		echo '<p style="font-size:13px;color:#555;">Review new users, their activation & profile status, and phone numbers so the sales team can reach out and guide them.</p>';
-		if ( class_exists( __NAMESPACE__ . '\\ActiveUsers' ) ) {
-			echo ActiveUsers::card(); // phpcs:ignore WordPress.Security.EscapeOutput
-		}
-		if ( class_exists( '\\CAShaadi\\Modules\\Analytics\\Funnel' ) ) {
-			echo \CAShaadi\Modules\Analytics\Funnel::alert(); // phpcs:ignore WordPress.Security.EscapeOutput
-		}
-		echo self::channel_summary(); // phpcs:ignore WordPress.Security.EscapeOutput
-		if ( class_exists( '\\CAShaadi\\Modules\\Analytics\\Funnel' ) ) {
-			echo \CAShaadi\Modules\Analytics\Funnel::summary(); // phpcs:ignore WordPress.Security.EscapeOutput
+		/*
+		 * Each panel is drawn on its own, so one that fails shows its error in
+		 * place instead of taking down the whole page (2026-10-23: a "critical
+		 * error" blanked the dashboard below its heading).
+		 */
+		$panels = array(
+			'Activity tiles'      => array( __NAMESPACE__ . '\\ActiveUsers', 'card' ),
+			'Email alert'         => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'alert' ),
+			'Sign-ups by channel' => array( __CLASS__, 'channel_summary' ),
+			'Sign-up funnel'      => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'summary' ),
+		);
+		foreach ( $panels as $label => $cb ) {
+			if ( ! class_exists( $cb[0] ) ) {
+				continue;
+			}
+			try {
+				echo call_user_func( $cb ); // phpcs:ignore WordPress.Security.EscapeOutput
+			} catch ( \Throwable $e ) {
+				echo '<div class="notice notice-error" style="padding:8px 12px">' . esc_html( $label . ' could not load: ' . $e->getMessage() . ' (' . basename( $e->getFile() ) . ':' . $e->getLine() . ')' ) . '</div>';
+			}
 		}
 
 		echo '<form method="get" style="margin:15px 0;padding:12px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;">';

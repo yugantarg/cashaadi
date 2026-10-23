@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.83.1 — 2026-10-23
+- Sales Dashboard: each panel (activity tiles, email alert, sign-ups by
+  channel, sign-up funnel) is drawn separately; one that fails shows its
+  error in place instead of a "critical error" for the whole page.
+- Lifetime revenue (which loads every WooCommerce order) is cached for an hour.
+
 ## 1.83.0 — 2026-10-22
 - Premium members can send a request to anyone who viewed their profile
   ("Who viewed me"), even if that person is not in their weekly set. The
