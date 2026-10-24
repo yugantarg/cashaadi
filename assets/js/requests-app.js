@@ -184,6 +184,10 @@
 		return Object.keys( rfilt ).every( function ( k ) {
 			var want = rfilt[ k ];
 			if ( ! want ) { return true; }
+			if ( 'same' === want ) {
+				var dim = ( data.filterKeys || [] ).filter( function ( x ) { return x.key === k; } )[0];
+				return !! dim && ( a[ k ] || '' ).toLowerCase().replace( /\s+/g, ' ' ).trim() === dim.mine;
+			}
 			if ( 'age' === k ) {
 				var r = want.split( '-' );
 				return a.age && a.age >= +r[0] && a.age <= +r[1];
@@ -204,6 +208,17 @@
 		}
 		var dims = keys.concat( [ { key: 'age', label: 'Age' } ] );
 		dims.forEach( function ( d ) {
+			if ( d.same ) {
+				var lab = el( 'label', 'csm-r-filter csm-r-same' );
+				var cb = document.createElement( 'input' );
+				cb.type = 'checkbox';
+				cb.checked = 'same' === rfilt[ d.key ];
+				cb.addEventListener( 'change', function () { rfilt[ d.key ] = cb.checked ? 'same' : ''; draw(); } );
+				lab.appendChild( cb );
+				lab.appendChild( document.createTextNode( ' Same ' + d.label.toLowerCase() + ' as mine' ) );
+				bar.appendChild( lab );
+				return;
+			}
 			var vals = {};
 			data.received.forEach( function ( p ) {
 				var v = ( p.attrs || {} )[ d.key ];

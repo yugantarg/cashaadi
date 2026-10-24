@@ -351,7 +351,7 @@ final class RequestsScreen {
 			} ) ),
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
-			'filterKeys'   => class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? array_map( function ( $c ) { return array( 'key' => $c['key'], 'label' => $c['label'] ); }, \CAShaadi\Modules\Discover\Filters::choices_for_ui() ) : array(),
+			'filterKeys'   => class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? array_map( function ( $c ) { return array( 'key' => $c['key'], 'label' => $c['label'], 'same' => ! empty( $c['same'] ), 'mine' => isset( $c['mine'] ) ? \CAShaadi\Modules\Discover\Filters::norm( $c['mine'] ) : '' ); }, \CAShaadi\Modules\Discover\Filters::choices_for_ui( $uid ) ) : array(),
 			'matches'      => $matches,
 			'sent'         => $sent,
 			'viewers'      => array_slice( $viewers, 0, $premium ? 200 : 6 ),

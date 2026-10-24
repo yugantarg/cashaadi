@@ -202,7 +202,15 @@ final class Filters {
 			$out['in_max'] = $hi;
 		}
 
+		/*
+		 * Free-text fields (Community on this install) have no option list, so
+		 * they offer "same as mine" instead: $in[ $k ] === 'same'.
+		 */
 		foreach ( array_keys( self::CHOICES ) as $k ) {
+			if ( isset( $in[ $k ] ) && 'same' === $in[ $k ] && ! self::choice_options( $k ) && '' !== self::own_value( $uid, $k ) ) {
+				$out[ $k ] = 'same';
+				continue;
+			}
 			if ( empty( $in[ $k ] ) || ! is_array( $in[ $k ] ) ) {
 				continue;
 			}
@@ -281,6 +289,20 @@ final class Filters {
 		 * does not match, and dropping every blank would empty most pools).
 		 */
 		foreach ( array_keys( self::CHOICES ) as $k ) {
+			if ( isset( $f[ $k ] ) && 'same' === $f[ $k ] ) {
+				$fid  = self::choice_field( $k );
+				$mine = self::norm( self::own_value( $uid, $k ) );
+				if ( $fid && '' !== $mine ) {
+					// Typed values compared ignoring case and outer spaces; blanks kept.
+					$add .= $wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						" AND ( NOT EXISTS ( SELECT 1 FROM {$t} c{$fid} WHERE c{$fid}.user_id = xp.user_id AND c{$fid}.field_id = %d AND c{$fid}.value <> '' )
+						   OR EXISTS ( SELECT 1 FROM {$t} d{$fid} WHERE d{$fid}.user_id = xp.user_id AND d{$fid}.field_id = %d AND LOWER(TRIM(d{$fid}.value)) = %s ) )",
+						$fid, $fid, $mine
+					);
+				}
+				continue;
+			}
 			if ( empty( $f[ $k ] ) || ! is_array( $f[ $k ] ) ) {
 				continue;
 			}
@@ -355,20 +377,44 @@ final class Filters {
 				'inSpan'  => self::IN_SPAN_MIN,
 			),
 			'quota'    => class_exists( __NAMESPACE__ . '\\Discover' ) ? Discover::quota_for( $uid ) : self::QUOTA_PREMIUM_FEMALE,
-			'choices'  => self::choices_for_ui(),
+			'choices'  => self::choices_for_ui( $uid ),
 		);
 	}
 
-	/** Every pick-list dimension with its options, for the filter sheets. */
-	public static function choices_for_ui() {
+	/**
+	 * Every filter dimension for the sheets: a pick list where the field has
+	 * options, else "same as mine" (only offered when the member filled it in).
+	 */
+	public static function choices_for_ui( $uid = 0 ) {
+		$uid = $uid ? (int) $uid : get_current_user_id();
 		$out = array();
 		foreach ( self::CHOICES as $k => $def ) {
+			if ( ! self::choice_field( $k ) ) {
+				continue;
+			}
 			$opts = self::choice_options( $k );
 			if ( $opts ) {
 				$out[] = array( 'key' => $k, 'label' => $def[1], 'options' => $opts );
+			} elseif ( '' !== self::own_value( $uid, $k ) ) {
+				$out[] = array( 'key' => $k, 'label' => $def[1], 'same' => true, 'mine' => self::own_value( $uid, $k ) );
 			}
 		}
 		return $out;
+	}
+
+	/** The member's own answer for a dimension, as typed. */
+	public static function own_value( $uid, $k ) {
+		$fid = self::choice_field( $k );
+		if ( ! $fid || ! function_exists( 'xprofile_get_field_data' ) ) {
+			return '';
+		}
+		$v = xprofile_get_field_data( $fid, (int) $uid );
+		return trim( wp_strip_all_tags( is_array( $v ) ? implode( ', ', $v ) : (string) $v ) );
+	}
+
+	/** Lower-case, single-spaced: how free-text answers are compared. */
+	public static function norm( $v ) {
+		return strtolower( trim( preg_replace( '/\s+/', ' ', (string) $v ) ) );
 	}
 
 	public static function rest_get( $request ) {

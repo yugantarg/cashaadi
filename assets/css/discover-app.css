@@ -482,3 +482,4 @@ body.csm-member-view .csm-d-card {
 .csm-d-chip.is-on { background: var(--csm-ink, #16212b); border-color: var(--csm-ink, #16212b); color: #fff; }
 .csm-d-sheet { max-height: 86vh; overflow-y: auto; }
 .csm-d-filterbtn.is-locked { text-decoration: none; color: var(--csm-muted, #5c6a76); font-size: 13px; }
+.csm-d-fsame { display: flex; gap: 8px; align-items: center; font-size: 14px; }

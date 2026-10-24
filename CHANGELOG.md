@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.85.1 — 2026-10-24
+- Filters on free-text fields (Community on this install) offer one switch,
+  "Same community as mine", instead of a list of every spelling members
+  typed. Values are compared ignoring case and extra spaces; profiles that
+  left it blank are still shown. Applies to any filter field without fixed
+  options, in Discover and on Requests → Received.
+
 ## 1.85.0 — 2026-10-24
 Premium additions (step 2 of the Premium/Gold plan).
 - **Discover filters for every Premium member** (until now Premium women

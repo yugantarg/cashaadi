@@ -215,7 +215,7 @@
 	function pickCount( c ) {
 		var n = 0;
 		( ( meta.filters && meta.filters.choices ) || [] ).forEach( function ( ch ) {
-			if ( c[ ch.key ] && c[ ch.key ].length ) { n++; }
+			if ( c[ ch.key ] && ( 'same' === c[ ch.key ] || c[ ch.key ].length ) ) { n++; }
 		} );
 		return n;
 	}
@@ -227,6 +227,17 @@
 		var n = pickCount( c );
 		if ( n ) { bits.push( n + ' more' ); }
 		return bits.join( ' \u00b7 ' );
+	}
+
+	/* A free-text field: one switch, "Same as mine". */
+	function sameSwitch( ch, chosen ) {
+		var row = el( 'label', 'csm-d-frow csm-d-fsame' );
+		var cb = document.createElement( 'input' );
+		cb.type = 'checkbox';
+		cb.checked = 'same' === chosen;
+		row.appendChild( cb );
+		row.appendChild( el( 'span', null, 'Same ' + ch.label.toLowerCase() + ' as mine (' + ch.mine + ')' ) );
+		return { row: row, read: function () { return cb.checked ? 'same' : ''; } };
 	}
 
 	/* A pick list as tappable chips; returns a reader for the chosen values. */
@@ -283,7 +294,7 @@
 		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { box.appendChild( n.row ); } );
 
 		var picks = ( f.choices || [] ).map( function ( ch ) {
-			var c = chips( ch, cur[ ch.key ] );
+			var c = ch.same ? sameSwitch( ch, cur[ ch.key ] ) : chips( ch, cur[ ch.key ] );
 			box.appendChild( c.row );
 			return { key: ch.key, read: c.read };
 		} );
