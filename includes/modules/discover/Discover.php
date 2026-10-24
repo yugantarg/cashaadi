@@ -182,7 +182,7 @@ final class Discover {
 		return true;
 	}
 
-	public static function act( $viewer_id, $profile_id, $status ) {
+	public static function act( $viewer_id, $profile_id, $status, $note = '' ) {
 		$viewer_id  = (int) $viewer_id;
 		$profile_id = (int) $profile_id;
 		$status     = in_array( $status, array( 'liked', 'passed', 'saved' ), true ) ? $status : 'passed';
@@ -273,6 +273,14 @@ final class Discover {
 		 * method, so a single hook covers every entry point and listeners (e.g.
 		 * MatchIntro seeding a conversation) cannot drift from the source of truth.
 		 */
+		// A note with the request (Premium, v1.85.0), stored before the request
+		// email is queued so the email can carry it. Already cleaned by the caller.
+		if ( 'liked' === $status && ! $is_mutual && '' !== (string) $note
+			&& class_exists( '\\CAShaadi\\Modules\\Requests\\RequestNote' )
+			&& \CAShaadi\Modules\Requests\RequestNote::allowed( $viewer_id ) ) {
+			\CAShaadi\Modules\Requests\RequestNote::save( $viewer_id, $profile_id, $note );
+		}
+
 		if ( $is_mutual ) {
 			do_action( 'csm_mutual_match', $viewer_id, $profile_id );
 		} elseif ( 'liked' === $status ) {

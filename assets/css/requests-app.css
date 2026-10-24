@@ -141,3 +141,9 @@
 	font-size: 14px; font-weight: 700; text-decoration: none;
 }
 .csm-r-upsell-btn:hover { background: #91701f; color: #fff; }
+
+/* Request notes and received filters (v1.85.0). */
+.csm-r-note { margin: 6px 0 0; padding: 8px 12px; background: #f6f3ee; border-left: 3px solid #7a1220; border-radius: 6px; font-style: italic; font-size: 14px; color: var(--csm-ink, #16212b); flex-basis: 100%; }
+.csm-r-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.csm-r-filter { padding: 6px 8px; border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 8px; font-size: 13px; background: #fff; max-width: 48%; }
+.csm-r-filterlock { font-size: 13px; color: var(--csm-muted, #5c6a76); text-decoration: none; }

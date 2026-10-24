@@ -128,7 +128,7 @@
 		if ( meta.filters && meta.filters.eligible ) {
 			var fb2 = filterBar();
 			if ( fb2 ) {
-				if ( meta.filters.filters && meta.filters.filters.age_min ) {
+				if ( meta.filters.filters && ( meta.filters.filters.age_min || meta.filters.filters.in_min || pickCount( meta.filters.filters ) ) ) {
 					box.appendChild( el( 'p', 'csm-d-fhint', 'Your filters are narrowing this. Widen them to see more.' ) );
 				}
 				box.appendChild( fb2 );
@@ -185,12 +185,20 @@
 
 	function filterBar() {
 		var f = meta.filters;
-		if ( ! f || ! f.eligible ) { return null; }
+		if ( ! f ) { return null; }
 		var wrap = el( 'div', 'csm-d-filterbar' );
+		/* Free members see the control locked: filters are a Premium feature. */
+		if ( ! f.eligible ) {
+			if ( ! meta.upgrade ) { return null; }
+			var lock = el( 'a', 'csm-d-filterbtn is-locked', '\uD83D\uDD12 Filter by community, religion, age\u2026 with Premium' );
+			lock.href = meta.upgrade;
+			wrap.appendChild( lock );
+			return wrap;
+		}
 		var cur  = f.filters || {};
 		var btn  = el( 'button', 'csm-d-filterbtn' );
 		btn.type = 'button';
-		var on = ( cur.age_min || cur.in_min );
+		var on = ( cur.age_min || cur.in_min || pickCount( cur ) );
 		btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M7 12h10M10 19h4"/></svg>';
 		btn.appendChild( document.createTextNode( on ? summary( cur ) : 'Filter' ) );
 		if ( on ) { btn.classList.add( 'is-on' ); }
@@ -203,11 +211,42 @@
 		return Math.floor( inches / 12 ) + '\u2032' + ( inches % 12 ) + '\u2033';
 	}
 
+	/* How many pick-list filters are set (community, religion, …). */
+	function pickCount( c ) {
+		var n = 0;
+		( ( meta.filters && meta.filters.choices ) || [] ).forEach( function ( ch ) {
+			if ( c[ ch.key ] && c[ ch.key ].length ) { n++; }
+		} );
+		return n;
+	}
+
 	function summary( c ) {
 		var bits = [];
 		if ( c.age_min ) { bits.push( c.age_min + '\u2013' + c.age_max + ' yrs' ); }
 		if ( c.in_min ) { bits.push( ftIn( c.in_min ) + '\u2013' + ftIn( c.in_max ) ); }
+		var n = pickCount( c );
+		if ( n ) { bits.push( n + ' more' ); }
 		return bits.join( ' \u00b7 ' );
+	}
+
+	/* A pick list as tappable chips; returns a reader for the chosen values. */
+	function chips( ch, chosen ) {
+		var row = el( 'div', 'csm-d-frow csm-d-fchips' );
+		row.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
+		var box = el( 'div', 'csm-d-chipset' );
+		var picked = {};
+		( chosen || [] ).forEach( function ( v ) { picked[ v ] = true; } );
+		ch.options.forEach( function ( opt ) {
+			var c = el( 'button', 'csm-d-chip' + ( picked[ opt ] ? ' is-on' : '' ), opt );
+			c.type = 'button';
+			c.addEventListener( 'click', function () {
+				picked[ opt ] = ! picked[ opt ];
+				c.classList.toggle( 'is-on', !! picked[ opt ] );
+			} );
+			box.appendChild( c );
+		} );
+		row.appendChild( box );
+		return { row: row, read: function () { return ch.options.filter( function ( o ) { return picked[ o ]; } ); } };
 	}
 
 	function sheet() {
@@ -242,6 +281,15 @@
 		var hMin = num( 'Height from', 'in_min', b.inMin, b.inMax, cur.in_min, ftIn );
 		var hMax = num( 'Height to', 'in_max', b.inMin, b.inMax, cur.in_max, ftIn );
 		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { box.appendChild( n.row ); } );
+
+		var picks = ( f.choices || [] ).map( function ( ch ) {
+			var c = chips( ch, cur[ ch.key ] );
+			box.appendChild( c.row );
+			return { key: ch.key, read: c.read };
+		} );
+		if ( picks.length ) {
+			box.appendChild( el( 'p', 'csm-d-sheethint', 'Nothing chosen means any. Profiles that have not answered a question are still shown.' ) );
+		}
 
 		var err = el( 'p', 'csm-d-ferr' );
 		box.appendChild( err );
@@ -292,10 +340,12 @@
 		clear.addEventListener( 'click', function () { send( {} ); } );
 		save.addEventListener( 'click', function () {
 			if ( ! validate() ) { return; }
-			send( {
+			var payload = {
 				age_min: aMin.sel.value, age_max: aMax.sel.value,
 				in_min: hMin.sel.value, in_max: hMax.sel.value
-			} );
+			};
+			picks.forEach( function ( pk ) { payload[ pk.key ] = pk.read(); } );
+			send( payload );
 		} );
 		back.addEventListener( 'click', function ( e ) { if ( e.target === back ) { close(); } } );
 
@@ -429,10 +479,18 @@
 		function guarded( name ) {
 			return function () {
 				var btn = this;
+				var go = function () {
+					// Premium: offer a note with the request (v1.85.0).
+					if ( 'like' === name && meta.isPremium && window.csmNoteSheet ) {
+						window.csmNoteSheet( p.name, function ( note ) { act( p, name, btn, note ); } );
+					} else {
+						act( p, name, btn );
+					}
+				};
 				if ( window.csmCoach ) {
-					window.csmCoach.explain( name, function () { act( p, name, btn ); } );
+					window.csmCoach.explain( name, go );
 				} else {
-					act( p, name, btn );
+					go();
 				}
 			};
 		}
@@ -535,7 +593,7 @@
 		} ).catch( function () {} );
 	}
 
-	function act( p, what, btn ) {
+	function act( p, what, btn, note ) {
 		/* Busy state on the tapped control. The card advances optimistically, so
 		   this mostly matters on a slow connection where the old card lingers. */
 		var release = ( window.csmBusy && btn ) ? window.csmBusy( btn ) : function () {};
@@ -551,9 +609,10 @@
 		api( CFG.act, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify( { profile_id: p.id, action: what } )
+			body: JSON.stringify( { profile_id: p.id, action: what, note: note || '' } )
 		} ).then( function ( d ) {
 			release();
+			if ( d && false === d.ok && d.message ) { toast( d.message ); }
 			if ( d && d.isMutual ) { celebrate( p ); }
 			if ( 'save' === what ) { toast( 'Saved. Find them under Requests → Saved.' ); }
 		} ).catch( function () {

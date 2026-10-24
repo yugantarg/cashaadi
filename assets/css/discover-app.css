@@ -474,3 +474,11 @@ body.csm-member-view .csm-d-card {
 .csm-d-boost-row.is-done { color: #2f7d4f; font-weight: 500; }
 .csm-d-boost-row em { display: block; font-style: normal; font-weight: 400; font-size: 12.5px; color: var(--csm-muted, #5c6a76); }
 .csm-d-boost-foot { margin: 8px 0 0; font-size: 12.5px; color: var(--csm-muted, #5c6a76); }
+
+/* Pick-list filters (v1.85.0). */
+.csm-d-fchips { display: block; }
+.csm-d-chipset { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.csm-d-chip { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--csm-hair-2, #d6dfe7); background: var(--csm-surface, #fff); color: var(--csm-ink, #16212b); font-size: 13px; cursor: pointer; }
+.csm-d-chip.is-on { background: var(--csm-ink, #16212b); border-color: var(--csm-ink, #16212b); color: #fff; }
+.csm-d-sheet { max-height: 86vh; overflow-y: auto; }
+.csm-d-filterbtn.is-locked { text-decoration: none; color: var(--csm-muted, #5c6a76); font-size: 13px; }

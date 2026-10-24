@@ -75,6 +75,8 @@
 		if ( sub ) { meta.appendChild( el( 'span', 'csm-r-sub', sub ) ); }
 		a.appendChild( meta );
 		row.appendChild( a );
+		// The note that came with the request (v1.85.0).
+		if ( p.note ) { row.appendChild( el( 'p', 'csm-r-note', '\u201c' + p.note + '\u201d' ) ); }
 
 		if ( actions && actions.length ) {
 			var bar = el( 'div', 'csm-r-actions' );
@@ -175,6 +177,58 @@
 		return box;
 	}
 
+	var rfilt = {};   // key -> chosen value ('' = any)
+
+	function passes( p ) {
+		var a = p.attrs || {};
+		return Object.keys( rfilt ).every( function ( k ) {
+			var want = rfilt[ k ];
+			if ( ! want ) { return true; }
+			if ( 'age' === k ) {
+				var r = want.split( '-' );
+				return a.age && a.age >= +r[0] && a.age <= +r[1];
+			}
+			return a[ k ] === want;
+		} );
+	}
+
+	function receivedFilters() {
+		var keys = data.filterKeys || [];
+		if ( ! keys.length || ( data.received || [] ).length < 2 ) { return null; }
+		var bar = el( 'div', 'csm-r-filters' );
+		if ( ! data.isPremium ) {
+			var lock = el( 'a', 'csm-r-filterlock', '\uD83D\uDD12 Filter requests by income, community, age\u2026 with Premium' );
+			lock.href = CFG.upgrade;
+			bar.appendChild( lock );
+			return bar;
+		}
+		var dims = keys.concat( [ { key: 'age', label: 'Age' } ] );
+		dims.forEach( function ( d ) {
+			var vals = {};
+			data.received.forEach( function ( p ) {
+				var v = ( p.attrs || {} )[ d.key ];
+				if ( 'age' === d.key && v ) { var lo = Math.floor( ( v - 1 ) / 3 ) * 3 + 1; v = lo + '-' + ( lo + 2 ); }
+				if ( v ) { vals[ v ] = ( vals[ v ] || 0 ) + 1; }
+			} );
+			var names = Object.keys( vals ).sort();
+			if ( names.length < 2 && ! rfilt[ d.key ] ) { return; }
+			var sel = document.createElement( 'select' );
+			sel.className = 'csm-r-filter';
+			var any = document.createElement( 'option' );
+			any.value = ''; any.textContent = d.label + ': any';
+			sel.appendChild( any );
+			names.forEach( function ( v ) {
+				var o = document.createElement( 'option' );
+				o.value = v; o.textContent = v + ' (' + vals[ v ] + ')';
+				if ( rfilt[ d.key ] === v ) { o.selected = true; }
+				sel.appendChild( o );
+			} );
+			sel.addEventListener( 'change', function () { rfilt[ d.key ] = sel.value; draw(); } );
+			bar.appendChild( sel );
+		} );
+		return bar.childNodes.length ? bar : null;
+	}
+
 	function draw() {
 		root.innerHTML = '';
 		root.appendChild( tabs() );
@@ -186,7 +240,15 @@
 				root.appendChild( emptyBox( 'No requests yet', 'When someone likes your profile, they will appear here.' ) );
 				return;
 			}
-			data.received.forEach( function ( p ) {
+			/* Filters for the received list (v1.85.0): Premium picks values that
+			   appear among the senders; free members see the control locked. */
+			var fbar = receivedFilters();
+			if ( fbar ) { root.appendChild( fbar ); }
+			var shown = data.received.filter( passes );
+			if ( ! shown.length ) {
+				list.appendChild( el( 'li', 'csm-r-sub', 'No requests match these filters.' ) );
+			}
+			shown.forEach( function ( p ) {
 				list.appendChild( personRow( p, [
 					{ kind: 'accept', label: 'Accept', action: 'accept' },
 					{ kind: 'decline', label: 'Decline', action: 'reject' }

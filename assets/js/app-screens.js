@@ -137,6 +137,52 @@ window.csmPhotoStack = function ( media, shots ) {
  *   var done = csmBusy( btn );
  *   fetch(...).finally( done );
  */
+/*
+ * "Add a note" before a request is sent (Premium, v1.85.0). Calls done(note)
+ * with the note ('' for none), or nothing if the member closes it. The same
+ * contact-details rule as the server, checked as they type.
+ */
+window.csmNoteSheet = function ( name, done ) {
+	var mk = function ( tag, cls, text ) {
+		var n = document.createElement( tag );
+		if ( cls ) { n.className = cls; }
+		if ( text !== undefined ) { n.textContent = text; }
+		return n;
+	};
+	var back = mk( 'div', 'csm-note-back' );
+	var box  = mk( 'div', 'csm-note' );
+	box.appendChild( mk( 'h2', null, 'Add a note for ' + name + '?' ) );
+	box.appendChild( mk( 'p', 'csm-note-hint', 'A line about why you are writing makes a request more likely to be accepted.' ) );
+	var ta = mk( 'textarea', 'csm-note-text' );
+	ta.maxLength = 200;
+	ta.rows = 3;
+	ta.placeholder = 'e.g. We are both from Pune and I liked what you wrote about travel.';
+	box.appendChild( ta );
+	var err = mk( 'p', 'csm-note-err' );
+	box.appendChild( err );
+	var row = mk( 'div', 'csm-note-act' );
+	var skip = mk( 'button', 'csm-note-skip', 'Send without a note' );
+	var send = mk( 'button', 'csm-note-send', 'Send request' );
+	skip.type = send.type = 'button';
+	row.appendChild( skip );
+	row.appendChild( send );
+	box.appendChild( row );
+	back.appendChild( box );
+	document.body.appendChild( back );
+	ta.focus();
+	var close = function () { if ( back.parentNode ) { back.parentNode.removeChild( back ); } };
+	var bad = function ( v ) {
+		return /\d[\d\s\-]{6,}\d/.test( v ) || /@|https?:|www\.|whats\s?app|insta(gram)?|telegram/i.test( v );
+	};
+	ta.addEventListener( 'input', function () {
+		err.textContent = bad( ta.value ) ? 'Notes cannot include phone numbers, emails, links or social handles.' : '';
+		send.disabled = !! err.textContent;
+	} );
+	skip.addEventListener( 'click', function () { close(); done( '' ); } );
+	send.addEventListener( 'click', function () { if ( bad( ta.value ) ) { return; } close(); done( ta.value.trim() ); } );
+	back.addEventListener( 'click', function ( e ) { if ( e.target === back ) { close(); } } );
+};
+
 window.csmBusy = function ( btn ) {
 	if ( ! btn ) { return function () {}; }
 	var wasDisabled = btn.disabled;

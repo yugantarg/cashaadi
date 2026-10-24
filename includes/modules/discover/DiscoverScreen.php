@@ -319,7 +319,14 @@ final class DiscoverScreen {
 		$map    = array( 'like' => 'liked', 'pass' => 'passed', 'save' => 'saved' );
 		$status = isset( $map[ $what ] ) ? $map[ $what ] : 'passed';
 
-		$res = Discover::act( get_current_user_id(), $pid, $status );
+		$note = '';
+		if ( 'liked' === $status && class_exists( '\\CAShaadi\\Modules\\Requests\\RequestNote' ) ) {
+			$note = \CAShaadi\Modules\Requests\RequestNote::clean( (string) $request->get_param( 'note' ) );
+			if ( is_wp_error( $note ) ) {
+				return new \WP_REST_Response( array( 'ok' => false, 'message' => $note->get_error_message(), 'isMutual' => false, 'remaining' => 0 ), 200 );
+			}
+		}
+		$res = Discover::act( get_current_user_id(), $pid, $status, $note );
 
 		return new \WP_REST_Response( array(
 			'ok'        => (bool) $res['ok'],

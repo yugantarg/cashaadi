@@ -262,12 +262,19 @@ final class Engagement {
 		$body = self::wrap(
 			self::greeting( $liked_id ),
 			'<p><strong>' . esc_html( $who ) . '</strong> has sent you a match request on ' . esc_html( self::site() ) . '.</p>'
+			. self::note_html( $liker_id, $liked_id )
 			. '<p>Accept it and you can start a conversation.</p>',
 			home_url( '/requests/' ),
 			'View your requests'
 		);
 
 		Queue::notify( $liked_id, 'csm-liked-' . $liker_id, $who . ' has sent you a match request', $body );
+	}
+
+	/** The note that came with a request, quoted; '' when there is none. */
+	private static function note_html( $from, $to ) {
+		$note = class_exists( '\\CAShaadi\\Modules\\Requests\\RequestNote' ) ? \CAShaadi\Modules\Requests\RequestNote::get( $from, $to ) : '';
+		return '' === $note ? '' : '<p style="padding:12px 14px;background:#f6f3ee;border-left:4px solid #7a1220;border-radius:6px;font-style:italic">&ldquo;' . esc_html( $note ) . '&rdquo;</p>';
 	}
 
 	/** Both sides matched. Tell each of them, once per pair. */

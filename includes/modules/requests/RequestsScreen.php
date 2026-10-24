@@ -189,7 +189,11 @@ final class RequestsScreen {
 		foreach ( $rids as $rid ) {
 			$rid = (int) $rid;
 			if ( $rid && get_userdata( $rid ) ) {
-				$received[] = self::person( $rid );
+				$row = self::person( $rid );
+				// Note with the request, and what Premium can filter on (v1.85.0).
+				$row['note']  = class_exists( __NAMESPACE__ . '\\RequestNote' ) ? RequestNote::get( $rid, $uid ) : '';
+				$row['attrs'] = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? (object) \CAShaadi\Modules\Discover\Filters::profile_attrs( $rid, $uid ) : new \stdClass();
+				$received[] = $row;
 			}
 		}
 
@@ -347,6 +351,7 @@ final class RequestsScreen {
 			} ) ),
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
+			'filterKeys'   => class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? array_map( function ( $c ) { return array( 'key' => $c['key'], 'label' => $c['label'] ); }, \CAShaadi\Modules\Discover\Filters::choices_for_ui() ) : array(),
 			'matches'      => $matches,
 			'sent'         => $sent,
 			'viewers'      => array_slice( $viewers, 0, $premium ? 200 : 6 ),

@@ -39,6 +39,21 @@ final class Filters {
 	const IN_MAX       = 84;  // 7'0"
 	const IN_SPAN_MIN  = 5;   // inches
 
+	/*
+	 * Pick-list filters (v1.85.0). The dimensions that move like rates most in
+	 * the 24 Oct research: community (+13 pts for men, +16 for women), mother
+	 * tongue, religion, diet; income and CA/Inter matter mainly to women.
+	 * key => array( xprofile field name, label ). Qualification is by id.
+	 */
+	const CHOICES = array(
+		'community' => array( 'Community', 'Community' ),
+		'tongue'    => array( 'Language (Mother Tongue)', 'Mother tongue' ),
+		'religion'  => array( 'Religion', 'Religion' ),
+		'diet'      => array( 'Diet', 'Diet' ),
+		'income'    => array( 'Annual Income', 'Annual income' ),
+		'qual'      => array( '', 'Qualification' ),
+	);
+
 	public static function register() {
 		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 10, 2 );
 		add_filter( 'csm_refill_extra_where', array( __CLASS__, 'where' ), 10, 2 );
@@ -47,21 +62,79 @@ final class Filters {
 
 	/* ------------------------------------------------------------ policy */
 
-	/** Premium AND female. Both are required; either alone keeps the old tray. */
+	/** Filters are for every Premium member (v1.85.0; until then Premium women only). */
 	public static function eligible( $uid ) {
 		$uid = (int) $uid;
-		if ( ! $uid || ! Membership::is_premium( $uid ) ) {
-			return false;
-		}
-		if ( ! function_exists( 'cashaadi' ) ) {
+		return $uid && Membership::is_premium( $uid );
+	}
+
+	/** The 50-a-week quota stays a Premium-women rule. */
+	public static function premium_female( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid || ! Membership::is_premium( $uid ) || ! function_exists( 'cashaadi' ) ) {
 			return false;
 		}
 		return 'Female' === trim( (string) cashaadi()->get_gender( $uid ) );
 	}
 
+	public static function choice_field( $key ) {
+		if ( 'qual' === $key ) {
+			return (int) Config::FIELD_QUALIFICATION;
+		}
+		return isset( self::CHOICES[ $key ] ) && function_exists( 'xprofile_get_field_id_from_name' )
+			? (int) xprofile_get_field_id_from_name( self::CHOICES[ $key ][0] )
+			: 0;
+	}
+
+	/** The options a field offers, in the field's own order. Cached per request. */
+	public static function choice_options( $key ) {
+		static $cache = array();
+		if ( isset( $cache[ $key ] ) ) {
+			return $cache[ $key ];
+		}
+		$out = array();
+		$fid = self::choice_field( $key );
+		if ( $fid && class_exists( '\BP_XProfile_Field' ) ) {
+			$f = \BP_XProfile_Field::get_instance( $fid );
+			foreach ( (array) ( $f ? $f->get_children() : array() ) as $c ) {
+				$name = trim( (string) $c->name );
+				if ( '' !== $name && ! \CAShaadi\Core\Profile::is_placeholder( $name ) ) {
+					$out[] = $name;
+				}
+			}
+		}
+		return $cache[ $key ] = $out;
+	}
+
+	/**
+	 * A member's value for each pick-list dimension, plus age, as THIS viewer
+	 * may see them (a field the member hides from the viewer is left out).
+	 * Used to filter the Requests list.
+	 */
+	public static function profile_attrs( $uid, $viewer ) {
+		$hidden = \CAShaadi\Core\Profile::hidden_for( (int) $uid, (int) $viewer );
+		$out    = array();
+		foreach ( array_keys( self::CHOICES ) as $k ) {
+			$fid = self::choice_field( $k );
+			if ( ! $fid || in_array( $fid, $hidden, true ) ) {
+				continue;
+			}
+			$v = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
+			$v = trim( wp_strip_all_tags( is_array( $v ) ? implode( ', ', $v ) : (string) $v ) );
+			if ( '' !== $v ) {
+				$out[ $k ] = $v;
+			}
+		}
+		$age = \CAShaadi\Core\Profile::age_of( (int) $uid, $hidden );
+		if ( $age ) {
+			$out['age'] = (int) $age;
+		}
+		return $out;
+	}
+
 	/** 50 a week for an eligible member; anyone else keeps the engine's number. */
 	public static function tray_size( $size, $uid ) {
-		return self::eligible( $uid )
+		return self::premium_female( $uid )
 			? (int) apply_filters( 'csm_tray_size_premium_female', self::QUOTA_PREMIUM_FEMALE )
 			: $size;
 	}
@@ -129,6 +202,16 @@ final class Filters {
 			$out['in_max'] = $hi;
 		}
 
+		foreach ( array_keys( self::CHOICES ) as $k ) {
+			if ( empty( $in[ $k ] ) || ! is_array( $in[ $k ] ) ) {
+				continue;
+			}
+			$pick = array_values( array_intersect( self::choice_options( $k ), array_map( 'strval', $in[ $k ] ) ) );
+			if ( $pick ) {
+				$out[ $k ] = $pick;
+			}
+		}
+
 		if ( $out ) {
 			update_user_meta( (int) $uid, self::META, $out );
 		} else {
@@ -193,6 +276,27 @@ final class Filters {
 			);
 		}
 
+		/*
+		 * Pick lists: a profile that has not answered is KEPT (we cannot say it
+		 * does not match, and dropping every blank would empty most pools).
+		 */
+		foreach ( array_keys( self::CHOICES ) as $k ) {
+			if ( empty( $f[ $k ] ) || ! is_array( $f[ $k ] ) ) {
+				continue;
+			}
+			$fid = self::choice_field( $k );
+			if ( ! $fid ) {
+				continue;
+			}
+			$in   = implode( ',', array_fill( 0, count( $f[ $k ] ), '%s' ) );
+			$add .= $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				" AND ( NOT EXISTS ( SELECT 1 FROM {$t} c{$fid} WHERE c{$fid}.user_id = xp.user_id AND c{$fid}.field_id = %d AND c{$fid}.value <> '' )
+				   OR EXISTS ( SELECT 1 FROM {$t} d{$fid} WHERE d{$fid}.user_id = xp.user_id AND d{$fid}.field_id = %d AND d{$fid}.value IN ({$in}) ) )",
+				array_merge( array( $fid, $fid ), $f[ $k ] )
+			);
+		}
+
 		return $sql . $add;
 	}
 
@@ -250,8 +354,21 @@ final class Filters {
 				'inMax'   => self::IN_MAX,
 				'inSpan'  => self::IN_SPAN_MIN,
 			),
-			'quota'    => self::QUOTA_PREMIUM_FEMALE,
+			'quota'    => class_exists( __NAMESPACE__ . '\\Discover' ) ? Discover::quota_for( $uid ) : self::QUOTA_PREMIUM_FEMALE,
+			'choices'  => self::choices_for_ui(),
 		);
+	}
+
+	/** Every pick-list dimension with its options, for the filter sheets. */
+	public static function choices_for_ui() {
+		$out = array();
+		foreach ( self::CHOICES as $k => $def ) {
+			$opts = self::choice_options( $k );
+			if ( $opts ) {
+				$out[] = array( 'key' => $k, 'label' => $def[1], 'options' => $opts );
+			}
+		}
+		return $out;
 	}
 
 	public static function rest_get( $request ) {
@@ -267,6 +384,9 @@ final class Filters {
 			'in_min'  => $request->get_param( 'in_min' ),
 			'in_max'  => $request->get_param( 'in_max' ),
 		);
+		foreach ( array_keys( self::CHOICES ) as $k ) {
+			$in[ $k ] = $request->get_param( $k );
+		}
 		$res = self::save( $uid, $in );
 		if ( is_wp_error( $res ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'error' => $res->get_error_message() ), 200 );

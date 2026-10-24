@@ -30,17 +30,17 @@
 		setTimeout( function () { if ( t.parentNode ) { t.parentNode.removeChild( t ); } }, 3000 );
 	}
 
-	function act( d, what, btn ) {
+	function act( d, what, btn, note ) {
 		var release = ( window.csmBusy && btn ) ? window.csmBusy( btn ) : function () {};
 		fetch( CFG.act, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': CFG.nonce },
-			body: JSON.stringify( { profile_id: d.profile.id, action: what } )
+			body: JSON.stringify( { profile_id: d.profile.id, action: what, note: note || '' } )
 		} ).then( function ( r ) { return r.json(); } ).then( function ( res ) {
 			release();
 			if ( ! res || ! res.ok ) {
-				toast( 'That did not go through. Please try again.' );
+				toast( ( res && res.message ) || 'That did not go through. Please try again.' );
 				return;
 			}
 			if ( res && res.isMutual ) {
@@ -94,10 +94,17 @@
 		function guarded( name ) {
 			return function () {
 				var btn = this;
+				var go = function () {
+					if ( 'like' === name && d.canNote && window.csmNoteSheet ) {
+						window.csmNoteSheet( d.profile.name, function ( note ) { act( d, name, btn, note ); } );
+					} else {
+						act( d, name, btn );
+					}
+				};
 				if ( window.csmCoach ) {
-					window.csmCoach.explain( name, function () { act( d, name, btn ); } );
+					window.csmCoach.explain( name, go );
 				} else {
-					act( d, name, btn );
+					go();
 				}
 			};
 		}
@@ -155,7 +162,13 @@
 			var req = el( 'button', 'csm-mb-primary', 'Send request' );
 			req.type = 'button';
 			req.addEventListener( 'click', function () {
-				var go = function () { act( d, 'like', req ); };
+				var go = function () {
+					if ( d.canNote && window.csmNoteSheet ) {
+						window.csmNoteSheet( d.profile.name, function ( note ) { act( d, 'like', req, note ); } );
+					} else {
+						act( d, 'like', req );
+					}
+				};
 				if ( window.csmCoach ) { window.csmCoach.explain( 'like', go ); } else { go(); }
 			} );
 			w5.appendChild( req );

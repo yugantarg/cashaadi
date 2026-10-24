@@ -3,6 +3,22 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.85.0 — 2026-10-24
+Premium additions (step 2 of the Premium/Gold plan).
+- **Discover filters for every Premium member** (until now Premium women
+  only): age and height as before, plus community, mother tongue, religion,
+  diet, annual income and qualification, as tap-to-choose lists. A profile
+  that has not answered a question is still shown. Free members see the
+  filter control locked, linking to pricing. The 50-a-week quota stays a
+  Premium-women rule.
+- **Filters on Requests → Received** for Premium: by the same dimensions and
+  age, using values present among the senders (fields a sender hides are
+  respected). Free members see it locked.
+- **Note with a request** for Premium: tapping Like offers "Add a note"
+  (up to 200 characters, no phone numbers, emails, links or handles). The
+  note shows on the receiver's Requests list and in the request email.
+  Table `wp_csm_request_notes`.
+
 ## 1.84.0 — 2026-10-24
 - **Phone row on every profile card** (Discover, member pages, preview).
   Until now the number was never shown to anyone, matches included,

@@ -256,3 +256,15 @@ img.avatar {
 .csm-d-social.is-instagram { color: #d62976; }
 .csm-d-social:hover svg, .csm-d-social:focus-visible svg { opacity: .85; }
 .csm-d-social:focus-visible { outline: 2px solid #7a1220; outline-offset: 2px; }
+
+/* Note with a request (v1.85.0). */
+.csm-note-back { position: fixed; inset: 0; background: rgba(22,33,43,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 9999; }
+.csm-note { background: var(--csm-surface, #fff); width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 20px 18px 22px; }
+.csm-note h2 { margin: 0 0 6px; font-size: 18px; }
+.csm-note-hint { margin: 0 0 10px; color: var(--csm-muted, #5c6a76); font-size: 13.5px; }
+.csm-note-text { width: 100%; box-sizing: border-box; border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 10px; padding: 10px; font: inherit; font-size: 15px; }
+.csm-note-err { color: #b32d2e; font-size: 13px; min-height: 1em; margin: 6px 0; }
+.csm-note-act { display: flex; gap: 10px; justify-content: flex-end; }
+.csm-note-skip { background: none; border: 0; color: var(--csm-muted, #5c6a76); text-decoration: underline; cursor: pointer; font-size: 14px; }
+.csm-note-send { background: var(--csm-green, #6f9f2e); color: #fff; border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.csm-note-send:disabled { opacity: .5; }
