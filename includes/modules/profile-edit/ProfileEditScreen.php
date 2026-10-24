@@ -63,7 +63,12 @@ final class ProfileEditScreen {
 
 		AppPage::assets();
 		Assets::style( 'profile-edit-app', 'assets/css/profile-edit-app.css', array( 'cashaadi-app-screens' ) );
-		Assets::script( 'profile-edit-app', 'assets/js/profile-edit-app.js', array( 'cashaadi-app-screens' ) );
+		Assets::script( 'group-picker', 'assets/js/group-picker.js' );
+		Assets::style( 'group-picker', 'assets/css/group-picker.css' );
+		Assets::script( 'profile-edit-app', 'assets/js/profile-edit-app.js', array( 'cashaadi-app-screens', 'cashaadi-group-picker' ) );
+		if ( class_exists( '\\CAShaadi\\Core\\Buckets' ) ) {
+			wp_localize_script( 'cashaadi-group-picker', 'CSM_GROUPS', \CAShaadi\Core\Buckets::js_config() );
+		}
 		wp_localize_script( 'cashaadi-profile-edit-app', 'CSM_PEDIT', array(
 			'nonce'  => wp_create_nonce( 'wp_rest' ),
 			'get'    => rest_url( 'csm/v1/profile/group' ),
@@ -366,6 +371,7 @@ final class ProfileEditScreen {
 
 			$fields[] = array(
 				'id'       => (int) $field->id,
+				'bucket'   => class_exists( '\\CAShaadi\\Core\\Buckets' ) ? \CAShaadi\Core\Buckets::kind_of_field( (int) $field->id ) : '',
 				'label'    => (string) $field->name,
 				'help'     => wp_strip_all_tags( (string) $field->description ),
 				'type'     => (string) $field->type,

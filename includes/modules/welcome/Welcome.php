@@ -150,13 +150,19 @@ final class Welcome {
 			 */
 			\CAShaadi\Core\Assets::script( 'dob-input', 'assets/js/dob-input.js' );
 			\CAShaadi\Core\Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
-			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking', 'cashaadi-cropper', 'cashaadi-dob-input', 'cashaadi-ui-dialog' ) );
+			\CAShaadi\Core\Assets::script( 'group-picker', 'assets/js/group-picker.js' );
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-tracking', 'cashaadi-cropper', 'cashaadi-dob-input', 'cashaadi-ui-dialog', 'cashaadi-group-picker' ) );
 		} else {
 			\CAShaadi\Core\Assets::style( 'cropper', 'assets/css/cropper.css' );
 			\CAShaadi\Core\Assets::script( 'cropper', 'assets/js/cropper.js' );
 			\CAShaadi\Core\Assets::script( 'dob-input', 'assets/js/dob-input.js' );
 			\CAShaadi\Core\Assets::script( 'ui-dialog', 'assets/js/ui-dialog.js' );
-			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-cropper', 'cashaadi-dob-input', 'cashaadi-ui-dialog' ) );
+			\CAShaadi\Core\Assets::script( 'group-picker', 'assets/js/group-picker.js' );
+			\CAShaadi\Core\Assets::script( 'welcome', 'assets/js/welcome.js', array( 'cashaadi-cropper', 'cashaadi-dob-input', 'cashaadi-ui-dialog', 'cashaadi-group-picker' ) );
+		}
+		if ( class_exists( '\\CAShaadi\\Core\\Buckets' ) ) {
+			wp_localize_script( 'cashaadi-group-picker', 'CSM_GROUPS', \CAShaadi\Core\Buckets::js_config() );
+			\CAShaadi\Core\Assets::style( 'group-picker', 'assets/css/group-picker.css' );
 		}
 
 		wp_localize_script(
@@ -466,6 +472,8 @@ final class Welcome {
 					// the feet-and-inches readout under a height typed in cm.
 					'heightNote' => ( $fid === \CAShaadi\Core\Config::FIELD_HEIGHT ),
 					'social'     => \CAShaadi\Core\Social::kind( $fid ),
+					// Community / mother tongue get the group picker (v1.86.2).
+					'bucket'     => class_exists( '\\CAShaadi\\Core\\Buckets' ) ? \CAShaadi\Core\Buckets::kind_of_field( $fid ) : '',
 				);
 			}
 

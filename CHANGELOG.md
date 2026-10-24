@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.86.2 — 2026-10-24
+- **Community: type freely, confirm the group.** In onboarding and Edit
+  profile, once the member stops typing their community, a "Community
+  group" list appears below it, pre-selected from their words ("baniya" →
+  Agarwal / Marwari / Maheshwari / Baniya). They can change it, e.g. to
+  Gujarati Vania / Vaishnav, or choose Others. The profile still shows what
+  they typed; filters and ranking use the group. The choice is tied to the
+  words it was made for (`csm_bucket_community_set`); new words are grouped
+  again.
+- **Mother tongue: typeahead.** Typing "Hin" offers Hindi; free text is
+  still accepted and grouped as before.
+- REST `csm/v1/buckets/suggest` and `csm/v1/buckets/choose`.
+
 ## 1.86.1 — 2026-10-24
 - Profiles show Community exactly as the member typed it (the 1.86.0
   Community / Sub-community split is withdrawn).

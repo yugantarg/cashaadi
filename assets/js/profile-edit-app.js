@@ -329,6 +329,8 @@
 		}
 
 		wrap.appendChild( node );
+		// Community: suggest a group to confirm; mother tongue: language list (v1.86.2).
+		if ( f.bucket && window.csmGroupPicker && 'INPUT' === node.tagName ) { window.csmGroupPicker( node, f.bucket, wrap ); }
 		if ( f.ageNote ) {
 			wrap.appendChild( el( 'p', 'csm-pe-agenote', f.ageNote ) );
 		}

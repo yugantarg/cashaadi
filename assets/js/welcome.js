@@ -242,6 +242,8 @@
 		}
 		node.value = f.value || '';
 		wrap.appendChild( node );
+		// Community: suggest a group to confirm; mother tongue: language list (v1.86.2).
+		if ( f.bucket && window.csmGroupPicker ) { window.csmGroupPicker( node, f.bucket, wrap ); }
 
 		// Date of birth is typed as eight digits and shown as dd/mm/yyyy, with
 		// the age underneath — see dob-input.js. Upgraded after the node is in

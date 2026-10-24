@@ -111,8 +111,16 @@ final class Buckets {
 		array( 'English', '/english|englisn/' ),
 	);
 
+	/*
+	 * The member's own choice of group (v1.86.2): array( text, group ). It
+	 * holds only while their answer is unchanged; a new answer is grouped
+	 * again, and the screen offers the choice again.
+	 */
+	const SET = 'csm_bucket_%s_set';
+
 	public static function register() {
 		add_action( 'xprofile_data_after_save', array( __CLASS__, 'on_save' ) );
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm buckets', __NAMESPACE__ . '\\BucketsCli' );
 		}
@@ -193,11 +201,81 @@ final class Buckets {
 		$val = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
 		$val = is_array( $val ) ? implode( ', ', $val ) : (string) $val;
 		$groups = self::of( $kind, $val );
+		$set    = get_user_meta( (int) $uid, sprintf( self::SET, $kind ), true );
+		if ( is_array( $set ) && isset( $set['text'], $set['group'] ) && self::norm( $set['text'] ) === self::norm( $val ) ) {
+			$groups = self::OTHERS === $set['group'] ? array() : array( (string) $set['group'] );
+		}
 		delete_user_meta( (int) $uid, self::meta_key( $kind ) );
 		foreach ( $groups as $g ) {
 			add_user_meta( (int) $uid, self::meta_key( $kind ), $g );
 		}
 		return $groups;
+	}
+
+	public static function norm( $v ) {
+		return strtolower( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $v ) ) ) );
+	}
+
+	/* ------------------------------------------------------------- REST */
+
+	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/buckets/suggest', array(
+			'methods'             => 'GET',
+			'callback'            => array( __CLASS__, 'rest_suggest' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+		register_rest_route( 'csm/v1', '/buckets/choose', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_choose' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	/** The group(s) an answer would get, and the full list to choose from. */
+	public static function rest_suggest( $request ) {
+		$kind = 'tongue' === $request->get_param( 'kind' ) ? 'tongue' : 'community';
+		$text = (string) $request->get_param( 'text' );
+		$set  = get_user_meta( get_current_user_id(), sprintf( self::SET, $kind ), true );
+		return new \WP_REST_Response( array(
+			'groups'  => self::of( $kind, $text ),
+			// The member's earlier choice, if it was made for this same answer.
+			'chosen'  => is_array( $set ) && isset( $set['text'], $set['group'] ) && self::norm( $set['text'] ) === self::norm( $text ) ? (string) $set['group'] : '',
+			'options' => self::labels( $kind ),
+		), 200 );
+	}
+
+	/** The member picks the group for their (current) answer. */
+	public static function rest_choose( $request ) {
+		$uid   = get_current_user_id();
+		$kind  = 'tongue' === $request->get_param( 'kind' ) ? 'tongue' : 'community';
+		$group = (string) $request->get_param( 'group' );
+		$text  = (string) $request->get_param( 'text' );
+		if ( ! in_array( $group, self::labels( $kind ), true ) ) {
+			return new \WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+		update_user_meta( $uid, sprintf( self::SET, $kind ), array( 'text' => $text, 'group' => $group ) );
+		self::rebuild_user( $uid, $kind ); // applies now if the answer is already saved
+		return new \WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/** What the onboarding and profile screens need for the picker. */
+	public static function js_config() {
+		return array(
+			'suggest' => rest_url( 'csm/v1/buckets/suggest' ),
+			'choose'  => rest_url( 'csm/v1/buckets/choose' ),
+			'nonce'   => wp_create_nonce( 'wp_rest' ),
+			'tongues' => array_values( array_diff( self::labels( 'tongue' ), array( self::OTHERS ) ) ),
+		);
+	}
+
+	/** 'community' / 'tongue' when this field id is one of them, else ''. */
+	public static function kind_of_field( $fid ) {
+		foreach ( array_keys( self::FIELDS ) as $kind ) {
+			if ( (int) $fid && self::field_id( $kind ) === (int) $fid ) {
+				return $kind;
+			}
+		}
+		return '';
 	}
 
 	public static function on_save( $data ) {
