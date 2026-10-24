@@ -298,6 +298,29 @@ window.csmProfileCard = function ( p ) {
 	media.appendChild( over );
 	card.appendChild( media );
 
+	/* Phone (v1.84.0): the number for matches and the member themselves,
+	   a lock for everyone else, nothing if there is no number. */
+	if ( p.phone && p.phone.state ) {
+		var ph = mk( 'section', 'csm-d-phone is-' + p.phone.state );
+		ph.appendChild( mk( 'span', 'csm-d-phone-l', 'Phone' ) );
+		if ( 'visible' === p.phone.state || 'own' === p.phone.state ) {
+			ph.appendChild( mk( 'span', 'csm-d-phone-n', p.phone.number ) );
+			if ( 'visible' === p.phone.state ) {
+				var call = mk( 'a', 'csm-d-phone-b', 'Call' );
+				call.href = 'tel:' + p.phone.tel;
+				var wa = mk( 'a', 'csm-d-phone-b', 'WhatsApp' );
+				wa.href = 'https://wa.me/' + p.phone.wa;
+				wa.target = '_blank';
+				wa.rel = 'noopener';
+				ph.appendChild( call );
+				ph.appendChild( wa );
+			}
+		} else {
+			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'not_shared' === p.phone.state ? 'Not shared' : '\uD83D\uDD12 Hidden \u00b7 shown after you match' ) );
+		}
+		card.appendChild( ph );
+	}
+
 	if ( p.bio ) {
 		var bio = mk( 'section', 'csm-d-bio' );
 		bio.appendChild( mk( 'p', null, p.bio ) );

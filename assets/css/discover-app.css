@@ -51,6 +51,12 @@
 
 /* ---- body ---- */
 .csm-d-bio { padding: 18px 18px 4px; }
+/* Phone row (v1.84.0). */
+.csm-d-phone { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 14px 18px 0; padding: 10px 12px; border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 12px; font-size: 14.5px; }
+.csm-d-phone-l { color: var(--csm-muted, #5c6a76); font-size: 13px; min-width: 44px; }
+.csm-d-phone-n { font-weight: 600; color: var(--csm-ink, #16212b); flex: 1 1 auto; }
+.csm-d-phone.is-locked .csm-d-phone-n, .csm-d-phone.is-not_shared .csm-d-phone-n { font-weight: 400; color: var(--csm-muted, #5c6a76); }
+.csm-d-phone-b { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--csm-hair-2, #d6dfe7); color: var(--csm-ink, #16212b); text-decoration: none; font-size: 13px; font-weight: 600; }
 /* Report profile (v1.80.0): quiet, at the foot of the card. */
 .csm-d-report { padding: 14px 18px 18px; text-align: center; }
 .csm-d-report-open { background: none; border: 0; color: var(--csm-faint, #93a2ae); font-size: 13px; text-decoration: underline; cursor: pointer; }

@@ -397,6 +397,60 @@ final class Profile {
 	 *                            showed the member their own visibility while
 	 *                            claiming restricted fields were hidden.
 	 */
+	/**
+	 * What this viewer may know about the member's phone number (owner,
+	 * 2026-10-24). Until now it was never shown to anyone, matches included,
+	 * whatever the member's setting said.
+	 *
+	 *   own        the member themselves: their number, nothing else
+	 *   visible    a match (any setting except "Only me"), or anyone the
+	 *              csm_phone_visible filter allows (Gold, later)
+	 *   locked     everyone else: "Hidden, shown after you match"
+	 *   not_shared the member chose "Only me"
+	 *   ''         no number on the profile
+	 *
+	 * @return array{state:string,number:string,tel:string,wa:string}
+	 */
+	public static function phone( $profile_id, $viewer_id ) {
+		$profile_id = (int) $profile_id;
+		$viewer_id  = (int) $viewer_id;
+		$none       = array( 'state' => '', 'number' => '', 'tel' => '', 'wa' => '' );
+		$raw        = function_exists( 'xprofile_get_field_data' ) ? (string) xprofile_get_field_data( Config::FIELD_PHONE, $profile_id ) : '';
+		$digits     = preg_replace( '/\D/', '', wp_strip_all_tags( $raw ) );
+		if ( strlen( $digits ) < 10 ) {
+			return $none;
+		}
+		$local = substr( $digits, -10 );
+		$intl  = ( strlen( $digits ) > 10 ? substr( $digits, 0, strlen( $digits ) - 10 ) : '91' ) . $local;
+		$shown = array( 'number' => '+' . substr( $intl, 0, -10 ) . ' ' . substr( $local, 0, 5 ) . ' ' . substr( $local, 5 ), 'tel' => '+' . $intl, 'wa' => $intl );
+
+		if ( $viewer_id && $viewer_id === $profile_id ) {
+			return array_merge( array( 'state' => 'own' ), $shown );
+		}
+		$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+			? \CAShaadi\Modules\Settings\SettingsScreen::effective_level( Config::FIELD_PHONE, $profile_id )
+			: 'friends';
+		if ( 'adminsonly' === $level ) {
+			return array_merge( $none, array( 'state' => 'not_shared' ) );
+		}
+		$visible = false;
+		if ( $viewer_id > 0 ) {
+			/*
+			 * "Everyone" / "All members" are treated as "My matches" for the
+			 * phone: those levels can be stored by BuddyPress's own forms
+			 * without the member choosing them, and a number shown to
+			 * strangers by accident cannot be taken back.
+			 */
+			if ( function_exists( 'friends_check_friendship_status' ) && 'is_friend' === friends_check_friendship_status( $viewer_id, $profile_id ) ) {
+				$visible = true;
+			}
+			$visible = (bool) apply_filters( 'csm_phone_visible', $visible, $profile_id, $viewer_id, $level );
+		}
+		return $visible
+			? array_merge( array( 'state' => 'visible' ), $shown )
+			: array_merge( $none, array( 'state' => 'locked' ) );
+	}
+
 	public static function full( $profile_id, $viewer_id = null ) {
 		$profile_id = (int) $profile_id;
 		$viewer_id  = ( null === $viewer_id ) ? get_current_user_id() : (int) $viewer_id;
@@ -441,6 +495,9 @@ final class Profile {
 		 * set. See photos() for why it is sometimes ONLY the avatar.
 		 */
 		$out['photos'] = self::photos( $profile_id, $viewer_id, $out['avatar'] );
+
+		// The phone row: shown, locked until a match, or not shared (v1.84.0).
+		$out['phone'] = self::phone( $profile_id, $viewer_id );
 
 		/*
 		 * Say OUT LOUD that a photo is blurred.

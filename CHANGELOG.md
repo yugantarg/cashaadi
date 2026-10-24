@@ -3,6 +3,18 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.84.0 — 2026-10-24
+- **Phone row on every profile card** (Discover, member pages, preview).
+  Until now the number was never shown to anyone, matches included,
+  whatever the member's privacy setting said.
+  - Matches see the number, with Call and WhatsApp buttons.
+  - The member sees their own number.
+  - Everyone else sees "Hidden · shown after you match".
+  - "Only me" shows "Not shared" to everyone.
+  - "Everyone" / "All members" are treated as "My matches" for the phone,
+    so no number reaches a stranger by accident.
+  - `csm_phone_visible` filter, for Gold access later.
+
 ## 1.83.2 — 2026-10-23
 - Fix: the Sales Dashboard's activity tiles crashed after the first
   WooCommerce refund. A refund is stored as its own order record with no
