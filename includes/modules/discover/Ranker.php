@@ -166,6 +166,11 @@ final class Ranker {
 	/** Points earned by being alike. Blank on either side earns nothing. */
 	public static function match_parts( array $me, array $a, array $P ) {
 		$same = function ( $k ) use ( $me, $a ) {
+			// Community and mother tongue compare GROUPS when both have them
+			// (Core\Buckets): "aggarwal" and "agarwal" are the same community.
+			if ( ! empty( $me[ $k . '_g' ] ) && ! empty( $a[ $k . '_g' ] ) ) {
+				return (bool) array_intersect( $me[ $k . '_g' ], $a[ $k . '_g' ] );
+			}
 			return ! empty( $me[ $k ] ) && ! empty( $a[ $k ] ) && $me[ $k ] === $a[ $k ];
 		};
 		$parts = array(
@@ -278,6 +283,13 @@ final class Ranker {
 			foreach ( array( 'tongue', 'community', 'religion', 'diet', 'drinking', 'smoking' ) as $k ) {
 				if ( isset( $a[ $k ] ) ) {
 					$a[ $k ] = strtolower( $a[ $k ] );
+				}
+			}
+			if ( class_exists( '\\CAShaadi\\Core\\Buckets' ) ) {
+				foreach ( array( 'community', 'tongue' ) as $k ) {
+					if ( isset( $a[ $k ] ) ) {
+						$a[ $k . '_g' ] = \CAShaadi\Core\Buckets::of( $k, $a[ $k ] );
+					}
 				}
 			}
 			if ( isset( $a['city'] ) ) {

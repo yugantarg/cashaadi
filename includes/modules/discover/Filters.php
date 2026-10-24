@@ -86,11 +86,19 @@ final class Filters {
 			: 0;
 	}
 
+	/** Community and mother tongue filter on groups (Core\Buckets), not raw text. */
+	public static function bucket_kind( $key ) {
+		return in_array( $key, array( 'community', 'tongue' ), true ) && class_exists( '\\CAShaadi\\Core\\Buckets' ) ? $key : '';
+	}
+
 	/** The options a field offers, in the field's own order. Cached per request. */
 	public static function choice_options( $key ) {
 		static $cache = array();
 		if ( isset( $cache[ $key ] ) ) {
 			return $cache[ $key ];
+		}
+		if ( self::bucket_kind( $key ) ) {
+			return $cache[ $key ] = \CAShaadi\Core\Buckets::labels( $key );
 		}
 		$out = array();
 		$fid = self::choice_field( $key );
@@ -117,6 +125,13 @@ final class Filters {
 		foreach ( array_keys( self::CHOICES ) as $k ) {
 			$fid = self::choice_field( $k );
 			if ( ! $fid || in_array( $fid, $hidden, true ) ) {
+				continue;
+			}
+			if ( self::bucket_kind( $k ) ) {
+				$g = \CAShaadi\Core\Buckets::get( $uid, $k );
+				if ( $g ) {
+					$out[ $k ] = $g; // a list: an answer can name several groups
+				}
 				continue;
 			}
 			$v = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
@@ -304,6 +319,19 @@ final class Filters {
 				continue;
 			}
 			if ( empty( $f[ $k ] ) || ! is_array( $f[ $k ] ) ) {
+				continue;
+			}
+			if ( self::bucket_kind( $k ) ) {
+				// Groups live in user meta; no group at all counts as unanswered.
+				$mk   = \CAShaadi\Core\Buckets::meta_key( $k );
+				$in   = implode( ',', array_fill( 0, count( $f[ $k ] ), '%s' ) );
+				$um   = $wpdb->usermeta;
+				$add .= $wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					" AND ( NOT EXISTS ( SELECT 1 FROM {$um} b{$k}1 WHERE b{$k}1.user_id = xp.user_id AND b{$k}1.meta_key = %s )
+					   OR EXISTS ( SELECT 1 FROM {$um} b{$k}2 WHERE b{$k}2.user_id = xp.user_id AND b{$k}2.meta_key = %s AND b{$k}2.meta_value IN ({$in}) ) )",
+					array_merge( array( $mk, $mk ), $f[ $k ] )
+				);
 				continue;
 			}
 			$fid = self::choice_field( $k );

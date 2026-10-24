@@ -3,6 +3,23 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.86.0 — 2026-10-24
+- **Community and mother-tongue groups** (`Core\Buckets`). Both questions
+  are free text (800 different community answers, 330 language answers).
+  Each answer is now sorted into groups by an ordered rules table: 38
+  community groups (e.g. Agarwal, Aggarwal, Agrawal, Marwari, Maheshwari,
+  Baniya, Gupta → "Agarwal / Marwari / Maheshwari / Baniya") and 24
+  languages (a regional language wins over Hindi; English only counts on its
+  own). Tested on the 24 Oct export: about 220 community and 9 language
+  answers fit no group (mostly "hindu", "general", "na").
+- Filters (Discover and Requests) run on the groups; members with no group
+  are never filtered out. Ranking's "same community" and "same mother
+  tongue" points compare groups.
+- Profiles show **Community** (the group) and **Sub-community** (the
+  member's own words) when the words say more than the group.
+- Stored as user meta `csm_bucket_community` / `csm_bucket_tongue`, updated
+  on every profile save. `wp csm buckets rebuild` and `wp csm buckets report`.
+
 ## 1.85.1 — 2026-10-24
 - Filters on free-text fields (Community on this install) offer one switch,
   "Same community as mine", instead of a list of every spelling members

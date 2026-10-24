@@ -192,7 +192,7 @@
 				var r = want.split( '-' );
 				return a.age && a.age >= +r[0] && a.age <= +r[1];
 			}
-			return a[ k ] === want;
+			return Array.isArray( a[ k ] ) ? a[ k ].indexOf( want ) !== -1 : a[ k ] === want;
 		} );
 	}
 
@@ -223,7 +223,7 @@
 			data.received.forEach( function ( p ) {
 				var v = ( p.attrs || {} )[ d.key ];
 				if ( 'age' === d.key && v ) { var lo = Math.floor( ( v - 1 ) / 3 ) * 3 + 1; v = lo + '-' + ( lo + 2 ); }
-				if ( v ) { vals[ v ] = ( vals[ v ] || 0 ) + 1; }
+				( Array.isArray( v ) ? v : ( v ? [ v ] : [] ) ).forEach( function ( x ) { vals[ x ] = ( vals[ x ] || 0 ) + 1; } );
 			} );
 			var names = Object.keys( vals ).sort();
 			if ( names.length < 2 && ! rfilt[ d.key ] ) { return; }
