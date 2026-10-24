@@ -240,6 +240,42 @@
 		return { row: row, read: function () { return cb.checked ? 'same' : ''; } };
 	}
 
+	/* Groups as tick boxes, with Select all / Clear (owner, 2026-10-24:
+	   "I can tick whatever categories I'm okay with and all those show").
+	   Nothing ticked means no filter. */
+	function ticks( ch, chosen ) {
+		var row = el( 'div', 'csm-d-frow csm-d-fticks' );
+		var head = el( 'div', 'csm-d-ftickhead' );
+		head.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
+		var all = el( 'button', 'csm-d-tickall', 'Select all' );
+		var none = el( 'button', 'csm-d-tickall', 'Clear' );
+		all.type = none.type = 'button';
+		head.appendChild( all );
+		head.appendChild( none );
+		row.appendChild( head );
+		var list = el( 'div', 'csm-d-ticklist' );
+		var picked = {};
+		( chosen || [] ).forEach( function ( v ) { picked[ v ] = true; } );
+		var boxes = ch.options.map( function ( opt ) {
+			var lab = el( 'label', 'csm-d-tick' );
+			var cb = document.createElement( 'input' );
+			cb.type = 'checkbox';
+			cb.checked = !! picked[ opt ];
+			lab.appendChild( cb );
+			lab.appendChild( el( 'span', null, opt ) );
+			list.appendChild( lab );
+			return { opt: opt, cb: cb };
+		} );
+		all.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = true; } ); } );
+		none.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = false; } ); } );
+		row.appendChild( list );
+		return { row: row, read: function () {
+			var on = boxes.filter( function ( b ) { return b.cb.checked; } );
+			// Everything ticked is the same as no filter.
+			return on.length === boxes.length ? [] : on.map( function ( b ) { return b.opt; } );
+		} };
+	}
+
 	/* A pick list as tappable chips; returns a reader for the chosen values. */
 	function chips( ch, chosen ) {
 		var row = el( 'div', 'csm-d-frow csm-d-fchips' );
@@ -294,12 +330,12 @@
 		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { box.appendChild( n.row ); } );
 
 		var picks = ( f.choices || [] ).map( function ( ch ) {
-			var c = ch.same ? sameSwitch( ch, cur[ ch.key ] ) : chips( ch, cur[ ch.key ] );
+			var c = ch.same ? sameSwitch( ch, cur[ ch.key ] ) : ( ch.tick ? ticks( ch, cur[ ch.key ] ) : chips( ch, cur[ ch.key ] ) );
 			box.appendChild( c.row );
 			return { key: ch.key, read: c.read };
 		} );
 		if ( picks.length ) {
-			box.appendChild( el( 'p', 'csm-d-sheethint', 'Nothing chosen means any. Profiles that have not answered a question are still shown.' ) );
+			box.appendChild( el( 'p', 'csm-d-sheethint', 'Nothing ticked means any. Community and mother tongue: "Others" covers everyone not in a listed group. Other questions: profiles that have not answered are still shown.' ) );
 		}
 
 		var err = el( 'p', 'csm-d-ferr' );

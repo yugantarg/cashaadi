@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.86.1 — 2026-10-24
+- Profiles show Community exactly as the member typed it (the 1.86.0
+  Community / Sub-community split is withdrawn).
+- Community and mother-tongue filters are tick boxes of the groups, with
+  Select all / Clear. Only ticked groups are shown; **Others** covers
+  everyone with no group (an answer that fits none, or none given) and is
+  shown only when ticked. Same "Others" value on Requests → Received.
+
 ## 1.86.0 — 2026-10-24
 - **Community and mother-tongue groups** (`Core\Buckets`). Both questions
   are free text (800 different community answers, 330 language answers).

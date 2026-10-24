@@ -631,21 +631,6 @@ final class Profile {
 					$rows[] = array( 'label' => (string) $field->name, 'value' => $d['text'], 'url' => $d['url'] );
 					continue;
 				}
-				/*
-				 * Community: the group the filters use, then the member's own
-				 * words as the sub-community when they say more than the group
-				 * (owner, 2026-10-24).
-				 */
-				if ( class_exists( '\\CAShaadi\\Core\\Buckets' ) && (int) $field->id === \CAShaadi\Core\Buckets::field_id( 'community' ) ) {
-					$g = \CAShaadi\Core\Buckets::of( 'community', $val );
-					if ( $g ) {
-						$rows[] = array( 'label' => 'Community', 'value' => implode( ', ', $g ) );
-						if ( strtolower( trim( $val ) ) !== strtolower( implode( ', ', $g ) ) && 1 !== preg_match( '/^' . preg_quote( strtolower( trim( $val ) ), '/' ) . '$/i', $g[0] ) ) {
-							$rows[] = array( 'label' => 'Sub-community', 'value' => $val );
-						}
-						continue;
-					}
-				}
 				$rows[] = array( 'label' => (string) $field->name, 'value' => $val );
 			}
 			if ( $rows ) {

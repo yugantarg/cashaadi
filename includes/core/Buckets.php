@@ -29,6 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Buckets {
 
+	/** The filter option for everyone whose answer fits no group, or who left it blank. */
+	const OTHERS = 'Others';
+
 	/** kind => xprofile field name. */
 	const FIELDS = array(
 		'community' => 'Community',
@@ -140,6 +143,7 @@ final class Buckets {
 		if ( 'tongue' === $kind ) {
 			$out[] = 'English';
 		}
+		$out[] = self::OTHERS;
 		return $out;
 	}
 

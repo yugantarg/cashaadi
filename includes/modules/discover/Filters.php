@@ -129,9 +129,8 @@ final class Filters {
 			}
 			if ( self::bucket_kind( $k ) ) {
 				$g = \CAShaadi\Core\Buckets::get( $uid, $k );
-				if ( $g ) {
-					$out[ $k ] = $g; // a list: an answer can name several groups
-				}
+				// A list: an answer can name several groups. No group is "Others".
+				$out[ $k ] = $g ? $g : array( \CAShaadi\Core\Buckets::OTHERS );
 				continue;
 			}
 			$v = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
@@ -322,16 +321,27 @@ final class Filters {
 				continue;
 			}
 			if ( self::bucket_kind( $k ) ) {
-				// Groups live in user meta; no group at all counts as unanswered.
-				$mk   = \CAShaadi\Core\Buckets::meta_key( $k );
-				$in   = implode( ',', array_fill( 0, count( $f[ $k ] ), '%s' ) );
-				$um   = $wpdb->usermeta;
-				$add .= $wpdb->prepare(
+				/*
+				 * Ticked groups only (owner, 2026-10-24). "Others" is everyone
+				 * with no group: an answer that fits none, or no answer.
+				 */
+				$mk     = \CAShaadi\Core\Buckets::meta_key( $k );
+				$um     = $wpdb->usermeta;
+				$named  = array_values( array_diff( $f[ $k ], array( \CAShaadi\Core\Buckets::OTHERS ) ) );
+				$others = in_array( \CAShaadi\Core\Buckets::OTHERS, $f[ $k ], true );
+				$ors    = array();
+				if ( $named ) {
+					$in    = implode( ',', array_fill( 0, count( $named ), '%s' ) );
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					" AND ( NOT EXISTS ( SELECT 1 FROM {$um} b{$k}1 WHERE b{$k}1.user_id = xp.user_id AND b{$k}1.meta_key = %s )
-					   OR EXISTS ( SELECT 1 FROM {$um} b{$k}2 WHERE b{$k}2.user_id = xp.user_id AND b{$k}2.meta_key = %s AND b{$k}2.meta_value IN ({$in}) ) )",
-					array_merge( array( $mk, $mk ), $f[ $k ] )
-				);
+					$ors[] = $wpdb->prepare( "EXISTS ( SELECT 1 FROM {$um} b{$k}2 WHERE b{$k}2.user_id = xp.user_id AND b{$k}2.meta_key = %s AND b{$k}2.meta_value IN ({$in}) )", array_merge( array( $mk ), $named ) );
+				}
+				if ( $others ) {
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$ors[] = $wpdb->prepare( "NOT EXISTS ( SELECT 1 FROM {$um} b{$k}1 WHERE b{$k}1.user_id = xp.user_id AND b{$k}1.meta_key = %s )", $mk );
+				}
+				if ( $ors ) {
+					$add .= ' AND ( ' . implode( ' OR ', $ors ) . ' )';
+				}
 				continue;
 			}
 			$fid = self::choice_field( $k );
@@ -422,7 +432,8 @@ final class Filters {
 			}
 			$opts = self::choice_options( $k );
 			if ( $opts ) {
-				$out[] = array( 'key' => $k, 'label' => $def[1], 'options' => $opts );
+				// 'tick': shown as a list of tick boxes (groups), not chips.
+				$out[] = array( 'key' => $k, 'label' => $def[1], 'options' => $opts, 'tick' => (bool) self::bucket_kind( $k ) );
 			} elseif ( '' !== self::own_value( $uid, $k ) ) {
 				$out[] = array( 'key' => $k, 'label' => $def[1], 'same' => true, 'mine' => self::own_value( $uid, $k ) );
 			}
