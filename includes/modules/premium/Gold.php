@@ -252,13 +252,28 @@ final class Gold {
 		}
 	}
 
+	/**
+	 * The owner's own test accounts, before launch (owner, 2026-10-25: "allow
+	 * buying gold for yugantargupta aliases"): yugantargupta@gmail.com and any
+	 * +alias of it. More patterns can go in option csm_gold_tester_regex.
+	 */
+	public static function is_tester( $uid = 0 ) {
+		$u = get_userdata( $uid ? (int) $uid : get_current_user_id() );
+		if ( ! $u ) {
+			return false;
+		}
+		$re = (string) get_option( 'csm_gold_tester_regex', '/^yugantargupta(\+[^@]*)?@gmail\.com$/i' );
+		return (bool) @preg_match( $re, (string) $u->user_email ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+	}
+
 	/** Founding members: Gold stops selling at the cap (0 = no cap). */
 	public static function purchasable( $ok, $product ) {
 		if ( ! $ok || ! $product || (int) $product->get_id() !== (int) Config::WC_GOLD_PRODUCT ) {
 			return $ok;
 		}
-		// Not for sale until launch (csm_gold_on_sale), except to an admin testing.
-		if ( ! get_option( 'csm_gold_on_sale' ) && ! current_user_can( 'manage_options' ) ) {
+		// Not for sale until launch (csm_gold_on_sale), except to an admin or a
+		// tester account testing.
+		if ( ! get_option( 'csm_gold_on_sale' ) && ! current_user_can( 'manage_options' ) && ! self::is_tester() ) {
 			return false;
 		}
 		$cap = (int) get_option( 'csm_gold_cap', 25 );

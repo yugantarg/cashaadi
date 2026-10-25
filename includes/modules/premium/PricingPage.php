@@ -28,8 +28,9 @@ final class PricingPage {
 		add_filter( 'the_content', array( __CLASS__, 'render' ), 30 );
 	}
 
+	/** Admins and the owner's test accounts can preview with ?v2=1. */
 	private static function preview() {
-		return current_user_can( 'manage_options' ) && isset( $_GET['v2'] ); // phpcs:ignore WordPress.Security.NonceVerification
+		return isset( $_GET['v2'] ) && ( current_user_can( 'manage_options' ) || Gold::is_tester() ); // phpcs:ignore WordPress.Security.NonceVerification
 	}
 
 	public static function active() {

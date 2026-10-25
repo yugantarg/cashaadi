@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.1 — 2026-10-25
+- Before launch, the owner's test accounts (yugantargupta@gmail.com and its
+  +aliases; option `csm_gold_tester_regex`) can preview the new pricing page
+  with `?v2=1` and buy Gold, to test the real purchase and upgrade-credit
+  flow.
+
 ## 1.89.0 — 2026-10-25
 Gold, part 3: launch.
 - `wp csm gold notice --launch=YYYY-MM-DD [--dry-run]` (at least 3 days
