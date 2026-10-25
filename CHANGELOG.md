@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.17 — 2026-10-25
+
+- Profile cards: the phone number is an ordinary row in its field's place in the details, not a box under the photo. Locked numbers read "🔒 Upgrade to view" (a link to pricing); Gold sees "View number"; an opened number has Call and WhatsApp links inline.
+
 ## 1.89.16 — 2026-10-25
 
 - ICAI document upload (profile editor) and the "Get your Verified CA badge" popup say the document is never shared with any other member; they only see the Verified tag.

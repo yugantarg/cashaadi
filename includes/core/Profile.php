@@ -600,6 +600,16 @@ final class Profile {
 			}
 			$rows = array();
 			foreach ( $by_id[ $gid ]->fields as $field ) {
+				/*
+				 * The phone is an ordinary row in its own place (owner,
+				 * 2026-10-25), drawn from $out['phone'] — never the raw value.
+				 */
+				if ( Config::FIELD_PHONE === (int) $field->id ) {
+					if ( ! empty( $out['phone']['state'] ) ) {
+						$rows[] = array( 'label' => (string) $field->name, 'value' => '', 'phone' => true );
+					}
+					continue;
+				}
 				if ( in_array( $field->name, $skip, true ) ) {
 					continue;
 				}

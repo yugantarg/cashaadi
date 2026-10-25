@@ -254,6 +254,66 @@ window.csmProfileCard = function ( p ) {
 		return n;
 	};
 
+	/*
+	 * Phone number, as a plain row in its field's place (owner, 2026-10-25:
+	 * "not highlighted as a box in the top"). The member's own number, an
+	 * opened one with Call / WhatsApp, "View number" for Gold (or Premium
+	 * where allowed), or "Upgrade to view".
+	 */
+	function phoneDd() {
+		var dd = mk( 'dd', 'csm-d-phone' );
+		var st = p.phone || {};
+		var app = window.CSM_APP || {};
+		if ( 'visible' === st.state || 'own' === st.state ) {
+			dd.appendChild( document.createTextNode( st.number ) );
+			if ( 'visible' === st.state ) {
+				var call = mk( 'a', 'csm-d-phone-a', 'Call' );
+				call.href = 'tel:' + st.tel;
+				var wa = mk( 'a', 'csm-d-phone-a', 'WhatsApp' );
+				wa.href = 'https://wa.me/' + st.wa;
+				wa.target = '_blank';
+				wa.rel = 'noopener';
+				dd.appendChild( call );
+				dd.appendChild( wa );
+			}
+		} else if ( 'reveal' === st.state ) {
+			// One tap shows the number and sends them a request; said once first.
+			var rv = mk( 'button', 'csm-d-phone-a', 'View number' );
+			rv.type = 'button';
+			dd.appendChild( rv );
+			var open = function () {
+				rv.disabled = true;
+				fetch( app.reveal || '/wp-json/csm/v1/phone/reveal', {
+					method: 'POST', credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': app.nonce || '' },
+					body: JSON.stringify( { id: p.id } )
+				} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
+					if ( d && d.ok && d.phone ) {
+						p.phone = d.phone;
+						dd.replaceWith( phoneDd() );
+					} else {
+						rv.disabled = false;
+						if ( window.csmToast ) { window.csmToast( ( d && d.message ) || 'That did not work.', 'bad' ); }
+					}
+				} ).catch( function () { rv.disabled = false; } );
+			};
+			rv.addEventListener( 'click', function () {
+				var seen = false;
+				try { seen = !! localStorage.getItem( 'csm_phone_note' ); } catch ( e ) {}
+				if ( seen || ! window.csmConfirm ) { return open(); }
+				window.csmConfirm( 'Viewing a phone number sends ' + p.name + ' a match request from you, so they know who has their number.', { title: 'View number?', okText: 'View number', cancelText: 'Cancel' } )
+					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} open(); } } );
+			} );
+		} else if ( 'locked' === st.state && app.upgrade && ! app.isGold ) {
+			var up = mk( 'a', 'csm-d-phone-a', '\uD83D\uDD12 Upgrade to view' );
+			up.href = app.upgrade;
+			dd.appendChild( up );
+		} else {
+			dd.textContent = 'not_shared' === st.state ? 'Not shared' : '\uD83D\uDD12 Hidden';
+		}
+		return dd;
+	}
+
 	var card  = mk( 'article', 'csm-d-card' );
 	var media = mk( 'div', 'csm-d-media' );
 	var shots = ( p.photos && p.photos.length ) ? p.photos : [ p.avatar ];
@@ -345,69 +405,6 @@ window.csmProfileCard = function ( p ) {
 	media.appendChild( over );
 	card.appendChild( media );
 
-	/* Phone (v1.84.0): the number for matches and the member themselves,
-	   a lock for everyone else, nothing if there is no number. */
-	if ( p.phone && p.phone.state ) {
-		var ph = mk( 'section', 'csm-d-phone is-' + p.phone.state );
-		ph.appendChild( mk( 'span', 'csm-d-phone-l', 'Phone' ) );
-		if ( 'visible' === p.phone.state || 'own' === p.phone.state ) {
-			ph.appendChild( mk( 'span', 'csm-d-phone-n', p.phone.number ) );
-			if ( 'visible' === p.phone.state ) {
-				var call = mk( 'a', 'csm-d-phone-b', 'Call' );
-				call.href = 'tel:' + p.phone.tel;
-				var wa = mk( 'a', 'csm-d-phone-b', 'WhatsApp' );
-				wa.href = 'https://wa.me/' + p.phone.wa;
-				wa.target = '_blank';
-				wa.rel = 'noopener';
-				ph.appendChild( call );
-				ph.appendChild( wa );
-			}
-		} else if ( 'reveal' === p.phone.state ) {
-			/* Gold (or Premium, where the member allows it): one tap shows the
-			   number and sends them a request. Said
-			   once before the first one (owner, 2026-10-24). */
-			var rv = mk( 'button', 'csm-d-phone-b is-gold', 'View number' );
-			rv.type = 'button';
-			ph.appendChild( mk( 'span', 'csm-d-phone-n', ( window.CSM_APP && window.CSM_APP.isGold ) ? 'Gold' : 'Premium' ) );
-			ph.appendChild( rv );
-			var reveal = function () {
-				rv.disabled = true;
-				fetch( ( window.CSM_APP && window.CSM_APP.reveal ) || '/wp-json/csm/v1/phone/reveal', {
-					method: 'POST', credentials: 'same-origin',
-					headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': ( window.CSM_APP && window.CSM_APP.nonce ) || '' },
-					body: JSON.stringify( { id: p.id } )
-				} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
-					if ( d && d.ok && d.phone ) {
-						p.phone = d.phone;
-						var fresh = window.csmProfileCard( p ).querySelector( '.csm-d-phone' );
-						if ( fresh ) { ph.replaceWith( fresh ); }
-					} else {
-						rv.disabled = false;
-						if ( window.csmToast ) { window.csmToast( ( d && d.message ) || 'That did not work.', 'bad' ); }
-					}
-				} ).catch( function () { rv.disabled = false; } );
-			};
-			rv.addEventListener( 'click', function () {
-				var seen = false;
-				try { seen = !! localStorage.getItem( 'csm_phone_note' ); } catch ( e ) {}
-				if ( seen || ! window.csmConfirm ) { return reveal(); }
-				window.csmConfirm( 'Viewing a phone number sends ' + p.name + ' a match request from you, so they know who has their number.', { title: 'View number?', okText: 'View number', cancelText: 'Cancel' } )
-					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} reveal(); } } );
-			} );
-		} else {
-			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'not_shared' === p.phone.state ? 'Not shared'
-				: '\uD83D\uDD12 Visible to ' + ( 'paid' === p.phone.to ? 'Gold and Premium members' : 'Gold members' ) ) );
-			// Upgrade prompt: Gold sees numbers.
-			var app2 = window.CSM_APP || {};
-			if ( 'locked' === p.phone.state && app2.goldOnSale && ! app2.isGold && app2.upgrade ) {
-				var gl = mk( 'a', 'csm-d-phone-b is-gold', 'Call now with Gold' );
-				gl.href = app2.upgrade;
-				ph.appendChild( gl );
-			}
-		}
-		card.appendChild( ph );
-	}
-
 	if ( p.bio ) {
 		var bio = mk( 'section', 'csm-d-bio' );
 		bio.appendChild( mk( 'p', null, p.bio ) );
@@ -420,6 +417,8 @@ window.csmProfileCard = function ( p ) {
 		var dl = mk( 'dl', 'csm-d-fields' );
 		( g.fields || [] ).forEach( function ( f ) {
 			dl.appendChild( mk( 'dt', null, f.label ) );
+			// The phone row is built from p.phone, not a value (v1.89.17).
+			if ( f.phone ) { dl.appendChild( phoneDd() ); return; }
 			/* LinkedIn / Instagram carry a url the server rebuilt from a validated
 			   handle on a fixed https host (Core\Social::display), so it is safe
 			   to use as an href. Anything else stays plain text. */
