@@ -32,8 +32,8 @@ class GoldCli {
 			\WP_CLI::error( 'The launch date must be at least 3 days away.' );
 		}
 		$who = GoldLaunch::audience();
-		$cap = \CAShaadi\Modules\Emails\Queue::daily_cap();
-		\WP_CLI::log( count( $who ) . " members will be told. At the current limit of {$cap} emails a day this takes about " . (int) ceil( count( $who ) / max( 1, $cap ) ) . ' days.' );
+		// Queue::notify sends each one now, outside the daily cap (csm-phone-notice is transactional).
+		\WP_CLI::log( count( $who ) . ' members will be told. All are sent while this command runs, with no daily limit.' );
 		if ( isset( $assoc['dry-run'] ) ) {
 			\WP_CLI::success( 'Dry run: nothing changed.' );
 			return;
@@ -45,7 +45,7 @@ class GoldCli {
 				$n++;
 			}
 		}
-		\WP_CLI::success( "Launch date {$d}. Banner on. {$n} notice emails queued." );
+		\WP_CLI::success( "Launch date {$d}. Banner on. {$n} notice emails sent." );
 	}
 
 	/** Switch on the pricing page, Gold sales and Gold phone access now. */

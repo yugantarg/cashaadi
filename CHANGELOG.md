@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.24 — 2026-10-25
+
+- `wp csm gold notice` no longer claims a 500-a-day limit: the notice is sent in full while the command runs (`Queue::notify`, outside the daily cap).
+
 ## 1.89.23 — 2026-10-25
 
 - Own profile page: a Gold member's badge reads "Gold" (gold styling) instead of "Premium".
