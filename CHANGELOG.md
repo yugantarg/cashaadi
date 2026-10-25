@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.34 — 2026-10-25
+
+- Buy Gold empties the cart first, as Buy Premium does: an old unpaid Premium item in a member's saved cart made the Gold checkout show Premium. A Gold member cannot add Gold again.
+
 ## 1.89.33 — 2026-10-25
 
 - Membership lifecycle events, kept permanently: `membership_first`, `membership_renewed` (bought again while active, or after it lapsed), `membership_upgraded` (to Gold), `membership_downgraded`, `membership_expired` (PMPro's expiry), `membership_ended` (refund, cancel, admin). Each records from/to level, old and new end dates, days left and gender.

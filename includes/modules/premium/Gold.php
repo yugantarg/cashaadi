@@ -49,6 +49,8 @@ final class Gold {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'upgrade_credit' ) );
 		add_filter( 'woocommerce_is_purchasable', array( __CLASS__, 'purchasable' ), 10, 2 );
+		// Buy Gold starts a clean cart, as Buy Premium does (v1.89.34).
+		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 10, 2 );
 		// Refunds end the membership the order bought (v1.89.2).
 		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'remember_level' ), 10, 1 );
 		add_action( 'woocommerce_order_status_refunded', array( __CLASS__, 'on_refund' ), 20, 1 );
@@ -354,6 +356,25 @@ final class Gold {
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( $what, 0, $uid, array( 'order' => (int) $order_id ) );
 		}
+	}
+
+	/**
+	 * A Premium member's old, unpaid Premium item stayed in their saved cart,
+	 * so Buy Gold opened a checkout showing Premium (owner, 2026-10-25).
+	 * Empty the cart first; a Gold member cannot buy Gold again.
+	 */
+	public static function guard_add_to_cart( $passed, $product_id ) {
+		if ( (int) $product_id !== (int) Config::WC_GOLD_PRODUCT || ! function_exists( 'WC' ) || ! ( WC()->cart instanceof \WC_Cart ) ) {
+			return $passed;
+		}
+		if ( Membership::is_gold( get_current_user_id() ) ) {
+			if ( function_exists( 'wc_add_notice' ) ) {
+				wc_add_notice( 'You are already a Gold member.', 'notice' );
+			}
+			return false;
+		}
+		WC()->cart->empty_cart();
+		return $passed;
 	}
 
 	/** Founding members: Gold stops selling at the cap (0 = no cap). */
