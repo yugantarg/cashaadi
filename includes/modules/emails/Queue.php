@@ -527,7 +527,9 @@ final class Queue {
 	 * and these go to one person who caused them, so they cannot be a bulk send
 	 * by definition.
 	 */
-	const TRANSACTIONAL_LIKE = array( 'csm-liked-%', 'csm-viewed-%', 'csm-match%', 'csm-ca-verified' );
+	// csm-phone-notice (v1.89.0): a notice about members' own data, with a
+	// deadline, so it is not held for quiet hours or the one-bulk-a-day rule.
+	const TRANSACTIONAL_LIKE = array( 'csm-liked-%', 'csm-viewed-%', 'csm-match%', 'csm-ca-verified', 'csm-phone-notice' );
 
 	public static function is_transactional( $type ) {
 		foreach ( self::TRANSACTIONAL_LIKE as $p ) {
