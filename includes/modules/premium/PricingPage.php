@@ -174,7 +174,7 @@ final class PricingPage {
 		if ( $gold && $is_p ) {
 			$o .= '<p class="csm-pr-credit">Already Premium? Upgrade to Gold and your unused Premium days are credited' . ( $credit ? ': <strong>' . esc_html( self::inr( $credit ) ) . ' off</strong> today' : '' ) . ', so you only pay the difference.</p>';
 		}
-		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a member's phone number sends them a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
+		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a phone number sends that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
 		$out = $o;
 		return $o;
