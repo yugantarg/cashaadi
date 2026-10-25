@@ -182,14 +182,20 @@ final class Filters {
 		}
 		$out = array();
 
-		$has_age = self::filled( $in, 'age_min' ) && self::filled( $in, 'age_max' );
+		/*
+		 * Open-ended ranges are allowed (owner, 2026-10-25): one end left on
+		 * "Any" means no limit that way. The minimum span only applies when
+		 * both ends are chosen.
+		 */
+		$has_age = self::filled( $in, 'age_min' ) || self::filled( $in, 'age_max' );
+		$both    = self::filled( $in, 'age_min' ) && self::filled( $in, 'age_max' );
 		if ( $has_age ) {
-			$lo = self::clamp( (int) $in['age_min'], self::AGE_MIN, self::AGE_MAX );
-			$hi = self::clamp( (int) $in['age_max'], self::AGE_MIN, self::AGE_MAX );
+			$lo = self::filled( $in, 'age_min' ) ? self::clamp( (int) $in['age_min'], self::AGE_MIN, self::AGE_MAX ) : self::AGE_MIN;
+			$hi = self::filled( $in, 'age_max' ) ? self::clamp( (int) $in['age_max'], self::AGE_MIN, self::AGE_MAX ) : self::AGE_MAX;
 			if ( $lo > $hi ) {
 				list( $lo, $hi ) = array( $hi, $lo );
 			}
-			if ( ( $hi - $lo ) < self::AGE_SPAN_MIN ) {
+			if ( $both && ( $hi - $lo ) < self::AGE_SPAN_MIN ) {
 				return new \WP_Error(
 					'csm_age_span',
 					sprintf( 'Choose an age range of at least %d years.', self::AGE_SPAN_MIN )
@@ -199,14 +205,15 @@ final class Filters {
 			$out['age_max'] = $hi;
 		}
 
-		$has_ht = self::filled( $in, 'in_min' ) && self::filled( $in, 'in_max' );
+		$has_ht = self::filled( $in, 'in_min' ) || self::filled( $in, 'in_max' );
+		$both   = self::filled( $in, 'in_min' ) && self::filled( $in, 'in_max' );
 		if ( $has_ht ) {
-			$lo = self::clamp( (int) $in['in_min'], self::IN_MIN, self::IN_MAX );
-			$hi = self::clamp( (int) $in['in_max'], self::IN_MIN, self::IN_MAX );
+			$lo = self::filled( $in, 'in_min' ) ? self::clamp( (int) $in['in_min'], self::IN_MIN, self::IN_MAX ) : self::IN_MIN;
+			$hi = self::filled( $in, 'in_max' ) ? self::clamp( (int) $in['in_max'], self::IN_MIN, self::IN_MAX ) : self::IN_MAX;
 			if ( $lo > $hi ) {
 				list( $lo, $hi ) = array( $hi, $lo );
 			}
-			if ( ( $hi - $lo ) < self::IN_SPAN_MIN ) {
+			if ( $both && ( $hi - $lo ) < self::IN_SPAN_MIN ) {
 				return new \WP_Error(
 					'csm_height_span',
 					sprintf( 'Choose a height range of at least %d inches.', self::IN_SPAN_MIN )

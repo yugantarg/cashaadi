@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.8 — 2026-10-25
+- Age and height filters accept one end on "Any" (e.g. "from 5′4″" with no
+  upper limit). The minimum span applies only when both ends are chosen.
+
 ## 1.89.7 — 2026-10-25
 - Discover grid heading shows the real number: "Unlimited profiles" for
   Gold, "N of 50 left this week" for everyone else, instead of how many

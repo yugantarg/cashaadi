@@ -373,9 +373,8 @@
 			var msg = '';
 			var a1 = parseInt( aMin.sel.value, 10 ), a2 = parseInt( aMax.sel.value, 10 );
 			var h1 = parseInt( hMin.sel.value, 10 ), h2 = parseInt( hMax.sel.value, 10 );
-			if ( ( a1 && ! a2 ) || ( a2 && ! a1 ) ) { msg = 'Choose both ends of the age range, or leave both on Any.'; }
-			else if ( a1 && a2 && ( a2 - a1 ) < b.ageSpan ) { msg = 'The age range must cover at least ' + b.ageSpan + ' years.'; }
-			else if ( ( h1 && ! h2 ) || ( h2 && ! h1 ) ) { msg = 'Choose both ends of the height range, or leave both on Any.'; }
+			// One end on "Any" is fine: no limit that way (v1.89.8).
+			if ( a1 && a2 && ( a2 - a1 ) < b.ageSpan ) { msg = 'The age range must cover at least ' + b.ageSpan + ' years.'; }
 			else if ( h1 && h2 && ( h2 - h1 ) < b.inSpan ) { msg = 'The height range must cover at least ' + b.inSpan + ' inches.'; }
 			err.textContent = msg;
 			save.disabled = !! msg;
