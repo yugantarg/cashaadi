@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.7 — 2026-10-25
+- Discover grid heading shows the real number: "Unlimited profiles" for
+  Gold, "N of 50 left this week" for everyone else, instead of how many
+  happened to be loaded ("24 waiting for you").
+
 ## 1.89.6 — 2026-10-25
 - The Discover card "Get N more profiles this week" (photo / verify CA) has
   a ✕; closing it hides it for good for that member (`csm_boost_card_hidden`).

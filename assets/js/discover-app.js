@@ -470,6 +470,11 @@
 		return cell;
 	}
 
+	/* Decided in this visit (not yet counted by the server's decidedWeek). */
+	function countActed() {
+		return Object.keys( acted ).length;
+	}
+
 	function drawGrid() {
 		root.innerHTML = '';
 		var fb = filterBar();
@@ -494,8 +499,12 @@
 		}
 		if ( ! left.length ) { return empty(); }
 
-		var head = el( 'p', 'csm-d-gridcount',
-			left.length + ( 1 === left.length ? ' profile' : ' profiles' ) + ' waiting for you' );
+		/* The real number, not just what has loaded (v1.89.7): Gold is
+		   unlimited; everyone else sees what is left of the week. */
+		var weekLeft = Math.max( left.length, ( meta.quota || 0 ) - ( meta.decidedWeek || 0 ) - countActed() );
+		var head = el( 'p', 'csm-d-gridcount', meta.unlimited
+			? 'Unlimited profiles'
+			: weekLeft + ' of ' + meta.quota + ' left this week' );
 		root.appendChild( head );
 
 		var grid = el( 'div', 'csm-d-grid' );
@@ -762,7 +771,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, unlimited: !! d.unlimited, goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

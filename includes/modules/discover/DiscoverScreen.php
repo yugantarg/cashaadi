@@ -185,6 +185,12 @@ final class DiscoverScreen {
 			'boost'        => class_exists( __NAMESPACE__ . '\\Boost' ) ? Boost::state( $viewer_id ) : null,
 			// This member's own grant, and the filter sheet's state.
 			'quota'        => Discover::quota_for( $viewer_id ),
+			// Decided this week (liked / passed / saved), for "N of 50 left" (v1.89.7).
+			'decidedWeek'  => (int) $GLOBALS['wpdb']->get_var( $GLOBALS['wpdb']->prepare(
+				"SELECT COUNT(*) FROM {$GLOBALS['wpdb']->prefix}csm_tray WHERE viewer_id = %d AND week_assigned = %s AND status <> 'pending'",
+				$viewer_id,
+				function_exists( 'cashaadi' ) ? cashaadi()->get_week_id() : ''
+			) ),
 			/*
 			 * A 50-profile set cannot be surveyed one card at a time — the
 			 * carousel that works for 5 would be 50 sequential taps. Above this
