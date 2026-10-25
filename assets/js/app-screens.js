@@ -333,7 +333,7 @@ window.csmProfileCard = function ( p ) {
 	media.appendChild( img );
 
 	if ( window.csmPhotoStack ) { window.csmPhotoStack( media, shots ); }
-	if ( p.verified ) { media.appendChild( mk( 'span', 'csm-d-verified', 'Verified CA' ) ); }
+	if ( p.verified ) { media.appendChild( mk( 'span', 'csm-d-verified', p.verifiedLabel || 'Verified CA' ) ); }
 	if ( p.gold ) { media.appendChild( mk( 'span', 'csm-d-goldbadge', 'Gold' ) ); }
 
 	/*

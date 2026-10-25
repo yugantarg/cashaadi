@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.36 — 2026-10-25
+
+- The verification badge says "Verified CA Inter" for members whose qualification is CA Inter (profile cards, own profile page, and the approval email); it said "Verified CA" for everyone (`Profile::verified_label`).
+
 ## 1.89.35 — 2026-10-25
 
 - Settings: a Membership section — Plan (Free / Premium / Gold), Member since, Valid until with days left (flagged in the last 14 days, linking to pricing in the last 30), and Payments and invoices (WooCommerce orders). Replaces the single Membership row.

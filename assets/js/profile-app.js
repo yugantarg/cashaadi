@@ -46,7 +46,7 @@
 
 		var badges = el( 'div', 'csm-p-badges' );
 		if ( d.verified ) {
-			badges.appendChild( el( 'span', 'csm-p-badge is-verified', 'Verified CA' ) );
+			badges.appendChild( el( 'span', 'csm-p-badge is-verified', d.verifiedLabel || 'Verified CA' ) );
 		} else if ( 'rejected' === d.caState && d.links && d.links.verify ) {
 			// Say it was rejected. "Verify now" alone reads as "you have not
 			// tried yet", which is exactly what somebody who HAS tried must not

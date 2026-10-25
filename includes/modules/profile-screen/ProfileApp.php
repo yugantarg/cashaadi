@@ -184,6 +184,7 @@ final class ProfileApp {
 				&& \CAShaadi\Modules\Photos\Photos::avatar_is_low_res( $uid ),
 			'blurred'     => '1' === (string) get_user_meta( $uid, 'csm_photo_private', true ),
 			'verified'    => method_exists( '\CAShaadi\Core\Verification', 'ca_verified' ) && Verification::ca_verified( $uid ),
+			'verifiedLabel' => \CAShaadi\Core\Profile::verified_label( $uid ),
 			/*
 			 * The verification OUTCOME, not just the badge. A rejected document
 			 * used to leave "Verify now" showing with nothing to say why, so a

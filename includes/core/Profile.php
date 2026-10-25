@@ -464,6 +464,12 @@ final class Profile {
 		return array_merge( $none, array( 'state' => 'locked', 'to' => $to, 'up' => $up, 'soon' => $soon ) );
 	}
 
+	/** "Verified CA", or "Verified CA Inter" when the member's qualification is CA Inter. */
+	public static function verified_label( $uid ) {
+		$inter = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) && 'inter' === \CAShaadi\Modules\CaVerify\CaVerify::claim( (int) $uid );
+		return $inter ? 'Verified CA Inter' : 'Verified CA';
+	}
+
 	public static function full( $profile_id, $viewer_id = null ) {
 		$profile_id = (int) $profile_id;
 		$viewer_id  = ( null === $viewer_id ) ? get_current_user_id() : (int) $viewer_id;
@@ -499,6 +505,8 @@ final class Profile {
 			 */
 			'verified' => method_exists( '\CAShaadi\Core\Verification', 'ca_verified' )
 				&& Verification::ca_verified( $profile_id ),
+			// What was verified: a CA Inter member is not shown as a CA (v1.89.36).
+			'verifiedLabel' => self::verified_label( $profile_id ),
 			// Gold badge: Gold and verified (v1.87.0).
 			'gold'     => class_exists( '\CAShaadi\Modules\Premium\Gold' ) && \CAShaadi\Modules\Premium\Gold::badge( $profile_id ),
 			'groups'   => array(),

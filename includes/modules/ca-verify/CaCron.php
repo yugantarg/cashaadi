@@ -289,14 +289,14 @@ final class CaCron {
 	}
 
 	/* ---------- verified email ---------- */
-	public static function email_html( $name, $login ) {
+	public static function email_html( $name, $login, $label = 'Verified CA' ) {
 		$name  = esc_html( $name );
 		$login = esc_url( $login );
 		return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.55">'
 			. '<h2 style="color:#1d9bf0;margin:0 0 12px">You are verified &#10003;</h2>'
 			. '<p>Hi ' . $name . ',</p>'
-			. '<p>Good news — your Chartered Accountant credentials have been verified on <strong>CA Shaadi</strong>. '
-			. 'Your profile now carries the blue <strong>Verified CA</strong> badge, which helps you stand out and builds trust with potential matches.</p>'
+			. '<p>Good news — your ' . ( 'Verified CA Inter' === $label ? 'CA Inter' : 'Chartered Accountant' ) . ' credentials have been verified on <strong>CA Shaadi</strong>. '
+			. 'Your profile now carries the blue <strong>' . esc_html( $label ) . '</strong> badge, which helps you stand out and builds trust with potential matches.</p>'
 			. '<p style="margin:22px 0"><a href="' . $login . '" style="display:inline-block;background:#1d9bf0;color:#fff;padding:11px 20px;border-radius:6px;text-decoration:none;font-weight:bold">Go to CA Shaadi</a></p>'
 			. '<p style="color:#888;font-size:12px;margin-top:26px">You are receiving this because your profile on CA Shaadi was verified. If this was not you, please ignore this email.</p>'
 			. '</div>';
@@ -309,7 +309,7 @@ final class CaCron {
 		}
 		$name    = $user->display_name ? $user->display_name : $user->user_login;
 		$subject = 'Your CA credentials are verified — CA Shaadi';
-		$body    = self::email_html( $name, home_url( '/' ) );
+		$body    = self::email_html( $name, home_url( '/' ), \CAShaadi\Core\Profile::verified_label( $uid ) );
 		// Queued: a verification outcome is a notification, not a login-critical
 		// transactional mail, so it belongs under the master switch. One per
 		// member — the unique key stops a re-run mailing them twice.
