@@ -312,7 +312,7 @@
 		var box  = el( 'div', 'csm-d-sheet' );
 		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
 		box.appendChild( el( 'p', 'csm-d-sheethint',
-			meta.unlimited ? 'Gold: you see every member who matches, 50 at a time.' : 'You get ' + f.quota + ' profiles a week.' ) );
+			meta.unlimited ? 'Gold: unlimited profiles.' : 'You get ' + f.quota + ' profiles a week.' ) );
 
 		function num( label, name, min, max, val, fmt ) {
 			var row = el( 'label', 'csm-d-frow' );
@@ -464,6 +464,17 @@
 		   comes back — act() marks them rather than splicing, so the carousel's
 		   indexes stay valid; the grid filters on the same map. */
 		var left = profiles.filter( function ( p ) { return ! acted[ p.id ]; } );
+		// Gold, page decided: fetch the next one rather than saying "that's all".
+		if ( ! left.length && meta.unlimited && ! meta.noMore ) {
+			root.appendChild( el( 'p', 'csm-app-loading', 'Loading more profiles\u2026' ) );
+			api( CFG.queue + ( CFG.queue.indexOf( '?' ) === -1 ? '?' : '&' ) + 'more=1' ).then( function ( d ) {
+				var fresh = ( d && d.ok && d.profiles ) ? d.profiles.filter( function ( p ) { return ! acted[ p.id ]; } ) : [];
+				if ( ! fresh.length ) { meta.noMore = true; return empty(); }
+				profiles = d.profiles;
+				drawGrid();
+			} );
+			return;
+		}
 		if ( ! left.length ) { return empty(); }
 
 		var head = el( 'p', 'csm-d-gridcount',
@@ -476,6 +487,28 @@
 			grid.appendChild( gridCard( p, i ) );
 		} );
 		root.appendChild( grid );
+
+		// Gold: unlimited, loaded a page at a time (v1.88.2).
+		if ( meta.unlimited && ! meta.noMore ) {
+			var more = el( 'button', 'csm-d-more', 'Show more profiles' );
+			more.type = 'button';
+			more.addEventListener( 'click', function () {
+				more.disabled = true;
+				more.textContent = 'Loading\u2026';
+				var before = profiles.length, y = window.scrollY;
+				api( CFG.queue + ( CFG.queue.indexOf( '?' ) === -1 ? '?' : '&' ) + 'more=1' ).then( function ( d ) {
+					if ( d && d.ok ) {
+						profiles = d.profiles || profiles;
+						if ( profiles.length <= before ) { meta.noMore = true; }
+					}
+					drawGrid();
+					window.scrollTo( 0, y );
+				} );
+			} );
+			root.appendChild( more );
+		} else if ( meta.unlimited ) {
+			root.appendChild( el( 'p', 'csm-d-gridcount', 'That is everyone who matches your filters for now.' ) );
+		}
 	}
 
 	function draw() {

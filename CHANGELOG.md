@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.88.2 — 2026-10-25
+- Gold is described as **unlimited profiles** everywhere (pricing page,
+  filter sheet, tour); no "50 at a time". Discover's grid loads 24 and a
+  **Show more profiles** button loads the next page; when nobody new is
+  left it says so. Queue endpoint takes `more=1`.
+
 ## 1.88.1 — 2026-10-25
 - Gold sees every member **in Discover** instead of a separate Browse
   screen (owner: "do we really need another screen"). No weekly limit; 50

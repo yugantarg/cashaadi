@@ -70,7 +70,7 @@ final class PricingPage {
 			$head = 'Find the right one, on your terms';
 			$sub  = 'See who is interested, and choose who reaches you.';
 			$rows = array(
-				array( 'Profiles you see', $free_n . ' a week', $prem_n . ' a week', '<strong>Everyone</strong>' ),
+				array( 'Profiles you see', $free_n . ' a week', $prem_n . ' a week', '<strong>Unlimited</strong>' ),
 				array( 'Requests you receive', 'All, unsorted', '<strong>Filter by income, community, CA / Inter, age</strong>', '✓' ),
 				array( 'Who viewed you', '—', '<strong>✓</strong>', '✓' ),
 				array( 'Filters in Discover', '—', '✓', '✓' ),
@@ -83,7 +83,7 @@ final class PricingPage {
 			$head = 'Get noticed by the right person';
 			$sub  = 'Members whose profile is seen first find their match faster.';
 			$rows = array(
-				array( 'Profiles you see', $free_n . ' a week', $prem_n . ' a week', '<strong>Everyone</strong>' ),
+				array( 'Profiles you see', $free_n . ' a week', $prem_n . ' a week', '<strong>Unlimited</strong>' ),
 				array( 'Your requests', 'Standard', 'With a personal note', '<strong>Always at the top of ' . $her . ' list</strong>' ),
 				array( 'Your profile in Discover', 'Standard', 'Standard', '<strong>Shown first</strong>' ),
 				array( 'Filters (community, language, age…)', '—', '✓', '✓' ),
@@ -95,7 +95,7 @@ final class PricingPage {
 		}
 
 		$full = array(
-			array( 'Profiles a week in Discover', $free_n . ' (+5 with a photo, +5 verified)', (string) $prem_n, 'Every member, 50 at a time' ),
+			array( 'Profiles a week in Discover', $free_n . ' (+5 with a photo, +5 verified)', (string) $prem_n, 'Unlimited' ),
 			array( 'Send requests, chat after a match', '✓', '✓', '✓' ),
 			array( 'Phone number after a match', '✓', '✓', '✓' ),
 			array( 'Phone numbers of all members (except "Only me"); viewing one sends a request', '—', '—', '✓' ),

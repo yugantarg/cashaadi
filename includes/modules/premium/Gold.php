@@ -12,8 +12,8 @@
  *   - Phone numbers of every member except "Only me". Viewing one sends a
  *     match request (the member is told first), up to DAILY_PHONES a day,
  *     every view logged. Off until launch day (csm_gold_phone_live).
- *   - Every member in Discover: no weekly limit, 50 at a time (grid view),
- *     and Gold badge for verified members.
+ *   - Unlimited profiles in Discover: no weekly limit, in the grid view,
+ *     a page at a time with "Show more". Gold badge for verified members.
  *   - Upgrade credit: a Premium member's unused days are taken off the price.
  *   - Founding cap: the product stops selling at csm_gold_cap members.
  *
@@ -35,7 +35,10 @@ final class Gold {
 
 	const DAILY_PHONES = 20;
 	const UNLIMITED    = 9999;   // Gold: no weekly limit in Discover (fits a SMALLINT)
-	const AT_A_TIME    = 50;     // ...shown 50 undecided at a time
+	const PAGE         = 24;     // ...loaded a page at a time ("Show more")
+
+	/** Set by the Discover queue when a Gold member taps "Show more". */
+	public static $more = false;
 	const PREMIUM_PRICE_FOR_CREDIT = 1499;
 
 	public static function register() {
@@ -97,15 +100,28 @@ final class Gold {
 
 	/**
 	 * Gold sees every member in Discover (owner, 2026-10-25: no separate
-	 * screen): no weekly limit, 50 undecided at a time, refilled as they
-	 * decide, in the grid view.
+	 * screen, and the word is "unlimited"): no weekly limit.
 	 */
 	public static function tray_size( $size, $uid ) {
 		return $uid && Membership::is_gold( $uid ) ? self::UNLIMITED : $size;
 	}
 
+	/**
+	 * How many may sit undecided: one page, or one more page than they have
+	 * when they ask for more. The member is told "unlimited" (owner,
+	 * 2026-10-25); paging only keeps the screen quick.
+	 */
 	public static function open_cap( $cap, $uid ) {
-		return $uid && Membership::is_gold( $uid ) ? self::AT_A_TIME : $cap;
+		if ( ! $uid || ! Membership::is_gold( $uid ) ) {
+			return $cap;
+		}
+		if ( ! self::$more ) {
+			return self::PAGE;
+		}
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'", (int) $uid ) );
+		return $pending + self::PAGE;
 	}
 
 	/** Gold badge: Gold AND verified. */

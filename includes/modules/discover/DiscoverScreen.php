@@ -110,8 +110,11 @@ final class DiscoverScreen {
 	 * so the two views of the same tray agree.
 	 */
 	public static function rest_queue( $request ) {
-		unset( $request );
 		$viewer_id = get_current_user_id();
+		// Gold "Show more": load another page (v1.88.2).
+		if ( $request->get_param( 'more' ) && class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ) {
+			\CAShaadi\Modules\Premium\Gold::$more = true;
+		}
 
 		// No-op when the tray is already filled; owned by #11600.
 		if ( function_exists( 'csm_refill_tray' ) ) {
