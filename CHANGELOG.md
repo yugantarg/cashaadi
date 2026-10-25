@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.10 — 2026-10-25
+
+- Discover filters: the sheet sent its choices without saying they were JSON, so WordPress read nothing and Apply saved an empty filter (wiping age, height, community and the rest). The request now carries `Content-Type: application/json`.
+
 ## 1.89.9 — 2026-10-25
 
 - Discover filter sheet: on phones it now sits above the bottom nav, so Clear and Apply are always visible (a later `86vh` rule had undone the earlier visible-screen fix).

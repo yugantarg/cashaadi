@@ -26,6 +26,9 @@
 		opts.credentials = 'same-origin';
 		opts.headers = opts.headers || {};
 		opts.headers['X-WP-Nonce'] = CFG.nonce;
+		// Without this WordPress does not read a JSON body, and the filter
+		// sheet saved nothing, wiping every filter (owner, 2026-10-25).
+		if ( typeof opts.body === 'string' ) { opts.headers['Content-Type'] = 'application/json'; }
 		return fetch( url, opts ).then( function ( r ) { return r.json(); } );
 	}
 
