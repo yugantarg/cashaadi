@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.2 — 2026-10-25
+- A **full refund** (order status Refunded) ends the membership the order
+  bought: Premium ends; a Gold upgrade goes back to the Premium the member
+  had, until its old end date. Partial refunds change nothing. An order
+  note records it; events `membership_refunded` /
+  `gold_refunded_premium_restored`. The level before checkout is kept on
+  the order (`_csm_prev_level`).
+
 ## 1.89.1 — 2026-10-25
 - Before launch, the owner's test accounts (yugantargupta@gmail.com and its
   +aliases; option `csm_gold_tester_regex`) can preview the new pricing page

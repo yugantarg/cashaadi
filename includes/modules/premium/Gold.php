@@ -49,6 +49,9 @@ final class Gold {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'upgrade_credit' ) );
 		add_filter( 'woocommerce_is_purchasable', array( __CLASS__, 'purchasable' ), 10, 2 );
+		// Refunds end the membership the order bought (v1.89.2).
+		add_action( 'woocommerce_checkout_create_order', array( __CLASS__, 'remember_level' ), 10, 1 );
+		add_action( 'woocommerce_order_status_refunded', array( __CLASS__, 'on_refund' ), 20, 1 );
 	}
 
 	public static function schema( $wpdb ) {
@@ -264,6 +267,68 @@ final class Gold {
 		}
 		$re = (string) get_option( 'csm_gold_tester_regex', '/^yugantargupta(\+[^@]*)?@gmail\.com$/i' );
 		return (bool) @preg_match( $re, (string) $u->user_email ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+	}
+
+	/* ----------------------------------------------------------- refunds */
+
+	/** At checkout: what membership the buyer had before, for an undo. */
+	public static function remember_level( $order ) {
+		$uid = (int) $order->get_customer_id();
+		if ( ! $uid || ! function_exists( 'pmpro_getMembershipLevelForUser' ) ) {
+			return;
+		}
+		$lvl = pmpro_getMembershipLevelForUser( $uid );
+		if ( $lvl ) {
+			$order->update_meta_data( '_csm_prev_level', array( 'id' => (int) $lvl->id, 'end' => (int) $lvl->enddate ) );
+		}
+	}
+
+	/**
+	 * A FULLY refunded order (WooCommerce marks it "Refunded") ends what it
+	 * bought (owner, 2026-10-25: "refunding should remove the membership").
+	 * A Gold upgrade gives back the Premium the member had, until its old end
+	 * date. A partial refund changes nothing: the order stays Completed.
+	 * Only acts when the member's current level is the one this order bought.
+	 */
+	public static function on_refund( $order_id ) {
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+		if ( ! $order || ! function_exists( 'pmpro_changeMembershipLevel' ) ) {
+			return;
+		}
+		$uid = (int) $order->get_customer_id();
+		if ( ! $uid ) {
+			return;
+		}
+		$bought = 0;
+		foreach ( $order->get_items() as $item ) {
+			$pid = (int) $item->get_product_id();
+			if ( (int) Config::WC_GOLD_PRODUCT === $pid ) {
+				$bought = (int) Config::PMPRO_GOLD_LEVEL;
+			} elseif ( (int) Config::WC_PREMIUM_PRODUCT === $pid && ! $bought ) {
+				$bought = (int) Config::PMPRO_PREMIUM_LEVEL;
+			}
+		}
+		if ( ! $bought || ! pmpro_hasMembershipLevel( $bought, $uid ) ) {
+			return; // nothing of ours, or already changed since
+		}
+		$prev = $order->get_meta( '_csm_prev_level' );
+		if ( (int) Config::PMPRO_GOLD_LEVEL === $bought && is_array( $prev )
+			&& (int) Config::PMPRO_PREMIUM_LEVEL === (int) $prev['id'] && (int) $prev['end'] > time() ) {
+			pmpro_changeMembershipLevel( array(
+				'user_id'       => $uid,
+				'membership_id' => (int) Config::PMPRO_PREMIUM_LEVEL,
+				'startdate'     => current_time( 'mysql' ),
+				'enddate'       => wp_date( 'Y-m-d H:i:s', (int) $prev['end'] ),
+			), $uid );
+			$what = 'gold_refunded_premium_restored';
+		} else {
+			pmpro_changeMembershipLevel( 0, $uid );
+			$what = 'membership_refunded';
+		}
+		$order->add_order_note( 'CA Shaadi: full refund, membership ' . ( 'membership_refunded' === $what ? 'ended.' : 'changed from Gold back to Premium.' ) );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( $what, 0, $uid, array( 'order' => (int) $order_id ) );
+		}
 	}
 
 	/** Founding members: Gold stops selling at the cap (0 = no cap). */
