@@ -115,7 +115,9 @@ final class Coach {
 					'target' => '.csm-app-nav-item[href*="/discover"], .csm-appnav-item[href*="/discover"]',
 					'title'  => class_exists( '\\CAShaadi\\Modules\\Discover\\Discover' )
 						/* translators: %d: profiles per week */
-						? sprintf( __( '%d profiles a week', 'cashaadi-ui' ), \CAShaadi\Modules\Discover\Discover::quota_for( get_current_user_id() ) )
+						? ( \CAShaadi\Core\Membership::is_gold( get_current_user_id() )
+							? __( 'Every member, 50 at a time', 'cashaadi-ui' )
+							: sprintf( __( '%d profiles a week', 'cashaadi-ui' ), \CAShaadi\Modules\Discover\Discover::quota_for( get_current_user_id() ) ) )
 						: __( 'Five profiles a week', 'cashaadi-ui' ),
 					'body'   => __( 'We choose a small set for you each Monday, rather than an endless list. Read the whole profile, then decide.', 'cashaadi-ui' ),
 				),

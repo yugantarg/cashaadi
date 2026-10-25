@@ -192,7 +192,8 @@ final class DiscoverScreen {
 
 			'filters'      => class_exists( __NAMESPACE__ . '\\Filters' ) ? Filters::state( $viewer_id ) : null,
 			'upgrade'   => site_url( '/membership-pricing/' ),
-			'browse'    => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $viewer_id ) ? home_url( '/browse/' ) : '',
+			// Gold: every member, 50 at a time, no weekly limit (v1.88.1).
+			'unlimited' => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $viewer_id ),
 		), 200 );
 	}
 

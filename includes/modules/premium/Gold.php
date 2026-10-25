@@ -12,8 +12,8 @@
  *   - Phone numbers of every member except "Only me". Viewing one sends a
  *     match request (the member is told first), up to DAILY_PHONES a day,
  *     every view logged. Off until launch day (csm_gold_phone_live).
- *   - 20 profiles a week for men (women already get 50), and Gold badge for
- *     verified members.
+ *   - Every member in Discover: no weekly limit, 50 at a time (grid view),
+ *     and Gold badge for verified members.
  *   - Upgrade credit: a Premium member's unused days are taken off the price.
  *   - Founding cap: the product stops selling at csm_gold_cap members.
  *
@@ -34,12 +34,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Gold {
 
 	const DAILY_PHONES = 20;
-	const MEN_WEEKLY   = 20;
+	const UNLIMITED    = 9999;   // Gold: no weekly limit in Discover (fits a SMALLINT)
+	const AT_A_TIME    = 50;     // ...shown 50 undecided at a time
 	const PREMIUM_PRICE_FOR_CREDIT = 1499;
 
 	public static function register() {
 		Migrator::register( 'phone_views', array( __CLASS__, 'schema' ) );
-		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 15, 2 );
+		// Late, after the women's and boost rules, so nothing adds to "unlimited".
+		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 99, 2 );
+		add_filter( 'csm_tray_open_cap', array( __CLASS__, 'open_cap' ), 10, 2 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'upgrade_credit' ) );
 		add_filter( 'woocommerce_is_purchasable', array( __CLASS__, 'purchasable' ), 10, 2 );
@@ -92,12 +95,17 @@ final class Gold {
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT user_id) FROM {$t} WHERE membership_id = %d AND status = 'active'", Config::PMPRO_GOLD_LEVEL ) );
 	}
 
-	/** Gold men: 20 a week. Gold women keep the Premium-women 50. */
+	/**
+	 * Gold sees every member in Discover (owner, 2026-10-25: no separate
+	 * screen): no weekly limit, 50 undecided at a time, refilled as they
+	 * decide, in the grid view.
+	 */
 	public static function tray_size( $size, $uid ) {
-		if ( $uid && Membership::is_gold( $uid ) && function_exists( 'cashaadi' ) && 'Female' !== trim( (string) cashaadi()->get_gender( $uid ) ) ) {
-			return max( (int) $size, self::MEN_WEEKLY );
-		}
-		return $size;
+		return $uid && Membership::is_gold( $uid ) ? self::UNLIMITED : $size;
+	}
+
+	public static function open_cap( $cap, $uid ) {
+		return $uid && Membership::is_gold( $uid ) ? self::AT_A_TIME : $cap;
 	}
 
 	/** Gold badge: Gold AND verified. */

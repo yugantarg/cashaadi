@@ -95,8 +95,7 @@ final class PricingPage {
 		}
 
 		$full = array(
-			array( 'Profiles a week in Discover', $free_n . ' (+5 with a photo, +5 verified)', (string) $prem_n, ( $female ? '50' : '20' ) . ' + browse all members' ),
-			array( 'Browse all members', '—', '—', '✓' ),
+			array( 'Profiles a week in Discover', $free_n . ' (+5 with a photo, +5 verified)', (string) $prem_n, 'Every member, 50 at a time' ),
 			array( 'Send requests, chat after a match', '✓', '✓', '✓' ),
 			array( 'Phone number after a match', '✓', '✓', '✓' ),
 			array( 'Phone numbers of all members (except "Only me"); viewing one sends a request', '—', '—', '✓' ),

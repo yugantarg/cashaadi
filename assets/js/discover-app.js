@@ -48,6 +48,15 @@
 	function empty( message ) {
 		root.innerHTML = '';
 		var box = el( 'div', 'csm-d-empty' );
+		if ( meta.unlimited ) {
+			// Gold has no weekly limit: empty means everyone matching has been seen.
+			box.appendChild( el( 'h2', null, 'You\u2019ve seen everyone' ) );
+			box.appendChild( el( 'p', null, 'You have seen every member who matches your filters. New members appear here as they join. Widen your filters to see more.' ) );
+			var fbG = filterBar();
+			if ( fbG ) { box.appendChild( fbG ); }
+			root.appendChild( box );
+			return;
+		}
 		box.appendChild( el( 'h2', null, 'That\u2019s your ' + ( meta.quota || meta.freeQuota || 5 ) + ' for this week' ) );
 
 		if ( ! message && ! meta.isPremium ) {
@@ -204,12 +213,7 @@
 		if ( on ) { btn.classList.add( 'is-on' ); }
 		btn.addEventListener( 'click', sheet );
 		wrap.appendChild( btn );
-		// Gold: every member, not just this week's (v1.88.0).
-		if ( meta.browse ) {
-			var br = el( 'a', 'csm-d-filterbtn csm-d-browse', 'Browse all members \u2192' );
-			br.href = meta.browse;
-			wrap.appendChild( br );
-		}
+
 		return wrap;
 	}
 
@@ -308,7 +312,7 @@
 		var box  = el( 'div', 'csm-d-sheet' );
 		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
 		box.appendChild( el( 'p', 'csm-d-sheethint',
-			'You get ' + f.quota + ' profiles a week.' ) );
+			meta.unlimited ? 'Gold: you see every member who matches, 50 at a time.' : 'You get ' + f.quota + ' profiles a week.' ) );
 
 		function num( label, name, min, max, val, fmt ) {
 			var row = el( 'label', 'csm-d-frow' );
@@ -708,7 +712,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, browse: d.browse || '' };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, unlimited: !! d.unlimited };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.88.1 — 2026-10-25
+- Gold sees every member **in Discover** instead of a separate Browse
+  screen (owner: "do we really need another screen"). No weekly limit; 50
+  undecided at a time in the grid view, refilled as they decide, with their
+  filters. Empty Discover for Gold says they have seen everyone who matches.
+  New engine filter `csm_tray_open_cap`. The /browse/ screen is removed.
+
 ## 1.88.0 — 2026-10-25
 Gold, part 2.
 - **Browse all members** (`/browse/`, Gold only): every opposite-gender

@@ -76,9 +76,12 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		) );
 		$pending = $open_pending;
 
+		// How many may sit undecided at once. Normally the weekly size; Gold has
+		// no weekly limit but sees 50 at a time (v1.88.1).
+		$open_cap = max( 1, (int) apply_filters( 'csm_tray_open_cap', $tray_size, $viewer_id ) );
 		$slots = max( 0, min(
 			$tray_size - $served_week,
-			$tray_size - $open_pending
+			$open_cap - $open_pending
 		) );
 		if ( $slots <= 0 ) {
 			return array();
