@@ -49,7 +49,7 @@ final class Journey {
 	const CRON = 'csm_journey_daily';
 
 	/** Event types never pruned: the record a later analysis depends on. */
-	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'match_made', 'once_field_changed' );
+	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed' );
 
 	public static function register() {
 		Migrator::register( 'member_day', array( __CLASS__, 'schema' ) );
@@ -70,11 +70,14 @@ final class Journey {
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'on_order' ) );
 		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'on_order' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'on_pricing_view' ), 5 );
+		// "Buy Premium" / "Buy Gold" taps, paid or not (v1.89.30).
+		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'on_buy_click' ), 20, 2 );
 		add_action( 'csm_mutual_match', array( __CLASS__, 'on_match' ), 10, 2 );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm journey', __NAMESPACE__ . '\\JourneyCli' );
 			\WP_CLI::add_command( 'csm audience', __NAMESPACE__ . '\\AudienceCli' );
+			\WP_CLI::add_command( 'csm pricing', __NAMESPACE__ . '\\PricingCli' );
 		}
 	}
 
@@ -472,15 +475,20 @@ final class Journey {
 			return;
 		}
 		$premium = false;
+		$gold    = false;
 		foreach ( $order->get_items() as $item ) {
 			if ( (int) $item->get_product_id() === (int) Config::WC_PREMIUM_PRODUCT ) {
 				$premium = true;
+			}
+			if ( (int) $item->get_product_id() === (int) Config::WC_GOLD_PRODUCT ) {
+				$gold = true;
 			}
 		}
 		$u = get_userdata( $uid );
 		cashaadi()->log_event( 'purchase', $uid, (int) $order_id, array(
 			'total'        => (float) $order->get_total(),
 			'premium'      => $premium ? 1 : 0,
+			'gold'         => $gold ? 1 : 0,
 			'days_since_signup' => $u ? (int) floor( ( time() - strtotime( $u->user_registered . ' UTC' ) ) / DAY_IN_SECONDS ) : null,
 			'gender'       => (string) ( function_exists( 'cashaadi' ) ? cashaadi()->get_gender( $uid ) : '' ),
 			'channel'      => (string) get_user_meta( $uid, 'csm_channel', true ),
@@ -512,7 +520,36 @@ final class Journey {
 			return;
 		}
 		set_transient( 'csm_pv_' . $uid, 1, HOUR_IN_SECONDS );
-		cashaadi()->log_event( 'pricing_view', $uid, 0, array( 'src' => $src, 'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0 ) );
+		cashaadi()->log_event( 'pricing_view', $uid, 0, array(
+			'src'     => $src,
+			'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0,
+			'plan'    => self::plan( $uid ),
+			'gender'  => (string) cashaadi()->get_gender( $uid ),
+		) );
+	}
+
+	/** free | premium | gold, for the pricing events. */
+	public static function plan( $uid ) {
+		if ( ! class_exists( '\CAShaadi\Core\Membership' ) ) {
+			return '';
+		}
+		return \CAShaadi\Core\Membership::is_gold( $uid ) ? 'gold' : ( \CAShaadi\Core\Membership::is_premium( $uid ) ? 'premium' : 'free' );
+	}
+
+	/** A Buy tap: which plan, from which source, by whom. */
+	public static function on_buy_click( $cart_item_key, $product_id ) {
+		$pid = (int) $product_id;
+		$what = (int) Config::WC_GOLD_PRODUCT === $pid ? 'gold' : ( (int) Config::WC_PREMIUM_PRODUCT === $pid ? 'premium' : '' );
+		$uid  = get_current_user_id();
+		if ( '' === $what || ! $uid || user_can( $uid, 'manage_options' ) || ! function_exists( 'cashaadi' ) ) {
+			return;
+		}
+		cashaadi()->log_event( 'buy_click', $uid, $pid, array(
+			'product' => $what,
+			'src'     => (string) get_user_meta( $uid, 'csm_last_pricing_src', true ),
+			'plan'    => self::plan( $uid ),
+			'gender'  => (string) cashaadi()->get_gender( $uid ),
+		) );
 	}
 
 	public static function on_match( $a, $b ) {

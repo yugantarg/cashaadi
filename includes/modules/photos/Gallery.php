@@ -954,7 +954,8 @@ final class Gallery {
 	}
 
 	private static function pn_pricing_url() {
-		return site_url( '/pricing/' );
+		// Straight to the page: the /pricing/ redirect dropped the ?src= tag.
+		return site_url( '/membership-pricing/?src=photo' );
 	}
 
 	/* ------------------------------------------------------------- assets */

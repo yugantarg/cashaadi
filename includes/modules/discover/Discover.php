@@ -612,7 +612,7 @@ final class Discover {
 		if ( $exhausted ) {
 			$html .= '<div class="csm-quota-upgrade">';
 			$html .= '<span class="csm-quota-upgrade-msg">You have used all your free profiles this week.</span>';
-			$html .= '<a class="csm-quota-upgrade-btn" href="' . esc_url( site_url( '/membership-pricing/' ) ) . '">Upgrade to Premium</a>';
+			$html .= '<a class="csm-quota-upgrade-btn" href="' . esc_url( site_url( '/membership-pricing/?src=quota' ) ) . '">Upgrade to Premium</a>';
 			$html .= '</div>';
 		}
 		$html .= '</div>';

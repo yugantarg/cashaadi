@@ -190,6 +190,7 @@
 			url: CFG.filters,
 			nonce: CFG.nonce,
 			upgrade: CFG.upgrade,
+			src: 'filter-requests',
 			onApplied: function () { load(); }
 		} );
 	}
@@ -243,7 +244,7 @@
 			// Upgrade prompt (v1.89.0): Gold requests go to the top of their list.
 			if ( CFG.goldPrompt ) {
 				var gb = el( 'a', 'csm-r-goldprompt', 'Waiting for answers? Gold puts your requests at the top of their list.' );
-				gb.href = CFG.upgrade;
+				gb.href = window.csmSrc( CFG.upgrade, 'requests-gold' );
 				root.appendChild( gb );
 			}
 			data.sent.forEach( function ( p ) {
@@ -287,7 +288,7 @@
 					data.savedLocked + ( 1 === data.savedLocked ? ' save from an earlier week is locked.' : ' saves from earlier weeks are locked.' )
 					+ ' Premium keeps every profile you save.' ) );
 				var a = el( 'a', 'csm-r-upsell-btn', 'Keep saves with Premium' );
-				a.href = '/membership-pricing/';
+				a.href = window.csmSrc( '/membership-pricing/', 'requests-saves' );
 				lock.appendChild( a );
 				root.appendChild( list );   // tabs() was already appended above
 				root.appendChild( lock );
@@ -327,7 +328,7 @@
 		box.appendChild( el( 'p', null, 'Upgrade to Premium to see exactly who visited you, and when.' ) );
 		var a = document.createElement( 'a' );
 		a.className = 'csm-r-upgrade-cta';
-		a.href = CFG.upgrade;
+		a.href = window.csmSrc( CFG.upgrade, 'requests-viewers' );
 		a.textContent = 'Upgrade to Premium';
 		box.appendChild( a );
 		return box;

@@ -265,7 +265,7 @@ final class Premium {
 		if ( 0 === $count ) {
 			return '<p class="csm-pv-empty">No one has viewed your profile yet. Complete your profile and start matching to get noticed.</p>';
 		}
-		$upgrade = site_url( '/membership-pricing/' );
+		$upgrade = site_url( '/membership-pricing/?src=viewers-teaser' );
 		$now     = current_time( 'timestamp' );
 		$show    = array_slice( $rows, 0, 6 );
 
@@ -409,7 +409,7 @@ final class Premium {
 
 		printf(
 			'<div class="cashaadi-upgrade-wrap"><a class="cashaadi-upgrade-btn" href="%s">Upgrade to Premium</a></div>',
-			esc_url( home_url( '/membership-pricing/' ) )
+			esc_url( home_url( '/membership-pricing/?src=upgrade-btn' ) )
 		);
 	}
 
@@ -824,7 +824,7 @@ final class Premium {
 	}
 
 	private static function rv_locked_html() {
-		$upgrade = site_url( '/membership-pricing/' );
+		$upgrade = site_url( '/membership-pricing/?src=recent-viewers' );
 		return '<div class="csm-rv-lock"><div class="csm-rv-lock-blur" aria-hidden="true">'
 			. '<div class="r"><span></span><span></span><span></span></div>'
 			. '<div class="r"><span></span><span></span><span></span></div></div>'

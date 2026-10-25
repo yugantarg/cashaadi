@@ -725,7 +725,7 @@ final class SettingsScreen {
 						'label' => __( 'Membership', 'cashaadi-ui' ),
 						'value' => ( class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ) )
 							? __( 'Premium', 'cashaadi-ui' ) : __( 'Free', 'cashaadi-ui' ),
-						'url'   => site_url( '/membership-pricing/' ),
+						'url'   => site_url( '/membership-pricing/?src=settings' ),
 					),
 					array( 'label' => __( 'Email notifications', 'cashaadi-ui' ), 'value' => '', 'url' => home_url( '/settings/notifications/' ) ),
 					array( 'label' => __( 'Help & support', 'cashaadi-ui' ), 'value' => Config::SUPPORT_EMAIL, 'url' => 'mailto:' . Config::SUPPORT_EMAIL ),

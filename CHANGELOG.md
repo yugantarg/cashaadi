@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.30 — 2026-10-25
+
+- Pricing-page tracking: every upgrade button carries a `?src=` tag (phone, photo-blur, photo, filter-discover, filter-requests, discover-gold, discover-empty, discover-limit, requests-gold, requests-saves, requests-viewers, profile, profile-gold, quota, settings, viewers-teaser, recent-viewers, upgrade-btn) via `window.csmSrc`.
+- `pricing_view` events also record plan (free/premium/gold) and gender; new `buy_click` event for Buy Premium / Buy Gold taps; `purchase` records `gold`.
+- `wp csm pricing report [--days=7]`: visits, members, Buy taps and purchases by source, then by plan and gender.
+
 ## 1.89.29 — 2026-10-25
 
 - ZeptoMail: an invalid recipient (SM_113 / SMI_116) fails that one email without raising the "check the ZeptoMail credits" dashboard alert.

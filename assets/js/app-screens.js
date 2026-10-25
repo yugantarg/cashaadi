@@ -5,6 +5,13 @@
  * app-shell CSS had hidden, so it appeared to open nothing; this owns both the
  * button and the panel, so they cannot disagree.
  */
+/* Tag an upgrade link with where it was tapped, for the pricing report
+   (Analytics\\Journey reads ?src=; v1.89.30). */
+window.csmSrc = function ( url, src ) {
+	if ( ! url ) { return url; }
+	return url + ( url.indexOf( '?' ) === -1 ? '?' : '&' ) + 'src=' + encodeURIComponent( src );
+};
+
 ( function () {
 	'use strict';
 
@@ -307,7 +314,7 @@ window.csmProfileCard = function ( p ) {
 		} else if ( 'locked' === st.state && st.up && app.upgrade ) {
 			// A Premium viewer's next step is Gold; say so.
 			var up = mk( 'a', 'csm-d-phone-a', '\uD83D\uDD12 ' + ( app.isPremium ? 'Upgrade to Gold' : 'Upgrade' ) + ' to view' );
-			up.href = app.upgrade;
+			up.href = window.csmSrc( app.upgrade, 'phone' );
 			dd.appendChild( up );
 		} else {
 			dd.textContent = 'not_shared' === st.state ? 'Not shared'
@@ -393,7 +400,7 @@ window.csmProfileCard = function ( p ) {
 				okText: 'See Premium',
 				cancelText: 'Close'
 			} ).then( function ( go ) {
-				if ( go ) { window.location.href = p.upgradeUrl || '/membership-pricing/'; }
+				if ( go ) { window.location.href = window.csmSrc( p.upgradeUrl || '/membership-pricing/', 'photo-blur' ); }
 			} );
 		} );
 		media.appendChild( reveal );
@@ -675,7 +682,7 @@ window.csmProfileCard = function ( p ) {
 		if ( ! f.eligible ) {
 			if ( ! meta.upgrade ) { return null; }
 			var lock = el( 'a', 'csm-d-filterbtn is-locked', '\uD83D\uDD12 Filter by community, religion, age\u2026 with Premium' );
-			lock.href = meta.upgrade;
+			lock.href = window.csmSrc( meta.upgrade, o.src || 'filter' );
 			wrap.appendChild( lock );
 			return wrap;
 		}

@@ -77,7 +77,7 @@
 			// Premium, not Gold: the one thing left to offer is unlimited.
 			var gp = el( 'p', null, 'Want more? ' );
 			var ga = el( 'a', null, 'Gold members see unlimited profiles.' );
-			ga.href = meta.upgrade;
+			ga.href = window.csmSrc( meta.upgrade, 'discover-gold' );
 			gp.appendChild( ga );
 			box.appendChild( gp );
 		}
@@ -146,7 +146,7 @@
 				'Premium raises your weekly set to ' + ( meta.premiumQuota || 10 ) + ' profiles.' ) );
 			var a = document.createElement( 'a' );
 			a.className = 'csm-d-upsell-cta';
-			a.href = meta.upgrade;
+			a.href = window.csmSrc( meta.upgrade, 'discover-empty' );
 			a.textContent = 'See Premium';
 			up.appendChild( a );
 			box.appendChild( up );
@@ -232,6 +232,7 @@
 			url: CFG.filters,
 			nonce: CFG.nonce,
 			upgrade: meta.upgrade,
+			src: 'filter-discover',
 			hint: meta.unlimited ? 'Gold: unlimited profiles.' : 'You get ' + meta.filters.quota + ' profiles a week.',
 			onApplied: function ( d ) { meta.filters = d; load(); }
 		} );
@@ -502,7 +503,7 @@
 		var note = 'That\u2019s all ' + freeN + ' profiles in your free set for this week. '
 			+ 'Premium members get ' + premN + ' every week, and can see who viewed them.';
 		if ( ! window.csmConfirm ) {
-			if ( meta.upgrade && window.confirm( note + '\n\nSee Premium?' ) ) { window.location.href = meta.upgrade; }
+			if ( meta.upgrade && window.confirm( note + '\n\nSee Premium?' ) ) { window.location.href = window.csmSrc( meta.upgrade, 'discover-limit' ); }
 			return;
 		}
 		window.csmConfirm( note, {
@@ -510,7 +511,7 @@
 			okText: 'See Premium',
 			cancelText: 'Not now'
 		} ).then( function ( yes ) {
-			if ( yes && meta.upgrade ) { window.location.href = meta.upgrade; }
+			if ( yes && meta.upgrade ) { window.location.href = window.csmSrc( meta.upgrade, 'discover-limit' ); }
 		} );
 	}
 
