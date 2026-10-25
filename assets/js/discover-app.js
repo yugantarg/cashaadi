@@ -464,8 +464,8 @@
 		   comes back — act() marks them rather than splicing, so the carousel's
 		   indexes stay valid; the grid filters on the same map. */
 		var left = profiles.filter( function ( p ) { return ! acted[ p.id ]; } );
-		// Gold, page decided: fetch the next one rather than saying "that's all".
-		if ( ! left.length && meta.unlimited && ! meta.noMore ) {
+		// Page decided: fetch the next one rather than saying "that's all".
+		if ( ! left.length && meta.grid && ! meta.noMore ) {
 			root.appendChild( el( 'p', 'csm-app-loading', 'Loading more profiles\u2026' ) );
 			api( CFG.queue + ( CFG.queue.indexOf( '?' ) === -1 ? '?' : '&' ) + 'more=1' ).then( function ( d ) {
 				var fresh = ( d && d.ok && d.profiles ) ? d.profiles.filter( function ( p ) { return ! acted[ p.id ]; } ) : [];
@@ -488,8 +488,8 @@
 		} );
 		root.appendChild( grid );
 
-		// Gold: unlimited, loaded a page at a time (v1.88.2).
-		if ( meta.unlimited && ! meta.noMore ) {
+		// Grid members (Gold, Premium women): a page at a time (v1.88.3).
+		if ( ( meta.unlimited || ( meta.quota || 0 ) > profiles.length ) && ! meta.noMore ) {
 			var more = el( 'button', 'csm-d-more', 'Show more profiles' );
 			more.type = 'button';
 			more.addEventListener( 'click', function () {

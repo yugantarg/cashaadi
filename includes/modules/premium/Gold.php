@@ -112,7 +112,12 @@ final class Gold {
 	 * 2026-10-25); paging only keeps the screen quick.
 	 */
 	public static function open_cap( $cap, $uid ) {
-		if ( ! $uid || ! Membership::is_gold( $uid ) ) {
+		/*
+		 * Paging applies to every grid member (Gold, and Premium women's 50 a
+		 * week, v1.88.3): a page at a time, more on request. The weekly total
+		 * is still the weekly size; this only decides how much loads at once.
+		 */
+		if ( ! $uid || (int) $cap <= self::PAGE ) {
 			return $cap;
 		}
 		if ( ! self::$more ) {
@@ -121,7 +126,7 @@ final class Gold {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'", (int) $uid ) );
-		return $pending + self::PAGE;
+		return min( (int) $cap, $pending + self::PAGE );
 	}
 
 	/** Gold badge: Gold AND verified. */

@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.88.3 — 2026-10-25
+- Premium women's 50 a week also load 24 at a time with "Show more
+  profiles" (they were all loaded at once). Their weekly total is
+  unchanged.
+
 ## 1.88.2 — 2026-10-25
 - Gold is described as **unlimited profiles** everywhere (pricing page,
   filter sheet, tour); no "50 at a time". Discover's grid loads 24 and a
