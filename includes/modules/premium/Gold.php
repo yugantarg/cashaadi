@@ -75,8 +75,14 @@ final class Gold {
 		return (bool) get_option( 'csm_gold_ceiling_exempt', 1 );
 	}
 
-	public static function phone_live() {
-		return (bool) get_option( 'csm_gold_phone_live', 0 );
+	/** On for everyone from launch; before that, for the owner's test accounts. */
+	public static function phone_live( $viewer = 0 ) {
+		return (bool) get_option( 'csm_gold_phone_live', 0 ) || ( $viewer && self::is_tester( $viewer ) );
+	}
+
+	/** Whether this member's plan includes opening numbers (live or not yet). */
+	public static function plan_has_phone( $uid ) {
+		return Membership::is_gold( (int) $uid ) || ( Membership::is_premium( (int) $uid ) && self::is_female( $uid ) );
 	}
 
 	/** Which of these members are Gold, in one query. */
@@ -174,7 +180,7 @@ final class Gold {
 	 * A Premium woman counts as Gold here: numbers are her Premium feature.
 	 */
 	public static function can_reveal( $viewer, $profile = 0 ) {
-		if ( ! self::phone_live() || ! Membership::is_premium( (int) $viewer ) ) {
+		if ( ! self::phone_live( $viewer ) || ! Membership::is_premium( (int) $viewer ) ) {
 			return false;
 		}
 		$full = Membership::is_gold( (int) $viewer ) || self::is_female( $viewer );

@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.22 — 2026-10-25
+
+- Gold members no longer see "Upgrade to view" on phone numbers (`Gold::plan_has_phone`). Before the launch date their row reads "Opens on launch day".
+- The owner's test accounts (`csm_gold_tester_regex`) can open numbers before launch (`Gold::phone_live( $viewer )`).
+
 ## 1.89.21 — 2026-10-25
 
 - Discover grid: "Show all" sits at the end of the count line ("55 of 55 left this week · 7 hidden by your filters · Show all"); the card view and empty screen keep it beside the filter button.

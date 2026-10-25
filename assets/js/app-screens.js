@@ -309,7 +309,8 @@ window.csmProfileCard = function ( p ) {
 			up.href = app.upgrade;
 			dd.appendChild( up );
 		} else {
-			dd.textContent = 'not_shared' === st.state ? 'Not shared' : '\uD83D\uDD12 Hidden';
+			dd.textContent = 'not_shared' === st.state ? 'Not shared'
+				: ( st.soon ? '\uD83D\uDD12 Opens on launch day' : '\uD83D\uDD12 Hidden' );
 		}
 		return dd;
 	}

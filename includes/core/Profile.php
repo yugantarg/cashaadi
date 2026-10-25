@@ -454,10 +454,14 @@ final class Profile {
 		$to = class_exists( '\\CAShaadi\\Modules\\Settings\\SettingsScreen' )
 			? \CAShaadi\Modules\Settings\SettingsScreen::phone_audience( $profile_id )
 			: 'gold';
-		// 'up': upgrading would open numbers for this viewer.
+		// 'up': upgrading would open numbers for this viewer. Not for someone
+		// whose plan already has it (Gold before launch day, say).
 		$up = $viewer_id > 0 && class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' )
-			&& ! \CAShaadi\Modules\Premium\Gold::can_reveal( $viewer_id );
-		return array_merge( $none, array( 'state' => 'locked', 'to' => $to, 'up' => $up ) );
+			&& ! \CAShaadi\Modules\Premium\Gold::plan_has_phone( $viewer_id );
+		// 'soon': their plan has it, but phone viewing has not launched yet.
+		$soon = $viewer_id > 0 && ! $up && 'adminsonly' !== $to && class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' )
+			&& ! \CAShaadi\Modules\Premium\Gold::phone_live( $viewer_id );
+		return array_merge( $none, array( 'state' => 'locked', 'to' => $to, 'up' => $up, 'soon' => $soon ) );
 	}
 
 	public static function full( $profile_id, $viewer_id = null ) {
