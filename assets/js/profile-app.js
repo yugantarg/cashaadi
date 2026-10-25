@@ -64,7 +64,8 @@
 			// who is not yet verified taps this to upload their ICAI proof.
 			badges.appendChild( link( 'csm-p-badge is-verify', d.links.verify, 'Verify now' ) );
 		}
-		if ( d.isPremium ) { badges.appendChild( el( 'span', 'csm-p-badge is-premium', 'Premium' ) ); }
+		// Gold is Premium too (Membership::is_premium); name the plan they have.
+		if ( d.isPremium ) { badges.appendChild( el( 'span', 'csm-p-badge is-premium' + ( d.isGold ? ' is-gold' : '' ), d.isGold ? 'Gold' : 'Premium' ) ); }
 		if ( d.blurred ) { badges.appendChild( el( 'span', 'csm-p-badge', 'Photo blurred' ) ); }
 		if ( badges.children.length ) { head.appendChild( badges ); }
 

@@ -197,6 +197,7 @@ final class ProfileApp {
 				? \CAShaadi\Modules\CaVerify\CaVerify::member_note( $uid )
 				: '',
 			'isPremium'   => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ),
+			'isGold'      => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_gold( $uid ),
 			'outstanding' => (int) $completion['outstanding'],
 			'firstGap'    => $completion['firstGap']
 				? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( (int) $completion['firstGap'] )

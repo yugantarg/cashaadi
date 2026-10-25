@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.23 — 2026-10-25
+
+- Own profile page: a Gold member's badge reads "Gold" (gold styling) instead of "Premium".
+
 ## 1.89.22 — 2026-10-25
 
 - Gold members no longer see "Upgrade to view" on phone numbers (`Gold::plan_has_phone`). Before the launch date their row reads "Opens on launch day".
