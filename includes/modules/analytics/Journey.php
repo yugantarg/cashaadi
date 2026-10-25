@@ -49,7 +49,7 @@ final class Journey {
 	const CRON = 'csm_journey_daily';
 
 	/** Event types never pruned: the record a later analysis depends on. */
-	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_declined', 'request_withdrawn', 'filters_set', 'filters_cleared', 'phone_privacy' );
+	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_withdrawn', 'filters_set', 'filters_cleared', 'phone_privacy' );
 
 	public static function register() {
 		Migrator::register( 'member_day', array( __CLASS__, 'schema' ) );
@@ -71,10 +71,9 @@ final class Journey {
 		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'on_order' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'on_pricing_view' ), 5 );
 		/*
-		 * Declined and withdrawn requests (v1.89.31): BuddyPress deletes the
-		 * request row, so without these a decline looks like no answer.
+		 * Withdrawn requests (v1.89.31): BuddyPress deletes the row. Declines
+		 * are already kept in wp_csm_rejections (Premium::on_bp_reject).
 		 */
-		add_action( 'friends_friendship_rejected', function ( $fid, $f = null ) { Journey::on_request_end( 'request_declined', $f ); }, 10, 2 );
 		add_action( 'friends_friendship_withdrawn', function ( $fid, $f = null ) { Journey::on_request_end( 'request_withdrawn', $f ); }, 10, 2 );
 		// "Buy Premium" / "Buy Gold" taps, paid or not (v1.89.30).
 		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'on_buy_click' ), 20, 2 );

@@ -467,7 +467,10 @@ final class Filters {
 			return new \WP_REST_Response( array( 'ok' => false, 'error' => $res->get_error_message() ), 200 );
 		}
 		// What members filter on, and how much of their tray it leaves (v1.89.31).
-		if ( function_exists( 'cashaadi' ) ) {
+		// Only a real change: re-applying the same filters adds no row.
+		$sig = md5( wp_json_encode( $res ) );
+		if ( function_exists( 'cashaadi' ) && get_user_meta( $uid, 'csm_filters_logged', true ) !== $sig ) {
+			update_user_meta( $uid, 'csm_filters_logged', $sig );
 			global $wpdb;
 			$tray = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'", $uid ) );
 			cashaadi()->log_event( $res ? 'filters_set' : 'filters_cleared', $uid, 0, array(
