@@ -48,6 +48,12 @@ class GoldCli {
 		\WP_CLI::success( "Launch date {$d}. Banner on. {$n} notice emails sent." );
 	}
 
+	/** Open Gold sales and the new pricing page now; phone viewing waits for the launch date. */
+	public function sales() {
+		GoldLaunch::open_sales();
+		\WP_CLI::success( 'Gold on sale and new pricing page on. Phone numbers open on ' . ( get_option( GoldLaunch::DATE ) ?: 'the launch date (not set!)' ) . '; buyers until then get ' . GoldLaunch::INTERIM_DAYS . ' extra days.' );
+	}
+
 	/** Switch on the pricing page, Gold sales and Gold phone access now. */
 	public function launch() {
 		GoldLaunch::launch();

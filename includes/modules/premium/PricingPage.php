@@ -174,6 +174,10 @@ final class PricingPage {
 		if ( $gold && $is_p ) {
 			$o .= '<p class="csm-pr-credit">Already Premium? Upgrade to Gold and your unused Premium days are credited' . ( $credit ? ': <strong>' . esc_html( self::inr( $credit ) ) . ' off</strong> today' : '' ) . ', so you only pay the difference.</p>';
 		}
+		// Before phone numbers open: say when, and the free week (v1.89.28).
+		if ( ! get_option( 'csm_gold_phone_live' ) && get_option( GoldLaunch::DATE ) ) {
+			$o .= '<p class="csm-pr-credit">Phone numbers open on ' . esc_html( wp_date( 'j F', strtotime( get_option( GoldLaunch::DATE ) . ' 12:00:00' ) ) ) . '. ' . ( $female ? 'Buy Premium or Gold' : 'Buy Gold' ) . ' before then and get ' . (int) GoldLaunch::INTERIM_DAYS . ' extra days free.</p>';
+		}
 		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a phone number sends that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
 		$out = $o;

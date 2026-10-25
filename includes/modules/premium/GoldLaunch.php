@@ -24,8 +24,19 @@ final class GoldLaunch {
 
 	const DATE = 'csm_gold_launch_date'; // Y-m-d, IST
 
+	const INTERIM_DAYS = 7;
+	const INTERIM_META = '_csm_interim_week'; // on the order, once granted
+
 	public static function register() {
 		add_action( 'init', array( __CLASS__, 'maybe_launch' ), 30 );
+		/*
+		 * Gold on sale before phone numbers open (owner, 2026-10-25: "launch
+		 * everything about gold with the exception that phone numbers are
+		 * visible from 28th Oct; give 1 week extra membership to those who
+		 * register in the interim"). Late, after PMPro has set the level.
+		 */
+		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'interim_week' ), 99, 1 );
+		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'interim_week' ), 99, 1 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm gold', __NAMESPACE__ . '\\GoldCli' );
 		}
@@ -41,6 +52,62 @@ final class GoldLaunch {
 		update_option( 'csm_gold_phone_live', 1 );
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'gold_launched', 0, 0, array() );
+		}
+	}
+
+	/** Sales are open now; only phone viewing waits for the launch date. */
+	public static function open_sales() {
+		update_option( 'csm_pricing_v2', 1 );
+		update_option( 'csm_gold_on_sale', 1 );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'gold_sales_opened', 0, 0, array() );
+		}
+	}
+
+	/**
+	 * A plan with phone numbers (Gold; Premium for a woman) bought before
+	 * phone viewing opens gets INTERIM_DAYS more, once per order.
+	 */
+	public static function interim_week( $order_id ) {
+		if ( get_option( 'csm_gold_phone_live' ) ) {
+			return;
+		}
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+		if ( ! $order instanceof \WC_Order || $order->get_meta( self::INTERIM_META ) ) {
+			return;
+		}
+		$uid = (int) $order->get_customer_id();
+		if ( ! $uid ) {
+			return;
+		}
+		$level = 0;
+		foreach ( $order->get_items() as $item ) {
+			$pid = (int) $item->get_product_id();
+			if ( (int) Config::WC_GOLD_PRODUCT === $pid ) {
+				$level = (int) Config::PMPRO_GOLD_LEVEL;
+			} elseif ( (int) Config::WC_PREMIUM_PRODUCT === $pid && ! $level && Gold::is_female( $uid ) ) {
+				$level = (int) Config::PMPRO_PREMIUM_LEVEL;
+			}
+		}
+		if ( ! $level || ! function_exists( 'pmpro_hasMembershipLevel' ) || ! pmpro_hasMembershipLevel( $level, $uid ) ) {
+			return; // not a phone plan, or the level is not set yet (the other status hook retries)
+		}
+		global $wpdb;
+		$t = $wpdb->pmpro_memberships_users;
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$n = $wpdb->query( $wpdb->prepare(
+			"UPDATE {$t} SET enddate = DATE_ADD( enddate, INTERVAL %d DAY )
+			 WHERE user_id = %d AND membership_id = %d AND status = 'active' AND enddate IS NOT NULL AND enddate <> '0000-00-00 00:00:00'",
+			self::INTERIM_DAYS, $uid, $level
+		) );
+		if ( ! $n ) {
+			return;
+		}
+		$order->update_meta_data( self::INTERIM_META, current_time( 'mysql' ) );
+		$order->save();
+		$order->add_order_note( 'CA Shaadi: ' . self::INTERIM_DAYS . ' extra days added (bought before phone numbers opened).' );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'interim_week', 0, $uid, array( 'order' => (int) $order_id, 'level' => $level ) );
 		}
 	}
 

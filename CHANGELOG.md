@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.28 — 2026-10-25
+
+- `wp csm gold sales`: opens Gold sales and the new pricing page now; phone viewing still switches on by itself on the launch date (owner).
+- Anyone who buys a plan with phone numbers (Gold; Premium for a woman) before phone viewing opens gets 7 extra days on that level, once per order, with an order note (`GoldLaunch::interim_week`).
+- The pricing page says when phone numbers open and offers the extra week until then.
+
 ## 1.89.27 — 2026-10-25
 
 - No in-app banner for the Gold launch / phone-number change (owner); the notice email stays the only notice. `GoldLaunch::banner()` is no longer called.
