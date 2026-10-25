@@ -395,8 +395,9 @@ window.csmProfileCard = function ( p ) {
 					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} reveal(); } } );
 			} );
 		} else {
-			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'not_shared' === p.phone.state ? 'Not shared' : '\uD83D\uDD12 Hidden \u00b7 shown after you match' ) );
-			// Upgrade prompt: Gold sees numbers without waiting for a match.
+			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'not_shared' === p.phone.state ? 'Not shared'
+				: '\uD83D\uDD12 Visible to ' + ( 'paid' === p.phone.to ? 'Gold and Premium members' : 'Gold members' ) ) );
+			// Upgrade prompt: Gold sees numbers.
 			var app2 = window.CSM_APP || {};
 			if ( 'locked' === p.phone.state && app2.goldOnSale && ! app2.isGold && app2.upgrade ) {
 				var gl = mk( 'a', 'csm-d-phone-b is-gold', 'Call now with Gold' );

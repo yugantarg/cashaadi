@@ -100,7 +100,6 @@ final class PricingPage {
 				'items' => array(
 					$free_n . ' profiles a week',
 					'Send requests, and chat once you match',
-					'Phone number after a match',
 				),
 				'price' => '₹0',
 				'btn'   => '',

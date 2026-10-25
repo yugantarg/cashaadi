@@ -66,7 +66,7 @@ final class GoldLaunch {
 				continue;
 			}
 			$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
-				? \CAShaadi\Modules\Settings\SettingsScreen::effective_level( Config::FIELD_PHONE, $uid )
+				? \CAShaadi\Modules\Settings\SettingsScreen::phone_audience( $uid )
 				: 'friends';
 			if ( 'adminsonly' !== $level ) {
 				$out[] = $uid;
@@ -85,9 +85,9 @@ final class GoldLaunch {
 		return \CAShaadi\Modules\Emails\Engagement::wrap(
 			\CAShaadi\Modules\Emails\Engagement::greeting( $uid ),
 			'<p>A change to who can see your phone number on ' . esc_html( $site ) . ', from <strong>' . esc_html( self::nice_date() ) . '</strong>:</p>'
-			. '<ul><li><strong>Your matches</strong> will see your number on your profile, with Call and WhatsApp buttons.</li>'
-			. '<li><strong>Gold members</strong> will also be able to see it. When a Gold member views your number, you receive a match request from them, so you always know who has it.</li></ul>'
-			. '<p>If you would rather nobody sees your number, you can hide it from everyone in Privacy settings. Members who have already chosen "Only me" do not need to do anything.</p>',
+			. '<ul><li><strong>Gold members</strong> will be able to see your number, with Call and WhatsApp buttons. When a Gold member views it, you receive a match request from them, so you always know who has it.</li>'
+			. '<li>You can also let <strong>Premium members</strong> see it, or hide it from everyone, in Privacy settings.</li></ul>'
+			. '<p>Members who have already chosen "Only me" do not need to do anything.</p>',
 			\CAShaadi\Modules\Settings\SettingsScreen::url(),
 			'Open Privacy settings'
 		);
@@ -100,12 +100,12 @@ final class GoldLaunch {
 			return '';
 		}
 		$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
-			? \CAShaadi\Modules\Settings\SettingsScreen::effective_level( Config::FIELD_PHONE, $uid )
+			? \CAShaadi\Modules\Settings\SettingsScreen::phone_audience( $uid )
 			: 'friends';
 		if ( 'adminsonly' === $level ) {
 			return '';
 		}
-		return '<div class="csm-app-paused"><span>' . esc_html( 'From ' . self::nice_date() . ', your matches and Gold members can see your phone number.' ) . '</span>'
+		return '<div class="csm-app-paused"><span>' . esc_html( 'From ' . self::nice_date() . ', Gold members can see your phone number.' ) . '</span>'
 			. '<a href="' . esc_url( \CAShaadi\Modules\Settings\SettingsScreen::url() ) . '">Privacy settings</a></div>';
 	}
 }

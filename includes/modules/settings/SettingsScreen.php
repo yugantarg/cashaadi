@@ -448,31 +448,33 @@ final class SettingsScreen {
 	}
 
 	/*
-	 * The phone number has its own choices (owner, 2026-10-25). Matches always
-	 * see it unless it is "Only me"; the choice is which paying members may
-	 * open it before a match. Stored in PHONE_META; BuddyPress keeps "friends"
-	 * (or "adminsonly" for Only me) so nothing else shows the number.
-	 * No meta means Gold, which is how every existing number has worked
-	 * since Gold launched.
+	 * The phone number has its own choices (owner, 2026-10-25). It is not
+	 * shared with matches ("they can anyway share it in chat"); the choice is
+	 * whether Gold, or Gold and Premium, may open it. Stored in PHONE_META;
+	 * BuddyPress keeps "friends" (or "adminsonly" for Only me) so nothing else
+	 * shows the number. No meta means Gold. A member who chose "Only me" keeps
+	 * it: a preference changed from the default is respected.
 	 */
 	const PHONE_META = 'csm_phone_audience';
 
 	private static function phone_levels() {
 		return array(
-			array( 'id' => 'paid', 'label' => __( 'Matches, Gold and Premium members', 'cashaadi-ui' ) ),
-			array( 'id' => 'gold', 'label' => __( 'Matches and Gold members', 'cashaadi-ui' ) ),
-			array( 'id' => 'matches', 'label' => __( 'My matches only', 'cashaadi-ui' ) ),
+			array( 'id' => 'gold', 'label' => __( 'Gold members', 'cashaadi-ui' ) ),
+			array( 'id' => 'paid', 'label' => __( 'Gold and Premium members', 'cashaadi-ui' ) ),
 			array( 'id' => 'adminsonly', 'label' => __( 'Only me', 'cashaadi-ui' ) ),
 		);
 	}
 
-	/** Who may see this member's number: paid | gold | matches | adminsonly. */
+	/** Who may see this member's number: gold | paid | adminsonly. */
 	public static function phone_audience( $uid ) {
 		if ( 'adminsonly' === self::effective_level( \CAShaadi\Core\Config::FIELD_PHONE, $uid ) ) {
 			return 'adminsonly';
 		}
 		$a = (string) get_user_meta( (int) $uid, self::PHONE_META, true );
-		return in_array( $a, array( 'paid', 'gold', 'matches' ), true ) ? $a : 'gold';
+		if ( 'matches' === $a ) {
+			return 'adminsonly'; // the short-lived "My matches only" (v1.89.14): kept from Gold
+		}
+		return 'paid' === $a ? 'paid' : 'gold';
 	}
 
 	/**

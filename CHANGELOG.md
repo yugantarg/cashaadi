@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.15 — 2026-10-25
+
+- Phone numbers are no longer shown to matches (owner: "they can anyway share it in chat"). Choices on Who sees what: "Gold members" (default), "Gold and Premium members", "Only me". Members who chose "Only me" keep it; the brief "My matches only" counts as Only me. Other fields are unchanged.
+- Profile cards say "Visible to Gold members" (or "Gold and Premium members") instead of "shown after you match". Pricing drops "Phone number after a match" from Free; the Gold launch email and banner no longer mention matches.
+
 ## 1.89.14 — 2026-10-25
 
 - Who sees what: the phone number has its own choices — "Matches, Gold and Premium members", "Matches and Gold members" (the default, and what every existing number already does), "My matches only" and "Only me". Stored as user meta `csm_phone_audience`; BuddyPress keeps "friends" (or "adminsonly") so nothing else shows the number.

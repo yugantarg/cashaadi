@@ -403,9 +403,12 @@ final class Profile {
 	 * whatever the member's setting said.
 	 *
 	 *   own        the member themselves: their number, nothing else
-	 *   visible    a match (any setting except "Only me"), or anyone the
-	 *              csm_phone_visible filter allows (Gold, later)
-	 *   locked     everyone else: "Hidden, shown after you match"
+	 *   visible    a Gold (or, where allowed, Premium) member who has opened
+	 *              it, or anyone the csm_phone_visible filter allows
+	 *   reveal     a Gold/Premium member who may open it with one tap
+	 *   locked     everyone else: "Visible to Gold members" ('to' says
+	 *              gold or paid). Matches no longer see it by right
+	 *              (owner, 2026-10-25: they can share it in chat).
 	 *   not_shared the member chose "Only me"
 	 *   ''         no number on the profile
 	 *
@@ -433,19 +436,7 @@ final class Profile {
 		if ( 'adminsonly' === $level ) {
 			return array_merge( $none, array( 'state' => 'not_shared' ) );
 		}
-		$visible = false;
-		if ( $viewer_id > 0 ) {
-			/*
-			 * "Everyone" / "All members" are treated as "My matches" for the
-			 * phone: those levels can be stored by BuddyPress's own forms
-			 * without the member choosing them, and a number shown to
-			 * strangers by accident cannot be taken back.
-			 */
-			if ( function_exists( 'friends_check_friendship_status' ) && 'is_friend' === friends_check_friendship_status( $viewer_id, $profile_id ) ) {
-				$visible = true;
-			}
-			$visible = (bool) apply_filters( 'csm_phone_visible', $visible, $profile_id, $viewer_id, $level );
-		}
+		$visible = $viewer_id > 0 && (bool) apply_filters( 'csm_phone_visible', false, $profile_id, $viewer_id, $level );
 		// Gold (v1.87.0), and Premium where the member allows it (v1.89.14):
 		// one tap away. The tap sends a match request, so the number stays
 		// hidden until then.
@@ -457,9 +448,13 @@ final class Profile {
 				return array_merge( $none, array( 'state' => 'reveal' ) );
 			}
 		}
-		return $visible
-			? array_merge( array( 'state' => 'visible' ), $shown )
-			: array_merge( $none, array( 'state' => 'locked' ) );
+		if ( $visible ) {
+			return array_merge( array( 'state' => 'visible' ), $shown );
+		}
+		$to = class_exists( '\\CAShaadi\\Modules\\Settings\\SettingsScreen' )
+			? \CAShaadi\Modules\Settings\SettingsScreen::phone_audience( $profile_id )
+			: 'gold';
+		return array_merge( $none, array( 'state' => 'locked', 'to' => $to ) );
 	}
 
 	public static function full( $profile_id, $viewer_id = null ) {
