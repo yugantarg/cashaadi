@@ -119,6 +119,11 @@ final class PricingPage {
 				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon ),
 			),
 		);
+		// Women open numbers with Premium; men with Gold (owner, 2026-10-25).
+		$phone_line = 'Call or WhatsApp any member directly';
+		if ( $female ) {
+			$plans['premium']['items'][] = $phone_line;
+		}
 		if ( $gold ) {
 			$sold_out = ! $is_g && ! Gold::purchasable( true, function_exists( 'wc_get_product' ) ? wc_get_product( Config::WC_GOLD_PRODUCT ) : null );
 			$plans['gold'] = array(
@@ -129,12 +134,14 @@ final class PricingPage {
 					'Send a request to anyone you like',
 					'Your requests always at the top of ' . $her . ' list',
 					'Your profile shown first in Discover',
-					'Call or WhatsApp any member directly',
 					'Gold badge on your profile (with CA verification)',
 				),
 				'price' => self::inr( $gp ) . ' / year',
 				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Founding places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon ) ),
 			);
+			if ( ! $female ) {
+				array_splice( $plans['gold']['items'], 4, 0, array( $phone_line ) );
+			}
 		}
 
 		$o  = self::css();
@@ -167,7 +174,7 @@ final class PricingPage {
 		if ( $gold && $is_p ) {
 			$o .= '<p class="csm-pr-credit">Already Premium? Upgrade to Gold and your unused Premium days are credited' . ( $credit ? ': <strong>' . esc_html( self::inr( $credit ) ) . ' off</strong> today' : '' ) . ', so you only pay the difference.</p>';
 		}
-		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Gold members viewing a phone number send that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
+		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a member's phone number sends them a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
 		$out = $o;
 		return $o;

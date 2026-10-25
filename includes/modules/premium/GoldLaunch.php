@@ -80,13 +80,26 @@ final class GoldLaunch {
 		return '' === $d ? 'soon' : wp_date( 'j F', strtotime( $d . ' 12:00:00' ) );
 	}
 
+	/*
+	 * A man's number is opened by Premium and Gold women; a woman's by Gold
+	 * men, or Premium too if she allows it (Gold::can_reveal).
+	 */
+	private static function who_sees( $uid ) {
+		$box = 'with Call and WhatsApp buttons. When someone views it, you receive a match request from them, so you always know who has it.';
+		if ( \CAShaadi\Modules\Premium\Gold::is_female( $uid ) ) {
+			return '<ul><li><strong>Gold members</strong> will be able to see your number, ' . $box . '</li>'
+				. '<li>You can also let <strong>Premium members</strong> see it, or hide it from everyone, in Privacy settings.</li></ul>';
+		}
+		return '<ul><li><strong>Premium and Gold members</strong> will be able to see your number, ' . $box . '</li>'
+			. '<li>You can hide it from everyone in Privacy settings.</li></ul>';
+	}
+
 	public static function email_body( $uid ) {
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		return \CAShaadi\Modules\Emails\Engagement::wrap(
 			\CAShaadi\Modules\Emails\Engagement::greeting( $uid ),
 			'<p>A change to who can see your phone number on ' . esc_html( $site ) . ', from <strong>' . esc_html( self::nice_date() ) . '</strong>:</p>'
-			. '<ul><li><strong>Gold members</strong> will be able to see your number, with Call and WhatsApp buttons. When a Gold member views it, you receive a match request from them, so you always know who has it.</li>'
-			. '<li>You can also let <strong>Premium members</strong> see it, or hide it from everyone, in Privacy settings.</li></ul>'
+			. self::who_sees( $uid )
 			. '<p>Members who have already chosen "Only me" do not need to do anything.</p>',
 			\CAShaadi\Modules\Settings\SettingsScreen::url(),
 			'Open Privacy settings'
@@ -105,7 +118,7 @@ final class GoldLaunch {
 		if ( 'adminsonly' === $level ) {
 			return '';
 		}
-		return '<div class="csm-app-paused"><span>' . esc_html( 'From ' . self::nice_date() . ', Gold members can see your phone number.' ) . '</span>'
+		return '<div class="csm-app-paused"><span>' . esc_html( 'From ' . self::nice_date() . ', ' . ( \CAShaadi\Modules\Premium\Gold::is_female( $uid ) ? 'Gold members' : 'Premium and Gold members' ) . ' can see your phone number.' ) . '</span>'
 			. '<a href="' . esc_url( \CAShaadi\Modules\Settings\SettingsScreen::url() ) . '">Privacy settings</a></div>';
 	}
 }

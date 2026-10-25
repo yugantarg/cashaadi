@@ -163,22 +163,28 @@ final class Gold {
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_phone_views WHERE viewer_id = %d AND viewed_at >= %s", (int) $viewer, current_time( 'Y-m-d' ) . ' 00:00:00' ) );
 	}
 
+	/** Women open numbers with Premium; men need Gold (owner, 2026-10-25). */
+	public static function is_female( $uid ) {
+		return function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
+	}
+
 	/**
 	 * May this viewer open numbers right now: at all, or (with $profile) this
 	 * member's, by the member's own choice (SettingsScreen::phone_audience).
+	 * A Premium woman counts as Gold here: numbers are her Premium feature.
 	 */
 	public static function can_reveal( $viewer, $profile = 0 ) {
 		if ( ! self::phone_live() || ! Membership::is_premium( (int) $viewer ) ) {
 			return false;
 		}
-		$gold = Membership::is_gold( (int) $viewer );
+		$full = Membership::is_gold( (int) $viewer ) || self::is_female( $viewer );
 		if ( ! $profile ) {
-			return $gold;
+			return $full;
 		}
 		$aud = class_exists( '\\CAShaadi\\Modules\\Settings\\SettingsScreen' )
 			? \CAShaadi\Modules\Settings\SettingsScreen::phone_audience( (int) $profile )
 			: 'gold';
-		return 'paid' === $aud || ( $gold && 'gold' === $aud );
+		return 'paid' === $aud || ( $full && 'gold' === $aud );
 	}
 
 	public static function rest_routes() {
@@ -198,7 +204,7 @@ final class Gold {
 		$pid = (int) $request->get_param( 'id' );
 		$no  = function ( $msg ) { return new \WP_REST_Response( array( 'ok' => false, 'message' => $msg ), 200 ); };
 		if ( ! $pid || $pid === $me || ! self::can_reveal( $me, $pid ) ) {
-			return $no( 'This member shares their number with their matches only.' );
+			return $no( 'This member has not shared their number with you.' );
 		}
 		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $me, $pid ) ) {
 			return $no( 'That member could not be found.' );

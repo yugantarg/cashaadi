@@ -458,6 +458,17 @@ final class SettingsScreen {
 	const PHONE_META = 'csm_phone_audience';
 
 	private static function phone_levels() {
+		/*
+		 * A man's number is opened by women, who need only Premium for it
+		 * (Gold::can_reveal), so for him "Gold" and "Gold and Premium" are the
+		 * same people: one choice.
+		 */
+		if ( ! \CAShaadi\Modules\Premium\Gold::is_female( get_current_user_id() ) ) {
+			return array(
+				array( 'id' => 'gold', 'label' => __( 'Premium and Gold members', 'cashaadi-ui' ) ),
+				array( 'id' => 'adminsonly', 'label' => __( 'Only me', 'cashaadi-ui' ) ),
+			);
+		}
 		return array(
 			array( 'id' => 'gold', 'label' => __( 'Gold members', 'cashaadi-ui' ) ),
 			array( 'id' => 'paid', 'label' => __( 'Gold and Premium members', 'cashaadi-ui' ) ),
@@ -597,8 +608,11 @@ final class SettingsScreen {
 					);
 					// The phone has its own choices (v1.89.14).
 					if ( \CAShaadi\Core\Config::FIELD_PHONE === $fid ) {
-						$row['level']  = self::phone_audience( $uid );
 						$row['levels'] = self::phone_levels();
+						$row['level']  = self::phone_audience( $uid );
+						if ( ! in_array( $row['level'], wp_list_pluck( $row['levels'], 'id' ), true ) ) {
+							$row['level'] = 'gold'; // for a man, "paid" is the same people
+						}
 					}
 					$rows[] = $row;
 				}

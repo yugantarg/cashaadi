@@ -304,7 +304,7 @@ window.csmProfileCard = function ( p ) {
 				window.csmConfirm( 'Viewing a phone number sends ' + p.name + ' a match request from you, so they know who has their number.', { title: 'View number?', okText: 'View number', cancelText: 'Cancel' } )
 					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} open(); } } );
 			} );
-		} else if ( 'locked' === st.state && app.upgrade && ! app.isGold ) {
+		} else if ( 'locked' === st.state && st.up && app.upgrade ) {
 			var up = mk( 'a', 'csm-d-phone-a', '\uD83D\uDD12 Upgrade to view' );
 			up.href = app.upgrade;
 			dd.appendChild( up );
