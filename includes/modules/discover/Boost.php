@@ -27,6 +27,9 @@ final class Boost {
 
 	const POPUP_SEEN = 'csm_boost_popup_seen';
 
+	/** The member closed the Discover card (v1.89.6): don't show it again. */
+	const CARD_HIDDEN = 'csm_boost_card_hidden';
+
 	public static function register() {
 		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 30, 2 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
@@ -81,6 +84,14 @@ final class Boost {
 			},
 			'permission_callback' => 'is_user_logged_in',
 		) );
+		register_rest_route( 'csm/v1', '/boost-hide', array(
+			'methods'             => 'POST',
+			'callback'            => function () {
+				update_user_meta( get_current_user_id(), self::CARD_HIDDEN, time() );
+				return new \WP_REST_Response( array( 'ok' => true ), 200 );
+			},
+			'permission_callback' => 'is_user_logged_in',
+		) );
 	}
 
 	public static function per() {
@@ -125,6 +136,8 @@ final class Boost {
 	public static function state( $uid ) {
 		$uid = (int) $uid;
 		return array(
+			'hidden'    => (bool) get_user_meta( $uid, self::CARD_HIDDEN, true ),
+			'hide'      => rest_url( 'csm/v1/boost-hide' ),
 			'per'       => self::per(),
 			'photo'     => self::has_photo( $uid ),
 			'verify'    => self::verify_state( $uid ),

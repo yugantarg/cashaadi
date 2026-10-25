@@ -99,9 +99,9 @@
 		 * has just run out of profiles (owner, 2026-10-04).
 		 */
 		var boostEnd = ! message ? boostCard() : null;
-		if ( boostEnd ) {
-			box.appendChild( boostEnd );
-			// Photo and verification are on the card; do not list them twice.
+		if ( boostEnd || ( meta.boost && meta.boost.hidden ) ) {
+			if ( boostEnd ) { box.appendChild( boostEnd ); }
+			// Photo and verification are on the card (or were closed): not again.
 			meta.nextSteps = ( meta.nextSteps || [] ).filter( function ( st ) {
 				return ! meta.boost || ( st.url !== meta.boost.photoUrl && st.url !== meta.boost.verifyUrl );
 			} );
@@ -171,9 +171,19 @@
 		var b = meta.boost;
 		// Verification is offered to CA and CA Inter members only.
 		var canV = !! b && b.canVerify;
-		if ( ! b || ! b.per || ( b.photo && ( ! canV || 'approved' === b.verify ) ) ) { return null; }
+		if ( ! b || ! b.per || b.hidden || ( b.photo && ( ! canV || 'approved' === b.verify ) ) ) { return null; }
 		var todo = ( b.photo ? 0 : 1 ) + ( canV && 'approved' !== b.verify ? 1 : 0 );
 		var box = el( 'div', 'csm-d-boost' );
+		// Closable for good (owner, 2026-10-25: "give option to remove it").
+		var x = el( 'button', 'csm-d-boost-x', '\u2715' );
+		x.type = 'button';
+		x.setAttribute( 'aria-label', 'Hide this' );
+		x.addEventListener( 'click', function () {
+			b.hidden = true;
+			if ( box.parentNode ) { box.parentNode.removeChild( box ); }
+			api( b.hide, { method: 'POST' } );
+		} );
+		box.appendChild( x );
 		box.appendChild( el( 'strong', 'csm-d-boost-h', 'Get ' + ( todo * b.per ) + ' more profiles this week' ) );
 		function row( text, href, done, note ) {
 			var r = document.createElement( done ? 'span' : 'a' );

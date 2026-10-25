@@ -495,3 +495,5 @@ body.csm-member-view .csm-d-card {
 .csm-d-goldbadge { position: absolute; left: 14px; top: 56px; padding: 4px 12px; border-radius: 999px; background: linear-gradient(180deg,#f3d27a,#c9a227); color: #3a2806; font-weight: 700; font-size: 13px; letter-spacing: .04em; z-index: 2; }
 .csm-d-phone-b.is-gold { background: #3a2806; color: #ffe7a3; border-color: #3a2806; cursor: pointer; }
 .csm-d-more { display: block; margin: 16px auto 28px; padding: 11px 24px; border-radius: 999px; border: 1px solid var(--csm-hair-2, #d6dfe7); background: #fff; font-weight: 600; cursor: pointer; }
+.csm-d-boost { position: relative; }
+.csm-d-boost-x { position: absolute; right: 8px; top: 6px; background: none; border: 0; font-size: 16px; line-height: 1; color: var(--csm-muted, #5c6a76); cursor: pointer; padding: 6px; }
