@@ -39,3 +39,13 @@ if ( function_exists( 'wc_get_orders' ) ) {
 		WP_CLI::line( sprintf( 'Order %d | %s | %s | ₹%s | %s', $o->get_id(), $o->get_date_created() ? $o->get_date_created()->date( 'Y-m-d H:i' ) : '', $o->get_status(), $o->get_total(), implode( '; ', $items ) ) );
 	}
 }
+
+// Can this account buy Gold right now, and if not, why?
+wp_set_current_user( $uid );
+$gp = function_exists( 'wc_get_product' ) ? wc_get_product( Config::WC_GOLD_PRODUCT ) : null;
+WP_CLI::line( '' );
+WP_CLI::line( 'Gold product: ' . ( $gp ? $gp->get_name() . ' | status ' . $gp->get_status() . ' | price ' . $gp->get_price() . ' | in stock ' . ( $gp->is_in_stock() ? 'yes' : 'NO' ) : 'NOT FOUND' ) );
+WP_CLI::line( 'On sale option: ' . ( get_option( 'csm_gold_on_sale' ) ? 'yes' : 'no' ) . ' | tester: ' . ( \CAShaadi\Modules\Premium\Gold::is_tester( $uid ) ? 'yes' : 'no' ) );
+WP_CLI::line( 'Gold members: ' . \CAShaadi\Modules\Premium\Gold::count() . ' of cap ' . (int) get_option( 'csm_gold_cap', 25 ) );
+WP_CLI::line( 'Purchasable for this account: ' . ( $gp && $gp->is_purchasable() ? 'yes' : 'NO' ) );
+WP_CLI::line( 'Is Premium: ' . ( \CAShaadi\Core\Membership::is_premium( $uid ) ? 'yes' : 'no' ) . ' | is Gold: ' . ( \CAShaadi\Core\Membership::is_gold( $uid ) ? 'yes' : 'no' ) . ' | upgrade credit: ' . \CAShaadi\Modules\Premium\Gold::credit_for( $uid ) );
