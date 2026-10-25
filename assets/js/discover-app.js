@@ -63,7 +63,9 @@
 		if ( ! message && meta.hiddenByFilter ) {
 			// Filters only narrow the week's set (v1.89.11): say so, rather than "that's your 50".
 			box.appendChild( el( 'h2', null, 'No profiles match your filters' ) );
-			box.appendChild( el( 'p', null, meta.hiddenByFilter + ( meta.hiddenByFilter === 1 ? ' profile' : ' profiles' ) + ' in this week\u2019s set ' + ( meta.hiddenByFilter === 1 ? 'is' : 'are' ) + ' hidden by your filters. Change or clear your filters to see ' + ( meta.hiddenByFilter === 1 ? 'it' : 'them' ) + '.' ) );
+			var hp = el( 'p', null, meta.hiddenByFilter + ( meta.hiddenByFilter === 1 ? ' profile' : ' profiles' ) + ' hidden by your filters \u00b7' );
+			hp.appendChild( showAll() );
+			box.appendChild( hp );
 			var fbF = filterBar();
 			if ( fbF ) { box.appendChild( fbF ); }
 			root.appendChild( box );
@@ -221,6 +223,10 @@
 		return box;
 	}
 
+	function showAll() {
+		return window.csmFilterBar.showAll( CFG.filters, CFG.nonce, function ( d ) { meta.filters = d; load(); } );
+	}
+
 	/* The filter button and sheet live in app-screens.js, shared with Requests. */
 	function filterBar() {
 		if ( ! meta.filters ) { return null; }
@@ -312,7 +318,8 @@
 			? 'Unlimited profiles'
 			: weekLeft + ' of ' + meta.quota + ' left this week' );
 		if ( meta.hiddenByFilter ) {
-			head.textContent += ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters';
+			head.textContent += ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters \u00b7';
+			head.appendChild( showAll() );
 		}
 		root.appendChild( head );
 

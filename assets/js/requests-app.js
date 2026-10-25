@@ -209,7 +209,9 @@
 			var fbar = receivedFilters();
 			if ( fbar ) { root.appendChild( fbar ); }
 			if ( data.hiddenByFilter ) {
-				list.appendChild( el( 'li', 'csm-r-sub', data.hiddenByFilter + ( 1 === data.hiddenByFilter ? ' request is' : ' requests are' ) + ' hidden by your filters.' ) );
+				var hl = el( 'li', 'csm-r-sub', data.hiddenByFilter + ( 1 === data.hiddenByFilter ? ' request' : ' requests' ) + ' hidden by your filters \u00b7' );
+				hl.appendChild( window.csmFilterBar.showAll( CFG.filters, CFG.nonce, function () { load(); } ) );
+				list.appendChild( hl );
 			}
 			data.received.forEach( function ( p ) {
 				list.appendChild( personRow( p, [

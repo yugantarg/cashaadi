@@ -894,5 +894,28 @@ window.csmProfileCard = function ( p ) {
 		} );
 	};
 
+	/*
+	 * "Show all": a small button that clears every filter, then calls done
+	 * (v1.89.19; owner: "7 hidden by your filters · show all").
+	 */
+	bar.showAll = function ( url, nonce, done ) {
+		var b = el( 'button', 'csm-filter-showall', 'Show all' );
+		b.type = 'button';
+		b.addEventListener( 'click', function () {
+			b.disabled = true;
+			b.textContent = 'Clearing\u2026';
+			fetch( url, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' },
+				body: '{}'
+			} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
+				if ( d && d.ok ) { done( d ); return; }
+				b.disabled = false; b.textContent = 'Show all';
+			} ).catch( function () { b.disabled = false; b.textContent = 'Show all'; } );
+		} );
+		return b;
+	};
+
 	window.csmFilterBar = bar;
 } )();

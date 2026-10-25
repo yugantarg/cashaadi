@@ -361,3 +361,7 @@ img.avatar {
 .csm-d-tick { display: flex; gap: 6px; align-items: flex-start; font-size: 13.5px; line-height: 1.3; }
 .csm-d-tick input { margin-top: 2px; accent-color: var(--csm-blue, #2c5b8c); }
 @media (max-width: 380px) { .csm-d-ticklist { grid-template-columns: 1fr; } }
+
+/* "Show all" next to "N hidden by your filters" (v1.89.19). */
+.csm-filter-showall { margin-left: 4px; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: underline; cursor: pointer; }
+.csm-filter-showall[disabled] { color: var(--csm-muted, #5c6a76); text-decoration: none; cursor: default; }
