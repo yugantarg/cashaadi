@@ -446,10 +446,11 @@ final class Profile {
 			}
 			$visible = (bool) apply_filters( 'csm_phone_visible', $visible, $profile_id, $viewer_id, $level );
 		}
-		// Gold (v1.87.0): any number except "Only me", one tap away. The tap
-		// sends a match request, so the number stays hidden until then.
+		// Gold (v1.87.0), and Premium where the member allows it (v1.89.14):
+		// one tap away. The tap sends a match request, so the number stays
+		// hidden until then.
 		if ( ! $visible && $viewer_id > 0 && class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' )
-			&& \CAShaadi\Modules\Premium\Gold::can_reveal( $viewer_id ) ) {
+			&& \CAShaadi\Modules\Premium\Gold::can_reveal( $viewer_id, $profile_id ) ) {
 			if ( \CAShaadi\Modules\Premium\Gold::revealed( $viewer_id, $profile_id ) ) {
 				$visible = true;
 			} else {

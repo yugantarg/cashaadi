@@ -363,11 +363,12 @@ window.csmProfileCard = function ( p ) {
 				ph.appendChild( wa );
 			}
 		} else if ( 'reveal' === p.phone.state ) {
-			/* Gold: one tap shows the number and sends them a request. Said
+			/* Gold (or Premium, where the member allows it): one tap shows the
+			   number and sends them a request. Said
 			   once before the first one (owner, 2026-10-24). */
 			var rv = mk( 'button', 'csm-d-phone-b is-gold', 'View number' );
 			rv.type = 'button';
-			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'Gold' ) );
+			ph.appendChild( mk( 'span', 'csm-d-phone-n', ( window.CSM_APP && window.CSM_APP.isGold ) ? 'Gold' : 'Premium' ) );
 			ph.appendChild( rv );
 			var reveal = function () {
 				rv.disabled = true;

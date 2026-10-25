@@ -447,6 +447,34 @@ final class SettingsScreen {
 		);
 	}
 
+	/*
+	 * The phone number has its own choices (owner, 2026-10-25). Matches always
+	 * see it unless it is "Only me"; the choice is which paying members may
+	 * open it before a match. Stored in PHONE_META; BuddyPress keeps "friends"
+	 * (or "adminsonly" for Only me) so nothing else shows the number.
+	 * No meta means Gold, which is how every existing number has worked
+	 * since Gold launched.
+	 */
+	const PHONE_META = 'csm_phone_audience';
+
+	private static function phone_levels() {
+		return array(
+			array( 'id' => 'paid', 'label' => __( 'Matches, Gold and Premium members', 'cashaadi-ui' ) ),
+			array( 'id' => 'gold', 'label' => __( 'Matches and Gold members', 'cashaadi-ui' ) ),
+			array( 'id' => 'matches', 'label' => __( 'My matches only', 'cashaadi-ui' ) ),
+			array( 'id' => 'adminsonly', 'label' => __( 'Only me', 'cashaadi-ui' ) ),
+		);
+	}
+
+	/** Who may see this member's number: paid | gold | matches | adminsonly. */
+	public static function phone_audience( $uid ) {
+		if ( 'adminsonly' === self::effective_level( \CAShaadi\Core\Config::FIELD_PHONE, $uid ) ) {
+			return 'adminsonly';
+		}
+		$a = (string) get_user_meta( (int) $uid, self::PHONE_META, true );
+		return in_array( $a, array( 'paid', 'gold', 'matches' ), true ) ? $a : 'gold';
+	}
+
 	/**
 	 * Fold the retired "All members" into "Everyone", once.
 	 *
@@ -493,7 +521,8 @@ final class SettingsScreen {
 		if ( 'POST' === $request->get_method() ) {
 			$fid   = (int) $request->get_param( 'field' );
 			$level = sanitize_key( (string) $request->get_param( 'level' ) );
-			$valid = wp_list_pluck( $levels, 'id' );
+			$phone = \CAShaadi\Core\Config::FIELD_PHONE === $fid;
+			$valid = wp_list_pluck( $phone ? self::phone_levels() : $levels, 'id' );
 			if ( ! $fid || ! in_array( $level, $valid, true ) ) {
 				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'Bad request.', 'cashaadi-ui' ) ), 400 );
 			}
@@ -505,6 +534,10 @@ final class SettingsScreen {
 			// not the only thing that can POST here.
 			if ( in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true ) ) {
 				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'This one is always shown to everyone.', 'cashaadi-ui' ) ), 400 );
+			}
+			if ( $phone && 'adminsonly' !== $level ) {
+				update_user_meta( $uid, self::PHONE_META, $level );
+				$level = 'friends';
 			}
 			if ( function_exists( 'xprofile_set_field_visibility_level' ) ) {
 				xprofile_set_field_visibility_level( $fid, $uid, $level );
@@ -554,12 +587,18 @@ final class SettingsScreen {
 					 */
 					$always = in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true );
 
-					$rows[] = array(
+					$row = array(
 						'id'     => $fid,
 						'label'  => (string) $field->name,
 						'level'  => self::effective_level( $fid, $uid ),
 						'locked' => $always || ( 'allowed' !== $field->allow_custom_visibility ),
 					);
+					// The phone has its own choices (v1.89.14).
+					if ( \CAShaadi\Core\Config::FIELD_PHONE === $fid ) {
+						$row['level']  = self::phone_audience( $uid );
+						$row['levels'] = self::phone_levels();
+					}
+					$rows[] = $row;
 				}
 				if ( $rows ) {
 					$sections[] = array( 'name' => (string) $by_id[ $gid ]->name, 'fields' => $rows );

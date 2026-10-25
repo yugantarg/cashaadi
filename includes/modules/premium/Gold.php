@@ -163,9 +163,22 @@ final class Gold {
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_phone_views WHERE viewer_id = %d AND viewed_at >= %s", (int) $viewer, current_time( 'Y-m-d' ) . ' 00:00:00' ) );
 	}
 
-	/** May this viewer reveal numbers at all right now? */
-	public static function can_reveal( $viewer ) {
-		return self::phone_live() && Membership::is_gold( (int) $viewer );
+	/**
+	 * May this viewer open numbers right now: at all, or (with $profile) this
+	 * member's, by the member's own choice (SettingsScreen::phone_audience).
+	 */
+	public static function can_reveal( $viewer, $profile = 0 ) {
+		if ( ! self::phone_live() || ! Membership::is_premium( (int) $viewer ) ) {
+			return false;
+		}
+		$gold = Membership::is_gold( (int) $viewer );
+		if ( ! $profile ) {
+			return $gold;
+		}
+		$aud = class_exists( '\\CAShaadi\\Modules\\Settings\\SettingsScreen' )
+			? \CAShaadi\Modules\Settings\SettingsScreen::phone_audience( (int) $profile )
+			: 'gold';
+		return 'paid' === $aud || ( $gold && 'gold' === $aud );
 	}
 
 	public static function rest_routes() {
@@ -184,8 +197,8 @@ final class Gold {
 		$me  = get_current_user_id();
 		$pid = (int) $request->get_param( 'id' );
 		$no  = function ( $msg ) { return new \WP_REST_Response( array( 'ok' => false, 'message' => $msg ), 200 ); };
-		if ( ! $pid || $pid === $me || ! self::can_reveal( $me ) ) {
-			return $no( 'Phone numbers are a Gold feature.' );
+		if ( ! $pid || $pid === $me || ! self::can_reveal( $me, $pid ) ) {
+			return $no( 'This member shares their number with their matches only.' );
 		}
 		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $me, $pid ) ) {
 			return $no( 'That member could not be found.' );

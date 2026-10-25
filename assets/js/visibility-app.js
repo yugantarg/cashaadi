@@ -58,11 +58,12 @@
 				row.appendChild( el( 'span', 'csm-vis-label', f.label ) );
 
 				if ( f.locked ) {
-					row.appendChild( el( 'span', 'csm-vis-locked', labelFor( data.levels, f.level ) ) );
+					row.appendChild( el( 'span', 'csm-vis-locked', labelFor( f.levels || data.levels, f.level ) ) );
 				} else {
 					var sel = document.createElement( 'select' );
 					sel.className = 'csm-vis-select';
-					data.levels.forEach( function ( l ) {
+					// The phone brings its own choices (v1.89.14).
+					( f.levels || data.levels ).forEach( function ( l ) {
 						var o = document.createElement( 'option' );
 						o.value = l.id; o.textContent = l.label;
 						if ( l.id === f.level ) { o.selected = true; }

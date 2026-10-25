@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.14 — 2026-10-25
+
+- Who sees what: the phone number has its own choices — "Matches, Gold and Premium members", "Matches and Gold members" (the default, and what every existing number already does), "My matches only" and "Only me". Stored as user meta `csm_phone_audience`; BuddyPress keeps "friends" (or "adminsonly") so nothing else shows the number.
+- `Gold::can_reveal( $viewer, $profile )` follows that choice: Premium members can open numbers whose owner allows Premium (same daily cap, same match request); "My matches only" closes the number to Gold too.
+
 ## 1.89.13 — 2026-10-25
 
 - One filter for Discover and Requests (owner: "exactly the same as discover, we dont need two separate codes"). The filter button and sheet moved to `app-screens.js` / `app-screens.css` as `window.csmFilterBar`, used by both screens. Requests now uses the member's saved Discover filters, applied on the server with `Filters::keep()`; setting a filter on either screen changes both. The old Requests drop-downs, `filterKeys`, per-row `attrs` and `Filters::profile_attrs()` are gone.
