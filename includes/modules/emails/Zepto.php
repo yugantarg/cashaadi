@@ -194,7 +194,13 @@ final class Zepto {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		if ( $code < 200 || $code > 299 ) {
 			$raw = wp_remote_retrieve_body( $response );
-			self::record_error( 'HTTP ' . $code . ': ' . substr( wp_strip_all_tags( (string) $raw ), 0, 160 ) );
+			/*
+			 * One member's bad address (SM_113 "Invalid email address") fails
+			 * that email only; it is not an outage, so no dashboard alert
+			 * telling the owner to check credits (2026-10-25).
+			 */
+			$bad_rcpt = false !== strpos( (string) $raw, 'SM_113' ) || false !== strpos( (string) $raw, 'SMI_116' );
+			self::record_error( 'HTTP ' . $code . ': ' . substr( wp_strip_all_tags( (string) $raw ), 0, 160 ), ! $bad_rcpt );
 			return false;
 		}
 
@@ -366,9 +372,11 @@ final class Zepto {
 	 * mailer that returned true without sending. Same contract the Brevo path
 	 * used, so nothing downstream changes.
 	 */
-	private static function record_error( $message ) {
+	private static function record_error( $message, $alert = true ) {
 		set_transient( 'csm_remail_mail_error', 'zeptomail: ' . $message, 5 * MINUTE_IN_SECONDS );
 		// Kept beyond the 5 minutes, for the Sales Dashboard alert (Analytics\Funnel).
-		update_option( 'csm_mail_error_last', array( 'at' => time(), 'msg' => substr( (string) $message, 0, 300 ) ), false );
+		if ( $alert ) {
+			update_option( 'csm_mail_error_last', array( 'at' => time(), 'msg' => substr( (string) $message, 0, 300 ) ), false );
+		}
 	}
 }

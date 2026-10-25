@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.29 — 2026-10-25
+
+- ZeptoMail: an invalid recipient (SM_113 / SMI_116) fails that one email without raising the "check the ZeptoMail credits" dashboard alert.
+
 ## 1.89.28 — 2026-10-25
 
 - `wp csm gold sales`: opens Gold sales and the new pricing page now; phone viewing still switches on by itself on the launch date (owner).
