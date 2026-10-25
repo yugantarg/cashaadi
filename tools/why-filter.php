@@ -9,11 +9,24 @@ use CAShaadi\Modules\Discover\Filters;
 
 global $wpdb;
 $arg = $args[0] ?? '';
-$u   = is_numeric( $arg ) ? get_userdata( (int) $arg ) : get_user_by( 'email', $arg );
-if ( ! $u ) {
-	WP_CLI::error( 'No such member: ' . $arg );
+if ( '' === $arg ) {
+	// No member named: check everyone who has a community filter saved.
+	$ids = $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value LIKE %s", Filters::META, '%community%' ) );
+	if ( ! $ids ) {
+		WP_CLI::error( 'Nobody has a community filter saved.' );
+	}
+	$users = array_filter( array_map( 'get_userdata', array_map( 'intval', $ids ) ) );
+} else {
+	$u = is_numeric( $arg ) ? get_userdata( (int) $arg ) : get_user_by( 'email', $arg );
+	if ( ! $u ) {
+		WP_CLI::error( 'No such member: ' . $arg );
+	}
+	$users = array( $u );
 }
+foreach ( $users as $u ) {
 $uid = (int) $u->ID;
+WP_CLI::line( '' );
+WP_CLI::line( '==========' );
 
 WP_CLI::line( 'Member ' . $uid . ' ' . $u->user_email );
 WP_CLI::line( 'Eligible for filters (Premium/Gold): ' . ( Filters::eligible( $uid ) ? 'yes' : 'NO' ) );
@@ -40,4 +53,5 @@ foreach ( $rows as $r ) {
 		is_array( $typed ) ? implode( ', ', $typed ) : $typed,
 		implode( ', ', Buckets::get( (int) $r->profile_id, 'community' ) ) ?: '(Others)'
 	) );
+}
 }
