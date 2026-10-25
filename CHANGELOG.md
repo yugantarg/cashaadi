@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.35 — 2026-10-25
+
+- Settings: a Membership section — Plan (Free / Premium / Gold), Member since, Valid until with days left (flagged in the last 14 days, linking to pricing in the last 30), and Payments and invoices (WooCommerce orders). Replaces the single Membership row.
+
 ## 1.89.34 — 2026-10-25
 
 - Buy Gold empties the cart first, as Buy Premium does: an old unpaid Premium item in a member's saved cart made the Gold checkout show Premium. A Gold member cannot add Gold again.

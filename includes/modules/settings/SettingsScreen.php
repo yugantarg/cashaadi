@@ -476,6 +476,43 @@ final class SettingsScreen {
 		);
 	}
 
+	/**
+	 * Plan, start and end dates, and past orders (owner, 2026-10-25: "no
+	 * membership details page where I can see purchase date, expiry date").
+	 */
+	private static function membership_group( $uid ) {
+		$gold    = class_exists( '\\CAShaadi\\Core\\Membership' ) && Membership::is_gold( $uid );
+		$premium = class_exists( '\\CAShaadi\\Core\\Membership' ) && Membership::is_premium( $uid );
+		$pricing = site_url( '/membership-pricing/?src=settings' );
+		$rows    = array(
+			array(
+				'label' => __( 'Plan', 'cashaadi-ui' ),
+				'value' => $gold ? 'Gold' : ( $premium ? 'Premium' : __( 'Free', 'cashaadi-ui' ) ),
+				'url'   => $pricing,
+			),
+		);
+		$lvl = $premium && function_exists( 'pmpro_getMembershipLevelForUser' ) ? pmpro_getMembershipLevelForUser( $uid ) : null;
+		if ( $lvl ) {
+			if ( ! empty( $lvl->startdate ) ) {
+				$rows[] = array( 'label' => __( 'Member since', 'cashaadi-ui' ), 'value' => wp_date( 'j M Y', (int) $lvl->startdate ), 'url' => '' );
+			}
+			if ( ! empty( $lvl->enddate ) ) {
+				$left   = (int) ceil( ( (int) $lvl->enddate - time() ) / DAY_IN_SECONDS );
+				$rows[] = array(
+					'label' => __( 'Valid until', 'cashaadi-ui' ),
+					'value' => wp_date( 'j M Y', (int) $lvl->enddate ) . ( $left > 0 ? ' (' . sprintf( _n( '%d day left', '%d days left', $left, 'cashaadi-ui' ), $left ) . ')' : '' ),
+					// Close to the end: the way to renew.
+					'url'   => $left <= 30 ? $pricing : '',
+					'ok'    => $left <= 14 ? false : null,
+				);
+			}
+		}
+		if ( function_exists( 'wc_get_account_endpoint_url' ) ) {
+			$rows[] = array( 'label' => __( 'Payments and invoices', 'cashaadi-ui' ), 'value' => '', 'url' => wc_get_account_endpoint_url( 'orders' ) );
+		}
+		return array( 'title' => __( 'Membership', 'cashaadi-ui' ), 'rows' => $rows );
+	}
+
 	/** Who may see this member's number: gold | paid | adminsonly. */
 	public static function phone_audience( $uid ) {
 		if ( 'adminsonly' === self::effective_level( \CAShaadi\Core\Config::FIELD_PHONE, $uid ) ) {
@@ -702,6 +739,7 @@ final class SettingsScreen {
 					array( 'label' => __( 'Blocked members', 'cashaadi-ui' ), 'value' => '', 'url' => home_url( '/settings/blocked/' ) ),
 				),
 			),
+			self::membership_group( $uid ),
 			array(
 				'title' => __( 'Account status', 'cashaadi-ui' ),
 				'rows'  => array(
@@ -724,12 +762,6 @@ final class SettingsScreen {
 						// flagged rather than shown as neutral grey text.
 						'ok'    => $ca_ok ? true : ( 'rejected' === $ca_state ? false : null ),
 						'url'   => home_url( '/profile/edit/?g=10' ),
-					),
-					array(
-						'label' => __( 'Membership', 'cashaadi-ui' ),
-						'value' => ( class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ) )
-							? __( 'Premium', 'cashaadi-ui' ) : __( 'Free', 'cashaadi-ui' ),
-						'url'   => site_url( '/membership-pricing/?src=settings' ),
 					),
 					array( 'label' => __( 'Email notifications', 'cashaadi-ui' ), 'value' => '', 'url' => home_url( '/settings/notifications/' ) ),
 					array( 'label' => __( 'Help & support', 'cashaadi-ui' ), 'value' => Config::SUPPORT_EMAIL, 'url' => 'mailto:' . Config::SUPPORT_EMAIL ),
