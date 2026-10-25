@@ -586,7 +586,8 @@
 			if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 			profiles = d.profiles || [];
 			meta.filters = d.filters || meta.filters;
-			meta.hiddenByFilter = d.hiddenByFilter || 0;
+			// Not for unlimited (Gold): only a page is loaded, so the count misleads (owner, 2026-10-26).
+			meta.hiddenByFilter = meta.unlimited ? 0 : ( d.hiddenByFilter || 0 );
 			idx = 0;
 			view = meta.grid ? 'grid' : 'single';
 			draw();
@@ -596,7 +597,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, hiddenByFilter: d.hiddenByFilter || 0, goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, hiddenByFilter: d.unlimited ? 0 : ( d.hiddenByFilter || 0 ), goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

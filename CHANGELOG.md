@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.37 — 2026-10-26
+
+- Discover: no "N hidden by your filters · Show all" for unlimited (Gold) members. Their tray is loaded a page at a time, so the count was wrong (owner's screen recording). The filter button and its Clear still work.
+
 ## 1.89.36 — 2026-10-25
 
 - The verification badge says "Verified CA Inter" for members whose qualification is CA Inter (profile cards, own profile page, and the approval email); it said "Verified CA" for everyone (`Profile::verified_label`).
