@@ -161,9 +161,11 @@ final class Discover {
 		}
 		global $wpdb;
 		$views = $wpdb->prefix . 'csm_profile_views';
+		// Premium: only people who viewed them. Gold: anyone (v1.88.0).
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( ! $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$views} WHERE viewer_id = %d AND viewed_id = %d LIMIT 1", $profile_id, $viewer_id ) ) ) {
-			return false; // only people who viewed this member
+		if ( ! \CAShaadi\Core\Membership::is_gold( $viewer_id )
+			&& ! $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$views} WHERE viewer_id = %d AND viewed_id = %d LIMIT 1", $profile_id, $viewer_id ) ) ) {
+			return false;
 		}
 		$csm = function_exists( 'cashaadi' ) ? cashaadi() : null;
 		if ( ! $csm || trim( (string) $csm->get_gender( $profile_id ) ) !== trim( (string) $csm->get_opposite_gender( $viewer_id ) ) ) {

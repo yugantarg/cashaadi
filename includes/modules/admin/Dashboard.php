@@ -367,6 +367,7 @@ final class Dashboard {
 		 */
 		$panels = array(
 			'Activity tiles'      => array( __NAMESPACE__ . '\\ActiveUsers', 'card' ),
+			'Gold'                => array( '\\CAShaadi\\Modules\\Premium\\Gold', 'dashboard_line' ),
 			'Email alert'         => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'alert' ),
 			'Sign-ups by channel' => array( __CLASS__, 'channel_summary' ),
 			'Sign-up funnel'      => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'summary' ),

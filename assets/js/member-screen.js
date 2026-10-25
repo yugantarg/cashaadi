@@ -172,7 +172,7 @@
 				if ( window.csmCoach ) { window.csmCoach.explain( 'like', go ); } else { go(); }
 			} );
 			w5.appendChild( req );
-			w5.appendChild( el( 'p', 'csm-mb-note', 'They viewed your profile. If they accept, you can message each other.' ) );
+			w5.appendChild( el( 'p', 'csm-mb-note', d.isGold ? 'Your request goes to the top of their list. If they accept, you can message each other.' : 'They viewed your profile. If they accept, you can message each other.' ) );
 			return w5;
 		}
 

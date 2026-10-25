@@ -3,6 +3,23 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.88.0 — 2026-10-25
+Gold, part 2.
+- **Browse all members** (`/browse/`, Gold only): every opposite-gender
+  member, most recently active first, using the member's Discover filters,
+  24 at a time. Linked from Discover ("Browse all members →"). Blocked,
+  closed, paused and held accounts are left out. Gold can send a request to
+  anyone from their profile (Premium: only to people who viewed them).
+- **New pricing page** (`Premium\PricingPage`): men's and women's wording,
+  a short comparison, "Compare all features", "Buy Premium" / "Buy Gold",
+  badge "Best chance of a match" (Gold, men) / "Most popular" (Premium,
+  women), "Your plan" for current members, the upgrade credit shown to
+  Premium members, "Founding places taken" at the cap. Off until
+  `csm_pricing_v2` = 1; admins preview with `?v2=1`. The Gold column shows
+  only while `csm_gold_on_sale` = 1 (or in the admin preview).
+- Sales Dashboard: one Gold line (members, founding places, on sale,
+  phone access, ceilings).
+
 ## 1.87.0 — 2026-10-25
 Gold, part 1 (PMPro level 3, WooCommerce product 17394, ₹7,999 / year).
 - Gold counts as Premium everywhere (`Membership::is_premium`), plus

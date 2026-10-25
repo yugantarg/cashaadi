@@ -204,6 +204,12 @@
 		if ( on ) { btn.classList.add( 'is-on' ); }
 		btn.addEventListener( 'click', sheet );
 		wrap.appendChild( btn );
+		// Gold: every member, not just this week's (v1.88.0).
+		if ( meta.browse ) {
+			var br = el( 'a', 'csm-d-filterbtn csm-d-browse', 'Browse all members \u2192' );
+			br.href = meta.browse;
+			wrap.appendChild( br );
+		}
 		return wrap;
 	}
 
@@ -702,7 +708,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, browse: d.browse || '' };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

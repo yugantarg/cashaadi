@@ -107,6 +107,16 @@ final class Gold {
 			&& \CAShaadi\Core\Verification::ca_verified( (int) $uid );
 	}
 
+	/** One line for the Sales Dashboard. */
+	public static function dashboard_line() {
+		$cap = (int) get_option( 'csm_gold_cap', 25 );
+		return '<p style="margin:10px 0;padding:8px 12px;background:#fffaf0;border:1px solid #f0d58c;border-radius:6px"><strong>Gold members: ' . (int) self::count() . '</strong>'
+			. ( $cap > 0 ? ' of ' . $cap . ' founding places' : '' )
+			. ' · on sale: ' . ( get_option( 'csm_gold_on_sale' ) ? 'yes' : 'no' )
+			. ' · phone access: ' . ( self::phone_live() ? 'on' : 'off' )
+			. ' · ceilings ' . ( self::ceiling_exempt() ? 'off for Gold' : 'on for Gold' ) . '</p>';
+	}
+
 	/* ------------------------------------------------------------- phone */
 
 	public static function revealed( $viewer, $profile ) {
@@ -217,6 +227,10 @@ final class Gold {
 	public static function purchasable( $ok, $product ) {
 		if ( ! $ok || ! $product || (int) $product->get_id() !== (int) Config::WC_GOLD_PRODUCT ) {
 			return $ok;
+		}
+		// Not for sale until launch (csm_gold_on_sale), except to an admin testing.
+		if ( ! get_option( 'csm_gold_on_sale' ) && ! current_user_can( 'manage_options' ) ) {
+			return false;
 		}
 		$cap = (int) get_option( 'csm_gold_cap', 25 );
 		return $cap <= 0 || self::count() < $cap;

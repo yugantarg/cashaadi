@@ -158,6 +158,7 @@ final class MemberScreen {
 			'profile'    => $profile,
 			'friendship' => $status,          // is_friend | pending | awaiting_response | not_friends
 			'tray'       => $state,           // pending | saved | liked | passed | ''
+			'isGold'     => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $viewer ),
 			// May add a note to a request (Premium, v1.85.0).
 			'canNote'    => class_exists( '\\CAShaadi\\Modules\\Requests\\RequestNote' ) && \CAShaadi\Modules\Requests\RequestNote::allowed( $viewer ),
 			// Premium: may send a request to someone who viewed them (v1.83.0).
