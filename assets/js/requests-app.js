@@ -295,6 +295,12 @@
 				root.appendChild( emptyBox( 'Nothing sent yet', 'Requests you send from Discover will show here until they are answered.' ) );
 				return;
 			}
+			// Upgrade prompt (v1.89.0): Gold requests go to the top of their list.
+			if ( CFG.goldPrompt ) {
+				var gb = el( 'a', 'csm-r-goldprompt', 'Waiting for answers? Gold puts your requests at the top of their list.' );
+				gb.href = CFG.upgrade;
+				root.appendChild( gb );
+			}
 			data.sent.forEach( function ( p ) {
 				list.appendChild( personRow( p, [
 					{ kind: 'withdraw', label: 'Withdraw', action: 'withdraw' }

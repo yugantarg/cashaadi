@@ -61,7 +61,14 @@
 
 		if ( ! message && ! meta.isPremium ) {
 			box.appendChild( el( 'p', null,
-				'You\u2019ve seen all ' + ( meta.freeQuota || 5 ) + ' profiles in your free weekly set. Premium members get ' + ( meta.premiumQuota || 10 ) + '.' ) );
+				'You\u2019ve seen all ' + ( meta.freeQuota || 5 ) + ' profiles in your free weekly set. Premium members get ' + ( meta.premiumQuota || 10 ) + ( meta.goldOnSale ? '; Gold members see unlimited profiles.' : '.' ) ) );
+		} else if ( ! message && meta.goldOnSale && meta.upgrade ) {
+			// Premium, not Gold: the one thing left to offer is unlimited.
+			var gp = el( 'p', null, 'Want more? ' );
+			var ga = el( 'a', null, 'Gold members see unlimited profiles.' );
+			ga.href = meta.upgrade;
+			gp.appendChild( ga );
+			box.appendChild( gp );
 		}
 
 		if ( message ) {
@@ -745,7 +752,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, unlimited: !! d.unlimited };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, unlimited: !! d.unlimited, goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();

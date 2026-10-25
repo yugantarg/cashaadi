@@ -3,6 +3,20 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.0 — 2026-10-25
+Gold, part 3: launch.
+- `wp csm gold notice --launch=YYYY-MM-DD [--dry-run]` (at least 3 days
+  ahead): queues the phone-number notice email to every member whose number
+  is not "Only me", and shows a banner in the app until launch ("From 1
+  November, your matches and Gold members can see your phone number",
+  linking to Privacy settings). `wp csm gold launch` switches everything on
+  now; on the launch date it happens by itself (new pricing page, Gold on
+  sale, Gold phone access). `wp csm gold status`.
+- Upgrade prompts, Gold ones only once Gold is on sale: "Call now with
+  Gold" on a locked phone row; Discover's end-of-week message mentions Gold's
+  unlimited profiles; Requests → Sent: "Gold puts your requests at the top
+  of their list".
+
 ## 1.88.3 — 2026-10-25
 - Premium women's 50 a week also load 24 at a time with "Show more
   profiles" (they were all loaded at once). Their weekly total is

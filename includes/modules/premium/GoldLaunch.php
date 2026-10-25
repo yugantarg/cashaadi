@@ -1,0 +1,111 @@
+<?php
+/**
+ * Gold launch (owner, 2026-10-24/25): members are told 3 days before Gold
+ * members can see phone numbers, by email and by a banner in the app; on
+ * launch day the pricing page, Gold sales and Gold phone access all switch on.
+ *
+ *   wp csm gold notice --launch=2026-11-01 [--dry-run]
+ *       stores the launch date, queues the notice email to every member whose
+ *       number is not "Only me", and shows the banner until launch.
+ *   wp csm gold launch      switch everything on now (also happens by itself
+ *                           on the launch date)
+ *   wp csm gold status
+ */
+
+namespace CAShaadi\Modules\Premium;
+
+use CAShaadi\Core\Config;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+final class GoldLaunch {
+
+	const DATE = 'csm_gold_launch_date'; // Y-m-d, IST
+
+	public static function register() {
+		add_action( 'init', array( __CLASS__, 'maybe_launch' ), 30 );
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'csm gold', __NAMESPACE__ . '\\GoldCli' );
+		}
+	}
+
+	public static function launched() {
+		return (bool) get_option( 'csm_gold_on_sale' ) && (bool) get_option( 'csm_gold_phone_live' );
+	}
+
+	public static function launch() {
+		update_option( 'csm_pricing_v2', 1 );
+		update_option( 'csm_gold_on_sale', 1 );
+		update_option( 'csm_gold_phone_live', 1 );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'gold_launched', 0, 0, array() );
+		}
+	}
+
+	/** On the launch date, switch on by itself. */
+	public static function maybe_launch() {
+		$d = (string) get_option( self::DATE, '' );
+		if ( '' !== $d && ! self::launched() && wp_date( 'Y-m-d' ) >= $d ) {
+			self::launch();
+		}
+	}
+
+	/** Members told: a phone number, not "Only me", account open. */
+	public static function audience() {
+		global $wpdb;
+		$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT user_id FROM {$wpdb->prefix}bp_xprofile_data WHERE field_id = %d AND value <> '' AND value <> '-'",
+			Config::FIELD_PHONE
+		) ) );
+		$closed = class_exists( '\CAShaadi\Modules\Settings\Closed' ) ? array_flip( \CAShaadi\Modules\Settings\Closed::ids() ) : array();
+		$out    = array();
+		foreach ( $ids as $uid ) {
+			if ( isset( $closed[ $uid ] ) || user_can( $uid, 'manage_options' ) ) {
+				continue;
+			}
+			$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+				? \CAShaadi\Modules\Settings\SettingsScreen::effective_level( Config::FIELD_PHONE, $uid )
+				: 'friends';
+			if ( 'adminsonly' !== $level ) {
+				$out[] = $uid;
+			}
+		}
+		return $out;
+	}
+
+	private static function nice_date() {
+		$d = (string) get_option( self::DATE, '' );
+		return '' === $d ? 'soon' : wp_date( 'j F', strtotime( $d . ' 12:00:00' ) );
+	}
+
+	public static function email_body( $uid ) {
+		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		return \CAShaadi\Modules\Emails\Engagement::wrap(
+			\CAShaadi\Modules\Emails\Engagement::greeting( $uid ),
+			'<p>A change to who can see your phone number on ' . esc_html( $site ) . ', from <strong>' . esc_html( self::nice_date() ) . '</strong>:</p>'
+			. '<ul><li><strong>Your matches</strong> will see your number on your profile, with Call and WhatsApp buttons.</li>'
+			. '<li><strong>Gold members</strong> will also be able to see it. When a Gold member views your number, you receive a match request from them, so you always know who has it.</li></ul>'
+			. '<p>If you would rather nobody sees your number, you can hide it from everyone in Privacy settings. Members who have already chosen "Only me" do not need to do anything.</p>',
+			\CAShaadi\Modules\Settings\SettingsScreen::url(),
+			'Open Privacy settings'
+		);
+	}
+
+	/** Banner until launch, for members in the audience. */
+	public static function banner( $uid ) {
+		$d = (string) get_option( self::DATE, '' );
+		if ( '' === $d || self::launched() || ! $uid ) {
+			return '';
+		}
+		$level = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
+			? \CAShaadi\Modules\Settings\SettingsScreen::effective_level( Config::FIELD_PHONE, $uid )
+			: 'friends';
+		if ( 'adminsonly' === $level ) {
+			return '';
+		}
+		return '<div class="csm-app-paused"><span>' . esc_html( 'From ' . self::nice_date() . ', your matches and Gold members can see your phone number.' ) . '</span>'
+			. '<a href="' . esc_url( \CAShaadi\Modules\Settings\SettingsScreen::url() ) . '">Privacy settings</a></div>';
+	}
+}

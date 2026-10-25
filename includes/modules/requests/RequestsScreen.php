@@ -54,6 +54,7 @@ final class RequestsScreen {
 			'list'    => rest_url( 'csm/v1/requests/list' ),
 			'act'     => rest_url( 'csm/v1/requests/act' ),
 			'upgrade' => site_url( '/membership-pricing/' ),
+			'goldPrompt' => (bool) get_option( 'csm_gold_on_sale' ) && class_exists( '\\CAShaadi\\Core\\Membership' ) && ! \CAShaadi\Core\Membership::is_gold( get_current_user_id() ),
 			// Matches offer "Message", which is navigation, not an action to POST.
 			'messages' => home_url( '/' . ( function_exists( 'bp_get_messages_slug' ) ? bp_get_messages_slug() : 'messages' ) . '/' ),
 		) );

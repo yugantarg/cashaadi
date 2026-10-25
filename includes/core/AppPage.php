@@ -176,6 +176,10 @@ final class AppPage {
 		if ( is_user_logged_in() && class_exists( '\CAShaadi\Modules\Photos\PhotoHold' ) ) {
 			echo \CAShaadi\Modules\Photos\PhotoHold::banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput
 		}
+		// Phone-number notice until Gold launches (v1.89.0).
+		if ( is_user_logged_in() && class_exists( '\CAShaadi\Modules\Premium\GoldLaunch' ) ) {
+			echo \CAShaadi\Modules\Premium\GoldLaunch::banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
 	}
 
 	/**
@@ -341,6 +345,10 @@ final class AppPage {
 			'me'        => get_current_user_id(),
 			'report'    => rest_url( 'csm/v1/report' ),
 			'reveal'    => rest_url( 'csm/v1/phone/reveal' ),
+			// Upgrade prompts mention Gold only once it is on sale (v1.89.0).
+			'goldOnSale' => (bool) get_option( 'csm_gold_on_sale' ),
+			'isGold'     => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( get_current_user_id() ),
+			'upgrade'    => home_url( '/membership-pricing/' ),
 			'ff15'        => $ff15,
 			'reqsPopup'   => $reqs,
 			'boostPopup'  => $boost,
