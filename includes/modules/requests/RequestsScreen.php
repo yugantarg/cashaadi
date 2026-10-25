@@ -192,10 +192,16 @@ final class RequestsScreen {
 				$row = self::person( $rid );
 				// Note with the request, and what Premium can filter on (v1.85.0).
 				$row['note']  = class_exists( __NAMESPACE__ . '\\RequestNote' ) ? RequestNote::get( $rid, $uid ) : '';
+				// Gold senders' requests are priority: first, and highlighted (v1.87.0).
+				$row['gold']  = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $rid );
 				$row['attrs'] = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? (object) \CAShaadi\Modules\Discover\Filters::profile_attrs( $rid, $uid ) : new \stdClass();
 				$received[] = $row;
 			}
 		}
+
+		usort( $received, function ( $a, $b ) {
+			return (int) ! empty( $b['gold'] ) <=> (int) ! empty( $a['gold'] );
+		} );
 
 		/* ---- sent ---- */
 		$sent = array();

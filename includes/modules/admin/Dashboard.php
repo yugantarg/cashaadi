@@ -228,6 +228,7 @@ final class Dashboard {
 	public static function membership_label( $user_id ) {
 		if ( function_exists( 'pmpro_getMembershipLevelForUser' ) ) {
 			$lvl = pmpro_getMembershipLevelForUser( $user_id );
+			if ( $lvl && intval( $lvl->id ) === Config::PMPRO_GOLD_LEVEL ) return 'Gold';
 			if ( $lvl && intval( $lvl->id ) === Config::PMPRO_PREMIUM_LEVEL ) return 'Premium';
 			if ( $lvl && ! empty( $lvl->id ) ) return esc_html( $lvl->name );
 		}

@@ -3,6 +3,26 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.87.0 — 2026-10-25
+Gold, part 1 (PMPro level 3, WooCommerce product 17394, ₹7,999 / year).
+- Gold counts as Premium everywhere (`Membership::is_premium`), plus
+  `Membership::is_gold`. Dashboard shows "Gold".
+- **Ranking:** Gold profiles score 3x (`csm_gold_multiplier`) and ignore the
+  weekly ceilings (`csm_gold_ceiling_exempt`, on). The 30-days-inactive rule
+  still applies.
+- **Priority requests:** a Gold member's requests come first on the
+  receiver's Received list, highlighted "Gold · Priority".
+- **Phone numbers:** Gold sees "View number" on every profile except "Only
+  me". The first time, it explains that viewing sends a match request; the
+  request is sent, the number shown, and the view logged
+  (`wp_csm_phone_views`, event `gold_phone_view`). 20 new numbers a day.
+  Off until launch: `csm_gold_phone_live` = 1 turns it on.
+- **20 profiles a week** for Gold men (women keep 50). **Gold badge** on
+  the card for Gold members who are verified.
+- **Upgrade credit:** at checkout, a Premium member buying Gold gets
+  ₹1,499 × unused days / 365 off.
+- **Founding cap:** Gold stops selling at `csm_gold_cap` (25) members.
+
 ## 1.86.2 — 2026-10-24
 - **Community: type freely, confirm the group.** In onboarding and Edit
   profile, once the member stops typing their community, a "Community

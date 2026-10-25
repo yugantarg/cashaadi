@@ -54,7 +54,7 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		// v3 quota: uniform 5/week base; Premium (PMPro level 2) gets 2x = 10.
 		// Filterable since v1.60.0, where premium women get 50 (Discover\Filters).
 		$tray_size = 5;
-		if ( function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( 2, $viewer_id ) ) {
+		if ( class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_premium( $viewer_id ) ) { // Premium or Gold
 			$tray_size = 10;
 		}
 		$tray_size = max( 1, (int) apply_filters( 'csm_tray_size', $tray_size, $viewer_id ) );

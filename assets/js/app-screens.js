@@ -265,6 +265,7 @@ window.csmProfileCard = function ( p ) {
 
 	if ( window.csmPhotoStack ) { window.csmPhotoStack( media, shots ); }
 	if ( p.verified ) { media.appendChild( mk( 'span', 'csm-d-verified', 'Verified CA' ) ); }
+	if ( p.gold ) { media.appendChild( mk( 'span', 'csm-d-goldbadge', 'Gold' ) ); }
 
 	/*
 	 * A blurred photo, said out loud. Without this the viewer sees an indistinct
@@ -361,6 +362,37 @@ window.csmProfileCard = function ( p ) {
 				ph.appendChild( call );
 				ph.appendChild( wa );
 			}
+		} else if ( 'reveal' === p.phone.state ) {
+			/* Gold: one tap shows the number and sends them a request. Said
+			   once before the first one (owner, 2026-10-24). */
+			var rv = mk( 'button', 'csm-d-phone-b is-gold', 'View number' );
+			rv.type = 'button';
+			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'Gold' ) );
+			ph.appendChild( rv );
+			var reveal = function () {
+				rv.disabled = true;
+				fetch( ( window.CSM_APP && window.CSM_APP.reveal ) || '/wp-json/csm/v1/phone/reveal', {
+					method: 'POST', credentials: 'same-origin',
+					headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': ( window.CSM_APP && window.CSM_APP.nonce ) || '' },
+					body: JSON.stringify( { id: p.id } )
+				} ).then( function ( r ) { return r.json(); } ).then( function ( d ) {
+					if ( d && d.ok && d.phone ) {
+						p.phone = d.phone;
+						var fresh = window.csmProfileCard( p ).querySelector( '.csm-d-phone' );
+						if ( fresh ) { ph.replaceWith( fresh ); }
+					} else {
+						rv.disabled = false;
+						if ( window.csmToast ) { window.csmToast( ( d && d.message ) || 'That did not work.', 'bad' ); }
+					}
+				} ).catch( function () { rv.disabled = false; } );
+			};
+			rv.addEventListener( 'click', function () {
+				var seen = false;
+				try { seen = !! localStorage.getItem( 'csm_phone_note' ); } catch ( e ) {}
+				if ( seen || ! window.csmConfirm ) { return reveal(); }
+				window.csmConfirm( 'Viewing a phone number sends ' + p.name + ' a match request from you, so they know who has their number.', { title: 'View number?', okText: 'View number', cancelText: 'Cancel' } )
+					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} reveal(); } } );
+			} );
 		} else {
 			ph.appendChild( mk( 'span', 'csm-d-phone-n', 'not_shared' === p.phone.state ? 'Not shared' : '\uD83D\uDD12 Hidden \u00b7 shown after you match' ) );
 		}

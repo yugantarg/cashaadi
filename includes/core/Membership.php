@@ -25,7 +25,17 @@ final class Membership {
 		if ( ! $user_id || ! function_exists( 'pmpro_hasMembershipLevel' ) ) {
 			return false;
 		}
-		return (bool) pmpro_hasMembershipLevel( Config::PMPRO_PREMIUM_LEVEL, $user_id );
+		// Gold includes everything in Premium (v1.87.0).
+		return (bool) pmpro_hasMembershipLevel( array( Config::PMPRO_PREMIUM_LEVEL, Config::PMPRO_GOLD_LEVEL ), $user_id );
+	}
+
+	/** Is the user a Gold member? */
+	public static function is_gold( $user_id = 0 ) {
+		$user_id = $user_id ? (int) $user_id : get_current_user_id();
+		if ( ! $user_id || ! function_exists( 'pmpro_hasMembershipLevel' ) ) {
+			return false;
+		}
+		return (bool) pmpro_hasMembershipLevel( Config::PMPRO_GOLD_LEVEL, $user_id );
 	}
 
 	/**
@@ -34,6 +44,6 @@ final class Membership {
 	 * @param int $user_id Defaults to the current user.
 	 */
 	public static function level_label( $user_id = 0 ) {
-		return self::is_premium( $user_id ) ? 'Premium' : 'Free';
+		return self::is_gold( $user_id ) ? 'Gold' : ( self::is_premium( $user_id ) ? 'Premium' : 'Free' );
 	}
 }

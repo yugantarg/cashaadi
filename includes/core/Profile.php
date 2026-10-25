@@ -446,6 +446,16 @@ final class Profile {
 			}
 			$visible = (bool) apply_filters( 'csm_phone_visible', $visible, $profile_id, $viewer_id, $level );
 		}
+		// Gold (v1.87.0): any number except "Only me", one tap away. The tap
+		// sends a match request, so the number stays hidden until then.
+		if ( ! $visible && $viewer_id > 0 && class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' )
+			&& \CAShaadi\Modules\Premium\Gold::can_reveal( $viewer_id ) ) {
+			if ( \CAShaadi\Modules\Premium\Gold::revealed( $viewer_id, $profile_id ) ) {
+				$visible = true;
+			} else {
+				return array_merge( $none, array( 'state' => 'reveal' ) );
+			}
+		}
 		return $visible
 			? array_merge( array( 'state' => 'visible' ), $shown )
 			: array_merge( $none, array( 'state' => 'locked' ) );
@@ -486,6 +496,8 @@ final class Profile {
 			 */
 			'verified' => method_exists( '\CAShaadi\Core\Verification', 'ca_verified' )
 				&& Verification::ca_verified( $profile_id ),
+			// Gold badge: Gold and verified (v1.87.0).
+			'gold'     => class_exists( '\CAShaadi\Modules\Premium\Gold' ) && \CAShaadi\Modules\Premium\Gold::badge( $profile_id ),
 			'groups'   => array(),
 		);
 

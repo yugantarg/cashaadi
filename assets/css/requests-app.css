@@ -147,3 +147,7 @@
 .csm-r-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
 .csm-r-filter { padding: 6px 8px; border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 8px; font-size: 13px; background: #fff; max-width: 48%; }
 .csm-r-filterlock { font-size: 13px; color: var(--csm-muted, #5c6a76); text-decoration: none; }
+
+/* Gold priority requests (v1.87.0). */
+.csm-r-row.is-gold { border: 1.5px solid #c9a227; background: #fffaf0; border-radius: 12px; }
+.csm-r-gold { display: inline-block; margin-bottom: 2px; padding: 1px 8px; border-radius: 999px; background: #3a2806; color: #ffe7a3; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; }

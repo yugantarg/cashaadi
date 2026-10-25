@@ -491,3 +491,6 @@ body.csm-member-view .csm-d-card {
 .csm-d-tick { display: flex; gap: 6px; align-items: flex-start; font-size: 13.5px; line-height: 1.3; }
 .csm-d-tick input { margin-top: 2px; }
 @media (max-width: 380px) { .csm-d-ticklist { grid-template-columns: 1fr; } }
+/* Gold (v1.87.0). */
+.csm-d-goldbadge { position: absolute; left: 14px; top: 56px; padding: 4px 12px; border-radius: 999px; background: linear-gradient(180deg,#f3d27a,#c9a227); color: #3a2806; font-weight: 700; font-size: 13px; letter-spacing: .04em; z-index: 2; }
+.csm-d-phone-b.is-gold { background: #3a2806; color: #ffe7a3; border-color: #3a2806; cursor: pointer; }

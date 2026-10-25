@@ -340,6 +340,7 @@ final class AppPage {
 			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
 			'me'        => get_current_user_id(),
 			'report'    => rest_url( 'csm/v1/report' ),
+			'reveal'    => rest_url( 'csm/v1/phone/reveal' ),
 			'ff15'        => $ff15,
 			'reqsPopup'   => $reqs,
 			'boostPopup'  => $boost,

@@ -75,6 +75,11 @@
 		if ( sub ) { meta.appendChild( el( 'span', 'csm-r-sub', sub ) ); }
 		a.appendChild( meta );
 		row.appendChild( a );
+		// Gold sender: a priority request (v1.87.0).
+		if ( p.gold ) {
+			row.classList.add( 'is-gold' );
+			meta.insertBefore( el( 'span', 'csm-r-gold', 'Gold \u00b7 Priority' ), meta.firstChild );
+		}
 		// The note that came with the request (v1.85.0).
 		if ( p.note ) { row.appendChild( el( 'p', 'csm-r-note', '\u201c' + p.note + '\u201d' ) ); }
 

@@ -121,6 +121,8 @@ final class Config {
 	/* ---- membership / commerce ----------------------------------------- */
 	const PMPRO_PREMIUM_LEVEL = 2;     // PMPro premium level id (#11795)
 	const WC_PREMIUM_PRODUCT  = 11566; // WooCommerce "Premium Membership (1 Year)"
+	const PMPRO_GOLD_LEVEL    = 3;     // PMPro Gold level (2026-10-25), 1 year
+	const WC_GOLD_PRODUCT     = 17394; // WooCommerce "Gold Membership", ₹7,999
 
 	/* ---- analytics (public ids) ---------------------------------------- */
 	const FB_PIXEL_ID     = '942856688093538';          // Meta "CA Shaadi Website Pixel" (#12084)

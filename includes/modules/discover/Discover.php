@@ -553,7 +553,7 @@ final class Discover {
 	public static function quota_for( $uid ) {
 		$uid  = (int) $uid;
 		$size = 5;
-		if ( function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( 2, $uid ) ) {
+		if ( \CAShaadi\Core\Membership::is_premium( $uid ) ) { // Premium or Gold
 			$size = 10;
 		}
 		return max( 1, (int) apply_filters( 'csm_tray_size', $size, $uid ) );

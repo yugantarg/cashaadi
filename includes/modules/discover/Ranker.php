@@ -98,6 +98,10 @@ final class Ranker {
 		$me_p  = self::popularity( self::own_stats( $viewer_id ), $rate, $P );
 
 		$trust     = self::trust( $ids );
+		// Gold (v1.87.0): 3x points and, by default, no weekly ceilings.
+		$gold      = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ? array_flip( \CAShaadi\Modules\Premium\Gold::ids_among( $ids ) ) : array();
+		$g_mult    = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ? \CAShaadi\Modules\Premium\Gold::multiplier() : 1;
+		$g_exempt  = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) && \CAShaadi\Modules\Premium\Gold::ceiling_exempt();
 		$max_shown = 0;
 		foreach ( $pool as $r ) {
 			$max_shown = max( $max_shown, (int) $r->shown );
@@ -123,7 +127,14 @@ final class Ranker {
 			$parts['photo']     = ! empty( $trust[ $id ]['photo'] ) ? $P['photo'] : 0;
 			$parts['verified']  = ! empty( $trust[ $id ]['verified'] ) ? $P['verified'] : 0;
 
+			if ( isset( $gold[ $id ] ) && $g_mult > 1 ) {
+				$parts['gold'] = array_sum( $parts ) * ( $g_mult - 1 );
+			}
+
 			$over = ( (int) $r->shown_wk >= $ceiling ) || ( (int) $r->req_wk >= $req_cap );
+			if ( isset( $gold[ $id ] ) && $g_exempt ) {
+				$over = false;
+			}
 			$tier = ( $tier_active && ! (int) $r->active ? 0 : 2 ) + ( $over ? 0 : 1 );
 
 			$out[] = array(
