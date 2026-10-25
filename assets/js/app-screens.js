@@ -543,7 +543,7 @@ window.csmProfileCard = function ( p ) {
 	setTimeout( function () {
 		mark( false );
 		window.csmConfirm(
-			'Upload your ICAI certificate, marksheet or membership card (PDF, JPG or PNG) and your profile shows the Verified CA badge. Members trust verified profiles more, and it usually takes under an hour.',
+			'Upload your ICAI certificate, marksheet or membership card (PDF, JPG or PNG) and your profile shows the Verified CA badge. Members trust verified profiles more, and it usually takes under an hour. Your document is never shared with any other member; they only see the Verified tag.',
 			{ title: 'Get your Verified CA badge', okText: 'Upload now', cancelText: 'Not now' }
 		).then( function ( yes ) {
 			if ( ! yes ) { return; }

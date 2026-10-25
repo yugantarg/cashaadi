@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.16 — 2026-10-25
+
+- ICAI document upload (profile editor) and the "Get your Verified CA badge" popup say the document is never shared with any other member; they only see the Verified tag.
+
 ## 1.89.15 — 2026-10-25
 
 - Phone numbers are no longer shown to matches (owner: "they can anyway share it in chat"). Choices on Who sees what: "Gold members" (default), "Gold and Premium members", "Only me". Members who chose "Only me" keep it; the brief "My matches only" counts as Only me. Other fields are unchanged.

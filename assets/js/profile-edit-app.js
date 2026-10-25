@@ -193,6 +193,8 @@
 
 			box.appendChild( pick );
 			box.appendChild( status );
+			// Every file field is a private verification document (owner, 2026-10-25).
+			box.appendChild( el( 'p', 'csm-pe-private', 'Your document is never shared with any other member. They only see the Verified tag on your profile.' ) );
 
 			// No link back to the classic BuddyPress form: the in-app uploader is
 			// the flow now, and the escape hatch only led members back to the old
