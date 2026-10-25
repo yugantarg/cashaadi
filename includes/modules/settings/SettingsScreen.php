@@ -548,6 +548,10 @@ final class SettingsScreen {
 			if ( in_array( $fid, \CAShaadi\Core\Config::ALWAYS_PUBLIC_FIELDS, true ) ) {
 				return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'This one is always shown to everyone.', 'cashaadi-ui' ) ), 400 );
 			}
+			if ( $phone && function_exists( 'cashaadi' ) ) {
+				// Who changes their phone privacy, and to what (v1.89.31).
+				cashaadi()->log_event( 'phone_privacy', $uid, 0, array( 'from' => self::phone_audience( $uid ), 'to' => $level ) );
+			}
 			if ( $phone && 'adminsonly' !== $level ) {
 				update_user_meta( $uid, self::PHONE_META, $level );
 				$level = 'friends';

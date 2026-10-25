@@ -466,6 +466,17 @@ final class Filters {
 		if ( is_wp_error( $res ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'error' => $res->get_error_message() ), 200 );
 		}
+		// What members filter on, and how much of their tray it leaves (v1.89.31).
+		if ( function_exists( 'cashaadi' ) ) {
+			global $wpdb;
+			$tray = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'", $uid ) );
+			cashaadi()->log_event( $res ? 'filters_set' : 'filters_cleared', $uid, 0, array(
+				'filters' => $res,
+				'tray'    => $tray,
+				'kept'    => self::pool_size( $uid ),
+				'gender'  => (string) cashaadi()->get_gender( $uid ),
+			) );
+		}
 
 		// The tray is left as it is: the queue hides what the filters exclude.
 		$state            = self::state( $uid );

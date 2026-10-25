@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.31 — 2026-10-25
+
+- New events, kept permanently: `request_declined` / `request_withdrawn` (sender, receiver, hours waited, sender's plan and gender; from BuddyPress's own hooks, so every path is caught), `filters_set` / `filters_cleared` (the filters, undecided tray size and how many pass), `phone_privacy` (from → to).
+
 ## 1.89.30 — 2026-10-25
 
 - Pricing-page tracking: every upgrade button carries a `?src=` tag (phone, photo-blur, photo, filter-discover, filter-requests, discover-gold, discover-empty, discover-limit, requests-gold, requests-saves, requests-viewers, profile, profile-gold, quota, settings, viewers-teaser, recent-viewers, upgrade-btn) via `window.csmSrc`.

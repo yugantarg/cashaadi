@@ -49,7 +49,7 @@ final class Journey {
 	const CRON = 'csm_journey_daily';
 
 	/** Event types never pruned: the record a later analysis depends on. */
-	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed' );
+	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_declined', 'request_withdrawn', 'filters_set', 'filters_cleared', 'phone_privacy' );
 
 	public static function register() {
 		Migrator::register( 'member_day', array( __CLASS__, 'schema' ) );
@@ -70,6 +70,12 @@ final class Journey {
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'on_order' ) );
 		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'on_order' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'on_pricing_view' ), 5 );
+		/*
+		 * Declined and withdrawn requests (v1.89.31): BuddyPress deletes the
+		 * request row, so without these a decline looks like no answer.
+		 */
+		add_action( 'friends_friendship_rejected', function ( $fid, $f = null ) { Journey::on_request_end( 'request_declined', $f ); }, 10, 2 );
+		add_action( 'friends_friendship_withdrawn', function ( $fid, $f = null ) { Journey::on_request_end( 'request_withdrawn', $f ); }, 10, 2 );
 		// "Buy Premium" / "Buy Gold" taps, paid or not (v1.89.30).
 		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'on_buy_click' ), 20, 2 );
 		add_action( 'csm_mutual_match', array( __CLASS__, 'on_match' ), 10, 2 );
@@ -525,6 +531,21 @@ final class Journey {
 			'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0,
 			'plan'    => self::plan( $uid ),
 			'gender'  => (string) cashaadi()->get_gender( $uid ),
+		) );
+	}
+
+	/** A request that ended without a match: who sent it, to whom, how long it waited. */
+	public static function on_request_end( $type, $f ) {
+		if ( ! is_object( $f ) || empty( $f->initiator_user_id ) || ! function_exists( 'cashaadi' ) ) {
+			return;
+		}
+		$from = (int) $f->initiator_user_id;
+		$to   = (int) $f->friend_user_id;
+		$ts   = ! empty( $f->date_created ) ? strtotime( $f->date_created . ' UTC' ) : 0;
+		cashaadi()->log_event( $type, $from, $to, array(
+			'hours'       => $ts ? (int) round( ( time() - $ts ) / HOUR_IN_SECONDS ) : null,
+			'sender_plan' => self::plan( $from ),
+			'gender'      => (string) cashaadi()->get_gender( $from ),
 		) );
 	}
 
