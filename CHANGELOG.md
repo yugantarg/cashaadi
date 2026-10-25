@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.33 — 2026-10-25
+
+- Membership lifecycle events, kept permanently: `membership_first`, `membership_renewed` (bought again while active, or after it lapsed), `membership_upgraded` (to Gold), `membership_downgraded`, `membership_expired` (PMPro's expiry), `membership_ended` (refund, cancel, admin). Each records from/to level, old and new end dates, days left and gender.
+
 ## 1.89.32 — 2026-10-25
 
 - Dropped the new `request_declined` event: declines were already kept in `wp_csm_rejections` (since v1.52). `request_withdrawn` stays.

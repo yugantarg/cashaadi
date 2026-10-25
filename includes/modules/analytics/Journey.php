@@ -49,7 +49,7 @@ final class Journey {
 	const CRON = 'csm_journey_daily';
 
 	/** Event types never pruned: the record a later analysis depends on. */
-	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_withdrawn', 'filters_set', 'filters_cleared', 'phone_privacy' );
+	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_withdrawn', 'membership_first', 'membership_renewed', 'membership_upgraded', 'membership_expired', 'membership_ended', 'membership_downgraded', 'filters_set', 'filters_cleared', 'phone_privacy' );
 
 	public static function register() {
 		Migrator::register( 'member_day', array( __CLASS__, 'schema' ) );
@@ -75,6 +75,14 @@ final class Journey {
 		 * are already kept in wp_csm_rejections (Premium::on_bp_reject).
 		 */
 		add_action( 'friends_friendship_withdrawn', function ( $fid, $f = null ) { Journey::on_request_end( 'request_withdrawn', $f ); }, 10, 2 );
+		/*
+		 * Membership lifecycle (v1.89.33): first purchase, renewal (early or
+		 * after lapsing), upgrade, expiry, and any other end. The level as it
+		 * was is read just before PMPro changes it.
+		 */
+		add_action( 'pmpro_before_change_membership_level', array( __CLASS__, 'before_level' ), 10, 2 );
+		add_action( 'pmpro_after_change_membership_level', array( __CLASS__, 'after_level' ), 30, 2 );
+		add_action( 'pmpro_membership_pre_membership_expiry', function () { Journey::$expiring = true; } );
 		// "Buy Premium" / "Buy Gold" taps, paid or not (v1.89.30).
 		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'on_buy_click' ), 20, 2 );
 		add_action( 'csm_mutual_match', array( __CLASS__, 'on_match' ), 10, 2 );
@@ -530,6 +538,61 @@ final class Journey {
 			'premium' => class_exists( '\CAShaadi\Core\Membership' ) && \CAShaadi\Core\Membership::is_premium( $uid ) ? 1 : 0,
 			'plan'    => self::plan( $uid ),
 			'gender'  => (string) cashaadi()->get_gender( $uid ),
+		) );
+	}
+
+	/** Set while PMPro's expiry cron is ending a membership. */
+	public static $expiring = false;
+	private static $was = array();
+
+	public static function before_level( $level, $uid ) {
+		$cur = function_exists( 'pmpro_getMembershipLevelForUser' ) ? pmpro_getMembershipLevelForUser( (int) $uid ) : null;
+		self::$was[ (int) $uid ] = array(
+			'id'  => $cur ? (int) $cur->id : 0,
+			'end' => $cur && ! empty( $cur->enddate ) ? (int) $cur->enddate : 0,
+		);
+	}
+
+	public static function after_level( $level_id, $uid ) {
+		$uid = (int) $uid;
+		if ( ! isset( self::$was[ $uid ] ) || ! function_exists( 'cashaadi' ) ) {
+			return;
+		}
+		$was = self::$was[ $uid ];
+		unset( self::$was[ $uid ] );
+		$now = function_exists( 'pmpro_getMembershipLevelForUser' ) ? pmpro_getMembershipLevelForUser( $uid ) : null;
+		$to  = $now ? (int) $now->id : 0;
+		$end = $now && ! empty( $now->enddate ) ? (int) $now->enddate : 0;
+		$from = $was['id'];
+
+		if ( ! $from && $to ) {
+			global $wpdb;
+			// Paid before? Then this is a renewal after it lapsed.
+			$before = (int) $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->pmpro_memberships_users} WHERE user_id = %d AND membership_id IN ( %d, %d ) AND status <> 'active'",
+				$uid, Config::PMPRO_PREMIUM_LEVEL, Config::PMPRO_GOLD_LEVEL
+			) );
+			$type = $before ? 'membership_renewed' : 'membership_first';
+		} elseif ( $from && $to && $to !== $from ) {
+			$type = (int) Config::PMPRO_GOLD_LEVEL === $to ? 'membership_upgraded' : 'membership_downgraded'; // e.g. a refunded Gold back to Premium
+		} elseif ( $from && $to === $from ) {
+			if ( $end <= $was['end'] ) {
+				return; // nothing changed that matters
+			}
+			$type = 'membership_renewed'; // bought again while still active
+		} elseif ( $from && ! $to ) {
+			$type = self::$expiring ? 'membership_expired' : 'membership_ended';
+		} else {
+			return;
+		}
+		self::$expiring = false;
+		cashaadi()->log_event( $type, $uid, $to, array(
+			'from'      => $from,
+			'to'        => $to,
+			'old_end'   => $was['end'] ? wp_date( 'Y-m-d', $was['end'] ) : null,
+			'new_end'   => $end ? wp_date( 'Y-m-d', $end ) : null,
+			'days_left' => $was['end'] ? (int) floor( ( $was['end'] - time() ) / DAY_IN_SECONDS ) : null,
+			'gender'    => (string) cashaadi()->get_gender( $uid ),
 		) );
 	}
 
