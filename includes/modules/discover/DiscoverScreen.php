@@ -131,6 +131,13 @@ final class DiscoverScreen {
 			$viewer_id
 		) );
 
+		// Filters only narrow what is in the tray (v1.89.11); hidden rows stay pending.
+		$in_tray = count( (array) $rows );
+		if ( $rows && class_exists( __NAMESPACE__ . '\\Filters' ) ) {
+			$keep = array_flip( Filters::keep( $viewer_id, wp_list_pluck( $rows, 'profile_id' ) ) );
+			$rows = array_values( array_filter( $rows, function ( $r ) use ( $keep ) { return isset( $keep[ (int) $r->profile_id ] ); } ) );
+		}
+
 		$week     = gmdate( 'o-\WW' );
 		$profiles = array();
 
@@ -168,6 +175,8 @@ final class DiscoverScreen {
 		return new \WP_REST_Response( array(
 			'ok'        => true,
 			'profiles'  => $profiles,
+			// Undecided profiles the filters are hiding right now.
+			'hiddenByFilter' => max( 0, $in_tray - count( (array) $rows ) ),
 			'isPremium' => $premium,
 			'resetOn'   => $next ? $next->format( 'l, j M' ) : '',
 			'resetIso'  => $next ? $next->format( 'c' ) : '',

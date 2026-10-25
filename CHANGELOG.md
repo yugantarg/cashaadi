@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.11 — 2026-10-25
+
+- Discover filters now only narrow the profiles already in the member's tray (owner: "the filter should only work on the profiles in my tray"). Applying a filter no longer clears the undecided profiles and refills the tray with matching ones, and the refill no longer uses the filters. Hidden profiles stay in the tray and come back when the filter is changed or cleared.
+- The grid heading says how many profiles the filters are hiding, and an empty screen caused by filters says so instead of "That's your 50 for this week".
+
 ## 1.89.10 — 2026-10-25
 
 - Discover filters: the sheet sent its choices without saying they were JSON, so WordPress read nothing and Apply saved an empty filter (wiping age, height, community and the rest). The request now carries `Content-Type: application/json`.

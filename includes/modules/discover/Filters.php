@@ -56,7 +56,12 @@ final class Filters {
 
 	public static function register() {
 		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 10, 2 );
-		add_filter( 'csm_refill_extra_where', array( __CLASS__, 'where' ), 10, 2 );
+		/*
+		 * Filters narrow the profiles already in the member's tray; they do
+		 * not choose which profiles fill it (owner, 2026-10-25: "the filter
+		 * should only work on the profiles in my tray"). So no
+		 * csm_refill_extra_where hook: the weekly set is drawn as for anyone.
+		 */
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 	}
 
@@ -367,25 +372,35 @@ final class Filters {
 		return $sql . $add;
 	}
 
-	/** How many candidates the current filters would allow. For the UI hint. */
+	/**
+	 * Of these profile IDs, the ones this member's filters let through, in
+	 * the same order. All of them when no filter is set.
+	 */
+	public static function keep( $uid, array $ids ) {
+		$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
+		$where = $ids ? self::where( '', $uid ) : '';
+		if ( '' === $where ) {
+			return $ids;
+		}
+		global $wpdb;
+		$in = implode( ',', $ids ); // every value intval'd
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$ok = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT xp.user_id FROM {$wpdb->prefix}bp_xprofile_data xp
+			 WHERE xp.field_id = %d AND xp.user_id IN ({$in})" . $where,
+			Config::FIELD_GENDER
+		) ) );
+		return array_values( array_intersect( $ids, $ok ) );
+	}
+
+	/** How many undecided profiles in the tray the current filters let through. For the UI hint. */
 	public static function pool_size( $uid ) {
 		global $wpdb;
-		if ( ! function_exists( 'cashaadi' ) ) {
-			return 0;
-		}
-		$opposite = cashaadi()->get_opposite_gender( $uid );
-		if ( ! $opposite ) {
-			return 0;
-		}
-		$where = self::where( '', $uid );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->prefix}bp_xprofile_data xp
-			 WHERE xp.field_id = %d AND xp.value = %s AND xp.user_id <> %d" . $where,
-			Config::FIELD_GENDER,
-			$opposite,
+		$ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT profile_id FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'",
 			(int) $uid
 		) );
+		return count( self::keep( $uid, (array) $ids ) );
 	}
 
 	/* --------------------------------------------------------------- REST */
@@ -484,22 +499,7 @@ final class Filters {
 			return new \WP_REST_Response( array( 'ok' => false, 'error' => $res->get_error_message() ), 200 );
 		}
 
-		/*
-		 * Drop profiles this member has not acted on yet, so the new filters
-		 * take effect now rather than next Monday.
-		 *
-		 * This cannot mint extra profiles: csm_refill_tray() sizes the refill as
-		 * tray_size minus the rows already assigned THIS week, and liked/passed
-		 * rows are not deleted here — they stay and keep counting. So the week's
-		 * ceiling is 50 DECISIONS; re-filtering only re-aims what is still
-		 * undecided (verified on live: 5 acted + 45 replacements = 50, not 95).
-		 */
-		global $wpdb;
-		$wpdb->delete( $wpdb->prefix . 'csm_tray', array( 'viewer_id' => $uid, 'status' => 'pending' ) );
-		if ( function_exists( 'csm_refill_tray' ) ) {
-			csm_refill_tray( $uid );
-		}
-
+		// The tray is left as it is: the queue hides what the filters exclude.
 		$state            = self::state( $uid );
 		$state['applied'] = true;
 		return new \WP_REST_Response( $state, 200 );

@@ -60,6 +60,15 @@
 			root.appendChild( box );
 			return;
 		}
+		if ( ! message && meta.hiddenByFilter ) {
+			// Filters only narrow the week's set (v1.89.11): say so, rather than "that's your 50".
+			box.appendChild( el( 'h2', null, 'No profiles match your filters' ) );
+			box.appendChild( el( 'p', null, meta.hiddenByFilter + ( meta.hiddenByFilter === 1 ? ' profile' : ' profiles' ) + ' in this week\u2019s set ' + ( meta.hiddenByFilter === 1 ? 'is' : 'are' ) + ' hidden by your filters. Change or clear your filters to see ' + ( meta.hiddenByFilter === 1 ? 'it' : 'them' ) + '.' ) );
+			var fbF = filterBar();
+			if ( fbF ) { box.appendChild( fbF ); }
+			root.appendChild( box );
+			return;
+		}
 		box.appendChild( el( 'h2', null, 'That\u2019s your ' + ( meta.quota || meta.freeQuota || 5 ) + ' for this week' ) );
 
 		if ( ! message && ! meta.isPremium ) {
@@ -332,7 +341,7 @@
 		var box  = el( 'div', 'csm-d-sheet' );
 		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
 		box.appendChild( el( 'p', 'csm-d-sheethint',
-			meta.unlimited ? 'Gold: unlimited profiles.' : 'You get ' + f.quota + ' profiles a week.' ) );
+			meta.unlimited ? 'Gold: unlimited profiles. Filters narrow the profiles you have been shown.' : 'You get ' + f.quota + ' profiles a week. Filters narrow this week\u2019s set; they do not add profiles.' ) );
 
 		function num( label, name, min, max, val, fmt ) {
 			var row = el( 'label', 'csm-d-frow' );
@@ -507,6 +516,9 @@
 		var head = el( 'p', 'csm-d-gridcount', meta.unlimited
 			? 'Unlimited profiles'
 			: weekLeft + ' of ' + meta.quota + ' left this week' );
+		if ( meta.hiddenByFilter ) {
+			head.textContent += ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters';
+		}
 		root.appendChild( head );
 
 		var grid = el( 'div', 'csm-d-grid' );
@@ -764,6 +776,7 @@
 			if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 			profiles = d.profiles || [];
 			meta.filters = d.filters || meta.filters;
+			meta.hiddenByFilter = d.hiddenByFilter || 0;
 			idx = 0;
 			view = meta.grid ? 'grid' : 'single';
 			draw();
@@ -773,7 +786,7 @@
 	api( CFG.queue ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, hiddenByFilter: d.hiddenByFilter || 0, goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();
