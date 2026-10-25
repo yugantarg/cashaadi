@@ -182,71 +182,16 @@
 		return box;
 	}
 
-	var rfilt = {};   // key -> chosen value ('' = any)
-
-	function passes( p ) {
-		var a = p.attrs || {};
-		return Object.keys( rfilt ).every( function ( k ) {
-			var want = rfilt[ k ];
-			if ( ! want ) { return true; }
-			if ( 'same' === want ) {
-				var dim = ( data.filterKeys || [] ).filter( function ( x ) { return x.key === k; } )[0];
-				return !! dim && ( a[ k ] || '' ).toLowerCase().replace( /\s+/g, ' ' ).trim() === dim.mine;
-			}
-			if ( 'age' === k ) {
-				var r = want.split( '-' );
-				return a.age && a.age >= +r[0] && a.age <= +r[1];
-			}
-			return Array.isArray( a[ k ] ) ? a[ k ].indexOf( want ) !== -1 : a[ k ] === want;
-		} );
-	}
-
+	/* The same filter button and sheet as Discover (app-screens.js, v1.89.13). */
 	function receivedFilters() {
-		var keys = data.filterKeys || [];
-		if ( ! keys.length || ( data.received || [] ).length < 2 ) { return null; }
-		var bar = el( 'div', 'csm-r-filters' );
-		if ( ! data.isPremium ) {
-			var lock = el( 'a', 'csm-r-filterlock', '\uD83D\uDD12 Filter requests by income, community, age\u2026 with Premium' );
-			lock.href = CFG.upgrade;
-			bar.appendChild( lock );
-			return bar;
-		}
-		var dims = keys.concat( [ { key: 'age', label: 'Age' } ] );
-		dims.forEach( function ( d ) {
-			if ( d.same ) {
-				var lab = el( 'label', 'csm-r-filter csm-r-same' );
-				var cb = document.createElement( 'input' );
-				cb.type = 'checkbox';
-				cb.checked = 'same' === rfilt[ d.key ];
-				cb.addEventListener( 'change', function () { rfilt[ d.key ] = cb.checked ? 'same' : ''; draw(); } );
-				lab.appendChild( cb );
-				lab.appendChild( document.createTextNode( ' Same ' + d.label.toLowerCase() + ' as mine' ) );
-				bar.appendChild( lab );
-				return;
-			}
-			var vals = {};
-			data.received.forEach( function ( p ) {
-				var v = ( p.attrs || {} )[ d.key ];
-				if ( 'age' === d.key && v ) { var lo = Math.floor( ( v - 1 ) / 3 ) * 3 + 1; v = lo + '-' + ( lo + 2 ); }
-				( Array.isArray( v ) ? v : ( v ? [ v ] : [] ) ).forEach( function ( x ) { vals[ x ] = ( vals[ x ] || 0 ) + 1; } );
-			} );
-			var names = Object.keys( vals ).sort();
-			if ( names.length < 2 && ! rfilt[ d.key ] ) { return; }
-			var sel = document.createElement( 'select' );
-			sel.className = 'csm-r-filter';
-			var any = document.createElement( 'option' );
-			any.value = ''; any.textContent = d.label + ': any';
-			sel.appendChild( any );
-			names.forEach( function ( v ) {
-				var o = document.createElement( 'option' );
-				o.value = v; o.textContent = v + ' (' + vals[ v ] + ')';
-				if ( rfilt[ d.key ] === v ) { o.selected = true; }
-				sel.appendChild( o );
-			} );
-			sel.addEventListener( 'change', function () { rfilt[ d.key ] = sel.value; draw(); } );
-			bar.appendChild( sel );
+		if ( ! data.filters || ! window.csmFilterBar ) { return null; }
+		return window.csmFilterBar( {
+			state: data.filters,
+			url: CFG.filters,
+			nonce: CFG.nonce,
+			upgrade: CFG.upgrade,
+			onApplied: function () { load(); }
 		} );
-		return bar.childNodes.length ? bar : null;
 	}
 
 	function draw() {
@@ -256,19 +201,17 @@
 		var list = el( 'ul', 'csm-r-list' );
 
 		if ( 'received' === tab ) {
-			if ( ! ( data.received || [] ).length ) {
+			if ( ! ( data.received || [] ).length && ! data.hiddenByFilter ) {
 				root.appendChild( emptyBox( 'No requests yet', 'When someone likes your profile, they will appear here.' ) );
 				return;
 			}
-			/* Filters for the received list (v1.85.0): Premium picks values that
-			   appear among the senders; free members see the control locked. */
+			// The server has already applied the member's filters.
 			var fbar = receivedFilters();
 			if ( fbar ) { root.appendChild( fbar ); }
-			var shown = data.received.filter( passes );
-			if ( ! shown.length ) {
-				list.appendChild( el( 'li', 'csm-r-sub', 'No requests match these filters.' ) );
+			if ( data.hiddenByFilter ) {
+				list.appendChild( el( 'li', 'csm-r-sub', data.hiddenByFilter + ( 1 === data.hiddenByFilter ? ' request is' : ' requests are' ) + ' hidden by your filters.' ) );
 			}
-			shown.forEach( function ( p ) {
+			data.received.forEach( function ( p ) {
 				list.appendChild( personRow( p, [
 					{ kind: 'accept', label: 'Accept', action: 'accept' },
 					{ kind: 'decline', label: 'Decline', action: 'reject' }
@@ -388,16 +331,19 @@
 		return box;
 	}
 
-	api( CFG.list ).then( function ( d ) {
-		if ( ! d || ! d.ok ) {
+	function load() {
+		return api( CFG.list ).then( function ( d ) {
+			if ( ! d || ! d.ok ) {
+				root.innerHTML = '';
+				root.appendChild( emptyBox( 'Something went wrong', 'We could not load your requests. Please refresh.' ) );
+				return;
+			}
+			data = d;
+			draw();
+		} ).catch( function () {
 			root.innerHTML = '';
 			root.appendChild( emptyBox( 'Something went wrong', 'We could not load your requests. Please refresh.' ) );
-			return;
-		}
-		data = d;
-		draw();
-	} ).catch( function () {
-		root.innerHTML = '';
-		root.appendChild( emptyBox( 'Something went wrong', 'We could not load your requests. Please refresh.' ) );
-	} );
+		} );
+	}
+	load();
 } )();

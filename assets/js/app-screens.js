@@ -628,3 +628,270 @@ window.csmProfileCard = function ( p ) {
 			.then( function ( yes ) { if ( yes ) { window.location.href = cfg.url; } } );
 	}, 1200 );
 } )();
+
+/**
+ * The filter button and sheet, shared by Discover and Requests (v1.89.13;
+ * owner: "exactly the same as discover, we dont need two separate codes").
+ *
+ * window.csmFilterBar( {
+ *   state:     Filters::state() from the server,
+ *   url:       the csm/v1/discover/filters endpoint,
+ *   nonce:     the REST nonce,
+ *   upgrade:   where a free member's locked button goes,
+ *   hint:      optional line under the sheet's title,
+ *   onApplied: called with the new state after Apply or Clear
+ * } ) returns the button row, or null.
+ */
+( function () {
+	'use strict';
+
+	function el( tag, cls, text ) {
+		var n = document.createElement( tag );
+		if ( cls ) { n.className = cls; }
+		if ( text !== undefined ) { n.textContent = text; }
+		return n;
+	}
+
+	function bar( o ) {
+		var meta = { filters: o.state, upgrade: o.upgrade };
+
+		function api( url, payload ) {
+			return fetch( url, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': o.nonce, 'Content-Type': 'application/json' },
+				body: JSON.stringify( payload )
+			} ).then( function ( r ) { return r.json(); } );
+		}
+
+	function filterBar() {
+		var f = meta.filters;
+		if ( ! f ) { return null; }
+		var wrap = el( 'div', 'csm-d-filterbar' );
+		/* Free members see the control locked: filters are a Premium feature. */
+		if ( ! f.eligible ) {
+			if ( ! meta.upgrade ) { return null; }
+			var lock = el( 'a', 'csm-d-filterbtn is-locked', '\uD83D\uDD12 Filter by community, religion, age\u2026 with Premium' );
+			lock.href = meta.upgrade;
+			wrap.appendChild( lock );
+			return wrap;
+		}
+		var cur  = f.filters || {};
+		var btn  = el( 'button', 'csm-d-filterbtn' );
+		btn.type = 'button';
+		var on = ( cur.age_min || cur.in_min || pickCount( cur ) );
+		btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M7 12h10M10 19h4"/></svg>';
+		btn.appendChild( document.createTextNode( on ? summary( cur ) : 'Filter' ) );
+		if ( on ) { btn.classList.add( 'is-on' ); }
+		btn.addEventListener( 'click', sheet );
+		wrap.appendChild( btn );
+
+		return wrap;
+	}
+
+	function ftIn( inches ) {
+		return Math.floor( inches / 12 ) + '\u2032' + ( inches % 12 ) + '\u2033';
+	}
+
+	/* How many pick-list filters are set (community, religion, …). */
+	function pickCount( c ) {
+		var n = 0;
+		( ( meta.filters && meta.filters.choices ) || [] ).forEach( function ( ch ) {
+			if ( c[ ch.key ] && ( 'same' === c[ ch.key ] || c[ ch.key ].length ) ) { n++; }
+		} );
+		return n;
+	}
+
+	function summary( c ) {
+		var bits = [];
+		if ( c.age_min ) { bits.push( c.age_min + '\u2013' + c.age_max + ' yrs' ); }
+		if ( c.in_min ) { bits.push( ftIn( c.in_min ) + '\u2013' + ftIn( c.in_max ) ); }
+		var n = pickCount( c );
+		if ( n ) { bits.push( n + ' more' ); }
+		return bits.join( ' \u00b7 ' );
+	}
+
+	/* A free-text field: one switch, "Same as mine". */
+	function sameSwitch( ch, chosen ) {
+		var row = el( 'label', 'csm-d-frow csm-d-fsame' );
+		var cb = document.createElement( 'input' );
+		cb.type = 'checkbox';
+		cb.checked = 'same' === chosen;
+		row.appendChild( cb );
+		row.appendChild( el( 'span', null, 'Same ' + ch.label.toLowerCase() + ' as mine (' + ch.mine + ')' ) );
+		return { row: row, read: function () { return cb.checked ? 'same' : ''; } };
+	}
+
+	/* Groups as tick boxes, with Select all / Clear (owner, 2026-10-24:
+	   "I can tick whatever categories I'm okay with and all those show").
+	   Nothing ticked means no filter. */
+	function ticks( ch, chosen ) {
+		var row = el( 'div', 'csm-d-frow csm-d-fticks' );
+		var head = el( 'div', 'csm-d-ftickhead' );
+		head.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
+		var all = el( 'button', 'csm-d-tickall', 'Select all' );
+		var none = el( 'button', 'csm-d-tickall', 'Clear' );
+		all.type = none.type = 'button';
+		head.appendChild( all );
+		head.appendChild( none );
+		row.appendChild( head );
+		var list = el( 'div', 'csm-d-ticklist' );
+		var picked = {};
+		( chosen || [] ).forEach( function ( v ) { picked[ v ] = true; } );
+		var boxes = ch.options.map( function ( opt ) {
+			var lab = el( 'label', 'csm-d-tick' );
+			var cb = document.createElement( 'input' );
+			cb.type = 'checkbox';
+			cb.checked = !! picked[ opt ];
+			lab.appendChild( cb );
+			lab.appendChild( el( 'span', null, opt ) );
+			list.appendChild( lab );
+			return { opt: opt, cb: cb };
+		} );
+		all.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = true; } ); } );
+		none.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = false; } ); } );
+		row.appendChild( list );
+		return { row: row, read: function () {
+			var on = boxes.filter( function ( b ) { return b.cb.checked; } );
+			// Everything ticked is the same as no filter.
+			return on.length === boxes.length ? [] : on.map( function ( b ) { return b.opt; } );
+		} };
+	}
+
+	/* A pick list as tappable chips; returns a reader for the chosen values. */
+	function chips( ch, chosen ) {
+		var row = el( 'div', 'csm-d-frow csm-d-fchips' );
+		row.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
+		var box = el( 'div', 'csm-d-chipset' );
+		var picked = {};
+		( chosen || [] ).forEach( function ( v ) { picked[ v ] = true; } );
+		ch.options.forEach( function ( opt ) {
+			var c = el( 'button', 'csm-d-chip' + ( picked[ opt ] ? ' is-on' : '' ), opt );
+			c.type = 'button';
+			c.addEventListener( 'click', function () {
+				picked[ opt ] = ! picked[ opt ];
+				c.classList.toggle( 'is-on', !! picked[ opt ] );
+			} );
+			box.appendChild( c );
+		} );
+		row.appendChild( box );
+		return { row: row, read: function () { return ch.options.filter( function ( o ) { return picked[ o ]; } ); } };
+	}
+
+	function sheet() {
+		var f = meta.filters, b = f.bounds, cur = f.filters || {};
+		var back = el( 'div', 'csm-d-sheetback' );
+		var box  = el( 'div', 'csm-d-sheet' );
+		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
+		if ( o.hint ) { box.appendChild( el( 'p', 'csm-d-sheethint', o.hint ) ); }
+
+		function num( label, name, min, max, val, fmt ) {
+			var row = el( 'label', 'csm-d-frow' );
+			row.appendChild( el( 'span', 'csm-d-flabel', label ) );
+			var sel = document.createElement( 'select' );
+			sel.name = name;
+			var blank = document.createElement( 'option' );
+			blank.value = ''; blank.textContent = 'Any';
+			sel.appendChild( blank );
+			for ( var i = min; i <= max; i++ ) {
+				var o = document.createElement( 'option' );
+				o.value = i;
+				o.textContent = fmt ? fmt( i ) : i;
+				if ( val && i === val ) { o.selected = true; }
+				sel.appendChild( o );
+			}
+			row.appendChild( sel );
+			return { row: row, sel: sel };
+		}
+
+		var aMin = num( 'Age from', 'age_min', b.ageMin, b.ageMax, cur.age_min );
+		var aMax = num( 'Age to', 'age_max', b.ageMin, b.ageMax, cur.age_max );
+		var hMin = num( 'Height from', 'in_min', b.inMin, b.inMax, cur.in_min, ftIn );
+		var hMax = num( 'Height to', 'in_max', b.inMin, b.inMax, cur.in_max, ftIn );
+		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { box.appendChild( n.row ); } );
+
+		var picks = ( f.choices || [] ).map( function ( ch ) {
+			var c = ch.same ? sameSwitch( ch, cur[ ch.key ] ) : ( ch.tick ? ticks( ch, cur[ ch.key ] ) : chips( ch, cur[ ch.key ] ) );
+			box.appendChild( c.row );
+			return { key: ch.key, read: c.read };
+		} );
+		if ( picks.length ) {
+			box.appendChild( el( 'p', 'csm-d-sheethint', 'Nothing ticked means any. Community and mother tongue: "Others" covers everyone not in a listed group. Other questions: profiles that have not answered are still shown.' ) );
+		}
+
+		var err = el( 'p', 'csm-d-ferr' );
+		box.appendChild( err );
+
+		/* The same rule the server applies, checked as they choose. */
+		function validate() {
+			var msg = '';
+			var a1 = parseInt( aMin.sel.value, 10 ), a2 = parseInt( aMax.sel.value, 10 );
+			var h1 = parseInt( hMin.sel.value, 10 ), h2 = parseInt( hMax.sel.value, 10 );
+			// One end on "Any" is fine: no limit that way (v1.89.8).
+			if ( a1 && a2 && ( a2 - a1 ) < b.ageSpan ) { msg = 'The age range must cover at least ' + b.ageSpan + ' years.'; }
+			else if ( h1 && h2 && ( h2 - h1 ) < b.inSpan ) { msg = 'The height range must cover at least ' + b.inSpan + ' inches.'; }
+			err.textContent = msg;
+			save.disabled = !! msg;
+			return ! msg;
+		}
+
+		var actions = el( 'div', 'csm-d-sheetact' );
+		var clear = el( 'button', 'csm-d-fclear', 'Clear' );
+		clear.type = 'button';
+		var save = el( 'button', 'csm-d-fsave', 'Apply' );
+		save.type = 'button';
+		actions.appendChild( clear );
+		actions.appendChild( save );
+		box.appendChild( actions );
+
+		function close() { if ( back.parentNode ) { back.parentNode.removeChild( back ); } }
+
+		function send( payload ) {
+			save.disabled = true;
+			save.textContent = 'Applying\u2026';
+			api( o.url, payload ).then( function ( d ) {
+				if ( ! d || ! d.ok ) {
+					err.textContent = ( d && d.error ) || 'That did not save. Try again.';
+					save.disabled = false; save.textContent = 'Apply';
+					return;
+				}
+				meta.filters = d;
+				close();
+				if ( o.onApplied ) { o.onApplied( d ); }
+			} );
+		}
+
+		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) {
+			n.sel.addEventListener( 'change', validate );
+		} );
+		clear.addEventListener( 'click', function () { send( {} ); } );
+		save.addEventListener( 'click', function () {
+			if ( ! validate() ) { return; }
+			var payload = {
+				age_min: aMin.sel.value, age_max: aMax.sel.value,
+				in_min: hMin.sel.value, in_max: hMax.sel.value
+			};
+			picks.forEach( function ( pk ) { payload[ pk.key ] = pk.read(); } );
+			send( payload );
+		} );
+		back.addEventListener( 'click', function ( e ) { if ( e.target === back ) { close(); } } );
+
+		back.appendChild( box );
+		document.body.appendChild( back );
+		validate();
+	}
+
+		return filterBar();
+	}
+
+	/* Whether any filter is set in a saved-filters object. */
+	bar.isOn = function ( state ) {
+		var c = ( state && state.filters ) || {};
+		if ( c.age_min || c.in_min ) { return true; }
+		return ( ( state && state.choices ) || [] ).some( function ( ch ) {
+			return c[ ch.key ] && ( 'same' === c[ ch.key ] || c[ ch.key ].length );
+		} );
+	};
+
+	window.csmFilterBar = bar;
+} )();

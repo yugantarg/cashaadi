@@ -53,6 +53,7 @@ final class RequestsScreen {
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
 			'list'    => rest_url( 'csm/v1/requests/list' ),
 			'act'     => rest_url( 'csm/v1/requests/act' ),
+			'filters' => rest_url( 'csm/v1/discover/filters' ),
 			'upgrade' => site_url( '/membership-pricing/' ),
 			'goldPrompt' => (bool) get_option( 'csm_gold_on_sale' ) && class_exists( '\\CAShaadi\\Core\\Membership' ) && ! \CAShaadi\Core\Membership::is_gold( get_current_user_id() ),
 			// Matches offer "Message", which is navigation, not an action to POST.
@@ -187,15 +188,24 @@ final class RequestsScreen {
 			) );
 		}
 
+		/*
+		 * The member's Discover filters narrow this list too: one filter, set
+		 * from either screen (v1.89.13). Hidden requests stay pending.
+		 */
+		$has_filters = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' );
+		$all_rids    = count( $rids );
+		if ( $has_filters ) {
+			$rids = \CAShaadi\Modules\Discover\Filters::keep( $uid, $rids );
+		}
+
 		foreach ( $rids as $rid ) {
 			$rid = (int) $rid;
 			if ( $rid && get_userdata( $rid ) ) {
 				$row = self::person( $rid );
-				// Note with the request, and what Premium can filter on (v1.85.0).
-				$row['note']  = class_exists( __NAMESPACE__ . '\\RequestNote' ) ? RequestNote::get( $rid, $uid ) : '';
+				// Note with the request (v1.85.0).
+				$row['note'] = class_exists( __NAMESPACE__ . '\\RequestNote' ) ? RequestNote::get( $rid, $uid ) : '';
 				// Gold senders' requests are priority: first, and highlighted (v1.87.0).
-				$row['gold']  = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $rid );
-				$row['attrs'] = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? (object) \CAShaadi\Modules\Discover\Filters::profile_attrs( $rid, $uid ) : new \stdClass();
+				$row['gold'] = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $rid );
 				$received[] = $row;
 			}
 		}
@@ -358,7 +368,9 @@ final class RequestsScreen {
 			} ) ),
 			'isPremium'    => (bool) $premium,
 			'received'     => $received,
-			'filterKeys'   => class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) ? array_map( function ( $c ) { return array( 'key' => $c['key'], 'label' => $c['label'], 'same' => ! empty( $c['same'] ), 'mine' => isset( $c['mine'] ) ? \CAShaadi\Modules\Discover\Filters::norm( $c['mine'] ) : '' ); }, \CAShaadi\Modules\Discover\Filters::choices_for_ui( $uid ) ) : array(),
+			// The same filter state and sheet as Discover (v1.89.13).
+			'filters'      => $has_filters ? \CAShaadi\Modules\Discover\Filters::state( $uid ) : null,
+			'hiddenByFilter' => max( 0, $all_rids - count( $rids ) ),
 			'matches'      => $matches,
 			'sent'         => $sent,
 			'viewers'      => array_slice( $viewers, 0, $premium ? 200 : 6 ),

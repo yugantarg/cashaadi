@@ -119,38 +119,6 @@ final class Filters {
 		return $cache[ $key ] = $out;
 	}
 
-	/**
-	 * A member's value for each pick-list dimension, plus age, as THIS viewer
-	 * may see them (a field the member hides from the viewer is left out).
-	 * Used to filter the Requests list.
-	 */
-	public static function profile_attrs( $uid, $viewer ) {
-		$hidden = \CAShaadi\Core\Profile::hidden_for( (int) $uid, (int) $viewer );
-		$out    = array();
-		foreach ( array_keys( self::CHOICES ) as $k ) {
-			$fid = self::choice_field( $k );
-			if ( ! $fid || in_array( $fid, $hidden, true ) ) {
-				continue;
-			}
-			if ( self::bucket_kind( $k ) ) {
-				$g = \CAShaadi\Core\Buckets::get( $uid, $k );
-				// A list: an answer can name several groups. No group is "Others".
-				$out[ $k ] = $g ? $g : array( \CAShaadi\Core\Buckets::OTHERS );
-				continue;
-			}
-			$v = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
-			$v = trim( wp_strip_all_tags( is_array( $v ) ? implode( ', ', $v ) : (string) $v ) );
-			if ( '' !== $v ) {
-				$out[ $k ] = $v;
-			}
-		}
-		$age = \CAShaadi\Core\Profile::age_of( (int) $uid, $hidden );
-		if ( $age ) {
-			$out['age'] = (int) $age;
-		}
-		return $out;
-	}
-
 	/** 50 a week for an eligible member; anyone else keeps the engine's number. */
 	public static function tray_size( $size, $uid ) {
 		return self::premium_female( $uid )

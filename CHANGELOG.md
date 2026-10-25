@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.13 — 2026-10-25
+
+- One filter for Discover and Requests (owner: "exactly the same as discover, we dont need two separate codes"). The filter button and sheet moved to `app-screens.js` / `app-screens.css` as `window.csmFilterBar`, used by both screens. Requests now uses the member's saved Discover filters, applied on the server with `Filters::keep()`; setting a filter on either screen changes both. The old Requests drop-downs, `filterKeys`, per-row `attrs` and `Filters::profile_attrs()` are gone.
+- Requests shows how many received requests the filters are hiding.
+
 ## 1.89.12 — 2026-10-25
 
 - Filter sheet: dropped the line explaining that filters narrow the week's set (owner: obvious).
