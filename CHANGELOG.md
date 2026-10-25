@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.12 — 2026-10-25
+
+- Filter sheet: dropped the line explaining that filters narrow the week's set (owner: obvious).
+
 ## 1.89.11 — 2026-10-25
 
 - Discover filters now only narrow the profiles already in the member's tray (owner: "the filter should only work on the profiles in my tray"). Applying a filter no longer clears the undecided profiles and refills the tray with matching ones, and the refill no longer uses the filters. Hidden profiles stay in the tray and come back when the filter is changed or cleared.

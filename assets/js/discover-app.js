@@ -341,7 +341,7 @@
 		var box  = el( 'div', 'csm-d-sheet' );
 		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
 		box.appendChild( el( 'p', 'csm-d-sheethint',
-			meta.unlimited ? 'Gold: unlimited profiles. Filters narrow the profiles you have been shown.' : 'You get ' + f.quota + ' profiles a week. Filters narrow this week\u2019s set; they do not add profiles.' ) );
+			meta.unlimited ? 'Gold: unlimited profiles.' : 'You get ' + f.quota + ' profiles a week.' ) );
 
 		function num( label, name, min, max, val, fmt ) {
 			var row = el( 'label', 'csm-d-frow' );
