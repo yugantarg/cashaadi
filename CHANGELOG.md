@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.25 — 2026-10-25
+
+- Discover ranking: the new-profile boost drops from 5 points to 2 (owner: a new woman's account was flooded with requests). The "never shown" points that balance exposure are unchanged.
+
 ## 1.89.24 — 2026-10-25
 
 - `wp csm gold notice` no longer claims a 500-a-day limit: the notice is sent in full while the command runs (`Queue::notify`, outside the daily cap).

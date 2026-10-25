@@ -65,7 +65,7 @@ final class Ranker {
 			'age_near'     => 1,   // man 6-8 older
 			'city'         => 2,   // same city
 			'diet'         => 2,   // same diet (both filled)
-			'new'          => 5,   // registered in the last new_days
+			'new'          => 2,   // registered in the last new_days (5 until 2026-10-25: new women were flooded)
 			'fresh'        => 5,   // never shown = all of it, most shown in pool = 0
 			'popular'      => 3,   // own like-rate, as a multiple of the site's, capped
 			'pop_match'    => 3,   // viewer and profile equally popular
