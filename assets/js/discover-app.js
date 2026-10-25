@@ -63,9 +63,6 @@
 		if ( ! message && meta.hiddenByFilter ) {
 			// Filters only narrow the week's set (v1.89.11): say so, rather than "that's your 50".
 			box.appendChild( el( 'h2', null, 'No profiles match your filters' ) );
-			var hp = el( 'p', null, meta.hiddenByFilter + ( meta.hiddenByFilter === 1 ? ' profile' : ' profiles' ) + ' hidden by your filters \u00b7' );
-			hp.appendChild( showAll() );
-			box.appendChild( hp );
 			var fbF = filterBar();
 			if ( fbF ) { box.appendChild( fbF ); }
 			root.appendChild( box );
@@ -230,7 +227,7 @@
 	/* The filter button and sheet live in app-screens.js, shared with Requests. */
 	function filterBar() {
 		if ( ! meta.filters ) { return null; }
-		return window.csmFilterBar( {
+		var fb = window.csmFilterBar( {
 			state: meta.filters,
 			url: CFG.filters,
 			nonce: CFG.nonce,
@@ -238,6 +235,14 @@
 			hint: meta.unlimited ? 'Gold: unlimited profiles.' : 'You get ' + meta.filters.quota + ' profiles a week.',
 			onApplied: function ( d ) { meta.filters = d; load(); }
 		} );
+		/* "N hidden by your filters · Show all", beside the button so it shows
+		   in the card view too, not only the grid (v1.89.20). */
+		if ( fb && meta.hiddenByFilter ) {
+			var hp = el( 'span', 'csm-d-fhidden', meta.hiddenByFilter + ' hidden by your filters \u00b7' );
+			hp.appendChild( showAll() );
+			fb.insertBefore( hp, fb.firstChild );
+		}
+		return fb;
 	}
 
 	/* ------------------------------------------------------------ grid ----
@@ -317,10 +322,7 @@
 		var head = el( 'p', 'csm-d-gridcount', meta.unlimited
 			? 'Unlimited profiles'
 			: weekLeft + ' of ' + meta.quota + ' left this week' );
-		if ( meta.hiddenByFilter ) {
-			head.textContent += ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters \u00b7';
-			head.appendChild( showAll() );
-		}
+
 		root.appendChild( head );
 
 		var grid = el( 'div', 'csm-d-grid' );

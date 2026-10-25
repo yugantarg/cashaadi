@@ -273,6 +273,8 @@ img.avatar {
 
 
 .csm-d-filterbar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+.csm-d-filterbar { align-items: center; gap: 10px; flex-wrap: wrap; }
+.csm-d-fhidden { font-size: 13px; color: var(--csm-muted, #5c6a76); }
 
 .csm-d-filterbtn {
 	display: inline-flex; align-items: center; gap: 7px;
