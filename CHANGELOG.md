@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.5 — 2026-10-25
+- Pricing cards: Free shows ₹0 (not "Free" twice), no "+5" detail; Premium
+  and Gold lines written out in full, adding "send a request to anyone"
+  (Gold) and "keep all your saved profiles" (Premium).
+
 ## 1.89.4 — 2026-10-25
 - Pricing page redesigned as three cards: Free; Premium, "Everything in
   Free, plus:"; Gold, "Everything in Premium, plus:". Filters are one line,
