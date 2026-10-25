@@ -77,126 +77,134 @@ final class PricingPage {
 		$credit = $is_p ? Gold::credit_for( $uid ) : 0;
 		$her    = $anon ? 'their' : ( $female ? 'his' : 'her' );
 
+		/*
+		 * Three cards (owner, 2026-10-25: "free, premium shows everything in
+		 * free plus xyz, Gold shows everything in premium plus xyz"; filters
+		 * are one line, "Advanced filters").
+		 */
 		if ( $female ) {
-			$head = 'Find the right one, on your terms';
-			$sub  = 'See who is interested, and choose who reaches you.';
-			$rows = array(
-				array( 'Profiles you see', $free_n . ' a week', $prem_n . ' a week', '<strong>Unlimited</strong>' ),
-				array( 'Requests you receive', 'All, unsorted', '<strong>Filter by income, community, CA / Inter, age</strong>', '✓' ),
-				array( 'Who viewed you', '—', '<strong>✓</strong>', '✓' ),
-				array( 'Filters in Discover', '—', '✓', '✓' ),
-				array( 'Your profile', 'Standard', 'Standard', '<strong>Shown first to the men you would like</strong>' ),
-				array( 'Phone numbers', 'After a match', 'After a match', '<strong>Anyone’s</strong>' ),
-			);
+			$head  = 'Find the right one, on your terms';
+			$sub   = 'See who is interested, and choose who reaches you.';
 			$badge = 'premium';
 			$badge_text = 'Most popular';
 		} else {
-			$head = 'Get noticed by the right person';
-			$sub  = 'Members whose profile is seen first find their match faster.';
-			$rows = array(
-				array( 'Profiles you see', $free_n . ' a week', $prem_n . ' a week', '<strong>Unlimited</strong>' ),
-				array( 'Your requests', 'Standard', 'With a personal note', '<strong>Always at the top of ' . $her . ' list</strong>' ),
-				array( 'Your profile in Discover', 'Standard', 'Standard', '<strong>Shown first</strong>' ),
-				array( 'Filters (community, language, age…)', '—', '✓', '✓' ),
-				array( 'Who viewed you', '—', '✓', '✓' ),
-				array( 'Phone numbers', 'After a match', 'After a match', '<strong>Anyone’s</strong>' ),
-			);
+			$head  = 'Get noticed by the right person';
+			$sub   = 'Members whose profile is seen first find their match faster.';
 			$badge = 'gold';
 			$badge_text = 'Best chance of a match';
 		}
-
-		$full = array(
-			array( 'Profiles a week in Discover', $free_n . ' (+5 with a photo, +5 verified)', (string) $prem_n, 'Unlimited' ),
-			array( 'Send requests, chat after a match', '✓', '✓', '✓' ),
-			array( 'Phone number after a match', '✓', '✓', '✓' ),
-			array( 'Phone numbers of all members (except "Only me"); viewing one sends a request', '—', '—', '✓' ),
-			array( 'Filters in Discover: community, mother tongue, religion, diet, age, height, income, qualification', '—', '✓', '✓' ),
-			array( 'Filter the requests you receive', '—', '✓', '✓' ),
-			array( 'Personal note with your request', '—', '✓', '✓' ),
-			array( 'Who viewed your profile, and send them a request', '—', '✓', '✓' ),
-			array( 'See blurred photos', '—', '✓', '✓' ),
-			array( 'Saved profiles', 'This week', 'All', 'All' ),
-			array( 'Priority requests: top of ' . $her . ' list, highlighted', '—', '—', 'Every request' ),
-			array( 'Shown first in Discover', '—', '—', '✓' ),
-			array( 'Gold badge (with CA verification)', '—', '—', '✓' ),
-			array( 'Price', 'Free', self::inr( $pp ) . ' / year', self::inr( $gp ) . ' / year' ),
+		$plans = array(
+			'free'    => array(
+				'name'  => 'Free',
+				'lead'  => '',
+				'items' => array(
+					$free_n . ' profiles a week (+5 with a photo, +5 when verified)',
+					'Send requests, and chat once you match',
+					'Phone number after a match',
+				),
+				'price' => 'Free',
+				'btn'   => '',
+			),
+			'premium' => array(
+				'name'  => 'Premium',
+				'lead'  => 'Everything in Free, plus:',
+				'items' => array(
+					$prem_n . ' profiles a week',
+					'Advanced filters',
+					'See who viewed your profile',
+					'See blurred photos',
+					'Add a personal note to your requests',
+				),
+				'price' => self::inr( $pp ) . ' / year',
+				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon ),
+			),
 		);
-
-		$cols = $gold ? 3 : 2;
-		$btn  = function ( $product, $label, $current ) use ( $anon ) {
-			if ( $current ) {
-				return '<span class="csm-pr-cur">Your plan</span>';
-			}
-			$url = $anon ? home_url( '/register/' ) : home_url( '/checkout/?add-to-cart=' . (int) $product );
-			return '<a class="csm-pr-buy" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
-		};
-		$sold_out = $gold && class_exists( __NAMESPACE__ . '\\Gold' ) && ! Gold::purchasable( true, function_exists( 'wc_get_product' ) ? wc_get_product( Config::WC_GOLD_PRODUCT ) : null );
+		if ( $gold ) {
+			$sold_out = ! $is_g && ! Gold::purchasable( true, function_exists( 'wc_get_product' ) ? wc_get_product( Config::WC_GOLD_PRODUCT ) : null );
+			$plans['gold'] = array(
+				'name'  => 'Gold',
+				'lead'  => 'Everything in Premium, plus:',
+				'items' => array(
+					'Unlimited profiles',
+					'Your requests at the top of ' . $her . ' list',
+					'Your profile shown first',
+					'Phone numbers of all members',
+					'Gold badge',
+				),
+				'price' => self::inr( $gp ) . ' / year',
+				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Founding places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon ) ),
+			);
+		}
 
 		$o  = self::css();
 		$o .= '<div class="csm-pr">';
 		$o .= '<h1 class="csm-pr-h">' . esc_html( $head ) . '</h1><p class="csm-pr-sub">' . esc_html( $sub ) . '</p>';
-		$o .= '<div class="csm-pr-table cols-' . ( $cols + 1 ) . '"><table><thead><tr><th></th><th>Free</th>';
-		$o .= '<th class="' . ( 'premium' === $badge ? 'is-hl' : '' ) . '">' . ( 'premium' === $badge ? '<span class="csm-pr-badge">' . esc_html( $badge_text ) . '</span>' : '' ) . 'Premium</th>';
-		if ( $gold ) {
-			$o .= '<th class="is-gold ' . ( 'gold' === $badge ? 'is-hl' : '' ) . '">' . ( 'gold' === $badge ? '<span class="csm-pr-badge is-gold">' . esc_html( $badge_text ) . '</span>' : '' ) . 'Gold</th>';
+		$o .= '<div class="csm-pr-cards n' . count( $plans ) . '">';
+		foreach ( $plans as $key => $pl ) {
+			$hl  = $key === $badge;
+			$o  .= '<div class="csm-pr-card is-' . esc_attr( $key ) . ( $hl ? ' is-hl' : '' ) . '">';
+			if ( $hl ) {
+				$o .= '<span class="csm-pr-badge">' . esc_html( $badge_text ) . '</span>';
+			}
+			$o .= '<h2>' . esc_html( $pl['name'] ) . '</h2>';
+			$o .= '<p class="csm-pr-price">' . esc_html( $pl['price'] ) . '</p>';
+			if ( $pl['lead'] ) {
+				$o .= '<p class="csm-pr-lead">' . esc_html( $pl['lead'] ) . '</p>';
+			}
+			$o .= '<ul>';
+			foreach ( $pl['items'] as $it ) {
+				$o .= '<li>' . esc_html( $it ) . '</li>';
+			}
+			$o .= '</ul>';
+			if ( $pl['btn'] ) {
+				$o .= '<div class="csm-pr-act">' . $pl['btn'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts
+			}
+			$o .= '</div>';
 		}
-		$o .= '</tr></thead><tbody>';
-		foreach ( $rows as $r ) {
-			$o .= '<tr><th>' . esc_html( $r[0] ) . '</th><td>' . wp_kses_post( $r[1] ) . '</td><td>' . wp_kses_post( $r[2] ) . '</td>' . ( $gold ? '<td class="is-gold">' . wp_kses_post( $r[3] ) . '</td>' : '' ) . '</tr>';
-		}
-		$o .= '<tr class="csm-pr-price"><th>Price</th><td>Free</td><td>' . esc_html( self::inr( $pp ) ) . ' <small>/ year</small><br><small>about ' . esc_html( self::inr( round( $pp / 12 ) ) ) . ' a month</small></td>';
-		if ( $gold ) {
-			$o .= '<td class="is-gold">' . esc_html( self::inr( $gp ) ) . ' <small>/ year</small><br><small>about ' . esc_html( self::inr( round( $gp / 12 ) ) ) . ' a month</small></td>';
-		}
-		$o .= '</tr><tr class="csm-pr-btns"><th></th><td></td><td>' . $btn( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $is_p || $is_g ) . '</td>';
-		if ( $gold ) {
-			$o .= '<td class="is-gold">' . ( $sold_out && ! $is_g ? '<span class="csm-pr-cur">Founding places taken</span>' : $btn( Config::WC_GOLD_PRODUCT, 'Buy Gold', $is_g ) ) . '</td>';
-		}
-		$o .= '</tr></tbody></table></div>';
+		$o .= '</div>';
 
 		if ( $gold && $is_p ) {
 			$o .= '<p class="csm-pr-credit">Already Premium? Upgrade to Gold and your unused Premium days are credited' . ( $credit ? ': <strong>' . esc_html( self::inr( $credit ) ) . ' off</strong> today' : '' ) . ', so you only pay the difference.</p>';
 		}
-
-		$o .= '<details class="csm-pr-all"><summary>Compare all features</summary><div class="csm-pr-table"><table><thead><tr><th></th><th>Free</th><th>Premium</th>' . ( $gold ? '<th class="is-gold">Gold</th>' : '' ) . '</tr></thead><tbody>';
-		foreach ( $full as $r ) {
-			if ( ! $gold && '—' === $r[1] && '—' === $r[2] ) {
-				continue; // Gold-only rows, while Gold is not on sale
-			}
-			$o .= '<tr><th>' . esc_html( $r[0] ) . '</th><td>' . esc_html( $r[1] ) . '</td><td>' . esc_html( $r[2] ) . '</td>' . ( $gold ? '<td class="is-gold">' . esc_html( $r[3] ) . '</td>' : '' ) . '</tr>';
-		}
-		$o .= '</tbody></table></div></details>';
-		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
+		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Gold members viewing a phone number send that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
 		$out = $o;
 		return $o;
 	}
 
+	private static function buy( $product, $label, $anon ) {
+		$url = $anon ? home_url( '/register/' ) : home_url( '/checkout/?add-to-cart=' . (int) $product );
+		return '<a class="csm-pr-buy" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+	}
+
 	private static function css() {
 		return '<style>
-.csm-pr{max-width:860px;margin:0 auto;padding:8px 16px 32px;font-family:inherit;color:#16212b}
+.csm-pr{max-width:980px;margin:0 auto;padding:8px 16px 32px;color:#16212b}
 .csm-pr-h{font-size:30px;line-height:1.2;margin:8px 0 6px;text-align:center}
-.csm-pr-sub{text-align:center;color:#5c6a76;margin:0 0 22px}
-.csm-pr-table{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.csm-pr table{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;min-width:480px}
-.csm-pr th,.csm-pr td{padding:11px 10px;border-bottom:1px solid #e4eaf0;text-align:center;vertical-align:middle}
-.csm-pr tbody th{text-align:left;font-weight:600;color:#38434d;width:30%}
-.csm-pr thead th{font-size:17px;padding-top:30px;position:relative}
-.csm-pr .is-gold{background:#fffaf0}
-.csm-pr thead th.is-gold{background:linear-gradient(180deg,#f3d27a,#e7c062);color:#3a2806;border-radius:14px 14px 0 0}
-.csm-pr thead th.is-hl:not(.is-gold){background:#eef3fb;border-radius:14px 14px 0 0;color:#0b2350}
-.csm-pr-badge{position:absolute;left:50%;top:4px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:#0b2350;color:#fff}
-.csm-pr-badge.is-gold{background:#3a2806;color:#ffe7a3}
-.csm-pr-price td{font-size:18px;font-weight:700}.csm-pr-price small{font-size:12px;font-weight:400;color:#5c6a76}
-.csm-pr-btns td,.csm-pr-btns th{border-bottom:0}
-.csm-pr-buy{display:inline-block;padding:11px 20px;border-radius:999px;background:#0b2350;color:#fff!important;text-decoration:none;font-weight:700}
-.is-gold .csm-pr-buy{background:#3a2806;color:#ffe7a3!important}
+.csm-pr-sub{text-align:center;color:#5c6a76;margin:0 0 26px}
+.csm-pr-cards{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:760px){.csm-pr-cards.n3{grid-template-columns:repeat(3,1fr)}.csm-pr-cards.n2{grid-template-columns:repeat(2,1fr);max-width:660px;margin:0 auto}}
+.csm-pr-card{position:relative;display:flex;flex-direction:column;padding:26px 20px 20px;border:1px solid #e4eaf0;border-radius:18px;background:#fff}
+.csm-pr-card.is-premium.is-hl{border:2px solid #0b2350}
+.csm-pr-card.is-gold{background:#fffaf0;border-color:#f0d58c}
+.csm-pr-card.is-gold.is-hl{border:2px solid #c9a227}
+.csm-pr-card h2{margin:0;font-size:22px}
+.csm-pr-card.is-gold h2{color:#7a5410}
+.csm-pr-price{margin:4px 0 14px;font-size:20px;font-weight:700}
+.csm-pr-lead{margin:0 0 6px;font-size:13.5px;color:#5c6a76;font-weight:600}
+.csm-pr-card ul{list-style:none;margin:0 0 18px;padding:0;flex:1}
+.csm-pr-card li{position:relative;padding:6px 0 6px 24px;font-size:15px;line-height:1.35}
+.csm-pr-card li:before{content:"✓";position:absolute;left:0;top:6px;color:#2e7d32;font-weight:700}
+.csm-pr-card.is-gold li:before{color:#a87a1c}
+.csm-pr-badge{position:absolute;left:50%;top:-12px;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:999px;background:#0b2350;color:#fff}
+.csm-pr-card.is-gold .csm-pr-badge{background:#3a2806;color:#ffe7a3}
+.csm-pr-act{text-align:center}
+.csm-pr-buy{display:block;padding:12px 20px;border-radius:999px;background:#0b2350;color:#fff!important;text-decoration:none;font-weight:700;text-align:center}
+.csm-pr-card.is-gold .csm-pr-buy{background:#3a2806;color:#ffe7a3!important}
 .csm-pr-cur{display:inline-block;padding:8px 14px;border-radius:999px;border:1px solid #c9d2dc;color:#5c6a76;font-size:13px}
-.csm-pr-credit{margin:16px 0 0;padding:12px 14px;background:#fffaf0;border:1px solid #f0d58c;border-radius:10px;text-align:center}
-.csm-pr-all{margin-top:22px}.csm-pr-all summary{cursor:pointer;font-weight:700;text-align:center;padding:10px}
-.csm-pr-all table{font-size:13.5px}
+.csm-pr-credit{margin:18px 0 0;padding:12px 14px;background:#fffaf0;border:1px solid #f0d58c;border-radius:10px;text-align:center}
 .csm-pr-foot{margin-top:18px;text-align:center;color:#5c6a76;font-size:13px}
-@media(max-width:600px){.csm-pr-h{font-size:24px}.csm-pr table{font-size:13px}.csm-pr th,.csm-pr td{padding:9px 6px}}
+@media(max-width:600px){.csm-pr-h{font-size:24px}}
 </style>';
 	}
 }

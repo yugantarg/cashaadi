@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.4 — 2026-10-25
+- Pricing page redesigned as three cards: Free; Premium, "Everything in
+  Free, plus:"; Gold, "Everything in Premium, plus:". Filters are one line,
+  "Advanced filters". The comparison tables are gone. Cards stack on phones.
+
 ## 1.89.3 — 2026-10-25
 - Pricing page: drawn whenever the page's content is output after the
   head, not only inside WordPress's main loop, so page builders (Elementor)
