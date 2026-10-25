@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.3 — 2026-10-25
+- Pricing page: drawn whenever the page's content is output after the
+  head, not only inside WordPress's main loop, so page builders (Elementor)
+  show it. Drawn once per page.
+
 ## 1.89.2 — 2026-10-25
 - A **full refund** (order status Refunded) ends the membership the order
   bought: Premium ends; a Gold upgrade goes back to the Premium the member

@@ -51,8 +51,18 @@ final class PricingPage {
 	}
 
 	public static function render( $html ) {
-		if ( is_admin() || ! in_the_loop() || ! is_main_query() || ! is_page( PricingCopy::SLUG ) || ! self::active() ) {
+		/*
+		 * Not tied to "the main loop": page builders such as Elementor draw
+		 * the content outside it, which hid this page entirely (2026-10-25).
+		 * Anything before <body> (SEO plugins building descriptions) is left
+		 * alone.
+		 */
+		if ( is_admin() || ! did_action( 'wp_head' ) || ! is_page( PricingCopy::SLUG ) || ! self::active() ) {
 			return $html;
+		}
+		static $out = null;
+		if ( null !== $out ) {
+			return ''; // drawn once; a builder calling the_content again adds nothing
 		}
 		$uid    = get_current_user_id();
 		$female = $uid && function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( $uid ) );
@@ -158,6 +168,7 @@ final class PricingPage {
 		$o .= '</tbody></table></div></details>';
 		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
+		$out = $o;
 		return $o;
 	}
 
