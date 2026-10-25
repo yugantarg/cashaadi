@@ -3,6 +3,26 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.21 — 2026-10-25
+
+- Discover grid: "Show all" sits at the end of the count line ("55 of 55 left this week · 7 hidden by your filters · Show all"); the card view and empty screen keep it beside the filter button.
+- The plugin version had stayed at 1.89.17 since v1.89.18 (a failed step skipped the bump), so browsers kept the cached 1.89.17 scripts and styles. Now 1.89.21.
+
+## 1.89.20 — 2026-10-25
+
+- Discover: "N hidden by your filters · Show all" beside the filter button, so it shows in the one-card view too.
+
+## 1.89.19 — 2026-10-25
+
+- "N hidden by your filters · Show all" on Discover and Requests: a small button that clears every filter and reloads (`csmFilterBar.showAll`).
+
+## 1.89.18 — 2026-10-25
+
+- Women open phone numbers with Premium; men still need Gold (`Gold::can_reveal`, `Gold::is_female`).
+- Pricing: for women "Call or WhatsApp any member directly" moves from Gold to Premium; men keep it under Gold. Footnote made neutral.
+- Who sees what: men get "Premium and Gold members" / "Only me" for the phone; women keep "Gold members" / "Gold and Premium members" / "Only me".
+- "Upgrade to view" shows only to viewers whom an upgrade would help. Gold launch email and banner name the right audience for each member.
+
 ## 1.89.17 — 2026-10-25
 
 - Profile cards: the phone number is an ordinary row in its field's place in the details, not a box under the photo. Locked numbers read "🔒 Upgrade to view" (a link to pricing); Gold sees "View number"; an opened number has Call and WhatsApp links inline.
