@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.9 — 2026-10-25
+
+- Discover filter sheet: on phones it now sits above the bottom nav, so Clear and Apply are always visible (a later `86vh` rule had undone the earlier visible-screen fix).
+- Filter sheet, filter button, chips, ticks and grid tiles use the site colours (blue, ink, muted) instead of the old maroon.
+
 ## 1.89.8 — 2026-10-25
 - Age and height filters accept one end on "Any" (e.g. "from 5′4″" with no
   upper limit). The minimum span applies only when both ends are chosen.

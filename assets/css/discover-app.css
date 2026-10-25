@@ -360,15 +360,15 @@ body.csm-member-view .csm-d-card {
 
 .csm-d-filterbtn {
 	display: inline-flex; align-items: center; gap: 7px;
-	background: #fff; border: 1px solid #e0d8d4; border-radius: 999px;
-	padding: 7px 14px; font: 600 13px/1 inherit; color: #5a4f4a; cursor: pointer;
+	background: #fff; border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 999px;
+	padding: 7px 14px; font: 600 13px/1 inherit; color: var(--csm-ink, #16212b); cursor: pointer;
 }
 .csm-d-filterbtn svg { width: 15px; height: 15px; }
-.csm-d-filterbtn.is-on { background: #7a1220; border-color: #7a1220; color: #fff; }
+.csm-d-filterbtn.is-on { background: var(--csm-blue, #2c5b8c); border-color: var(--csm-blue, #2c5b8c); color: #fff; }
 
 .csm-d-sheetback {
-	position: fixed; inset: 0; z-index: 9000;
-	background: rgba(24, 16, 14, .5);
+	position: fixed; inset: 0; z-index: 100000;
+	background: rgba(22, 33, 43, .45);
 	display: flex; align-items: flex-end; justify-content: center;
 }
 .csm-d-sheet {
@@ -379,6 +379,17 @@ body.csm-member-view .csm-d-card {
 	max-height: 86vh;
 	max-height: 86dvh;
 	overflow: auto;
+}
+/* On phones the sheet stands on top of the app's bottom nav, so Clear/Apply
+   can never sit behind it (owner, 2026-10-25). */
+@media (max-width: 559px) {
+	.csm-d-sheetback { padding-bottom: calc(var(--csm-appnav-h, 62px) + env(safe-area-inset-bottom, 0px)); }
+	.csm-d-sheet {
+		border-radius: 16px;
+		max-height: calc(100vh - var(--csm-appnav-h, 62px) - 24px);
+		max-height: calc(100dvh - var(--csm-appnav-h, 62px) - env(safe-area-inset-bottom, 0px) - 24px);
+	}
+	.csm-d-sheetact { padding-bottom: 16px; }
 }
 /* Pinned to the bottom of the sheet, clear of the home indicator and the
    browser's bottom toolbar (app pages use viewport-fit=cover, so content
@@ -392,18 +403,19 @@ body.csm-member-view .csm-d-card {
 	.csm-d-sheetback { align-items: center; }
 	.csm-d-sheet { border-radius: 16px; }
 }
-.csm-d-sheet h2 { margin: 0 0 4px; font-size: 18px; }
-.csm-d-sheethint { margin: 0 0 16px; font-size: 13px; color: #7a6f68; line-height: 1.5; }
+.csm-d-sheet { color: var(--csm-ink, #16212b); }
+.csm-d-sheet h2 { margin: 0 0 4px; font-size: 18px; color: var(--csm-ink, #16212b); }
+.csm-d-sheethint { margin: 0 0 16px; font-size: 13px; color: var(--csm-muted, #5c6a76); line-height: 1.5; }
 
 .csm-d-frow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-.csm-d-flabel { font-size: 14px; color: #2b2b2b; }
+.csm-d-flabel { font-size: 14px; color: var(--csm-ink, #16212b); }
 .csm-d-frow select {
 	flex: 0 0 130px; padding: 9px 10px; font-size: 15px;
-	border: 1px solid #ddd3cf; border-radius: 8px; background: #fff;
+	border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 8px; background: #fff; color: var(--csm-ink, #16212b);
 }
 
 .csm-d-ferr { min-height: 18px; margin: 4px 0 12px; font-size: 13px; color: #a3231f; }
-.csm-d-fhint { font-size: 13px; color: #7a6f68; margin: 10px 0 6px; }
+.csm-d-fhint { font-size: 13px; color: var(--csm-muted, #5c6a76); margin: 10px 0 6px; }
 
 .csm-d-sheetact { display: flex; gap: 10px; }
 @media (min-width: 560px) {
@@ -413,13 +425,14 @@ body.csm-member-view .csm-d-card {
 .csm-d-fclear, .csm-d-fsave {
 	flex: 1; padding: 12px; border-radius: 9px; font: 700 15px/1 inherit; cursor: pointer;
 }
-.csm-d-fclear { background: #f4efec; border: 1px solid #e0d8d4; color: #5a4f4a; }
-.csm-d-fsave { background: #7a1220; border: 1px solid #7a1220; color: #fff; }
+.csm-d-fclear { background: var(--csm-ground, #f4f6f8); border: 1px solid var(--csm-hair, #e4eaf0); color: var(--csm-ink, #16212b); }
+.csm-d-fsave { background: var(--csm-blue, #2c5b8c); border: 1px solid var(--csm-blue, #2c5b8c); color: #fff; }
+.csm-d-fsave:hover:not([disabled]) { background: var(--csm-blue-press, #234a73); border-color: var(--csm-blue-press, #234a73); }
 .csm-d-fsave[disabled] { opacity: .5; cursor: not-allowed; }
 
 /* ---- grid view for a large weekly set (v1.61.0) --------------------- */
 
-.csm-d-gridcount { margin: 2px 0 12px; font-size: 13px; color: #7a6f68; }
+.csm-d-gridcount { margin: 2px 0 12px; font-size: 13px; color: var(--csm-muted, #5c6a76); }
 
 .csm-d-grid {
 	display: grid;
@@ -433,7 +446,7 @@ body.csm-member-view .csm-d-card {
 
 .csm-d-tile {
 	display: flex; flex-direction: column; text-align: left;
-	background: #fff; border: 1px solid #ece5e2; border-radius: 12px;
+	background: #fff; border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 12px;
 	padding: 0 0 10px; overflow: hidden; cursor: pointer;
 	font: inherit; color: inherit;
 }
@@ -441,26 +454,26 @@ body.csm-member-view .csm-d-card {
 
 .csm-d-tilephoto {
 	position: relative; width: 100%; aspect-ratio: 1 / 1;
-	background: #f4efec; overflow: hidden;
+	background: var(--csm-ground, #f4f6f8); overflow: hidden;
 }
 .csm-d-tilephoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .csm-d-tilenew {
 	position: absolute; top: 8px; left: 8px;
-	background: #7a1220; color: #fff; border-radius: 999px;
+	background: var(--csm-blue, #2c5b8c); color: #fff; border-radius: 999px;
 	padding: 3px 9px; font-size: 11px; font-weight: 700; letter-spacing: .02em;
 }
 
 .csm-d-tilename {
-	margin: 9px 10px 0; font-size: 14px; font-weight: 600; color: #2b2b2b;
+	margin: 9px 10px 0; font-size: 14px; font-weight: 600; color: var(--csm-ink, #16212b);
 	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.csm-d-tilemeta { margin: 2px 10px 0; font-size: 12.5px; color: #7a6f68; }
+.csm-d-tilemeta { margin: 2px 10px 0; font-size: 12.5px; color: var(--csm-muted, #5c6a76); }
 
 .csm-d-back {
 	display: inline-flex; align-items: center; gap: 5px;
 	background: none; border: 0; padding: 4px 0 10px;
-	font: 600 14px/1 inherit; color: #7a1220; cursor: pointer;
+	font: 600 14px/1 inherit; color: var(--csm-blue, #2c5b8c); cursor: pointer;
 }
 .csm-d-back svg { width: 16px; height: 16px; }
 
@@ -479,8 +492,7 @@ body.csm-member-view .csm-d-card {
 .csm-d-fchips { display: block; }
 .csm-d-chipset { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .csm-d-chip { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--csm-hair-2, #d6dfe7); background: var(--csm-surface, #fff); color: var(--csm-ink, #16212b); font-size: 13px; cursor: pointer; }
-.csm-d-chip.is-on { background: var(--csm-ink, #16212b); border-color: var(--csm-ink, #16212b); color: #fff; }
-.csm-d-sheet { max-height: 86vh; overflow-y: auto; }
+.csm-d-chip.is-on { background: var(--csm-blue, #2c5b8c); border-color: var(--csm-blue, #2c5b8c); color: #fff; }
 .csm-d-filterbtn.is-locked { text-decoration: none; color: var(--csm-muted, #5c6a76); font-size: 13px; }
 .csm-d-fsame { display: flex; gap: 8px; align-items: center; font-size: 14px; }
 /* Tick-box group filters (v1.86.1). */
@@ -489,7 +501,7 @@ body.csm-member-view .csm-d-card {
 .csm-d-tickall { background: none; border: 0; color: var(--csm-muted, #5c6a76); font-size: 12.5px; text-decoration: underline; cursor: pointer; padding: 0; }
 .csm-d-ticklist { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 6px; }
 .csm-d-tick { display: flex; gap: 6px; align-items: flex-start; font-size: 13.5px; line-height: 1.3; }
-.csm-d-tick input { margin-top: 2px; }
+.csm-d-tick input { margin-top: 2px; accent-color: var(--csm-blue, #2c5b8c); }
 @media (max-width: 380px) { .csm-d-ticklist { grid-template-columns: 1fr; } }
 /* Gold (v1.87.0). */
 .csm-d-goldbadge { position: absolute; left: 14px; top: 56px; padding: 4px 12px; border-radius: 999px; background: linear-gradient(180deg,#f3d27a,#c9a227); color: #3a2806; font-weight: 700; font-size: 13px; letter-spacing: .04em; z-index: 2; }
