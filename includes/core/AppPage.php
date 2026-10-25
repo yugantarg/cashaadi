@@ -176,10 +176,7 @@ final class AppPage {
 		if ( is_user_logged_in() && class_exists( '\CAShaadi\Modules\Photos\PhotoHold' ) ) {
 			echo \CAShaadi\Modules\Photos\PhotoHold::banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput
 		}
-		// Phone-number notice until Gold launches (v1.89.0).
-		if ( is_user_logged_in() && class_exists( '\CAShaadi\Modules\Premium\GoldLaunch' ) ) {
-			echo \CAShaadi\Modules\Premium\GoldLaunch::banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput
-		}
+		// No Gold-launch banner (owner, 2026-10-25): the notice email is enough.
 	}
 
 	/**

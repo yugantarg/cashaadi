@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.27 — 2026-10-25
+
+- No in-app banner for the Gold launch / phone-number change (owner); the notice email stays the only notice. `GoldLaunch::banner()` is no longer called.
+
 ## 1.89.26 — 2026-10-25
 
 - Premium (not Gold) members see "Upgrade to Gold": a row on their own profile page while Gold is on sale, and "🔒 Upgrade to Gold to view" on locked phone numbers. `CSM_APP.isPremium` added.
