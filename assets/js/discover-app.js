@@ -225,7 +225,7 @@
 	}
 
 	/* The filter button and sheet live in app-screens.js, shared with Requests. */
-	function filterBar() {
+	function filterBar( inCount ) {
 		if ( ! meta.filters ) { return null; }
 		var fb = window.csmFilterBar( {
 			state: meta.filters,
@@ -235,9 +235,9 @@
 			hint: meta.unlimited ? 'Gold: unlimited profiles.' : 'You get ' + meta.filters.quota + ' profiles a week.',
 			onApplied: function ( d ) { meta.filters = d; load(); }
 		} );
-		/* "N hidden by your filters · Show all", beside the button so it shows
-		   in the card view too, not only the grid (v1.89.20). */
-		if ( fb && meta.hiddenByFilter ) {
+		/* "N hidden by your filters · Show all": in the grid it is in the count
+		   line; elsewhere (card view, empty screen) beside the button. */
+		if ( fb && meta.hiddenByFilter && ! inCount ) {
 			var hp = el( 'span', 'csm-d-fhidden', meta.hiddenByFilter + ' hidden by your filters \u00b7' );
 			hp.appendChild( showAll() );
 			fb.insertBefore( hp, fb.firstChild );
@@ -294,7 +294,7 @@
 
 	function drawGrid() {
 		root.innerHTML = '';
-		var fb = filterBar();
+		var fb = filterBar( true ); // the hidden count goes in the count line
 		if ( fb ) { root.appendChild( fb ); }
 		var bc = boostCard();
 		if ( bc ) { root.appendChild( bc ); }
@@ -322,6 +322,11 @@
 		var head = el( 'p', 'csm-d-gridcount', meta.unlimited
 			? 'Unlimited profiles'
 			: weekLeft + ' of ' + meta.quota + ' left this week' );
+		// Owner's screenshot (2026-10-25): "Show all" belongs right here.
+		if ( meta.hiddenByFilter ) {
+			head.appendChild( document.createTextNode( ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters \u00b7' ) );
+			head.appendChild( showAll() );
+		}
 
 		root.appendChild( head );
 
