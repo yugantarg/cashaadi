@@ -162,6 +162,8 @@
 		if ( d.links.emails ) { rows.push( [ 'Email preferences', d.links.emails ] ); }
 		rows.push( [ 'Settings', d.links.settings ] );
 		if ( ! d.isPremium ) { rows.push( [ 'Upgrade to Premium', d.links.upgrade ] ); }
+		// Premium, not Gold: the next step up (owner, 2026-10-25).
+		else if ( ! d.isGold && d.goldOnSale ) { rows.push( [ 'Upgrade to Gold', d.links.upgrade ] ); }
 		if ( d.links.support ) { rows.push( [ 'Help and support', d.links.support ] ); }
 		rows.forEach( function ( r ) {
 			var li = el( 'li', 'csm-p-row' );

@@ -305,7 +305,8 @@ window.csmProfileCard = function ( p ) {
 					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} open(); } } );
 			} );
 		} else if ( 'locked' === st.state && st.up && app.upgrade ) {
-			var up = mk( 'a', 'csm-d-phone-a', '\uD83D\uDD12 Upgrade to view' );
+			// A Premium viewer's next step is Gold; say so.
+			var up = mk( 'a', 'csm-d-phone-a', '\uD83D\uDD12 ' + ( app.isPremium ? 'Upgrade to Gold' : 'Upgrade' ) + ' to view' );
 			up.href = app.upgrade;
 			dd.appendChild( up );
 		} else {

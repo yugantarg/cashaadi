@@ -348,6 +348,7 @@ final class AppPage {
 			// Upgrade prompts mention Gold only once it is on sale (v1.89.0).
 			'goldOnSale' => (bool) get_option( 'csm_gold_on_sale' ),
 			'isGold'     => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( get_current_user_id() ),
+			'isPremium'  => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_premium( get_current_user_id() ),
 			'upgrade'    => home_url( '/membership-pricing/' ),
 			'ff15'        => $ff15,
 			'reqsPopup'   => $reqs,

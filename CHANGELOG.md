@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.26 — 2026-10-25
+
+- Premium (not Gold) members see "Upgrade to Gold": a row on their own profile page while Gold is on sale, and "🔒 Upgrade to Gold to view" on locked phone numbers. `CSM_APP.isPremium` added.
+
 ## 1.89.25 — 2026-10-25
 
 - Discover ranking: the new-profile boost drops from 5 points to 2 (owner: a new woman's account was flooded with requests). The "never shown" points that balance exposure are unchanged.
