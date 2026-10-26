@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.49 — 2026-10-26
+
+- Boost delivery uses a multiplier on Discover's own score (owner): the boosted member's full ranking score for the viewer, times a multiplier that starts at 2.5x and rises to 5x over 12 hours, must beat the best profile that viewer has been shown in the last 30 days (`wp_csm_impressions`). Replaces the match-points bar. Filters still not used; highest boosted score wins.
+
 ## 1.89.48 — 2026-10-26
 
 - Profile boosts go to the best matches first (owner): a viewer must reach a match-score bar from Discover's own match points (language, community, religion, age, city, diet). The bar starts at 60% of the full points and falls evenly to none at 18 hours, so the boost still fills. Among boosts a viewer qualifies for, the best match wins. A boosted card is shown whatever the viewer's filters.

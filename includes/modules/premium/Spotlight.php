@@ -40,8 +40,9 @@ final class Spotlight {
 	const SEEN_DAY   = 'csm_spot_seen_day';   // viewer: the day they last got a boosted card
 	const PRODUCT    = 'csm_spot_product';    // option: the pack's product id
 	const WEEK_ROW   = 'boost';               // tray week_assigned for a boosted card
-	const START_BAR  = 0.6;  // share of the full match points a viewer needs at the start…
-	const WIDEN_HOURS = 18;  // …falling evenly to none after this many hours
+	const MULT_START = 2.5;  // the boost multiplier at the start: strong from the first hour…
+	const MULT_END   = 5;    // …rising to this,
+	const MULT_HOURS = 12;   // over this many hours, then held
 
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
@@ -157,13 +158,15 @@ final class Spotlight {
 		$exclude = array_flip( array_map( 'intval', $exclude ) );
 
 		/*
-		 * Best matches first (owner, 2026-10-26): the viewer must be a strong
-		 * match at the start of the boost, using Discover's own match points
-		 * (Ranker::match_parts: language, community, religion, age, city,
-		 * diet). The bar falls as the hours pass, to anyone eligible after
-		 * WIDEN_HOURS, so the boost still fills. The viewer's filters are not
-		 * used. Among boosts this viewer qualifies for, the best match wins,
-		 * then the one furthest from its cap.
+		 * A multiplier on Discover's own score (owner, 2026-10-26). The
+		 * boosted member's full ranking score for this viewer (match, photo,
+		 * verification, popularity: Ranker::rank) is multiplied, and the card
+		 * goes to the viewer only if that beats the best profile this viewer
+		 * has been shown in the last 30 days. The multiplier starts strong
+		 * (MULT_START, so results show at once) and rises to MULT_END over
+		 * MULT_HOURS, by when it beats nearly everyone. The viewer's filters
+		 * are not used. Among boosts this viewer qualifies for, the highest
+		 * boosted score wins.
 		 */
 		$cands = array();
 		foreach ( $live as $b ) {
@@ -175,23 +178,18 @@ final class Spotlight {
 		if ( ! $cands ) {
 			return;
 		}
-		$R     = '\\CAShaadi\\Modules\\Discover\\Ranker';
-		$P     = $R::points();
-		$max   = $P['tongue'] + $P['community'] + $P['religion'] + $P['age_fit'] + $P['city'] + $P['diet'];
-		$attrs = $R::attributes( array_merge( $cands, array( $viewer ) ) );
-		$me    = isset( $attrs[ $viewer ] ) ? $attrs[ $viewer ] : array();
-		$pick  = 0;
-		$best  = array( -1, -1 );
+		$bar  = (float) $wpdb->get_var( $wpdb->prepare(
+			"SELECT MAX( score ) FROM {$wpdb->prefix}csm_impressions WHERE viewer_id = %d AND served_at > %s",
+			$viewer, wp_date( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS )
+		) );
+		$pick = 0;
+		$best = -1;
 		foreach ( $cands as $b ) {
-			$score = array_sum( $R::match_parts( $me, isset( $attrs[ $b ] ) ? $attrs[ $b ] : array(), $P ) );
 			$hours = ( time() - (int) get_user_meta( $b, self::STARTED, true ) ) / HOUR_IN_SECONDS;
-			$need  = $max * self::START_BAR * max( 0, 1 - $hours / self::WIDEN_HOURS );
-			if ( $score < $need ) {
-				continue;
-			}
-			$rank = array( $score, self::cap_for( $b ) - (int) get_user_meta( $b, self::REACHED, true ) );
-			if ( $rank > $best ) {
-				$best = $rank;
+			$mult  = self::MULT_START + ( self::MULT_END - self::MULT_START ) * min( 1, max( 0, $hours / self::MULT_HOURS ) );
+			$score = self::score_for( $viewer, $b ) * $mult;
+			if ( $score >= $bar && $score > $best ) {
+				$best = $score;
 				$pick = $b;
 			}
 		}
@@ -213,6 +211,26 @@ final class Spotlight {
 		if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
 			\CAShaadi\Modules\Discover\Seen::record_served( $viewer, $pick, self::WEEK_ROW );
 		}
+	}
+
+	/** The boosted member's Discover score for this viewer, as the ranker computes it. */
+	private static function score_for( $viewer, $b ) {
+		global $wpdb;
+		$seen = $wpdb->prefix . 'csm_seen';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$st = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) shown, SUM( action = 'liked' ) liked FROM {$seen} WHERE profile_id = %d", $b ) );
+		$u  = get_userdata( $b );
+		$row = (object) array(
+			'user_id'    => $b,
+			'shown'      => $st ? (int) $st->shown : 0,
+			'shown_wk'   => 0,
+			'liked'      => $st ? (int) $st->liked : 0,
+			'req_wk'     => 0,
+			'active'     => 1,
+			'registered' => $u ? $u->user_registered : '',
+		);
+		$r = \CAShaadi\Modules\Discover\Ranker::rank( $viewer, array( $row ), 1, false, PHP_INT_MAX, PHP_INT_MAX );
+		return $r ? (float) $r[0]['score'] : 0;
 	}
 
 	/* ------------------------------------------------------------- buying */
