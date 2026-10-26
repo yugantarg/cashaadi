@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.73 — 2026-10-26
+
+- Edit profile → Astro Details: the switch showed "Shown on my profile" for members who had never set it, while their profile (correctly) kept the section hidden. The editor now shows the saved state; only the onboarding step starts it on, because Continue saves it.
+
 ## 1.89.72 — 2026-10-26
 
 - Requests → Received: the Filters button and chips sat flush against the screen edge and under the sticky tabs (top clipped); they now have the page's side padding and space below the tabs, as does the "N requests hidden by your filters" line.

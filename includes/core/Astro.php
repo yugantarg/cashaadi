@@ -76,11 +76,16 @@ final class Astro {
 		return $ts ? gmdate( 'j M Y', $ts ) : '';
 	}
 
-	/** What the wizard and profile editor need on the Astro step. */
-	public static function step_extra( $uid ) {
+	/**
+	 * What the wizard and profile editor need on the Astro step. The wizard
+	 * starts the switch on, since Continue saves it; the editor saves nothing
+	 * until the switch is flipped, so it shows the real state (v1.89.73: it
+	 * showed on while the profile kept the section hidden).
+	 */
+	public static function step_extra( $uid, $wizard = false ) {
 		return array(
 			'dob'  => self::dob_label( $uid ),
-			'show' => self::switch_state( $uid ),
+			'show' => $wizard ? self::switch_state( $uid ) : self::shown( $uid ),
 			'save' => rest_url( 'csm/v1/astro/show' ),
 		);
 	}

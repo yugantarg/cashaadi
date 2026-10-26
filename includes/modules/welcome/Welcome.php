@@ -500,7 +500,7 @@ final class Welcome {
 			);
 			// Astro details: date of birth shown read-only, one Show / Hide switch.
 			if ( $gid === \CAShaadi\Core\Astro::group_id() ) {
-				$step['astro'] = \CAShaadi\Core\Astro::step_extra( $uid );
+				$step['astro'] = \CAShaadi\Core\Astro::step_extra( $uid, true );
 			} else {
 				$step['help'] = '';
 			}
