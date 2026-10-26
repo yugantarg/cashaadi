@@ -332,7 +332,7 @@
 		// hold more than one week's worth: then say how many are waiting.
 		var head = el( 'p', 'csm-d-gridcount', meta.unlimited
 			? 'Unlimited profiles'
-			: ( left.length > meta.quota ? left.length + ' profiles to see' : weekLeft + ' of ' + meta.quota + ' left this week' ) );
+			: ( ( meta.total || left.length ) > meta.quota ? ( meta.total || left.length ) + ' profiles to see' : weekLeft + ' of ' + meta.quota + ' left this week' ) );
 		// Owner's screenshot (2026-10-25): "Show all" belongs right here.
 		if ( meta.hiddenByFilter ) {
 			head.appendChild( document.createTextNode( ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters \u00b7' ) );
