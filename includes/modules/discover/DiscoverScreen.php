@@ -137,6 +137,31 @@ final class DiscoverScreen {
 			$viewer_id
 		) );
 
+		/*
+		 * Never a match, or someone already asked, in Discover (v1.89.78). A
+		 * number opened before v1.89.65 sent the request but left the card
+		 * pending, so a match showed with "Send request" (owner, 2026-10-26).
+		 * Such rows are closed as liked, which is what happened.
+		 */
+		if ( $rows ) {
+			$pids  = array_map( 'intval', wp_list_pluck( $rows, 'profile_id' ) );
+			$in    = implode( ',', $pids );
+			$fr    = $wpdb->prefix . 'bp_friends';
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$done = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+				"SELECT friend_user_id FROM {$fr} WHERE initiator_user_id = %d AND friend_user_id IN ({$in})
+				 UNION SELECT initiator_user_id FROM {$fr} WHERE friend_user_id = %d AND is_confirmed = 1 AND initiator_user_id IN ({$in})",
+				$viewer_id,
+				$viewer_id
+			) ) );
+			if ( $done ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$wpdb->query( $wpdb->prepare( "UPDATE {$tray} SET status = 'liked', acted_at = %s WHERE viewer_id = %d AND status = 'pending' AND profile_id IN (" . implode( ',', $done ) . ')', current_time( 'mysql' ), $viewer_id ) );
+				$done = array_flip( $done );
+				$rows = array_values( array_filter( $rows, function ( $r ) use ( $done ) { return ! isset( $done[ (int) $r->profile_id ] ); } ) );
+			}
+		}
+
 		// Filters only narrow what is in the tray (v1.89.11); hidden rows stay pending.
 		$in_tray = count( (array) $rows );
 		if ( $rows && class_exists( __NAMESPACE__ . '\\Filters' ) ) {

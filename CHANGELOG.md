@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.78 — 2026-10-26
+
+- Discover never shows a match, or someone you already sent a request to (owner: a matched profile showed with "Send request" and its number open). The number had been opened on 25 Oct, before opening a number also closed the Discover card (v1.89.65), so the card stayed pending after the match. Such cards are now closed as liked when Discover loads. `tools/phone-check.php` explains any card's phone state.
+
 ## 1.89.77 — 2026-10-26
 
 - City is a row in Basic Details on profile cards (owner), where it sits in the profile. The job / city lines over the photo are gone again: they were never visible (0px tall) until v1.89.76, and the job title is already in Professional details.
