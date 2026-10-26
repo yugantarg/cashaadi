@@ -23,7 +23,13 @@
    still governs everything shorter than the cap. */
 .csm-d-photo {
 	width: 100%; aspect-ratio: 7 / 8; object-fit: cover; display: block;
-	max-height: calc( 100vh - var(--csm-dact-h) - 62px - 104px );
+	max-height: calc( 100vh - var(--csm-dact-h) - 62px - 104px - 88px );
+	/* The visible screen, not the layout one (100vh reaches under the
+	   browser's toolbar), and 88px less, so the first lines of the bio or
+	   "Basic Details" always show above the buttons and the card reads as
+	   something to scroll (owner, 2026-10-27: some profiles looked like a
+	   photo and nothing else). */
+	max-height: calc( 100dvh - var(--csm-dact-h) - 62px - 104px - 88px );
 	background: var(--csm-hair, #e4eaf0);
 }
 .csm-d-media::after {

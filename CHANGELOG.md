@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.79 — 2026-10-27
+
+- Profile cards always show the start of what is below the photo (owner: on some profiles the photo filled the screen and there was no sign of more). The photo's height cap now uses the visible screen (`dvh`) and leaves ~88px, so the first lines of the bio or "Basic Details" sit above the buttons.
+
 ## 1.89.78 — 2026-10-26
 
 - Discover never shows a match, or someone you already sent a request to (owner: a matched profile showed with "Send request" and its number open). The number had been opened on 25 Oct, before opening a number also closed the Discover card (v1.89.65), so the card stayed pending after the match. Such cards are now closed as liked when Discover loads. `tools/phone-check.php` explains any card's phone state.
