@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.75 — 2026-10-26
+
+- City shows on profile cards (owner: still missing). It was on the job line ("Job · City"), which is clamped to two lines, so a long job title cut it off; and the separate city line was skipped when it matched. Now the job has its line and the city always its own line under it.
+
 ## 1.89.74 — 2026-10-26
 
 - Existing members are asked once for astro details (owner): a card on their own Profile page, under the boost card, "Add your astro details" with **Add details** (opens Edit profile → Astro Details) and **Not now**. Either answers it for good (user meta `csm_astro_asked`), as does setting the switch or filling in time of birth. Not a popup. New members are asked in onboarding, so they never see it.
