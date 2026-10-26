@@ -91,7 +91,8 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		$exclude = array( (int) $viewer_id );
 
 		$in_tray = $wpdb->get_col( $wpdb->prepare(
-			"SELECT profile_id FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending'",
+			// Saved too: they wait under Saved, and Gold's wider reshow must not repeat them.
+			"SELECT profile_id FROM {$tray_tbl} WHERE viewer_id = %d AND status IN ( 'pending', 'saved' )",
 			$viewer_id
 		) );
 		if ( $in_tray ) {

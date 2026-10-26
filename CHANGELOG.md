@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.41 — 2026-10-26
+
+- Gold sees every member (owner): for Gold, only profiles they decided on (sent a request / passed) are kept out of Discover. Profiles that were loaded but never acted on come back, including those lost when older versions (up to v1.89.10) cleared the undecided tray on every filter change. Saved profiles are never re-served into Discover (they are under Saved).
+
 ## 1.89.40 — 2026-10-26
 
 - Requests looks like Discover (owner): Received and Saved are profile tiles; tapping one opens the full profile card with an action bar and previous/next arrows (`window.csmDeck` in app-screens.js, shared with Discover).

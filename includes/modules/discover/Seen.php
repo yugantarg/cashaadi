@@ -159,11 +159,18 @@ final class Seen {
 		global $wpdb;
 		$t      = self::table();
 		$months = (int) apply_filters( 'csm_pass_reshow_months', 1 );
+		/*
+		 * Gold sees every member (owner, 2026-10-26: "I need to be able to see
+		 * all profiles as a gold member"). For Gold only a decision keeps a
+		 * profile away: one that was loaded but never acted on comes back.
+		 */
+		$decided = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( (int) $viewer_id )
+			? " AND action <> ''" : '';
 
 		if ( $months < 1 ) {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$ids = $wpdb->get_col( $wpdb->prepare(
-				"SELECT profile_id FROM {$t} WHERE viewer_id = %d",
+				"SELECT profile_id FROM {$t} WHERE viewer_id = %d" . $decided,
 				(int) $viewer_id
 			) );
 			return array_map( 'intval', (array) $ids );
@@ -180,7 +187,7 @@ final class Seen {
 		$ids = $wpdb->get_col( $wpdb->prepare(
 			"SELECT profile_id FROM {$t}
 			 WHERE viewer_id = %d
-			   AND NOT ( action = 'passed' AND acted_at IS NOT NULL AND acted_at < %s )",
+			   AND NOT ( action = 'passed' AND acted_at IS NOT NULL AND acted_at < %s )" . $decided,
 			(int) $viewer_id,
 			$cutoff
 		) );
