@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.62 — 2026-10-26
+
+- Requests loads 24 at a time, as Discover: Received and Saved build full profiles only for the page shown (`limit`, +24 per "Show more"); Gold senders are still first. The tab counts use the real totals (`receivedTotal`, `savedOpenTotal`).
+
 ## 1.89.61 — 2026-10-26
 
 - Sales Dashboard is faster (owner: slow to load). The member table was built with ~10 lookups per member on every open; it is now built from bulk queries (phones, genders, actions, last activity and plans in one query each, user data primed with `cache_users`), kept for 10 minutes (transient `csm_sd_rows`, "Updated N min ago · Refresh now"), filtered and searched in memory, and shown 200 rows a page.

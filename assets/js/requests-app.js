@@ -44,10 +44,10 @@
 	function tabs() {
 		var wrap = el( 'div', 'csm-r-tabs' );
 		[
-			[ 'received', 'Received', ( data.received || [] ).length ],
+			[ 'received', 'Received', undefined !== data.receivedTotal ? data.receivedTotal : ( data.received || [] ).length ],
 			[ 'matches', 'Matches', ( data.matches || [] ).length ],
 			[ 'sent', 'Sent', ( data.sent || [] ).length ],
-			[ 'saved', 'Saved', ( data.saved || [] ).length ],
+			[ 'saved', 'Saved', undefined !== data.savedOpenTotal ? data.savedOpenTotal + ( data.saved || [] ).filter( function ( x ) { return x.masked; } ).length : ( data.saved || [] ).length ],
 			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ]
 		].forEach( function ( t ) {
 			var b = el( 'button', 'csm-r-tab' + ( tab === t[0] ? ' is-on' : '' ) );
@@ -219,6 +219,7 @@
 			root.appendChild( window.csmDeck.tiles( data.received, function ( i ) {
 				deck( data.received, i, 'All requests' );
 			} ) );
+			moreButton( data.receivedTotal, data.received.length );
 			return;
 		} else if ( 'matches' === tab ) {
 			if ( ! ( data.matches || [] ).length ) {
@@ -265,6 +266,7 @@
 				root.appendChild( window.csmDeck.tiles( open, function ( i ) {
 					deck( open, i, 'All saved' );
 				} ) );
+				moreButton( data.savedOpenTotal, open.length );
 			}
 			data.saved.forEach( function ( p ) {
 				if ( ! p.masked ) { return; }
@@ -365,8 +367,15 @@
 				if ( window.csmToast ) { window.csmToast( ( d && d.message ) || 'That did not work.', 'bad' ); }
 				return false;
 			}
-			// The deck removes p from the list it shows; drop it everywhere else too.
+			// The deck removes p from the list it shows; drop it everywhere else too,
+			// and keep the totals (which count beyond the loaded page) true.
 			data.saved = ( data.saved || [] ).filter( function ( x ) { return x.masked || x.id !== p.id; } );
+			if ( 'saved' === tab ) {
+				data.savedOpenTotal = Math.max( 0, ( data.savedOpenTotal || 1 ) - 1 );
+			} else {
+				data.receivedTotal = Math.max( 0, ( data.receivedTotal || 1 ) - 1 );
+				if ( 'save_request' === action ) { data.savedOpenTotal = ( data.savedOpenTotal || 0 ) + 1; }
+			}
 			if ( 'accept' === action ) { ( data.matches = data.matches || [] ).push( p ); }
 			if ( 'save_request' === action ) {
 				data.saved.unshift( p );
@@ -393,8 +402,24 @@
 		return box;
 	}
 
+	/* 24 at a time (v1.89.62); "Show more" asks the server for the next 24. */
+	var limit = 24;
+	function moreButton( total, loaded ) {
+		if ( ! total || total <= loaded ) { return; }
+		var b = el( 'button', 'csm-d-more', 'Show more' );
+		b.type = 'button';
+		b.addEventListener( 'click', function () {
+			b.disabled = true;
+			b.textContent = 'Loading\u2026';
+			var y = window.scrollY;
+			limit += 24;
+			load().then( function () { window.scrollTo( 0, y ); } );
+		} );
+		root.appendChild( b );
+	}
+
 	function load() {
-		return api( CFG.list ).then( function ( d ) {
+		return api( CFG.list + ( CFG.list.indexOf( '?' ) === -1 ? '?' : '&' ) + 'limit=' + limit ).then( function ( d ) {
 			if ( ! d || ! d.ok ) {
 				root.innerHTML = '';
 				root.appendChild( emptyBox( 'Something went wrong', 'We could not load your requests. Please refresh.' ) );

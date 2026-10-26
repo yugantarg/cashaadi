@@ -181,8 +181,9 @@ final class RequestsScreen {
 	}
 
 	public static function rest_list( $request ) {
-		unset( $request );
 		$uid = get_current_user_id();
+		// 24 full profiles at a time, as Discover (v1.89.62); the screen asks for more.
+		$limit = max( 24, (int) $request->get_param( 'limit' ) );
 
 		/*
 		 * ---- received ----
@@ -231,16 +232,14 @@ final class RequestsScreen {
 			$rids = \CAShaadi\Modules\Discover\Filters::keep( $uid, $rids );
 		}
 
-		foreach ( $rids as $rid ) {
-			$rid = (int) $rid;
-			if ( $rid && get_userdata( $rid ) ) {
-				$received[] = self::request_card( $rid, $uid );
-			}
+		$rids = array_values( array_filter( array_map( 'intval', $rids ), function ( $r ) { return $r && get_userdata( $r ); } ) );
+		// Gold senders first (v1.87.0), decided on ids so only the page shown is built.
+		$gold_ids = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ? \CAShaadi\Modules\Premium\Gold::ids_among( $rids ) : array();
+		$rids     = array_merge( array_values( array_intersect( $rids, $gold_ids ) ), array_values( array_diff( $rids, $gold_ids ) ) );
+		$received_total = count( $rids );
+		foreach ( array_slice( $rids, 0, $limit ) as $rid ) {
+			$received[] = self::request_card( $rid, $uid );
 		}
-
-		usort( $received, function ( $a, $b ) {
-			return (int) ! empty( $b['priority'] ) <=> (int) ! empty( $a['priority'] );
-		} );
 
 		/* ---- sent ---- */
 		$sent = array();
@@ -368,12 +367,18 @@ final class RequestsScreen {
 		$cutoff = $premium ? '' : self::week_start_ist();
 		$now    = current_time( 'timestamp' );
 
+		// Saved requests come first (built below); count them against the page too.
+		$open_total = count( $req_saved );
+		$room       = max( 0, $limit - $open_total );
 		foreach ( (array) $all as $row ) {
 			$locked = ( '' !== $cutoff && (string) $row->acted_at < $cutoff );
 
 			if ( ! $locked ) {
-				// The whole profile, so it opens in the same card as Discover (v1.89.40).
-				$saved[] = array_merge( Profile::full( (int) $row->profile_id, $uid ), array( 'kind' => 'discover' ) );
+				$open_total++;
+				if ( $room-- > 0 ) {
+					// The whole profile, so it opens in the same card as Discover (v1.89.40).
+					$saved[] = array_merge( Profile::full( (int) $row->profile_id, $uid ), array( 'kind' => 'discover' ) );
+				}
 				continue;
 			}
 
@@ -390,7 +395,7 @@ final class RequestsScreen {
 
 		// Saved requests first: someone is waiting on an answer.
 		$saved_req = array();
-		foreach ( $req_saved as $rid ) {
+		foreach ( array_slice( $req_saved, 0, $limit ) as $rid ) {
 			if ( get_userdata( $rid ) ) {
 				$saved_req[] = self::request_card( $rid, $uid );
 			}
@@ -399,6 +404,9 @@ final class RequestsScreen {
 
 		return new \WP_REST_Response( array(
 			'ok'           => true,
+			// Totals beyond the page loaded, for the counts and "Show more" (v1.89.62).
+			'receivedTotal' => $received_total,
+			'savedOpenTotal' => $open_total,
 			'saved'        => $saved,
 			'savedTotal'   => $saved_total,
 			'savedLocked'  => $premium ? 0 : count( array_filter( $saved, function ( $r ) {
