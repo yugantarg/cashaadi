@@ -615,7 +615,7 @@ final class SettingsScreen {
 			foreach ( (array) $groups as $g ) {
 				$by_id[ (int) $g->id ] = $g;
 			}
-			$order = \CAShaadi\Core\Config::GROUP_ORDER;
+			$order = \CAShaadi\Core\Astro::group_order();
 			foreach ( array_keys( $by_id ) as $gid ) {
 				if ( ! in_array( $gid, $order, true ) ) {
 					$order[] = $gid;

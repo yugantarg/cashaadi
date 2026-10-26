@@ -404,7 +404,7 @@ final class Welcome {
 			$by_id[ (int) $g->id ] = $g;
 		}
 
-		$order = Config::GROUP_ORDER;
+		$order = \CAShaadi\Core\Astro::group_order();
 		foreach ( array_keys( $by_id ) as $gid ) {
 			if ( ! in_array( $gid, $order, true ) ) {
 				$order[] = $gid;
@@ -490,14 +490,21 @@ final class Welcome {
 				}
 			}
 
-			$steps[] = array(
+			$step = array(
 				'key'    => 'group_' . $gid,
 				'type'   => 'group',
 				'label'  => (string) $by_id[ $gid ]->name,
-				'help'   => '',
+				'help'   => (string) $by_id[ $gid ]->description,
 				'fields' => $fields,
 				'done'   => $done,
 			);
+			// Astro details: date of birth shown read-only, one Show / Hide switch.
+			if ( $gid === \CAShaadi\Core\Astro::group_id() ) {
+				$step['astro'] = \CAShaadi\Core\Astro::step_extra( $uid );
+			} else {
+				$step['help'] = '';
+			}
+			$steps[] = $step;
 		}
 
 		return array_values( $steps );
@@ -597,6 +604,10 @@ final class Welcome {
 
 		if ( empty( $group['fields'] ) || 'group' !== $group['type'] ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That is not part of onboarding.', 'cashaadi-ui' ) ), 200 );
+		}
+
+		if ( isset( $group['astro'] ) && null !== $request->get_param( 'astroShow' ) ) {
+			\CAShaadi\Core\Astro::set_shown( $uid, (bool) $request->get_param( 'astroShow' ) );
 		}
 
 		$saved_ids = array();

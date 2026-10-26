@@ -317,12 +317,47 @@
 	}
 
 	/**
+	 * Astro details (2026-10-26): one Show / Hide switch for the whole step,
+	 * and the date of birth from sign-up, shown but not editable. Returns the
+	 * switch's checkbox.
+	 */
+	function astroTop( a, wrap ) {
+		var sw = el( 'label', 'csm-w-astro-sw' );
+		var cb = document.createElement( 'input' );
+		cb.type = 'checkbox';
+		cb.checked = !! a.show;
+		var txt = el( 'span', 'csm-w-astro-l' );
+		function label() { txt.textContent = cb.checked ? 'Shown on my profile' : 'Hidden from my profile'; }
+		cb.addEventListener( 'change', label );
+		label();
+		sw.appendChild( txt );
+		sw.appendChild( cb );
+		sw.appendChild( el( 'span', 'csm-w-astro-knob' ) );
+		wrap.appendChild( sw );
+		wrap.appendChild( el( 'p', 'csm-w-fhelp', 'One switch for all three details below.' ) );
+		if ( a.dob ) {
+			var fw = el( 'div', 'csm-w-groupfield' );
+			fw.appendChild( el( 'label', 'csm-w-flabel', 'Date of birth' ) );
+			var ro = el( 'input', 'csm-w-input' );
+			ro.type = 'text';
+			ro.value = a.dob;
+			ro.readOnly = true;
+			ro.disabled = true;
+			fw.appendChild( ro );
+			fw.appendChild( el( 'p', 'csm-w-fhelp', 'From your sign-up.' ) );
+			wrap.appendChild( fw );
+		}
+		return cb;
+	}
+
+	/**
 	 * A whole section: each of its fields, labelled, with one Continue. Required
 	 * fields must be answered; optional ones may be left blank.
 	 */
 	function groupField( s ) {
 		var wrap = el( 'div', 'csm-w-group' );
 		var controls = [];
+		var astro = s.astro ? astroTop( s.astro, wrap ) : null;
 		( s.fields || [] ).forEach( function ( f ) {
 			var fw = el( 'div', 'csm-w-groupfield' );
 			var lbl = el( 'label', 'csm-w-flabel' );
@@ -338,6 +373,7 @@
 		return {
 			node: wrap,
 			controls: controls,
+			astroShow: astro ? function () { return astro.checked ? 1 : 0; } : null,
 			values: function () {
 				var m = {};
 				controls.forEach( function ( c ) { m[ c.f.id ] = c.read(); } );
@@ -625,7 +661,7 @@
 		api( CFG.step, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify( { key: s.key, fields: values } )
+			body: JSON.stringify( field.astroShow ? { key: s.key, fields: values, astroShow: field.astroShow() } : { key: s.key, fields: values } )
 		} ).then( function ( d ) {
 			release();
 			done();

@@ -195,7 +195,7 @@ final class ProfileEditScreen {
 		foreach ( (array) $groups as $g ) {
 			$by_id[ (int) $g->id ] = (string) $g->name;
 		}
-		$order = Config::GROUP_ORDER;
+		$order = \CAShaadi\Core\Astro::group_order();
 		foreach ( array_keys( $by_id ) as $gid ) {
 			if ( ! in_array( $gid, $order, true ) ) {
 				$order[] = $gid;
@@ -439,6 +439,8 @@ final class ProfileEditScreen {
 			'group'  => array( 'id' => $gid, 'name' => (string) $group->name ),
 			'fields' => $fields,
 			'index'  => self::group_index(),
+			// Astro details: one Show / Hide switch, date of birth read-only (v1.89.68).
+			'astro'  => $gid === \CAShaadi\Core\Astro::group_id() ? \CAShaadi\Core\Astro::step_extra( get_current_user_id() ) : null,
 		), 200 );
 	}
 

@@ -8,6 +8,8 @@
  * what their profile shows. Once they stop typing, the group the filters use
  * is shown, pre-selected from their words, and they can change it. The
  * choice is saved as it is made, tied to the words it was made for.
+ *
+ * City and native place (2026-10-26) work the same way, grouped by state.
  */
 ( function () {
 	var CFG = window.CSM_GROUPS || null;
@@ -42,16 +44,22 @@
 		input.setAttribute( 'autocomplete', 'off' );
 	}
 
-	function community( input, wrap ) {
+	var TEXT = {
+		community: [ 'Community group', 'Members filter by this group. Your profile shows what you typed above. Change the group if another fits better.' ],
+		city: [ 'State', 'Members filter by state. Your profile shows the city you typed above.' ],
+		native: [ 'State', 'Your profile shows the place you typed above. Change the state if it is wrong.' ]
+	};
+
+	function grouped( input, wrap, kind ) {
 		var box = el( 'div', 'csm-gp' );
 		box.hidden = true;
 		var lab = el( 'label', 'csm-gp-row' );
-		lab.appendChild( el( 'span', 'csm-gp-l', 'Community group' ) );
+		lab.appendChild( el( 'span', 'csm-gp-l', TEXT[ kind ][0] ) );
 		var sel = document.createElement( 'select' );
 		sel.className = 'csm-gp-sel';
 		lab.appendChild( sel );
 		box.appendChild( lab );
-		box.appendChild( el( 'p', 'csm-gp-hint', 'Members filter by this group. Your profile shows what you typed above. Change the group if another fits better.' ) );
+		box.appendChild( el( 'p', 'csm-gp-hint', TEXT[ kind ][1] ) );
 		wrap.appendChild( box );
 
 		var timer = null, asked = '', initial = input.value;
@@ -60,7 +68,7 @@
 			return call( CFG.choose, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify( { kind: 'community', text: input.value, group: sel.value } )
+				body: JSON.stringify( { kind: kind, text: input.value, group: sel.value } )
 			} ).catch( function () {} );
 		}
 
@@ -69,7 +77,7 @@
 			if ( text.length < 3 ) { box.hidden = true; return; }
 			if ( text === asked ) { return; }
 			asked = text;
-			call( CFG.suggest + ( CFG.suggest.indexOf( '?' ) === -1 ? '?' : '&' ) + 'kind=community&text=' + encodeURIComponent( text ) ).then( function ( d ) {
+			call( CFG.suggest + ( CFG.suggest.indexOf( '?' ) === -1 ? '?' : '&' ) + 'kind=' + kind + '&text=' + encodeURIComponent( text ) ).then( function ( d ) {
 				if ( ! d || ! d.options || text !== input.value.trim() ) { return; }
 				sel.innerHTML = '';
 				var pick = d.chosen || ( d.groups && d.groups[0] ) || 'Others';
@@ -99,6 +107,6 @@
 	window.csmGroupPicker = function ( input, kind, wrap ) {
 		if ( ! CFG || ! input || 'INPUT' !== input.tagName ) { return; }
 		if ( 'tongue' === kind ) { tongue( input ); }
-		if ( 'community' === kind ) { community( input, wrap || input.parentNode ); }
+		if ( TEXT[ kind ] ) { grouped( input, wrap || input.parentNode, kind ); }
 	};
 } )();

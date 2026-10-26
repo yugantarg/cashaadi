@@ -67,7 +67,7 @@ final class Config {
 	 * ICAI ID stays listed: it is locked to Only me, and seeing that stated is
 	 * how a member knows their certificate is not on show.
 	 */
-	const VISIBILITY_EXCLUDED = array( 'Other relevant documents' );
+	const VISIBILITY_EXCLUDED = array( 'Other relevant documents', 'Time of Birth', 'Place of Birth' ); // astro: one switch on its own step (Core\Astro)
 
 	/*
 	 * Private unless the member says otherwise.

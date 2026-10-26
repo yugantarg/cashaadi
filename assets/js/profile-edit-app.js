@@ -397,6 +397,40 @@
 
 	/* -------------------------------------------------------------- draw */
 
+	/**
+	 * Astro details (v1.89.68): one Show / Hide switch for date, time and
+	 * place of birth, saved as it is flipped; the date of birth from sign-up
+	 * is shown, not edited here.
+	 */
+	function astroTop( a, card ) {
+		var sw = el( 'label', 'csm-w-astro-sw' );
+		var cb = document.createElement( 'input' );
+		cb.type = 'checkbox';
+		cb.checked = !! a.show;
+		var txt = el( 'span', 'csm-w-astro-l' );
+		function label() { txt.textContent = cb.checked ? 'Shown on my profile' : 'Hidden from my profile'; }
+		label();
+		cb.addEventListener( 'change', function () {
+			label();
+			api( a.save, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify( { show: cb.checked ? 1 : 0 } )
+			} ).catch( function () {} );
+		} );
+		sw.appendChild( txt );
+		sw.appendChild( cb );
+		sw.appendChild( el( 'span', 'csm-w-astro-knob' ) );
+		card.appendChild( sw );
+		card.appendChild( el( 'p', 'csm-pe-readonly-note', 'One switch for date, time and place of birth.' ) );
+		if ( a.dob ) {
+			var row = el( 'div', 'csm-pe-astro-dob' );
+			row.appendChild( el( 'span', 'csm-pe-astro-l', 'Date of birth' ) );
+			row.appendChild( el( 'span', 'csm-pe-astro-v', a.dob ) );
+			card.appendChild( row );
+		}
+	}
+
 	function draw( data ) {
 		root.innerHTML = '';
 		index = data.index || index;
@@ -422,6 +456,7 @@
 
 		var card = el( 'div', 'csm-pe-card' );
 		var controls = [];
+		if ( data.astro ) { astroTop( data.astro, card ); }
 		( data.fields || [] ).forEach( function ( f ) {
 			var c = fieldControl( f );
 			/*

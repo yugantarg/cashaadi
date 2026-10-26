@@ -48,6 +48,7 @@ final class Filters {
 	const CHOICES = array(
 		'community' => array( 'Community', 'Community' ),
 		'tongue'    => array( 'Language (Mother Tongue)', 'Mother tongue' ),
+		'city'      => array( 'City', 'State' ),
 		'religion'  => array( 'Religion', 'Religion' ),
 		'diet'      => array( 'Diet', 'Diet' ),
 		'income'    => array( 'Annual Income', 'Annual income' ),
@@ -92,14 +93,17 @@ final class Filters {
 		if ( 'qual' === $key ) {
 			return (int) Config::FIELD_QUALIFICATION;
 		}
+		if ( 'city' === $key ) {
+			return (int) Config::FIELD_CITY;
+		}
 		return isset( self::CHOICES[ $key ] ) && function_exists( 'xprofile_get_field_id_from_name' )
 			? (int) xprofile_get_field_id_from_name( self::CHOICES[ $key ][0] )
 			: 0;
 	}
 
-	/** Community and mother tongue filter on groups (Core\Buckets), not raw text. */
+	/** Community, mother tongue and city (by state) filter on groups (Core\Buckets), not raw text. */
 	public static function bucket_kind( $key ) {
-		return in_array( $key, array( 'community', 'tongue' ), true ) && class_exists( '\\CAShaadi\\Core\\Buckets' ) ? $key : '';
+		return in_array( $key, array( 'community', 'tongue', 'city' ), true ) && class_exists( '\\CAShaadi\\Core\\Buckets' ) ? $key : '';
 	}
 
 	/** The options a field offers, in the field's own order. Cached per request. */

@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.68 — 2026-10-26
+
+- City grouped by state (owner): the member types their city as before and the profile shows it as typed; it is also sorted into a state (or Abroad / Others) in `Core\Buckets` (kind `city`, field 587), with a "State" picker under the field in Edit profile. Discover / Requests filters gain **State**, ticked like Community. Native Place (new) is grouped the same way (kind `native`), not yet a filter. Run `wp csm buckets rebuild`, then `wp csm buckets report` to see cities that fit no state.
+- Astro Details step (owner), just before verification: date of birth from sign-up shown read-only, Time of Birth and Place of Birth, and one Shown / Hidden switch for all three (user meta `csm_astro_show`; unset = hidden). When shown, the profile card has an Astro Details section with the date of birth; otherwise date of birth stays withheld as before. The same switch is at the top of the section in Edit profile. Created by `wp csm astro setup` (group and field ids in options `csm_astro_group`, `csm_astro_fields`), which also adds **Native Place** to Family Details.
+
 ## 1.89.67 — 2026-10-26
 
 - v1.89.66 reverted (owner: clutter). Instead the city is its own line under the job on the profile card, read by field id (`cityLine`). Tiles unchanged.

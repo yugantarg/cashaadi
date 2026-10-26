@@ -165,3 +165,16 @@
 /* Extra pages for the ICAI document (v1.82.1). */
 .csm-pe-extra { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--csm-hair, #e4eaf0); }
 .csm-pe-extra-clear { margin-left: 10px; background: none; border: 0; color: var(--csm-muted, #5c6a76); font-size: 13px; text-decoration: underline; cursor: pointer; }
+
+/* Astro details switch (same as the wizard's, v1.89.68). */
+.csm-w-astro-sw { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 12px; cursor: pointer; font-weight: 600; }
+.csm-w-astro-sw input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.csm-w-astro-knob { flex: none; position: relative; width: 44px; height: 26px; border-radius: 13px; background: #c9d1d9; transition: background .15s; }
+.csm-w-astro-knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.csm-w-astro-sw input:checked ~ .csm-w-astro-knob { background: var(--csm-blue, #2c5b8c); }
+.csm-w-astro-sw input:checked ~ .csm-w-astro-knob::after { transform: translateX(18px); }
+.csm-w-astro-sw input:focus-visible ~ .csm-w-astro-knob { outline: 2px solid var(--csm-blue, #2c5b8c); outline-offset: 2px; }
+.csm-w-astro-sw { margin: 0 0 6px; }
+.csm-pe-astro-dob { display: flex; justify-content: space-between; padding: 12px 0 16px; border-bottom: 1px solid var(--csm-hair-2, #d6dfe7); margin-bottom: 16px; }
+.csm-pe-astro-l { color: var(--csm-muted, #5c6a76); }
+.csm-pe-astro-v { font-weight: 600; }

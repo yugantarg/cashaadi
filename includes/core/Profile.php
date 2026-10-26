@@ -305,7 +305,7 @@ final class Profile {
 		foreach ( $groups as $g ) {
 			$by_id[ (int) $g->id ] = $g;
 		}
-		$order = Config::GROUP_ORDER;
+		$order = \CAShaadi\Core\Astro::group_order();
 		foreach ( array_keys( $by_id ) as $gid ) {
 			if ( ! in_array( $gid, $order, true ) ) {
 				$order[] = $gid;
@@ -602,7 +602,7 @@ final class Profile {
 		);
 
 		$groups = bp_xprofile_get_groups( array( 'fetch_fields' => true ) );
-		$order  = Config::GROUP_ORDER;
+		$order  = \CAShaadi\Core\Astro::group_order();
 		$by_id  = array();
 		foreach ( (array) $groups as $g ) {
 			$by_id[ (int) $g->id ] = $g;
@@ -619,6 +619,19 @@ final class Profile {
 				continue;
 			}
 			$rows = array();
+			/*
+			 * Astro details only when the member chose to show them, and then
+			 * with the date of birth, which is withheld everywhere else.
+			 */
+			if ( $gid === Astro::group_id() ) {
+				if ( ! Astro::shown( $profile_id ) ) {
+					continue;
+				}
+				$dob = Astro::dob_label( $profile_id );
+				if ( '' !== $dob ) {
+					$rows[] = array( 'label' => 'Date of birth', 'value' => $dob );
+				}
+			}
 			foreach ( $by_id[ $gid ]->fields as $field ) {
 				/*
 				 * The phone is an ordinary row in its own place (owner,

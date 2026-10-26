@@ -36,6 +36,8 @@ final class Buckets {
 	const FIELDS = array(
 		'community' => 'Community',
 		'tongue'    => 'Language (Mother Tongue)',
+		'city'      => 'City',
+		'native'    => 'Native Place',
 	);
 
 	/*
@@ -112,6 +114,40 @@ final class Buckets {
 	);
 
 	/*
+	 * City and native place -> state (owner, 2026-10-26). Big cities and
+	 * common spellings; `wp csm buckets report` lists what falls through.
+	 * Shared by 'city' and 'native'.
+	 */
+	const STATE = array(
+		array( 'Maharashtra', '/maharash?tra|mumbai|bombay|thane|th?ana\b|panvel|kalyan|dombivli|vasai|virar|mira ?road|bhayand[ae]r|borivali|andheri|pune|poona|pimpri|chinchwad|nagpur|nashik|nasik|aurangabad|sambhaji ?nagar|solapur|kolhapur|sangli|satara|amravati|akola|jalgaon|latur|nanded|ahmednagar|ahilya ?nagar|dhule|chandrapur|ratnagiri|wardha|yavatmal|bhiwandi|ulhasnagar|ambernath|badlapur|lonavala|baramati|ichalkaranji|beed|parbhani|jalna|gondia|bhusawal|malegaon/' ),
+		array( 'Gujarat', '/gujarat|ahm[ae]d[ae]?bad|amdavad|surat|vadodara|baroda|rajkot|bhavnagar|jamnagar|gandhinagar|junagadh|anand\b|nadiad|bharuch|ankleshwar|vapi|valsad|navsari|morbi|mehsana|palanpur|bhuj|kutch|kachchh|gandhidham|porbandar|godhra|patan\b|veraval|amreli|surendranagar|botad|dahod/' ),
+		array( 'Rajasthan', '/rajasthan|jaipur|jodhpur|udaipur|kota\b|ajmer|bikaner|alwar|bhilwara|sikar|sri ?ganganagar|ganganagar|pali\b|chittorgarh|chittaurgarh|kishangarh|beawar|jhunjhunu|churu|nagaur|barmer|jaisalmer|tonk|bundi|banswara|dungarpur|hanumangarh|sirohi|abu road|bharatpur|dausa|sawai madhopur|rajsamand|nathdwara|balotra|bhiwadi|neemrana|makrana|ladnun|sujangarh|ratangarh|fatehpur shekhawati|shekhawati/' ),
+		array( 'Delhi NCR', '/delhi|new delhi|\bncr\b|gurgaon|gurugram|noida|ghaziabad|faridabad|greater noida|indirapuram|vaishali|dwarka|rohini|janakpuri|pitampura|lajpat/' ),
+		array( 'Uttar Pradesh', '/uttar ?pradesh|\bu ?p\b|lucknow|kanpur|agra|varanasi|banaras|benaras|kashi|allahabad|prayag\w*|meerut|bareilly|aligarh|moradabad|saharanpur|gorakhpur|jhansi|mathura|vrindavan|firozabad|muzaffarnagar|shahjahanpur|rampur|hapur|bulandshahr|etawah|mirzapur|ayodhya|faizabad|sultanpur|azamgarh|jaunpur|ballia|deoria|basti|gonda|bahraich|sitapur|hardoi|unnao|rae ?bareli|pratapgarh|fatehpur|banda|lalitpur|mainpuri|etah|kasganj|budaun|pilibhit|lakhimpur|bijnor|amroha|shamli|baghpat|modinagar|orai|ghazipur|chandauli|mau\b|kushinagar|maharajganj|siddharthnagar|bhadohi|sonbhadra|khurja|kannauj|farrukhabad/' ),
+		array( 'Madhya Pradesh', '/madhya ?pradesh|\bm ?p\b|indore|bhopal|jabalpur|gwalior|ujjain|sagar|ratlam|dewas|satna|rewa|katni|singrauli|burhanpur|khandwa|khargone|chhindwara|neemuch|mandsaur|shivpuri|guna|vidisha|hoshangabad|narmadapuram|itarsi|betul|seoni|damoh|chhatarpur|tikamgarh|morena|bhind|datia|shahdol|sehore|dhar\b|mhow|pithampur|harda|balaghat|mandla|shajapur|rajgarh|ashoknagar/' ),
+		array( 'West Bengal', '/west ?bengal|kolkata|calcutta|howrah|durgapur|asansol|siliguri|kharagpur|haldia|bardhaman|burdwan|hooghly|hugli|barasat|salt ?lake|bidhannagar|darjeeling|malda|jalpaiguri|serampore|chandannagar|krishnanagar|bankura|purulia|midnapore|medinipur|cooch ?behar/' ),
+		array( 'Telangana', '/telangana|hyderabad|secunderabad|warangal|karimnagar|nizamabad|khammam|ramagundam|mahbubnagar|nalgonda|adilabad|suryapet|siddipet|miryalaguda|cyberabad/' ),
+		array( 'Andhra Pradesh', '/andhra|vizag|visakha\w*|vijayawada|guntur|nellore|kurnool|tirupati|rajahmundry|rajamahendravaram|kakinada|kadapa|anantapur|eluru|ongole|chittoor|machilipatnam|srikakulam|vizianagaram|bhimavaram|tenali|proddatur|nandyal|hindupur|amaravati|tadepalligudem|narasaraopet|palakollu|gudivada/' ),
+		array( 'Karnataka', '/karnataka|bangalore|bengaluru|banglore|bengalore|mysore|mysuru|mangalore|mangaluru|hubli|hubballi|dharwad|belgaum|belagavi|gulbarga|kalaburagi|davangere|davanagere|bellary|ballari|shimoga|shivamogga|tumkur|tumakuru|udupi|bijapur|vijayapura|hassan|raichur|bidar|hospet|chitradurga|mandya|chikmagalur|karwar|bagalkot|gadag|kolar|manipal|sirsi|bhatkal/' ),
+		array( 'Tamil Nadu', '/tamil ?nadu|chennai|madras|coimbatore|kovai|madurai|trichy|tiruchi\w*|salem|tirupp?ur|erode|vellore|tirunelveli|thoothukudi|tuticorin|thanjavur|dindigul|karur|nagercoil|kanchipuram|hosur|kumbakonam|namakkal|sivakasi|pollachi|cuddalore|karaikudi|ooty|nilgiris/' ),
+		array( 'Kerala', '/kerala|kochi|cochin|ernakulam|thiruvananthapuram|trivandrum|kozhikode|calicut|thrissur|trichur|kollam|quilon|kannur|cannanore|alappuzha|alleppey|palakkad|palghat|kottayam|malappuram|kasaragod|pathanamthitta|idukki|wayanad|aluva|thalassery/' ),
+		array( 'Punjab', '/punjab|ludhiana|amritsar|jalandhar|jullundur|patiala|bathinda|bhatinda|mohali|hoshiarpur|pathankot|moga|abohar|firozpur|ferozepur|phagwara|kapurthala|barnala|sangrur|muktsar|fazilka|rajpura|khanna|zirakpur|batala|malerkotla|mansa/' ),
+		array( 'Chandigarh', '/chandigarh|tricity|panchkula/' ),
+		array( 'Haryana', '/haryana|rohtak|hisar|hissar|panipat|karnal|sonipat|sonepat|ambala|yamuna ?nagar|kurukshetra|bhiwani|sirsa|jind|kaithal|rewari|palwal|bahadurgarh|jhajjar|fatehabad|mahendragarh|narnaul|hansi|tohana|charkhi dadri/' ),
+		array( 'Bihar', '/bihar|patna|gaya\b|bhagalpur|muzaffarpur|darbhanga|purnia|purnea|begusarai|arrah|\bara\b|katihar|munger|chapra|saharsa|sasaram|hajipur|siwan|motihari|bettiah|samastipur|madhubani|sitamarhi|kishanganj|buxar|jehanabad|nalanda|bihar ?sharif|forbesganj|dehri/' ),
+		array( 'Jharkhand', '/jharkhand|ranchi|jamshedpur|tatanagar|dhanbad|bokaro|hazaribagh|hazaribag|deoghar|giridih|ramgarh|dumka|phusro|chaibasa|daltonganj|palamu|sahibganj|godda|koderma|jamtara|pakur|gumla|lohardaga|chas\b/' ),
+		array( 'Odisha', '/odisha|orissa|bhubaneswar|bhubaneshwar|cuttack|rourkela|sambalpur|berhampur|brahmapur|balasore|baleswar|puri\b|jharsuguda|bargarh|angul|jajpur|kendrapara|bhadrak|baripada|keonjhar|sundargarh|koraput|rayagada|jeypore|talcher|dhenkanal/' ),
+		array( 'Chhattisgarh', '/chh?attisgarh|raipur|bhilai|durg\b|bilaspur|korba|rajnandgaon|raigarh|jagdalpur|ambikapur|dhamtari|mahasamund|janjgir|kawardha/' ),
+		array( 'Uttarakhand', '/uttarakhand|uttaranchal|dehradun|dehra ?dun|haridwar|rishikesh|roorkee|haldwani|nainital|kashipur|rudrapur|almora|pithoragarh|mussoorie|kotdwar|kichha/' ),
+		array( 'Himachal Pradesh', '/himachal|shimla|simla|mandi\b|solan|dharamshala|dharamsala|kangra|kullu|manali|hamirpur|una\b|bilaspur hp|chamba|nahan|baddi|palampur/' ),
+		array( 'Jammu & Kashmir / Ladakh', '/jammu|kashmir|srinagar|ladakh|leh\b|anantnag|baramulla|kathua|udhampur/' ),
+		array( 'Assam / North East', '/assam|guwahati|gauhati|dibrugarh|silchar|jorhat|tezpur|tinsukia|nagaon|bongaigaon|meghalaya|shillong|tripura|agartala|manipur|imphal|nagaland|kohima|dimapur|mizoram|aizawl|arunachal|itanagar|sikkim|gangtok|north ?east/' ),
+		array( 'Goa', '/\bgoa\b|panaji|panjim|margao|madgaon|vasco|mapusa|ponda/' ),
+		array( 'Puducherry', '/puducherry|pondicherry|pondy|karaikal/' ),
+		array( 'Abroad', '/dubai|abu ?dhabi|sharjah|\buae\b|qatar|doha|muscat|oman|kuwait|bahrain|riyadh|jeddah|saudi|singapore|malaysia|kuala|hong ?kong|london|\buk\b|united kingdom|england|scotland|ireland|dublin|\busa?\b|united states|america|new york|california|texas|new jersey|chicago|boston|seattle|san francisco|canada|toronto|vancouver|calgary|australia|sydney|melbourne|brisbane|perth|new ?zealand|auckland|germany|frankfurt|berlin|munich|netherlands|amsterdam|france|paris|switzerland|zurich|belgium|sweden|japan|tokyo|nepal|kathmandu|africa|nairobi|kenya|lagos/' ),
+	);
+
+	/*
 	 * The member's own choice of group (v1.86.2): array( text, group ). It
 	 * holds only while their answer is unchanged; a new answer is grouped
 	 * again, and the screen offers the choice again.
@@ -128,6 +164,9 @@ final class Buckets {
 
 	public static function field_id( $kind ) {
 		static $ids = array();
+		if ( 'city' === $kind ) {
+			return (int) Config::FIELD_CITY; // the 'City' label does not find the live field
+		}
 		if ( ! isset( $ids[ $kind ] ) ) {
 			$ids[ $kind ] = function_exists( 'xprofile_get_field_id_from_name' ) && isset( self::FIELDS[ $kind ] )
 				? (int) xprofile_get_field_id_from_name( self::FIELDS[ $kind ] )
@@ -140,10 +179,23 @@ final class Buckets {
 		return 'csm_bucket_' . $kind;
 	}
 
+	/** The rules for a kind. */
+	public static function rules( $kind ) {
+		if ( 'tongue' === $kind ) {
+			return self::TONGUE;
+		}
+		return in_array( $kind, array( 'city', 'native' ), true ) ? self::STATE : self::COMMUNITY;
+	}
+
+	/** A known kind from a request, else 'community'. */
+	public static function kind( $kind ) {
+		return isset( self::FIELDS[ $kind ] ) ? (string) $kind : 'community';
+	}
+
 	/** Every group label of a kind, in rule order (for filter lists). */
 	public static function labels( $kind ) {
 		$out = array();
-		foreach ( 'tongue' === $kind ? self::TONGUE : self::COMMUNITY as $r ) {
+		foreach ( self::rules( $kind ) as $r ) {
 			if ( '' !== $r[0] && ! in_array( $r[0], $out, true ) && 'English' !== $r[0] ) {
 				$out[] = $r[0];
 			}
@@ -163,7 +215,7 @@ final class Buckets {
 			return array();
 		}
 		$out = array();
-		foreach ( 'tongue' === $kind ? self::TONGUE : self::COMMUNITY as $r ) {
+		foreach ( self::rules( $kind ) as $r ) {
 			if ( preg_match( $r[1] . 'u', $t ) ) {
 				if ( '' !== $r[0] && ! in_array( $r[0], $out, true ) ) {
 					$out[] = $r[0];
@@ -233,7 +285,7 @@ final class Buckets {
 
 	/** The group(s) an answer would get, and the full list to choose from. */
 	public static function rest_suggest( $request ) {
-		$kind = 'tongue' === $request->get_param( 'kind' ) ? 'tongue' : 'community';
+		$kind = self::kind( $request->get_param( 'kind' ) );
 		$text = (string) $request->get_param( 'text' );
 		$set  = get_user_meta( get_current_user_id(), sprintf( self::SET, $kind ), true );
 		return new \WP_REST_Response( array(
@@ -247,7 +299,7 @@ final class Buckets {
 	/** The member picks the group for their (current) answer. */
 	public static function rest_choose( $request ) {
 		$uid   = get_current_user_id();
-		$kind  = 'tongue' === $request->get_param( 'kind' ) ? 'tongue' : 'community';
+		$kind  = self::kind( $request->get_param( 'kind' ) );
 		$group = (string) $request->get_param( 'group' );
 		$text  = (string) $request->get_param( 'text' );
 		if ( ! in_array( $group, self::labels( $kind ), true ) ) {
