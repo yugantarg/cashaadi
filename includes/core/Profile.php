@@ -582,7 +582,8 @@ final class Profile {
 		 * padded rather than informative.
 		 */
 		$skip = array(
-			'Name', 'Bio', 'Age', 'City',
+			// City is a row in Basic Details (owner, 2026-10-26).
+			'Name', 'Bio', 'Age',
 
 			/*
 			 * Phone Number is NOT shown on a profile anyone else can see.

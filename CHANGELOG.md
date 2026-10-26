@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.77 — 2026-10-26
+
+- City is a row in Basic Details on profile cards (owner), where it sits in the profile. The job / city lines over the photo are gone again: they were never visible (0px tall) until v1.89.76, and the job title is already in Professional details.
+
 ## 1.89.76 — 2026-10-26
 
 - The real cause of the missing city (and job title) on profile cards: the photo area sets `line-height: 0`, the job/city lines inherited it, and with their two-line clamp they were 0px tall. They now have their own line height.

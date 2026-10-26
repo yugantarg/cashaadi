@@ -419,11 +419,8 @@ window.csmProfileCard = function ( p ) {
 
 	var over = mk( 'div', 'csm-d-over' );
 	over.appendChild( mk( 'h1', 'csm-d-name', p.name + ( p.age ? ', ' + p.age : '' ) ) );
-	// Job, then the city on its own line (owner, 2026-10-26). They shared one
-	// line before, and a long job title pushed the city off the end.
-	if ( p.job ) { over.appendChild( mk( 'p', 'csm-d-sub', p.job ) ); }
-	var city = p.cityLine || p.city;
-	if ( city ) { over.appendChild( mk( 'p', 'csm-d-sub csm-d-city', city ) ); }
+	// Name and age only (owner, 2026-10-26): the job title is in Professional
+	// details and the city in Basic Details, not repeated over the photo.
 	media.appendChild( over );
 	card.appendChild( media );
 
