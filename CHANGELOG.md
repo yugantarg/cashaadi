@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.59 — 2026-10-26
+
+- Viewing the number of someone who has already sent you a request accepts their request (owner): you become a match, they are told, and it leaves Saved if it was saved for later (event `phone_view_accept`). The confirm says so every time: "[Name] has sent you a request. Viewing their number accepts it, and you become a match." [View and accept].
+
 ## 1.89.58 — 2026-10-26
 
 - Free members get a fresh set every week whether or not they acted (owner). At the first refill of a new week, their undecided profiles from earlier weeks leave the deck, so the full weekly number of new profiles arrives; those profiles stay counted as shown, so the new set is new people. Premium (carry-over plus new) and Gold (everyone) are unchanged; boosted cards are left alone.

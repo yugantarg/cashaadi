@@ -238,7 +238,26 @@ final class Gold {
 
 	/** A match request from $me to $pid, unless they are already connected either way. */
 	private static function send_request( $me, $pid ) {
-		if ( ! function_exists( 'friends_check_friendship_status' ) || 'not_friends' !== friends_check_friendship_status( $me, $pid ) ) {
+		if ( ! function_exists( 'friends_check_friendship_status' ) ) {
+			return;
+		}
+		$status = friends_check_friendship_status( $me, $pid );
+		/*
+		 * They already asked: viewing their number accepts their request, so
+		 * the two become a match and they are told (owner, 2026-10-26).
+		 */
+		if ( 'awaiting_response' === $status && function_exists( 'friends_get_friendship_id' ) && function_exists( 'friends_accept_friendship' ) ) {
+			$fid = friends_get_friendship_id( $pid, $me );
+			if ( $fid && friends_accept_friendship( $fid ) ) {
+				$saved = array_values( array_diff( array_map( 'intval', (array) get_user_meta( $me, 'csm_req_saved', true ) ), array( (int) $pid ) ) );
+				update_user_meta( $me, 'csm_req_saved', $saved );
+				if ( function_exists( 'cashaadi' ) ) {
+					cashaadi()->log_event( 'phone_view_accept', $me, $pid, array() );
+				}
+			}
+			return;
+		}
+		if ( 'not_friends' !== $status ) {
 			return;
 		}
 		if ( function_exists( 'csm_log_event' ) ) {

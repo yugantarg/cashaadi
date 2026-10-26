@@ -445,7 +445,9 @@ final class Profile {
 			if ( \CAShaadi\Modules\Premium\Gold::revealed( $viewer_id, $profile_id ) ) {
 				$visible = true;
 			} else {
-				return array_merge( $none, array( 'state' => 'reveal' ) );
+				// 'asked': they sent this viewer a request; viewing accepts it (v1.89.59).
+				$asked = function_exists( 'friends_check_friendship_status' ) && 'awaiting_response' === friends_check_friendship_status( $viewer_id, $profile_id );
+				return array_merge( $none, array( 'state' => 'reveal', 'asked' => $asked ) );
 			}
 		}
 		if ( $visible ) {

@@ -307,6 +307,11 @@ window.csmProfileCard = function ( p ) {
 			rv.addEventListener( 'click', function () {
 				var seen = false;
 				try { seen = !! localStorage.getItem( 'csm_phone_note' ); } catch ( e ) {}
+				// They already asked: viewing accepts their request (v1.89.59). Said every time.
+				if ( st.asked && window.csmConfirm ) {
+					return window.csmConfirm( p.name + ' has sent you a request. Viewing their number accepts it, and you become a match.', { title: 'View number?', okText: 'View and accept', cancelText: 'Cancel' } )
+						.then( function ( ok ) { if ( ok ) { open(); } } );
+				}
 				if ( seen || ! window.csmConfirm ) { return open(); }
 				window.csmConfirm( 'Viewing a phone number sends ' + p.name + ' a match request from you, so they know who has their number.', { title: 'View number?', okText: 'View number', cancelText: 'Cancel' } )
 					.then( function ( ok ) { if ( ok ) { try { localStorage.setItem( 'csm_phone_note', '1' ); } catch ( e ) {} open(); } } );
