@@ -116,6 +116,11 @@ final class AppShell {
 
 	/** Should the shell render at all on this request? */
 	private static function active_here() {
+		// Not on an app screen (Core\AppPage), which draws its own nav: Discover is
+		// also a WordPress page, so it got both bars, one under the other (v1.89.55).
+		if ( class_exists( '\CAShaadi\Core\AppPage' ) && \CAShaadi\Core\AppPage::$open ) {
+			return false;
+		}
 		return is_user_logged_in() && self::is_member_screen() && ! self::is_focused();
 	}
 

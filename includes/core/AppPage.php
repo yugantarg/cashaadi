@@ -106,7 +106,11 @@ final class AppPage {
 	 * @param string $title   Browser title.
 	 * @param string $current Nav key to highlight.
 	 */
+	/** True while an app screen is being drawn: it brings its own bottom nav. */
+	public static $open = false;
+
 	public static function open( $title, $current = '' ) {
+		self::$open = true;
 		?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -406,6 +410,7 @@ final class AppPage {
 		}
 		status_header( 200 );
 		nocache_headers();
+		self::$open = true; // from here on the theme's shell stays out (AppShell)
 		return true;
 	}
 }
