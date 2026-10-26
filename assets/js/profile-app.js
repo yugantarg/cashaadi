@@ -39,12 +39,12 @@
 		if ( b.until ) {
 			box.classList.add( 'is-on' );
 			box.appendChild( el( 'strong', null, '\uD83D\uDE80 Boosted \u00b7 ' + b.hoursLeft + 'h left' ) );
-			box.appendChild( el( 'span', null, 'Shown first in Discover to ' + b.reached + ' of up to ' + b.cap + ' members so far.' ) );
+			box.appendChild( el( 'span', null, 'Your profile is being shown first in Discover.' ) );
 			return box;
 		}
 		if ( b.available > 0 ) {
 			box.appendChild( el( 'strong', null, 'Boost my profile' ) );
-			box.appendChild( el( 'span', null, 'Be shown first in Discover to up to ' + b.cap + ' new members for 24 hours. ' + b.available + ( 1 === b.available ? ' boost' : ' boosts' ) + ' left.' ) );
+			box.appendChild( el( 'span', null, 'Be shown first in Discover for 24 hours. ' + b.available + ( 1 === b.available ? ' boost' : ' boosts' ) + ' left.' ) );
 			var go = el( 'button', 'csm-p-boost-btn', 'Boost now' );
 			go.type = 'button';
 			go.addEventListener( 'click', function () {

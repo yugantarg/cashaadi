@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.51 — 2026-10-26
+
+- Boost mechanics are not shown to members (owner): the profile card no longer says how many members a boost has reached or its limit, and the boost state sent to the browser no longer carries them. `wp csm spotlight status` still shows reach for admins.
+
 ## 1.89.50 — 2026-10-26
 
 - Boost multiplier steps 1.3x at the start, 2x at 6 hours, 5x from 12 hours (straight lines between; `Spotlight::MULT_STEPS`). A woman's boost now reaches up to 100 men (was 150); a man's stays 50. Delivery stops once the cap is reached.

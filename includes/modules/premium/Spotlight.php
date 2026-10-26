@@ -292,8 +292,7 @@ final class Spotlight {
 		return array(
 			'until'     => $until ? $until : 0,
 			'hoursLeft' => $until ? (int) ceil( ( $until - time() ) / HOUR_IN_SECONDS ) : 0,
-			'reached'   => (int) get_user_meta( $uid, self::REACHED, true ),
-			'cap'       => self::cap_for( $uid ),
+			// Reach and cap are not sent: the mechanics are not shown to members (owner).
 			'available' => self::available( $uid ),
 			'plan'      => Membership::is_gold( $uid ) ? 'gold' : ( Membership::is_premium( $uid ) ? 'premium' : 'free' ),
 			'start'     => rest_url( 'csm/v1/boost/start' ),
