@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.53 — 2026-10-26
+
+- The "match requests waiting" popup is off (owner: too often). Instead the Requests tab in the bottom bar carries a red count of requests received and not yet answered or saved for later (9+ above nine). The weekly "requests waiting" email is unchanged.
+
 ## 1.89.52 — 2026-10-26
 
 - Boost data, kept permanently: `boost_shown` (each boosted card delivered: hour into the boost, multiplier, the member's score, the viewer's bar), `boost_outcome` (request / pass / save on a boosted card, logged in `Discover::act` before the weekly reset can delete the row), and pack buy taps (`buy_click` with product `boost_pack`). `boost_started` and `boost_bought` are now kept permanently too.

@@ -273,6 +273,17 @@ final class AppPage {
 	 * under every screen made it furniture rather than help.
 	 * Config::SUPPORT_EMAIL is still the single source for both.
 	 */
+	/** Requests received and not yet answered or saved for later, for the nav count. */
+	private static function requests_waiting() {
+		$uid = get_current_user_id();
+		if ( ! $uid || ! function_exists( 'friends_get_friendship_request_user_ids' ) ) {
+			return 0;
+		}
+		$ids   = array_map( 'intval', (array) friends_get_friendship_request_user_ids( $uid ) );
+		$saved = array_map( 'intval', (array) get_user_meta( $uid, 'csm_req_saved', true ) );
+		return count( array_diff( $ids, $saved ) );
+	}
+
 	public static function close( $current = '' ) {
 		?>
 		</main>
@@ -284,6 +295,9 @@ final class AppPage {
 					<?php echo $key === $current ? 'aria-current="page"' : ''; ?>>
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $item['icon']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup above ?></svg>
 					<span><?php echo esc_html( $item['label'] ); ?></span>
+					<?php if ( 'requests' === $key && ( $n = self::requests_waiting() ) ) : ?>
+						<b class="csm-app-nav-count" aria-label="<?php echo esc_attr( $n . ' new' ); ?>"><?php echo esc_html( $n > 9 ? '9+' : (string) $n ); ?></b>
+					<?php endif; ?>
 				</a>
 			<?php endforeach; ?>
 		</nav>
@@ -323,7 +337,9 @@ final class AppPage {
 			: false;
 		// "N match requests waiting" (v1.78.0): again only when a new request
 		// has arrived since it was last shown.
-		$reqs = ! $ff15 && class_exists( '\\CAShaadi\\Modules\\Matches\\RequestsWaiting' )
+		// Off since v1.89.53 (owner: "comes too often"): a red count on the
+		// Requests tab in the bottom bar says it instead.
+		$reqs = false && ! $ff15 && class_exists( '\\CAShaadi\\Modules\\Matches\\RequestsWaiting' )
 			&& ! preg_match( '#^/(requests|welcome)\b#', (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) )
 			? \CAShaadi\Modules\Matches\RequestsWaiting::popup( get_current_user_id() )
 			: false;

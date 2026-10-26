@@ -367,3 +367,7 @@ img.avatar {
 /* "Show all" next to "N hidden by your filters" (v1.89.19). */
 .csm-filter-showall { margin-left: 4px; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: underline; cursor: pointer; }
 .csm-filter-showall[disabled] { color: var(--csm-muted, #5c6a76); text-decoration: none; cursor: default; }
+
+/* Unanswered requests on the Requests tab (v1.89.53). */
+.csm-app-nav-item { position: relative; }
+.csm-app-nav-count { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #d93025; color: #fff; font: 700 11px/18px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--csm-surface, #fff); }
