@@ -125,23 +125,16 @@ final class Seen {
 	/**
 	 * Every profile this viewer may not be served again.
 	 *
-	 * Deliberately includes profiles with no decision yet: one sitting unacted in
-	 * the tray must not be served twice either, and that used to depend on the
-	 * pending-status query agreeing with reality.
+	 * Profiles still sitting in the tray are kept out by the engine; this list
+	 * is about what has left it. Since v1.89.60 (owner, 2026-10-26): a request
+	 * never expires (re-serving someone you asked reads as a bug), a pass
+	 * expires after 30 days, and an ignored profile (shown, never decided)
+	 * after 15 days. Both windows are filters, in days:
 	 *
-	 * PASSES EXPIRE, LIKES DO NOT (owner decision, 2026-09-04). A pass older than
-	 * the window drops out of this list and the profile can be served again — the
-	 * member may well have changed their photos or details since. A like never
-	 * expires: that pair already has a pending match request, and re-serving
-	 * someone you have asked to match with reads as a bug, not a second chance.
+	 *   add_filter( 'csm_pass_reshow_days', fn() => 60 );
+	 *   add_filter( 'csm_ignore_reshow_days', fn() => 30 );
 	 *
-	 * The window is a filter rather than a constant because the owner chose one
-	 * month, which is short for a 5-a-week tray: if members start seeing repeats,
-	 * this wants raising without a deploy.
-	 *
-	 *   add_filter( 'csm_pass_reshow_months', fn() => 6 );
-	 *
-	 * Returning 0 (or less) disables expiry entirely — passes become permanent.
+	 * A pass window of 0 (or less) makes passes permanent.
 	 *
 	 * FAILS CLOSED. If the table is missing this returns FALSE, not an empty
 	 * array, and the refill aborts. An empty array would read as "this member has
@@ -157,39 +150,35 @@ final class Seen {
 			return false;
 		}
 		global $wpdb;
-		$t      = self::table();
-		$months = (int) apply_filters( 'csm_pass_reshow_months', 1 );
+		$t   = self::table();
+		$now = (int) current_time( 'timestamp' );
 		/*
-		 * Gold sees every member (owner, 2026-10-26: "I need to be able to see
-		 * all profiles as a gold member"). For Gold only a decision keeps a
-		 * profile away: one that was loaded but never acted on comes back.
+		 * Who comes back, and when (owner, 2026-10-26):
+		 *   sent a request (liked)  never
+		 *   passed                  after csm_pass_reshow_days (30) from the pass
+		 *   ignored (shown, never   after csm_ignore_reshow_days (15) from the
+		 *   decided)                last time they were shown
+		 * Gold: ignored profiles are never held back (they see everyone).
+		 * Profiles still in the tray (pending or saved) are kept out by the
+		 * engine itself. Cutoffs in PHP: the columns are written in IST.
 		 */
-		$decided = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( (int) $viewer_id )
-			? " AND action <> ''" : '';
-
-		if ( $months < 1 ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$ids = $wpdb->get_col( $wpdb->prepare(
-				"SELECT profile_id FROM {$t} WHERE viewer_id = %d" . $decided,
-				(int) $viewer_id
-			) );
-			return array_map( 'intval', (array) $ids );
-		}
-
-		/*
-		 * Cutoff computed in PHP, not with MySQL's NOW(): acted_at is written with
-		 * current_time( 'mysql' ), which is IST, while NOW() is whatever the
-		 * database server is set to. Mixing the two silently shifts the window.
-		 */
-		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $months . ' months', (int) current_time( 'timestamp' ) ) );
+		$pass_days   = (int) apply_filters( 'csm_pass_reshow_days', 30 );
+		$ignore_days = (int) apply_filters( 'csm_ignore_reshow_days', 15 );
+		$gold        = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( (int) $viewer_id );
+		$pass_cut    = gmdate( 'Y-m-d H:i:s', $now - max( 0, $pass_days ) * DAY_IN_SECONDS );
+		$ignore_cut  = gmdate( 'Y-m-d H:i:s', $now - max( 0, $ignore_days ) * DAY_IN_SECONDS );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$ids = $wpdb->get_col( $wpdb->prepare(
 			"SELECT profile_id FROM {$t}
-			 WHERE viewer_id = %d
-			   AND NOT ( action = 'passed' AND acted_at IS NOT NULL AND acted_at < %s )" . $decided,
+			 WHERE viewer_id = %d AND (
+			       action = 'liked'
+			    OR ( action = 'passed' AND ( %d <= 0 OR acted_at IS NULL OR acted_at >= %s ) )
+			    OR ( action = '' AND %d = 0 AND last_seen_at >= %s )
+			 )",
 			(int) $viewer_id,
-			$cutoff
+			$pass_days, $pass_cut,
+			$gold ? 1 : 0, $ignore_cut
 		) );
 		return array_map( 'intval', (array) $ids );
 	}

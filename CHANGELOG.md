@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.60 — 2026-10-26
+
+- When profiles come back to Discover (owner): ignored (shown, never decided, and no longer in the deck) after 15 days from the last showing; passed after 30 days (was one month); sent a request never. Filters `csm_ignore_reshow_days` / `csm_pass_reshow_days` replace `csm_pass_reshow_months`. Gold is unchanged: ignored profiles are never held back.
+
 ## 1.89.59 — 2026-10-26
 
 - Viewing the number of someone who has already sent you a request accepts their request (owner): you become a match, they are told, and it leaves Saved if it was saved for later (event `phone_view_accept`). The confirm says so every time: "[Name] has sent you a request. Viewing their number accepts it, and you become a match." [View and accept].
