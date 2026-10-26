@@ -272,16 +272,19 @@ window.csmProfileCard = function ( p ) {
 		var st = p.phone || {};
 		var app = window.CSM_APP || {};
 		if ( 'visible' === st.state || 'own' === st.state ) {
-			dd.appendChild( document.createTextNode( st.number ) );
+			// The number on one line, Call / WhatsApp as buttons under it (v1.89.64).
+			dd.appendChild( mk( 'span', 'csm-d-phone-n', st.number ) );
 			if ( 'visible' === st.state ) {
-				var call = mk( 'a', 'csm-d-phone-a', 'Call' );
+				var acts = mk( 'span', 'csm-d-phone-acts' );
+				var call = mk( 'a', 'csm-d-phone-btn', 'Call' );
 				call.href = 'tel:' + st.tel;
-				var wa = mk( 'a', 'csm-d-phone-a', 'WhatsApp' );
+				var wa = mk( 'a', 'csm-d-phone-btn', 'WhatsApp' );
 				wa.href = 'https://wa.me/' + st.wa;
 				wa.target = '_blank';
 				wa.rel = 'noopener';
-				dd.appendChild( call );
-				dd.appendChild( wa );
+				acts.appendChild( call );
+				acts.appendChild( wa );
+				dd.appendChild( acts );
 			}
 		} else if ( 'reveal' === st.state ) {
 			// One tap shows the number and sends them a request; said once first.

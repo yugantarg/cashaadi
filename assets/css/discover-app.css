@@ -431,3 +431,8 @@ body.csm-member-view .csm-d-card {
 	.csm-d-actions > .csm-d-nav { margin-top: 11px; }
 }
 .csm-d-tilenew.is-gold { background: #3a2806; color: #ffe7a3; }
+
+/* Phone row (v1.89.64): number kept whole, Call / WhatsApp as small buttons below. */
+.csm-d-phone-n { white-space: nowrap; }
+.csm-d-phone-acts { display: flex; gap: 8px; margin-top: 6px; }
+.csm-d-phone-btn { padding: 5px 12px; border: 1px solid var(--csm-blue, #2c5b8c); border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none; }
