@@ -246,6 +246,14 @@ final class Discover {
 		$from = ( 'saved' === $status ) ? array( 'pending' ) : array( 'pending', 'saved' );
 		$in   = implode( ',', array_fill( 0, count( $from ), '%s' ) );
 
+		// Was this a boosted card? Read before the update; the weekly reset later
+		// deletes decided rows, so the outcome is logged below (v1.89.52).
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$boosted = 'boost' === (string) $wpdb->get_var( $wpdb->prepare(
+			"SELECT week_assigned FROM {$tray} WHERE viewer_id = %d AND profile_id = %d AND status IN ({$in}) LIMIT 1",
+			array_merge( array( $viewer_id, $profile_id ), $from )
+		) );
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$claimed = $wpdb->query( $wpdb->prepare(
 			"UPDATE {$tray} SET status = %s, acted_at = %s
@@ -265,6 +273,12 @@ final class Discover {
 		 */
 		if ( 'saved' !== $status ) {
 			Seen::record_action( $viewer_id, $profile_id, $status );
+		}
+		if ( $boosted && $claimed && function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'boost_outcome', $profile_id, $viewer_id, array(
+				'status'  => $status,
+				'started' => (int) get_user_meta( $profile_id, 'csm_spot_started', true ),
+			) );
 		}
 
 		$is_mutual = false;

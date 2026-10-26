@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.52 — 2026-10-26
+
+- Boost data, kept permanently: `boost_shown` (each boosted card delivered: hour into the boost, multiplier, the member's score, the viewer's bar), `boost_outcome` (request / pass / save on a boosted card, logged in `Discover::act` before the weekly reset can delete the row), and pack buy taps (`buy_click` with product `boost_pack`). `boost_started` and `boost_bought` are now kept permanently too.
+- `wp csm spotlight report [--days=30]`: per boost, cards shown, requests / passes / saves on them, requests received in the 24 hours vs the 24 hours before, matches; totals; pack buy taps and sales.
+
 ## 1.89.51 — 2026-10-26
 
 - Boost mechanics are not shown to members (owner): the profile card no longer says how many members a boost has reached or its limit, and the boost state sent to the browser no longer carries them. `wp csm spotlight status` still shows reach for admins.

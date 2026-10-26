@@ -184,6 +184,7 @@ final class Spotlight {
 		) );
 		$pick = 0;
 		$best = -1;
+		$why  = array();
 		foreach ( $cands as $b ) {
 			$hours = ( time() - (int) get_user_meta( $b, self::STARTED, true ) ) / HOUR_IN_SECONDS;
 			$mult  = self::multiplier( $hours );
@@ -191,6 +192,7 @@ final class Spotlight {
 			if ( $score >= $bar && $score > $best ) {
 				$best = $score;
 				$pick = $b;
+				$why  = array( 'hour' => round( $hours, 1 ), 'mult' => round( $mult, 2 ), 'score' => round( $score / $mult, 2 ), 'bar' => round( $bar, 2 ) );
 			}
 		}
 		if ( ! $pick ) {
@@ -207,6 +209,8 @@ final class Spotlight {
 			return;
 		}
 		update_user_meta( $viewer, self::SEEN_DAY, $today );
+		// Each delivery, for tuning the multiplier (v1.89.52).
+		cashaadi()->log_event( 'boost_shown', $pick, $viewer, array_merge( $why, array( 'started' => (int) get_user_meta( $pick, self::STARTED, true ) ) ) );
 		update_user_meta( $pick, self::REACHED, (int) get_user_meta( $pick, self::REACHED, true ) + 1 );
 		if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
 			\CAShaadi\Modules\Discover\Seen::record_served( $viewer, $pick, self::WEEK_ROW );

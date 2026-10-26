@@ -49,7 +49,7 @@ final class Journey {
 	const CRON = 'csm_journey_daily';
 
 	/** Event types never pruned: the record a later analysis depends on. */
-	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_withdrawn', 'membership_first', 'membership_renewed', 'membership_upgraded', 'membership_expired', 'membership_ended', 'membership_downgraded', 'filters_set', 'filters_cleared', 'phone_privacy' );
+	const KEEP_EVENTS = array( 'account_deleted', 'purchase', 'pricing_view', 'buy_click', 'match_made', 'once_field_changed', 'request_withdrawn', 'membership_first', 'membership_renewed', 'membership_upgraded', 'membership_expired', 'membership_ended', 'membership_downgraded', 'boost_started', 'boost_bought', 'boost_shown', 'boost_outcome', 'filters_set', 'filters_cleared', 'phone_privacy' );
 
 	public static function register() {
 		Migrator::register( 'member_day', array( __CLASS__, 'schema' ) );
@@ -623,6 +623,9 @@ final class Journey {
 	public static function on_buy_click( $cart_item_key, $product_id ) {
 		$pid = (int) $product_id;
 		$what = (int) Config::WC_GOLD_PRODUCT === $pid ? 'gold' : ( (int) Config::WC_PREMIUM_PRODUCT === $pid ? 'premium' : '' );
+		if ( '' === $what && class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) && $pid === \CAShaadi\Modules\Premium\Spotlight::product_id() ) {
+			$what = 'boost_pack'; // v1.89.52
+		}
 		$uid  = get_current_user_id();
 		if ( '' === $what || ! $uid || user_can( $uid, 'manage_options' ) || ! function_exists( 'cashaadi' ) ) {
 			return;
