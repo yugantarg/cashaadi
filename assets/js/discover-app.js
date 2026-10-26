@@ -470,6 +470,15 @@
 			go( 1 );
 		} );
 
+		// Opening the number sent (or accepted) a request: done with this card (v1.89.65).
+		var onPhone = function ( e ) {
+			if ( ! e.detail || e.detail.id !== p.id ) { return; }
+			document.removeEventListener( 'csm:phone-opened', onPhone );
+			acted[ p.id ] = true;
+			window.csmDeck.decided( bar, e.detail.result );
+		};
+		document.addEventListener( 'csm:phone-opened', onPhone );
+
 		bar.appendChild( prev );
 		bar.appendChild( passW );
 		bar.appendChild( saveW );

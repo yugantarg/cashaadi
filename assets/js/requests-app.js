@@ -340,6 +340,7 @@
 			index: index,
 			backLabel: backLabel,
 			onBack: function () { draw(); window.scrollTo( 0, 0 ); },
+			onChange: function () { load().then( function () { window.scrollTo( 0, 0 ); } ); },
 			actions: function ( p ) {
 				// Matches: message them. Sent: withdraw. Viewed me (Premium): send a request.
 				if ( 'match' === p.kind ) {

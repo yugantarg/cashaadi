@@ -228,12 +228,27 @@ final class Gold {
 			}
 			global $wpdb;
 			$wpdb->insert( $wpdb->prefix . 'csm_phone_views', array( 'viewer_id' => $me, 'profile_id' => $pid, 'viewed_at' => current_time( 'mysql' ) ) );
-			self::send_request( $me, $pid );
+			$result = self::send_request( $me, $pid );
 			if ( function_exists( 'cashaadi' ) ) {
 				cashaadi()->log_event( 'gold_phone_view', $me, $pid, array() );
 			}
 		}
-		return new \WP_REST_Response( array( 'ok' => true, 'phone' => \CAShaadi\Core\Profile::phone( $pid, $me ) ), 200 );
+		/*
+		 * The request is decided now, so the card in Discover / Saved is too:
+		 * mark the viewer's tray row so its Pass / Save / Send request buttons
+		 * give way (owner, 2026-10-26). 'result' tells the screen what happened.
+		 */
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare(
+			"UPDATE {$wpdb->prefix}csm_tray SET status = 'liked', acted_at = %s WHERE viewer_id = %d AND profile_id = %d AND status IN ( 'pending', 'saved' )",
+			current_time( 'mysql' ), $me, $pid
+		) );
+		$status = function_exists( 'friends_check_friendship_status' ) ? friends_check_friendship_status( $me, $pid ) : '';
+		return new \WP_REST_Response( array(
+			'ok'     => true,
+			'phone'  => \CAShaadi\Core\Profile::phone( $pid, $me ),
+			'result' => 'is_friend' === $status ? 'matched' : ( 'pending' === $status ? 'requested' : '' ),
+		), 200 );
 	}
 
 	/** A match request from $me to $pid, unless they are already connected either way. */

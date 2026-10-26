@@ -436,3 +436,6 @@ body.csm-member-view .csm-d-card {
 .csm-d-phone-n { white-space: nowrap; }
 .csm-d-phone-acts { display: flex; gap: 8px; margin-top: 6px; }
 .csm-d-phone-btn { padding: 5px 12px; border: 1px solid var(--csm-blue, #2c5b8c); border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none; }
+
+/* In place of the decision buttons once a number was opened (v1.89.65). */
+.csm-d-decided { align-self: center; padding: 10px 16px; border-radius: 999px; background: var(--csm-blue-tint, #e9f1f8); color: var(--csm-blue, #2c5b8c); font-weight: 700; font-size: 14px; }

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.65 — 2026-10-26
+
+- Opening a phone number decides the card (owner): the request it sent, or the one it accepted, replaces Pass / Save / Send request (or Decline / Accept) with "✓ Request sent" / "✓ You're a match", keeping previous / next. The viewer's tray row is marked as a request, so the profile leaves Discover and Saved; Requests reloads its lists on the way back.
+
 ## 1.89.64 — 2026-10-26
 
 - Phone row on profile cards: the number stays on one line, and Call / WhatsApp are small buttons under it (the number wrapped and "Call" ran into the last digit).

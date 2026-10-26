@@ -301,6 +301,8 @@ window.csmProfileCard = function ( p ) {
 					if ( d && d.ok && d.phone ) {
 						p.phone = d.phone;
 						dd.replaceWith( phoneDd() );
+						// The request was sent or accepted: the screen swaps its buttons (v1.89.65).
+						document.dispatchEvent( new CustomEvent( 'csm:phone-opened', { detail: { id: p.id, result: d.result || 'requested' } } ) );
 					} else {
 						rv.disabled = false;
 						if ( window.csmToast ) { window.csmToast( ( d && d.message ) || 'That did not work.', 'bad' ); }
@@ -1011,8 +1013,18 @@ window.csmProfileCard = function ( p ) {
 		var list = o.list, idx = o.index || 0;
 		document.body.classList.add( 'csm-member-view' ); // the bar's clearance (discover-app.css)
 
+		var changed = false;
+		document.addEventListener( 'csm:phone-opened', function ( e ) {
+			var p = list[ idx ];
+			if ( ! p || ! e.detail || e.detail.id !== p.id ) { return; }
+			changed = true;
+			decided( root.querySelector( '.csm-d-actions' ), e.detail.result );
+		} );
+
 		function leave() {
 			document.body.classList.remove( 'csm-member-view' );
+			// Something was decided from the phone row: the lists need reloading.
+			if ( changed && o.onChange ) { return o.onChange(); }
 			o.onBack();
 		}
 
@@ -1066,5 +1078,18 @@ window.csmProfileCard = function ( p ) {
 		draw();
 	}
 
-	window.csmDeck = { icons: icons, button: button, tiles: tiles, open: open };
+	/*
+	 * After a number was opened, the request is sent (or theirs accepted):
+	 * replace the decision buttons in an action bar with what happened, keeping
+	 * the previous / next arrows (v1.89.65).
+	 */
+	function decided( bar, result ) {
+		if ( ! bar || bar.querySelector( '.csm-d-decided' ) ) { return; }
+		Array.prototype.slice.call( bar.querySelectorAll( '.csm-d-actw' ) ).forEach( function ( w ) { w.parentNode.removeChild( w ); } );
+		var note = mk( 'span', 'csm-d-decided', 'matched' === result ? '\u2713 You\u2019re a match' : '\u2713 Request sent' );
+		var next = bar.querySelector( '.csm-d-next' );
+		bar.insertBefore( note, next );
+	}
+
+	window.csmDeck = { icons: icons, button: button, tiles: tiles, open: open, decided: decided };
 } )();
