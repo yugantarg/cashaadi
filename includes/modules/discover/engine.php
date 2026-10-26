@@ -65,6 +65,22 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 
 		$tray_tbl = $csm->table( 'tray' );
 
+		/*
+		 * A new week is a fresh set for free members, acted on or not (owner,
+		 * 2026-10-26: "the tray should reset even if they don't act on any").
+		 * Undecided profiles from earlier weeks leave the deck; they stay in
+		 * Seen, so the new week brings new people, not the same ones again.
+		 * Premium keeps them and adds the new week's on top
+		 * (Discover::premium_carry_over); Gold pages through everyone. Boosted
+		 * bonus cards are left alone.
+		 */
+		if ( class_exists( '\\CAShaadi\\Core\\Membership' ) && ! \CAShaadi\Core\Membership::is_premium( $viewer_id ) ) {
+			$wpdb->query( $wpdb->prepare(
+				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost' )",
+				$viewer_id, $week_id
+			) );
+		}
+
 		/* --- How many slots are free? (tighter of weekly grant / open stock) --- */
 		$served_week = (int) $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM {$tray_tbl} WHERE viewer_id = %d AND week_assigned = %s",

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.58 — 2026-10-26
+
+- Free members get a fresh set every week whether or not they acted (owner). At the first refill of a new week, their undecided profiles from earlier weeks leave the deck, so the full weekly number of new profiles arrives; those profiles stay counted as shown, so the new set is new people. Premium (carry-over plus new) and Gold (everyone) are unchanged; boosted cards are left alone.
+
 ## 1.89.57 — 2026-10-26
 
 - Buy boosts empties the cart first, as Buy Premium / Gold do: a Gold item left from earlier and a second pack from a repeat tap were both ending up in the checkout.
