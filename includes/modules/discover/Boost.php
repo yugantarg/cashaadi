@@ -6,7 +6,7 @@
  * both). Tell them that verifying and adding photo increases your chances by
  * 5 times (we want to add profile completeness in our algo)."
  *
- * - +PER profiles a week for having at least one photo, +PER for an approved
+ * - +PER profiles ONCE, in the week earned (v1.89.45), for at least one photo, +PER for an approved
  *   ICAI verification. Added through csm_tray_size (priority 30, after the
  *   premium-women and free-women rules), so the engine, the Discover banner
  *   and quota_for() all agree. It counts from the moment it is earned: the
@@ -123,9 +123,36 @@ final class Boost {
 		return class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) && '' !== \CAShaadi\Modules\CaVerify\CaVerify::claim( (int) $uid );
 	}
 
+	/*
+	 * ONE TIME, in the week it is earned (owner, 2026-10-26: "it should be one
+	 * time. In case someone does it mid week add 5 profiles after that. But
+	 * don't allow people to remove photo or verification and re-add it").
+	 * The first week a photo or an approval is seen is stored and never
+	 * cleared, so removing and re-adding cannot earn it again. Earned mid-week,
+	 * the next Discover load fills the 5 extra slots.
+	 */
+	const EARNED = 'csm_boost_week_%s'; // user meta per kind: the week it was earned
+
 	public static function extra( $uid ) {
-		$uid = (int) $uid;
-		return self::per() * ( ( self::has_photo( $uid ) ? 1 : 0 ) + ( 'approved' === (string) get_user_meta( $uid, 'csm_av_status', true ) ? 1 : 0 ) );
+		$uid  = (int) $uid;
+		$week = function_exists( 'cashaadi' ) ? (string) cashaadi()->get_week_id() : '';
+		$n    = 0;
+		$have = array(
+			'photo'  => self::has_photo( $uid ),
+			'verify' => 'approved' === (string) get_user_meta( $uid, 'csm_av_status', true ),
+		);
+		foreach ( $have as $kind => $yes ) {
+			$key    = sprintf( self::EARNED, $kind );
+			$earned = (string) get_user_meta( $uid, $key, true );
+			if ( $yes && '' === $earned && '' !== $week ) {
+				update_user_meta( $uid, $key, $week );
+				$earned = $week;
+			}
+			if ( '' !== $earned && $earned === $week ) {
+				$n++;
+			}
+		}
+		return self::per() * $n;
 	}
 
 	public static function tray_size( $size, $uid ) {

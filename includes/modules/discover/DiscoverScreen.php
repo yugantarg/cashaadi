@@ -203,7 +203,7 @@ final class DiscoverScreen {
 			// What to do while waiting for next Monday (owner, 2026-10-03:
 			// members finished their set in minutes and left).
 			'nextSteps'    => self::next_steps( $viewer_id ),
-			// +5 a week for a photo, +5 for a verified badge (v1.72.0).
+			// +5 once for a photo, +5 once for a verified badge (one-time since v1.89.45).
 			'boost'        => class_exists( __NAMESPACE__ . '\\Boost' ) ? Boost::state( $viewer_id ) : null,
 			// This member's own grant, and the filter sheet's state.
 			'quota'        => Discover::quota_for( $viewer_id ),
@@ -269,7 +269,7 @@ final class DiscoverScreen {
 			$steps[] = array(
 				'title' => 0 === $count ? __( 'Add a photo', 'cashaadi-ui' ) : __( 'Add more photos', 'cashaadi-ui' ),
 				'body'  => 0 === $count && class_exists( __NAMESPACE__ . '\\Boost' )
-					? sprintf( __( 'Get %d more profiles every week, and far more requests.', 'cashaadi-ui' ), Boost::per() )
+					? sprintf( __( 'Get %d more profiles this week, and far more requests.', 'cashaadi-ui' ), Boost::per() )
 					: __( 'Profiles with photos get far more requests.', 'cashaadi-ui' ),
 				'url'   => trailingslashit( bp_members_get_user_url( $uid ) ) . 'profile/change-avatar/',
 			);
@@ -280,7 +280,7 @@ final class DiscoverScreen {
 			$steps[] = array(
 				'title' => __( 'Get your Verified badge', 'cashaadi-ui' ),
 				'body'  => class_exists( __NAMESPACE__ . '\\Boost' )
-					? sprintf( __( 'Upload your %1$s. Get %2$d more profiles every week once approved.', 'cashaadi-ui' ), \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ), Boost::per() )
+					? sprintf( __( 'Upload your %1$s. Get %2$d more profiles once approved.', 'cashaadi-ui' ), \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ), Boost::per() )
 					: sprintf( __( 'Upload your %s. Members trust verified profiles more.', 'cashaadi-ui' ), \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ) ),
 				'url'   => home_url( '/profile/edit/?g=10' ),
 			);

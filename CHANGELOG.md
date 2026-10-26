@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.45 — 2026-10-26
+
+- The +5 profiles for a photo and +5 for CA verification are one-time (owner): each applies only in the week it is first earned (user meta `csm_boost_week_photo` / `csm_boost_week_verify`, never cleared, so removing and re-adding cannot earn it again). Earned mid-week, the next Discover load adds the 5. Members who already had a photo or badge get it once, this week. Prompts say "this week" / "once approved" instead of "every week".
+
 ## 1.89.44 — 2026-10-26
 
 - Discover loads 24 profiles at a time for everyone (owner): the queue returns the first `limit` (24, then +24 per "Show more") of the undecided deck and its `total`, so a Premium deck built up over weeks no longer loads in one go.
