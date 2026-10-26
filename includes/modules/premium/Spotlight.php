@@ -48,6 +48,8 @@ final class Spotlight {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'on_paid' ), 30, 1 );
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'on_paid' ), 30, 1 );
+		// Buy boosts starts a clean cart of one pack, as Buy Premium / Gold do (v1.89.57).
+		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 10, 2 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm spotlight', __NAMESPACE__ . '\\SpotlightCli' );
 		}
@@ -258,6 +260,17 @@ final class Spotlight {
 
 	public static function product_id() {
 		return (int) get_option( self::PRODUCT, 0 );
+	}
+
+	/**
+	 * A Gold item left from an earlier visit and a second pack from a repeat
+	 * tap both ended up in the checkout (owner's screenshot, 2026-10-26).
+	 */
+	public static function guard_add_to_cart( $passed, $product_id ) {
+		if ( (int) $product_id === self::product_id() && function_exists( 'WC' ) && WC()->cart instanceof \WC_Cart ) {
+			WC()->cart->empty_cart();
+		}
+		return $passed;
 	}
 
 	/** A paid order with the pack adds PACK boosts per unit, once. */

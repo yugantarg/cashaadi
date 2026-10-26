@@ -181,9 +181,12 @@ final class PricingPage {
 		if ( ! get_option( 'csm_gold_phone_live' ) && get_option( GoldLaunch::DATE ) ) {
 			$o .= '<p class="csm-pr-credit">Phone numbers open on ' . esc_html( wp_date( 'j F', strtotime( get_option( GoldLaunch::DATE ) . ' 12:00:00' ) ) ) . '. ' . ( $female ? 'Buy Premium or Gold' : 'Buy Gold' ) . ' before then and get ' . (int) GoldLaunch::INTERIM_DAYS . ' extra days free.</p>';
 		}
-		// Boost pack (v1.89.47).
+		// Boost pack (v1.89.47), as its own small card with a button (v1.89.57).
 		if ( class_exists( __NAMESPACE__ . '\\Spotlight' ) && Spotlight::product_id() ) {
-			$o .= '<p class="csm-pr-foot">Need more? <strong>' . (int) Spotlight::PACK . ' profile boosts for ' . esc_html( self::inr( Spotlight::PRICE ) ) . '</strong>' . ( $anon ? '' : ' · <a href="' . esc_url( home_url( '/checkout/?add-to-cart=' . Spotlight::product_id() ) ) . '">Buy boosts</a>' ) . '</p>';
+			$o .= '<div class="csm-pr-boost"><div><strong>Profile boosts</strong>'
+				. '<span>' . (int) Spotlight::PACK . ' boosts for ' . esc_html( self::inr( Spotlight::PRICE ) ) . ' · each puts you first in Discover for 24 hours · never expire</span></div>'
+				. self::buy( Spotlight::product_id(), 'Buy boosts', $anon )
+				. '</div>';
 		}
 		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a phone number sends that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
@@ -223,6 +226,11 @@ final class PricingPage {
 .csm-pr-cur{display:inline-block;padding:8px 14px;border-radius:999px;border:1px solid #c9d2dc;color:#5c6a76;font-size:13px}
 .csm-pr-credit{margin:18px 0 0;padding:12px 14px;background:#fffaf0;border:1px solid #f0d58c;border-radius:10px;text-align:center}
 .csm-pr-foot{margin-top:18px;text-align:center;color:#5c6a76;font-size:13px}
+.csm-pr-boost{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0 0;padding:16px 18px;border:1px solid #e4eaf0;border-radius:14px;background:#fff}
+.csm-pr-boost strong{display:block;font-size:16px}
+.csm-pr-boost span{display:block;margin-top:3px;color:#5c6a76;font-size:13.5px;line-height:1.4}
+.csm-pr-boost .csm-pr-buy{flex:0 0 auto;padding:10px 18px;background:#2c5b8c}
+@media(max-width:520px){.csm-pr-boost{flex-direction:column;align-items:stretch;text-align:center}}
 @media(max-width:600px){.csm-pr-h{font-size:24px}}
 </style>';
 	}

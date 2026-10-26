@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.57 — 2026-10-26
+
+- Buy boosts empties the cart first, as Buy Premium / Gold do: a Gold item left from earlier and a second pack from a repeat tap were both ending up in the checkout.
+- Pricing page: the boost pack is its own small card (Profile boosts · 3 for ₹799 · first in Discover for 24 hours · never expire) with a Buy boosts button, instead of a text link in the footnote.
+
 ## 1.89.56 — 2026-10-26
 
 - Boost card: "As a Premium member you get 1 free boost every month." (Gold: "every week") under the boosts left.
