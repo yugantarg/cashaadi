@@ -928,3 +928,134 @@ window.csmProfileCard = function ( p ) {
 
 	window.csmFilterBar = bar;
 } )();
+
+/*
+ * Profile deck shared by Discover's buttons and the Requests screen
+ * (v1.89.40; owner: "requests should be formatted similar to the discover
+ * page", with labelled buttons and previous/next).
+ *
+ *   csmDeck.icons            pass / save / like / prev / next SVGs
+ *   csmDeck.button( cls, label, svg )  a round button with its label under it;
+ *                            the element returned is the wrapper, .btn the button
+ *   csmDeck.tiles( list, open )        the Discover-style grid; open( index )
+ *   csmDeck.open( root, o )  one profile with an action bar:
+ *       o.list       profiles (Profile::full shape)
+ *       o.index      which to show first
+ *       o.actions    function ( p ) -> [ { cls, label, icon, run( p ) -> Promise } ]
+ *       o.backLabel  text of the back link;  o.onBack()  back to the list
+ *     A finished action removes the profile and moves to the next one.
+ */
+( function () {
+	'use strict';
+
+	function mk( tag, cls, text ) {
+		var n = document.createElement( tag );
+		if ( cls ) { n.className = cls; }
+		if ( text !== undefined ) { n.textContent = text; }
+		return n;
+	}
+
+	var icons = {
+		pass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+		save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+		like: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+		prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+		next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+	};
+
+	function button( cls, label, svg ) {
+		var w = mk( 'div', 'csm-d-actw' );
+		var b = mk( 'button', 'csm-d-btn ' + cls );
+		b.type = 'button';
+		b.setAttribute( 'aria-label', label );
+		b.innerHTML = svg;
+		w.appendChild( b );
+		w.appendChild( mk( 'span', 'csm-d-actl', label ) );
+		w.btn = b;
+		return w;
+	}
+
+	function tiles( list, open ) {
+		var grid = mk( 'div', 'csm-d-grid' );
+		list.forEach( function ( p, i ) {
+			var cell = mk( 'button', 'csm-d-tile' );
+			cell.type = 'button';
+			var ph = mk( 'div', 'csm-d-tilephoto' );
+			if ( p.avatar ) {
+				var img = document.createElement( 'img' );
+				img.src = p.avatar;
+				img.alt = '';
+				img.loading = i < 4 ? 'eager' : 'lazy';
+				ph.appendChild( img );
+			}
+			if ( p.priority ) { ph.appendChild( mk( 'span', 'csm-d-tilenew is-gold', 'Gold' ) ); }
+			cell.appendChild( ph );
+			cell.appendChild( mk( 'span', 'csm-d-tilename', p.name || 'Member' ) );
+			cell.appendChild( mk( 'span', 'csm-d-tilemeta', [ p.age, p.height ].filter( Boolean ).join( '  ·  ' ) ) );
+			cell.addEventListener( 'click', function () { open( i ); } );
+			grid.appendChild( cell );
+		} );
+		return grid;
+	}
+
+	function open( root, o ) {
+		var list = o.list, idx = o.index || 0;
+		document.body.classList.add( 'csm-member-view' ); // the bar's clearance (discover-app.css)
+
+		function leave() {
+			document.body.classList.remove( 'csm-member-view' );
+			o.onBack();
+		}
+
+		function draw() {
+			var p = list[ idx ];
+			if ( ! p ) { return leave(); }
+			root.innerHTML = '';
+			var back = mk( 'button', 'csm-d-back' );
+			back.type = 'button';
+			back.innerHTML = icons.prev.replace( 'stroke-width="2.2"', 'stroke-width="2"' );
+			back.appendChild( document.createTextNode( o.backLabel || 'Back' ) );
+			back.addEventListener( 'click', leave );
+			root.appendChild( back );
+			// The note that came with the request (v1.85.0).
+			if ( p.note ) { root.appendChild( mk( 'p', 'csm-r-note', '“' + p.note + '”' ) ); }
+			root.appendChild( window.csmProfileCard( p ) );
+
+			var bar = mk( 'div', 'csm-d-actions' );
+			var prev = mk( 'button', 'csm-d-btn csm-d-nav csm-d-prev' );
+			prev.type = 'button';
+			prev.setAttribute( 'aria-label', 'Previous profile' );
+			prev.innerHTML = icons.prev;
+			prev.disabled = idx <= 0;
+			prev.addEventListener( 'click', function () { idx--; draw(); } );
+			var next = mk( 'button', 'csm-d-btn csm-d-nav csm-d-next' );
+			next.type = 'button';
+			next.setAttribute( 'aria-label', 'Next profile' );
+			next.innerHTML = icons.next;
+			next.disabled = idx >= list.length - 1;
+			next.addEventListener( 'click', function () { idx++; draw(); } );
+
+			bar.appendChild( prev );
+			o.actions( p ).forEach( function ( a ) {
+				var w = button( a.cls, a.label, a.icon );
+				w.btn.addEventListener( 'click', function () {
+					var release = window.csmBusy ? window.csmBusy( w.btn ) : function () {};
+					a.run( p ).then( function ( ok ) {
+						release();
+						if ( ! ok ) { return; }
+						list.splice( idx, 1 );
+						if ( idx >= list.length ) { idx = list.length - 1; }
+						if ( list.length ) { draw(); } else { leave(); }
+					} );
+				} );
+				bar.appendChild( w );
+			} );
+			bar.appendChild( next );
+			root.appendChild( bar );
+			window.scrollTo( 0, 0 );
+		}
+		draw();
+	}
+
+	window.csmDeck = { icons: icons, button: button, tiles: tiles, open: open };
+} )();

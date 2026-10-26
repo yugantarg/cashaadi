@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.40 — 2026-10-26
+
+- Requests looks like Discover (owner): Received and Saved are profile tiles; tapping one opens the full profile card with an action bar and previous/next arrows (`window.csmDeck` in app-screens.js, shared with Discover).
+- Labelled buttons everywhere. Discover: Pass · Save for later · Send request. Received: Decline request · Save for later · Accept request. Saved: Decline request · Accept request for a saved request, Pass · Send request for a saved Discover profile.
+- A received request can be saved for later (`save_request`, user meta `csm_req_saved`): it stays pending and moves from Received to Saved; answering it clears it. Received and Saved rows are now full profiles (`Profile::full`); Gold senders' tiles carry a Gold tag and still sort first.
+
 ## 1.89.39 — 2026-10-26
 
 - Gold + filters: for Gold members the filters now choose which profiles load (refill uses `Filters::where_gold`), and Apply adds a fresh page of matching profiles. Before, each page of 24 was loaded unfiltered and then narrowed, leaving a handful, and "Show more" stopped early with "That is everyone". Premium keeps the narrow-the-week rule. Already-loaded profiles are not deleted (a loaded profile counts as shown).

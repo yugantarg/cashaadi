@@ -283,7 +283,7 @@ body.csm-member-view .csm-app-main { padding-bottom: calc( var(--csm-dact-h) + 1
    clearance INSIDE the white card (so the last field can rise clear of the bar
    with no grey band reappearing below it). --csm-dact-h is the bar's own height;
    the padding tracks it so the two can't drift. */
-:root { --csm-dact-h: 96px; }   /* the action bar's own height */
+:root { --csm-dact-h: 124px; }  /* the action bar's own height, labels included (v1.89.40) */
 body.csm-app-discover .csm-d-card,
 body.csm-member-view .csm-d-card {
 	padding-bottom: calc( var(--csm-dact-h) + env(safe-area-inset-bottom, 0px) );
@@ -417,3 +417,17 @@ body.csm-member-view .csm-d-card {
 .csm-d-more { display: block; margin: 16px auto 28px; padding: 11px 24px; border-radius: 999px; border: 1px solid var(--csm-hair-2, #d6dfe7); background: #fff; font-weight: 600; cursor: pointer; }
 .csm-d-boost { position: relative; }
 .csm-d-boost-x { position: absolute; right: 8px; top: 6px; background: none; border: 0; font-size: 16px; line-height: 1; color: var(--csm-muted, #5c6a76); cursor: pointer; padding: 6px; }
+
+/* Labelled action buttons (v1.89.40): the button with its label under it.
+   Decisions line up on their labels; the arrows sit level with the buttons. */
+.csm-d-actions { align-items: flex-start; }
+.csm-d-actw { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 72px; }
+.csm-d-actl { font-size: 11.5px; line-height: 1.2; font-weight: 600; text-align: center; color: var(--csm-muted, #5c6a76); }
+.csm-d-actw .csm-d-save { margin: 5px 0; }
+.csm-d-actions > .csm-d-nav { align-self: flex-start; margin-top: 9px; }
+@media (max-width: 420px) {
+	.csm-d-actw { width: 64px; }
+	.csm-d-actw .csm-d-save { margin: 7px 0; }
+	.csm-d-actions > .csm-d-nav { margin-top: 11px; }
+}
+.csm-d-tilenew.is-gold { background: #3a2806; color: #ffe7a3; }

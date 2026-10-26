@@ -48,6 +48,8 @@ final class RequestsScreen {
 
 		AppPage::assets();
 		Assets::style( 'requests-app', 'assets/css/requests-app.css', array( 'cashaadi-app-screens' ) );
+		// The profile tiles, card and action bar are Discover's (v1.89.40).
+		Assets::style( 'discover-app', 'assets/css/discover-app.css', array( 'cashaadi-app-screens' ) );
 		Assets::script( 'requests-app', 'assets/js/requests-app.js', array( 'cashaadi-app-screens' ) );
 		wp_localize_script( 'cashaadi-requests-app', 'CSM_REQUESTS', array(
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
@@ -87,6 +89,29 @@ final class RequestsScreen {
 	}
 
 	/** A compact person for a list row — never the full profile. */
+	/** Requests saved for later, as a list of sender ids (user meta). */
+	const REQ_SAVED = 'csm_req_saved';
+
+	/** A received request as a full profile card: same card as Discover (v1.89.40). */
+	private static function request_card( $rid, $uid ) {
+		$row = Profile::full( (int) $rid, (int) $uid );
+		$row['kind'] = 'request';
+		// Note with the request (v1.85.0).
+		$row['note'] = class_exists( __NAMESPACE__ . '\\RequestNote' ) ? RequestNote::get( (int) $rid, (int) $uid ) : '';
+		// Gold senders' requests are priority: first, and marked (v1.87.0).
+		$row['priority'] = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( (int) $rid );
+		return $row;
+	}
+
+	private static function req_saved_set( $uid, $other, $on ) {
+		$ids = array_map( 'intval', (array) get_user_meta( $uid, self::REQ_SAVED, true ) );
+		$ids = array_values( array_diff( $ids, array( (int) $other ) ) );
+		if ( $on ) {
+			$ids[] = (int) $other;
+		}
+		update_user_meta( $uid, self::REQ_SAVED, $ids );
+	}
+
 	private static function person( $uid ) {
 		$uid  = (int) $uid;
 		$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : '';
@@ -192,6 +217,14 @@ final class RequestsScreen {
 		 * The member's Discover filters narrow this list too: one filter, set
 		 * from either screen (v1.89.13). Hidden requests stay pending.
 		 */
+		/*
+		 * Requests the member saved for later (v1.89.40) wait under Saved, not
+		 * Received. Still pending in BuddyPress; a sender who withdrew drops out.
+		 */
+		$rids      = array_map( 'intval', $rids );
+		$req_saved = array_values( array_intersect( array_map( 'intval', (array) get_user_meta( $uid, self::REQ_SAVED, true ) ), $rids ) );
+		$rids      = array_values( array_diff( $rids, $req_saved ) );
+
 		$has_filters = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' );
 		$all_rids    = count( $rids );
 		if ( $has_filters ) {
@@ -201,17 +234,12 @@ final class RequestsScreen {
 		foreach ( $rids as $rid ) {
 			$rid = (int) $rid;
 			if ( $rid && get_userdata( $rid ) ) {
-				$row = self::person( $rid );
-				// Note with the request (v1.85.0).
-				$row['note'] = class_exists( __NAMESPACE__ . '\\RequestNote' ) ? RequestNote::get( $rid, $uid ) : '';
-				// Gold senders' requests are priority: first, and highlighted (v1.87.0).
-				$row['gold'] = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $rid );
-				$received[] = $row;
+				$received[] = self::request_card( $rid, $uid );
 			}
 		}
 
 		usort( $received, function ( $a, $b ) {
-			return (int) ! empty( $b['gold'] ) <=> (int) ! empty( $a['gold'] );
+			return (int) ! empty( $b['priority'] ) <=> (int) ! empty( $a['priority'] );
 		} );
 
 		/* ---- sent ---- */
@@ -344,7 +372,8 @@ final class RequestsScreen {
 			$locked = ( '' !== $cutoff && (string) $row->acted_at < $cutoff );
 
 			if ( ! $locked ) {
-				$saved[] = self::person( (int) $row->profile_id );
+				// The whole profile, so it opens in the same card as Discover (v1.89.40).
+				$saved[] = array_merge( Profile::full( (int) $row->profile_id, $uid ), array( 'kind' => 'discover' ) );
 				continue;
 			}
 
@@ -358,6 +387,15 @@ final class RequestsScreen {
 				'ago'     => $ts ? sprintf( 'Saved %s ago', human_time_diff( $ts, $now ) ) : 'Saved earlier',
 			);
 		}
+
+		// Saved requests first: someone is waiting on an answer.
+		$saved_req = array();
+		foreach ( $req_saved as $rid ) {
+			if ( get_userdata( $rid ) ) {
+				$saved_req[] = self::request_card( $rid, $uid );
+			}
+		}
+		$saved = array_merge( $saved_req, $saved );
 
 		return new \WP_REST_Response( array(
 			'ok'           => true,
@@ -420,7 +458,18 @@ final class RequestsScreen {
 
 		$done = false;
 
-		if ( 'accept' === $what && function_exists( 'friends_accept_friendship' ) && function_exists( 'friends_get_friendship_id' ) ) {
+		// Saved for later stops once the request is answered (or is saved again).
+		if ( in_array( $what, array( 'accept', 'reject' ), true ) ) {
+			self::req_saved_set( $me, $other, false );
+		}
+
+		if ( 'save_request' === $what ) {
+			$pending = function_exists( 'friends_check_friendship_status' ) && 'awaiting_response' === friends_check_friendship_status( $me, $other );
+			if ( $pending ) {
+				self::req_saved_set( $me, $other, true );
+			}
+			$done = $pending;
+		} elseif ( 'accept' === $what && function_exists( 'friends_accept_friendship' ) && function_exists( 'friends_get_friendship_id' ) ) {
 			$fid  = friends_get_friendship_id( $other, $me );
 			$done = $fid ? (bool) friends_accept_friendship( $fid ) : false;
 		} elseif ( 'reject' === $what && function_exists( 'friends_reject_friendship' ) && function_exists( 'friends_get_friendship_id' ) ) {

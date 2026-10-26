@@ -394,23 +394,13 @@
 
 		/* actions, pinned above the bottom nav */
 		var bar = el( 'div', 'csm-d-actions' );
-		var pass = el( 'button', 'csm-d-btn csm-d-pass' );
-		pass.type = 'button';
-		pass.setAttribute( 'aria-label', 'Pass' );
-		pass.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-		var like = el( 'button', 'csm-d-btn csm-d-like' );
-		like.type = 'button';
-		like.setAttribute( 'aria-label', 'Like' );
-		like.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
-
-		/* Save for later — a third outcome, not a third decision. Deliberately
-		   between the arrows and the decisions in weight: larger than navigation,
-		   quieter than Like/Pass, because parking a profile should not feel like
-		   choosing one. */
-		var save = el( 'button', 'csm-d-btn csm-d-save' );
-		save.type = 'button';
-		save.setAttribute( 'aria-label', 'Save for later' );
-		save.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+		/* Labelled buttons (owner, 2026-10-26), from csmDeck so Requests uses
+		   the same ones. Save sits between navigation and the decisions in
+		   weight: parking a profile should not feel like choosing one. */
+		var passW = window.csmDeck.button( 'csm-d-pass', 'Pass', window.csmDeck.icons.pass );
+		var saveW = window.csmDeck.button( 'csm-d-save', 'Save for later', window.csmDeck.icons.save );
+		var likeW = window.csmDeck.button( 'csm-d-like', 'Send request', window.csmDeck.icons.like );
+		var pass = passW.btn, save = saveW.btn, like = likeW.btn;
 
 		/* Explain each action the first time it is used, then carry it out. The
 		   explainer runs BEFORE the action, which is the whole point for Pass:
@@ -469,9 +459,9 @@
 		} );
 
 		bar.appendChild( prev );
-		bar.appendChild( pass );
-		bar.appendChild( save );
-		bar.appendChild( like );
+		bar.appendChild( passW );
+		bar.appendChild( saveW );
+		bar.appendChild( likeW );
 		bar.appendChild( next );
 		root.appendChild( bar );
 

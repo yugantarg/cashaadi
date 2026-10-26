@@ -143,7 +143,7 @@
 .csm-r-upsell-btn:hover { background: #91701f; color: #fff; }
 
 /* Request notes and received filters (v1.85.0). */
-.csm-r-note { margin: 6px 0 0; padding: 8px 12px; background: #f6f3ee; border-left: 3px solid #7a1220; border-radius: 6px; font-style: italic; font-size: 14px; color: var(--csm-ink, #16212b); flex-basis: 100%; }
+.csm-r-note { margin: 6px 0 0; padding: 8px 12px; background: var(--csm-blue-tint, #e9f1f8); border-left: 3px solid var(--csm-blue, #2c5b8c); border-radius: 6px; font-style: italic; font-size: 14px; color: var(--csm-ink, #16212b); flex-basis: 100%; }
 
 /* Gold priority requests (v1.87.0). */
 .csm-r-row.is-gold { border: 1.5px solid #c9a227; background: #fffaf0; border-radius: 12px; }

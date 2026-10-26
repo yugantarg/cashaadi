@@ -214,12 +214,12 @@
 				hl.appendChild( window.csmFilterBar.showAll( CFG.filters, CFG.nonce, function () { load(); } ) );
 				list.appendChild( hl );
 			}
-			data.received.forEach( function ( p ) {
-				list.appendChild( personRow( p, [
-					{ kind: 'accept', label: 'Accept', action: 'accept' },
-					{ kind: 'decline', label: 'Decline', action: 'reject' }
-				] ) );
-			} );
+			// Profile tiles, opening into the same card as Discover (v1.89.40).
+			root.appendChild( list );
+			root.appendChild( window.csmDeck.tiles( data.received, function ( i ) {
+				deck( data.received, i, 'All requests' );
+			} ) );
+			return;
 		} else if ( 'matches' === tab ) {
 			if ( ! ( data.matches || [] ).length ) {
 				root.appendChild( emptyBox( 'No matches yet', 'When you accept a request, or someone accepts yours, they will appear here.' ) );
@@ -257,9 +257,17 @@
 				root.appendChild( emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
 				return;
 			}
-			/* Decide from here. The profile is still a live tray row, so Like and
-			   Pass go through the same endpoint they would in Discover. */
+			/* Saved requests (Accept / Decline) and saved Discover profiles
+			   (Send request / Pass) as tiles; the deck picks the labels from
+			   each profile's kind. Locked older saves stay as rows below. */
+			var open = data.saved.filter( function ( p ) { return ! p.masked; } );
+			if ( open.length ) {
+				root.appendChild( window.csmDeck.tiles( open, function ( i ) {
+					deck( open, i, 'All saved' );
+				} ) );
+			}
 			data.saved.forEach( function ( p ) {
+				if ( ! p.masked ) { return; }
 				/* Locked saves render as blurred placeholders, not as people. The
 				   server sends no id, name or avatar for these, so there is nothing
 				   here to un-blur — the lock is real, not styling. */
@@ -274,10 +282,6 @@
 					list.appendChild( row );
 					return;
 				}
-				list.appendChild( personRow( p, [
-					{ kind: 'accept', label: 'Like', action: 'like' },
-					{ kind: 'decline', label: 'Pass', action: 'pass' }
-				] ) );
 			} );
 			/* Free members keep this week's saves; older ones are held behind
 			   Premium. The count is real — the identities are never sent — so this
@@ -318,6 +322,61 @@
 		}
 
 		root.appendChild( list );
+	}
+
+	/*
+	 * One profile at a time, with labelled buttons and previous/next
+	 * (v1.89.40). A received request: Decline / Save for later / Accept. In
+	 * Saved, the labels follow what the profile is waiting for: a request to
+	 * answer (Decline / Accept) or a Discover profile (Pass / Send request).
+	 */
+	function deck( list, index, backLabel ) {
+		var I = window.csmDeck.icons;
+		window.csmDeck.open( root, {
+			list: list,
+			index: index,
+			backLabel: backLabel,
+			onBack: function () { draw(); window.scrollTo( 0, 0 ); },
+			actions: function ( p ) {
+				if ( 'request' === p.kind ) {
+					var a = [ { cls: 'csm-d-pass', label: 'Decline request', icon: I.pass, run: function ( q ) { return send( q, 'reject' ); } } ];
+					if ( 'saved' !== tab ) {
+						a.push( { cls: 'csm-d-save', label: 'Save for later', icon: I.save, run: function ( q ) { return send( q, 'save_request' ); } } );
+					}
+					a.push( { cls: 'csm-d-like', label: 'Accept request', icon: I.like, run: function ( q ) { return send( q, 'accept' ); } } );
+					return a;
+				}
+				return [
+					{ cls: 'csm-d-pass', label: 'Pass', icon: I.pass, run: function ( q ) { return send( q, 'pass' ); } },
+					{ cls: 'csm-d-like', label: 'Send request', icon: I.like, run: function ( q ) { return send( q, 'like' ); } }
+				];
+			}
+		} );
+	}
+
+	/* Do it, then keep the lists and tab counts true without a refetch. */
+	function send( p, action ) {
+		return api( CFG.act, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify( { user_id: p.id, action: action } )
+		} ).then( function ( d ) {
+			if ( ! d || ! d.ok ) {
+				if ( window.csmToast ) { window.csmToast( ( d && d.message ) || 'That did not work.', 'bad' ); }
+				return false;
+			}
+			// The deck removes p from the list it shows; drop it everywhere else too.
+			data.saved = ( data.saved || [] ).filter( function ( x ) { return x.masked || x.id !== p.id; } );
+			if ( 'accept' === action ) { ( data.matches = data.matches || [] ).push( p ); }
+			if ( 'save_request' === action ) {
+				data.saved.unshift( p );
+				if ( window.csmToast ) { window.csmToast( 'Saved. Find it under Saved.' ); }
+			}
+			return true;
+		} ).catch( function () {
+			if ( window.csmToast ) { window.csmToast( 'Network problem. Please try again.', 'bad' ); }
+			return false;
+		} );
 	}
 
 	function upgradeBox() {
