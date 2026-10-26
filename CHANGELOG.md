@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.50 — 2026-10-26
+
+- Boost multiplier steps 1.3x at the start, 2x at 6 hours, 5x from 12 hours (straight lines between; `Spotlight::MULT_STEPS`). A woman's boost now reaches up to 100 men (was 150); a man's stays 50. Delivery stops once the cap is reached.
+
 ## 1.89.49 — 2026-10-26
 
 - Boost delivery uses a multiplier on Discover's own score (owner): the boosted member's full ranking score for the viewer, times a multiplier that starts at 2.5x and rises to 5x over 12 hours, must beat the best profile that viewer has been shown in the last 30 days (`wp_csm_impressions`). Replaces the match-points bar. Filters still not used; highest boosted score wins.

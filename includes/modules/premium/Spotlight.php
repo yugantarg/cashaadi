@@ -7,7 +7,7 @@
  * the front of Discover for members of the other gender who open it, as a
  * bonus card that does not use up their week. Reach is capped so later boosts
  * still find new people: a man's boost reaches up to 50 women, a woman's up to
- * 150 men (options csm_spot_cap_male / csm_spot_cap_female). Never someone who
+ * 100 men (options csm_spot_cap_male / csm_spot_cap_female). Never someone who
  * has already been shown them; at most one boosted card per viewer a day.
  *
  * Boosts available: Premium 1 a month, Gold 1 a week (neither carries over),
@@ -40,9 +40,9 @@ final class Spotlight {
 	const SEEN_DAY   = 'csm_spot_seen_day';   // viewer: the day they last got a boosted card
 	const PRODUCT    = 'csm_spot_product';    // option: the pack's product id
 	const WEEK_ROW   = 'boost';               // tray week_assigned for a boosted card
-	const MULT_START = 2.5;  // the boost multiplier at the start: strong from the first hour…
-	const MULT_END   = 5;    // …rising to this,
-	const MULT_HOURS = 12;   // over this many hours, then held
+	// The boost multiplier by hour (owner, 2026-10-26): 1.3x at the start, 2x
+	// at 6 hours, 5x at 12 hours and after; straight lines in between.
+	const MULT_STEPS = array( 0 => 1.3, 6 => 2, 12 => 5 );
 
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
@@ -85,7 +85,7 @@ final class Spotlight {
 
 	public static function cap_for( $uid ) {
 		$female = Gold::is_female( $uid );
-		return (int) get_option( $female ? 'csm_spot_cap_female' : 'csm_spot_cap_male', $female ? 150 : 50 );
+		return (int) get_option( $female ? 'csm_spot_cap_female' : 'csm_spot_cap_male', $female ? 100 : 50 );
 	}
 
 	/** Start a boost now, using the plan's allowance first, then a bought one. */
@@ -163,8 +163,8 @@ final class Spotlight {
 		 * verification, popularity: Ranker::rank) is multiplied, and the card
 		 * goes to the viewer only if that beats the best profile this viewer
 		 * has been shown in the last 30 days. The multiplier starts strong
-		 * (MULT_START, so results show at once) and rises to MULT_END over
-		 * MULT_HOURS, by when it beats nearly everyone. The viewer's filters
+		 * (MULT_STEPS: 1.3x, 2x at 6 hours, 5x at 12 hours), by when it beats
+		 * nearly everyone. It stops once the boost has reached its cap. The viewer's filters
 		 * are not used. Among boosts this viewer qualifies for, the highest
 		 * boosted score wins.
 		 */
@@ -186,7 +186,7 @@ final class Spotlight {
 		$best = -1;
 		foreach ( $cands as $b ) {
 			$hours = ( time() - (int) get_user_meta( $b, self::STARTED, true ) ) / HOUR_IN_SECONDS;
-			$mult  = self::MULT_START + ( self::MULT_END - self::MULT_START ) * min( 1, max( 0, $hours / self::MULT_HOURS ) );
+			$mult  = self::multiplier( $hours );
 			$score = self::score_for( $viewer, $b ) * $mult;
 			if ( $score >= $bar && $score > $best ) {
 				$best = $score;
@@ -211,6 +211,23 @@ final class Spotlight {
 		if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
 			\CAShaadi\Modules\Discover\Seen::record_served( $viewer, $pick, self::WEEK_ROW );
 		}
+	}
+
+	/** The multiplier this many hours into a boost (MULT_STEPS, straight lines between). */
+	public static function multiplier( $hours ) {
+		$steps = self::MULT_STEPS;
+		$prev  = null;
+		foreach ( $steps as $h => $m ) {
+			if ( $hours <= $h ) {
+				if ( null === $prev ) {
+					return (float) $m;
+				}
+				list( $ph, $pm ) = $prev;
+				return $pm + ( $m - $pm ) * ( $hours - $ph ) / max( 1, $h - $ph );
+			}
+			$prev = array( $h, $m );
+		}
+		return (float) end( $steps );
 	}
 
 	/** The boosted member's Discover score for this viewer, as the ranker computes it. */
