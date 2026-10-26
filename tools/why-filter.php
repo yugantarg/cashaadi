@@ -35,6 +35,23 @@ WP_CLI::line( 'Filters in use:    ' . wp_json_encode( Filters::get( $uid ) ) );
 WP_CLI::line( 'Community field id: ' . Filters::choice_field( 'community' ) );
 WP_CLI::line( 'Members with a community group: ' . (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT user_id) FROM {$wpdb->usermeta} WHERE meta_key = %s", Buckets::meta_key( 'community' ) ) ) );
 WP_CLI::line( 'Extra WHERE: ' . trim( preg_replace( '/\s+/', ' ', Filters::where( '', $uid ) ) ) );
+// Everyone of the other gender the filters allow, and how many of them this member has not been shown yet.
+$opp   = cashaadi()->get_opposite_gender( $uid );
+$match = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+	"SELECT xp.user_id FROM {$wpdb->prefix}bp_xprofile_data xp WHERE xp.field_id = %d AND xp.value = %s" . Filters::where( '', $uid ),
+	\CAShaadi\Core\Config::FIELD_GENDER, $opp
+) ) );
+$seen  = \CAShaadi\Modules\Discover\Seen::ids_for( $uid );
+$seen  = is_array( $seen ) ? array_map( 'intval', $seen ) : array();
+WP_CLI::line( 'Members the filters allow: ' . count( $match ) . ' | already shown to this member: ' . count( array_intersect( $match, $seen ) ) . ' | not yet shown: ' . count( array_diff( $match, $seen ) ) );
+$qf = \CAShaadi\Core\Config::FIELD_QUALIFICATION;
+$qs = $wpdb->get_results( $wpdb->prepare(
+	"SELECT COALESCE( NULLIF( q.value, '' ), '(blank)' ) v, COUNT(*) n FROM {$wpdb->prefix}bp_xprofile_data g
+	 LEFT JOIN {$wpdb->prefix}bp_xprofile_data q ON q.user_id = g.user_id AND q.field_id = %d
+	 WHERE g.field_id = %d AND g.value = %s GROUP BY v ORDER BY n DESC",
+	$qf, \CAShaadi\Core\Config::FIELD_GENDER, $opp
+) );
+WP_CLI::line( 'Qualification among ' . $opp . ' members: ' . implode( ', ', array_map( function ( $r ) { return $r->v . ' ' . $r->n; }, $qs ) ) );
 WP_CLI::line( 'Pool the filters allow: ' . Filters::pool_size( $uid ) );
 
 $rows = $wpdb->get_results( $wpdb->prepare(
