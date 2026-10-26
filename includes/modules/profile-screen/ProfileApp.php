@@ -202,6 +202,8 @@ final class ProfileApp {
 			'goldOnSale'  => (bool) get_option( 'csm_gold_on_sale' ),
 			// Profile boosts (v1.89.47).
 			'boost'       => class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ? \CAShaadi\Modules\Premium\Spotlight::state( $uid ) : null,
+			// One-time ask for astro details (v1.89.74).
+			'astroAsk'    => class_exists( '\\CAShaadi\\Core\\Astro' ) ? \CAShaadi\Core\Astro::ask( $uid ) : null,
 			'outstanding' => (int) $completion['outstanding'],
 			'firstGap'    => $completion['firstGap']
 				? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( (int) $completion['firstGap'] )

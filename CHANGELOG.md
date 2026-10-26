@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.74 — 2026-10-26
+
+- Existing members are asked once for astro details (owner): a card on their own Profile page, under the boost card, "Add your astro details" with **Add details** (opens Edit profile → Astro Details) and **Not now**. Either answers it for good (user meta `csm_astro_asked`), as does setting the switch or filling in time of birth. Not a popup. New members are asked in onboarding, so they never see it.
+
 ## 1.89.73 — 2026-10-26
 
 - Edit profile → Astro Details: the switch showed "Shown on my profile" for members who had never set it, while their profile (correctly) kept the section hidden. The editor now shows the saved state; only the onboarding step starts it on, because Continue saves it.

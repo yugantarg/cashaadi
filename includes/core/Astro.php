@@ -23,6 +23,7 @@ final class Astro {
 	const GROUP  = 'csm_astro_group';  // option: xprofile group id
 	const FIELDS = 'csm_astro_fields'; // option: array( 'time' => id, 'place' => id )
 	const SHOW   = 'csm_astro_show';   // user meta: '1' shown, '0' hidden
+	const ASKED  = 'csm_astro_asked';  // user meta: when the one-time card was answered
 
 	const GROUP_NAME = 'Astro Details';
 	const NATIVE     = 'Native Place';
@@ -64,6 +65,42 @@ final class Astro {
 
 	public static function set_shown( $uid, $show ) {
 		update_user_meta( (int) $uid, self::SHOW, $show ? '1' : '0' );
+		self::mark_asked( $uid );
+	}
+
+	/*
+	 * Existing members are asked once (owner, 2026-10-26): a card on their
+	 * own profile page until they tap "Add details" or "Not now", or set the
+	 * switch, or fill in time of birth. Members who joined after the step
+	 * existed were asked in onboarding.
+	 */
+	public static function should_ask( $uid ) {
+		$uid = (int) $uid;
+		if ( ! self::group_id() || get_user_meta( $uid, self::ASKED, true ) || '' !== (string) get_user_meta( $uid, self::SHOW, true ) ) {
+			return false;
+		}
+		$ids = self::field_ids();
+		if ( ! empty( $ids['time'] ) && function_exists( 'xprofile_get_field_data' ) && '' !== trim( (string) xprofile_get_field_data( $ids['time'], $uid ) ) ) {
+			return false;
+		}
+		return true;
+	}
+
+	public static function mark_asked( $uid ) {
+		if ( ! get_user_meta( (int) $uid, self::ASKED, true ) ) {
+			update_user_meta( (int) $uid, self::ASKED, time() );
+		}
+	}
+
+	/** The card's links, or null when there is nothing to ask. */
+	public static function ask( $uid ) {
+		if ( ! self::should_ask( $uid ) || ! class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\ProfileEditScreen' ) ) {
+			return null;
+		}
+		return array(
+			'edit'  => \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( self::group_id() ),
+			'done'  => rest_url( 'csm/v1/astro/asked' ),
+		);
 	}
 
 	/** Date of birth as "12 Mar 1996", '' when unset. */
@@ -96,6 +133,16 @@ final class Astro {
 			'callback'            => array( __CLASS__, 'rest_show' ),
 			'permission_callback' => 'is_user_logged_in',
 		) );
+		register_rest_route( 'csm/v1', '/astro/asked', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_asked' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	public static function rest_asked() {
+		self::mark_asked( get_current_user_id() );
+		return new \WP_REST_Response( array( 'ok' => true ), 200 );
 	}
 
 	public static function rest_show( $request ) {

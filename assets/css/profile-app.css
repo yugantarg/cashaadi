@@ -168,3 +168,6 @@
 .csm-p-boost-btn { align-self: flex-start; margin-top: 8px; padding: 9px 18px; border: 0; border-radius: 999px; background: var(--csm-blue, #2c5b8c); color: #fff !important; font: 600 14px/1 inherit; text-decoration: none; cursor: pointer; }
 .csm-p-boost-btn[disabled] { opacity: .6; }
 .csm-p-boost-perk { font-size: 12.5px !important; }
+/* Astro details, asked once (v1.89.74). */
+.csm-p-astro-act { display: flex; align-items: center; gap: 14px; }
+.csm-p-astro-no { margin-top: 8px; padding: 9px 4px; border: 0; background: none; font: 600 14px/1 inherit; color: var(--csm-muted, #5c6a76); cursor: pointer; }

@@ -79,6 +79,32 @@
 		return box;
 	}
 
+	/*
+	 * Astro details, asked once (v1.89.74). Either button answers it; the
+	 * card does not come back.
+	 */
+	function astroCard( a ) {
+		var box = el( 'div', 'csm-p-boost csm-p-astro' );
+		box.appendChild( el( 'strong', null, 'Add your astro details' ) );
+		box.appendChild( el( 'span', null, 'Time and place of birth, for families who match horoscopes. One switch decides whether others see them.' ) );
+		function answered() {
+			return fetch( a.done, { method: 'POST', credentials: 'same-origin', headers: { 'X-WP-Nonce': CFG.nonce } } ).catch( function () {} );
+		}
+		var row = el( 'div', 'csm-p-astro-act' );
+		var go = link( 'csm-p-boost-btn', a.edit, 'Add details' );
+		go.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			answered().then( function () { window.location.href = a.edit; } );
+		} );
+		var no = el( 'button', 'csm-p-astro-no', 'Not now' );
+		no.type = 'button';
+		no.addEventListener( 'click', function () { answered(); box.remove(); } );
+		row.appendChild( go );
+		row.appendChild( no );
+		box.appendChild( row );
+		return box;
+	}
+
 	function draw( d ) {
 		root.innerHTML = '';
 
@@ -126,6 +152,7 @@
 		root.appendChild( head );
 		var bc = boostCard( d.boost );
 		if ( bc ) { root.appendChild( bc ); }
+		if ( d.astroAsk ) { root.appendChild( astroCard( d.astroAsk ) ); }
 
 		/* ---- verification told plainly ----
 		   The badge alone cannot carry a reason, and a rejection without one
