@@ -419,7 +419,7 @@ if ( class_exists( 'CAShaadi\\Modules\\Premium\\GoldLaunch' ) ) {
 	\CAShaadi\Modules\Premium\GoldLaunch::register();
 }
 
-// Profile boosts: 24 hours at the front of Discover (v1.89.48).
+// Profile boosts: 24 hours at the front of Discover (v1.89.47).
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
 	\CAShaadi\Modules\Premium\Spotlight::register();
 }
