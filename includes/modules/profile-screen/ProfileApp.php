@@ -200,6 +200,8 @@ final class ProfileApp {
 			'isPremium'   => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid ),
 			'isGold'      => class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_gold( $uid ),
 			'goldOnSale'  => (bool) get_option( 'csm_gold_on_sale' ),
+			// Profile boosts (v1.89.47).
+			'boost'       => class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ? \CAShaadi\Modules\Premium\Spotlight::state( $uid ) : null,
 			'outstanding' => (int) $completion['outstanding'],
 			'firstGap'    => $completion['firstGap']
 				? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( (int) $completion['firstGap'] )

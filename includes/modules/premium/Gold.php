@@ -70,7 +70,8 @@ final class Gold {
 	/* ------------------------------------------------------------ policy */
 
 	public static function multiplier() {
-		return max( 1, (float) get_option( 'csm_gold_multiplier', 3 ) );
+		// 1 since v1.89.47: Gold's reach comes from its weekly boost, not a permanent 3x (measured ~20x).
+		return max( 1, (float) get_option( 'csm_gold_multiplier', 1 ) );
 	}
 
 	public static function ceiling_exempt() {

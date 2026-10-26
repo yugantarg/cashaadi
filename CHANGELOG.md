@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.47 — 2026-10-26
+
+- Profile boosts (`Premium\Spotlight`, owner): 24 hours at the front of Discover. While a boost runs, the member is slotted in at the front of Discover for members of the other gender who open it, as a bonus card that does not use up their week (`week_assigned = 'boost'`). Reach is capped: a man's boost reaches up to 50 women, a woman's up to 150 men (options `csm_spot_cap_male` / `csm_spot_cap_female`); never someone already shown them; at most one boosted card per viewer a day.
+- Premium gets 1 boost a month, Gold 1 a week (no carry-over); bought boosts never expire. `wp csm spotlight product` creates the pack (3 boosts, ₹799, hidden virtual product); paid orders add the boosts once. `wp csm spotlight give <email> --n=` and `wp csm spotlight status`.
+- Gold's permanent 3x ranking is off (default `csm_gold_multiplier` now 1; measured at ~20x showings). Gold keeps priority at the top of requests and its ceiling exemption.
+- Profile page: a Boost card (Boost now / running with hours left and reach / when the next one arrives, and the pack). Settings → Membership: Profile boosts row. Pricing: Premium "1 profile boost a month", Gold "1 profile boost every week" (was "Your profile shown first in Discover"), and a "3 profile boosts for ₹799" line.
+
 ## 1.89.46 — 2026-10-26
 
 - Members who already have a photo or an approved badge are marked as having used the one-time boost (`Boost::mark_existing_used`, once on deploy): they get no more +5. Profiles already in anyone's deck stay; only future refills stop adding the 5.

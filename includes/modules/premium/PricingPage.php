@@ -111,6 +111,7 @@ final class PricingPage {
 					$prem_n . ' profiles a week',
 					// Owner, 2026-10-26: undecided profiles carry over (Discover::premium_carry_over).
 					'Profiles never expire: undecided ones add up week after week',
+					'1 profile boost a month: 24 hours at the front of Discover',
 					'Advanced filters',
 					'See who viewed your profile, and send them a request',
 					'See blurred photos',
@@ -135,7 +136,7 @@ final class PricingPage {
 					'Unlimited profiles: see every member',
 					'Send a request to anyone you like',
 					'Your requests always at the top of ' . $her . ' list',
-					'Your profile shown first in Discover',
+					'1 profile boost every week',
 					'Gold badge on your profile (with CA verification)',
 				),
 				'price' => self::inr( $gp ) . ' / year',
@@ -179,6 +180,10 @@ final class PricingPage {
 		// Before phone numbers open: say when, and the free week (v1.89.28).
 		if ( ! get_option( 'csm_gold_phone_live' ) && get_option( GoldLaunch::DATE ) ) {
 			$o .= '<p class="csm-pr-credit">Phone numbers open on ' . esc_html( wp_date( 'j F', strtotime( get_option( GoldLaunch::DATE ) . ' 12:00:00' ) ) ) . '. ' . ( $female ? 'Buy Premium or Gold' : 'Buy Gold' ) . ' before then and get ' . (int) GoldLaunch::INTERIM_DAYS . ' extra days free.</p>';
+		}
+		// Boost pack (v1.89.47).
+		if ( class_exists( __NAMESPACE__ . '\\Spotlight' ) && Spotlight::product_id() ) {
+			$o .= '<p class="csm-pr-foot">Need more? <strong>' . (int) Spotlight::PACK . ' profile boosts for ' . esc_html( self::inr( Spotlight::PRICE ) ) . '</strong>' . ( $anon ? '' : ' · <a href="' . esc_url( home_url( '/checkout/?add-to-cart=' . Spotlight::product_id() ) ) . '">Buy boosts</a>' ) . '</p>';
 		}
 		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a phone number sends that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';

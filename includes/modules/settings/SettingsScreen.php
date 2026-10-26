@@ -507,6 +507,14 @@ final class SettingsScreen {
 				);
 			}
 		}
+		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
+			$sp     = \CAShaadi\Modules\Premium\Spotlight::state( $uid );
+			$rows[] = array(
+				'label' => __( 'Profile boosts', 'cashaadi-ui' ),
+				'value' => $sp['until'] ? sprintf( 'Running · %dh left', $sp['hoursLeft'] ) : sprintf( '%d left', $sp['available'] ),
+				'url'   => home_url( '/profile/' ),
+			);
+		}
 		if ( function_exists( 'wc_get_account_endpoint_url' ) ) {
 			$rows[] = array( 'label' => __( 'Payments and invoices', 'cashaadi-ui' ), 'value' => '', 'url' => wc_get_account_endpoint_url( 'orders' ) );
 		}

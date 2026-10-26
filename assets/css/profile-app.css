@@ -159,3 +159,11 @@
 
 /* Verification with a person: informational, not a warning and not a link. */
 .csm-p-nudge.is-info { border-left-color: var(--csm-blue, #2c5b8c); cursor: default; }
+
+/* Profile boost card (v1.89.47). */
+.csm-p-boost { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; padding: 14px 16px; border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 14px; background: var(--csm-surface, #fff); }
+.csm-p-boost strong { font-size: 15px; color: var(--csm-ink, #16212b); }
+.csm-p-boost span { font-size: 13.5px; color: var(--csm-muted, #5c6a76); line-height: 1.45; }
+.csm-p-boost.is-on { border-color: var(--csm-blue, #2c5b8c); background: var(--csm-blue-tint, #e9f1f8); }
+.csm-p-boost-btn { align-self: flex-start; margin-top: 8px; padding: 9px 18px; border: 0; border-radius: 999px; background: var(--csm-blue, #2c5b8c); color: #fff !important; font: 600 14px/1 inherit; text-decoration: none; cursor: pointer; }
+.csm-p-boost-btn[disabled] { opacity: .6; }

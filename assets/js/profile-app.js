@@ -29,6 +29,52 @@
 
 	var chevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
 
+	/*
+	 * Profile boost (v1.89.47): 24 hours at the front of Discover. Running,
+	 * ready to use, or how to get one.
+	 */
+	function boostCard( b ) {
+		if ( ! b ) { return null; }
+		var box = el( 'div', 'csm-p-boost' );
+		if ( b.until ) {
+			box.classList.add( 'is-on' );
+			box.appendChild( el( 'strong', null, '\uD83D\uDE80 Boosted \u00b7 ' + b.hoursLeft + 'h left' ) );
+			box.appendChild( el( 'span', null, 'Shown first in Discover to ' + b.reached + ' of up to ' + b.cap + ' members so far.' ) );
+			return box;
+		}
+		if ( b.available > 0 ) {
+			box.appendChild( el( 'strong', null, 'Boost my profile' ) );
+			box.appendChild( el( 'span', null, 'Be shown first in Discover to up to ' + b.cap + ' new members for 24 hours. ' + b.available + ( 1 === b.available ? ' boost' : ' boosts' ) + ' left.' ) );
+			var go = el( 'button', 'csm-p-boost-btn', 'Boost now' );
+			go.type = 'button';
+			go.addEventListener( 'click', function () {
+				var run = function () {
+					go.disabled = true;
+					fetch( b.start, { method: 'POST', credentials: 'same-origin', headers: { 'X-WP-Nonce': CFG.nonce } } )
+						.then( function ( r ) { return r.json(); } )
+						.then( function ( res ) {
+							if ( res && res.ok ) { box.replaceWith( boostCard( res.state ) ); return; }
+							go.disabled = false;
+							if ( window.csmToast ) { window.csmToast( ( res && res.message ) || 'That did not work.', 'bad' ); }
+						} ).catch( function () { go.disabled = false; } );
+				};
+				if ( ! window.csmConfirm ) { return run(); }
+				window.csmConfirm( 'Your profile goes to the front of Discover for 24 hours, starting now.', { title: 'Boost your profile?', okText: 'Boost now', cancelText: 'Not now' } )
+					.then( function ( ok ) { if ( ok ) { run(); } } );
+			} );
+			box.appendChild( go );
+			return box;
+		}
+		box.appendChild( el( 'strong', null, 'Profile boost' ) );
+		box.appendChild( el( 'span', null, 'gold' === b.plan ? 'Your next Gold boost arrives on Monday.'
+			: ( 'premium' === b.plan ? 'Your next Premium boost arrives on the 1st of next month.' : 'Be shown first in Discover for 24 hours.' ) ) );
+		if ( b.buy ) {
+			var a = link( 'csm-p-boost-btn', b.buy, 'Get ' + b.pack + ' boosts for \u20b9' + b.price );
+			box.appendChild( a );
+		}
+		return box;
+	}
+
 	function draw( d ) {
 		root.innerHTML = '';
 
@@ -74,6 +120,8 @@
 		   profile" describes a page, not the question being asked. */
 		head.appendChild( link( 'csm-p-public', d.links.preview || d.links.public, 'See how my profile looks to others' ) );
 		root.appendChild( head );
+		var bc = boostCard( d.boost );
+		if ( bc ) { root.appendChild( bc ); }
 
 		/* ---- verification told plainly ----
 		   The badge alone cannot carry a reason, and a rejection without one

@@ -122,6 +122,10 @@ final class DiscoverScreen {
 		if ( function_exists( 'csm_refill_tray' ) ) {
 			csm_refill_tray( $viewer_id );
 		}
+		// A running profile boost, as a bonus card at the front (v1.89.47).
+		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
+			\CAShaadi\Modules\Premium\Spotlight::deliver( $viewer_id );
+		}
 
 		global $wpdb;
 		$tray = $wpdb->prefix . 'csm_tray';
@@ -129,7 +133,7 @@ final class DiscoverScreen {
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT profile_id, week_assigned FROM {$tray}
 			 WHERE viewer_id = %d AND status = 'pending'
-			 ORDER BY assigned_at ASC",
+			 ORDER BY ( week_assigned = 'boost' ) DESC, assigned_at ASC",
 			$viewer_id
 		) );
 
