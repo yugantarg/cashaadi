@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.63 — 2026-10-26
+
+- Matches, Sent and Viewed me use the same format as Received (owner): profile tiles, 24 at a time with Show more, opening the full card with previous/next and a labelled button — Matches: Send message; Sent: Withdraw request; Viewed me (Premium): Send request. Free members' Viewed me stays masked. Tab counts use real totals (`matchesTotal`, `sentTotal`).
+
 ## 1.89.62 — 2026-10-26
 
 - Requests loads 24 at a time, as Discover: Received and Saved build full profiles only for the page shown (`limit`, +24 per "Show more"); Gold senders are still first. The tab counts use the real totals (`receivedTotal`, `savedOpenTotal`).

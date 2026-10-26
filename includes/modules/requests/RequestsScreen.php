@@ -92,6 +92,14 @@ final class RequestsScreen {
 	/** Requests saved for later, as a list of sender ids (user meta). */
 	const REQ_SAVED = 'csm_req_saved';
 
+	/** Anyone in these lists as a full profile card, with how to message them. */
+	private static function card( $id, $uid, $kind ) {
+		return array_merge( Profile::full( (int) $id, (int) $uid ), array(
+			'kind'   => $kind,
+			'msgUrl' => self::compose_url( (int) $id ),
+		) );
+	}
+
 	/** A received request as a full profile card: same card as Discover (v1.89.40). */
 	private static function request_card( $rid, $uid ) {
 		$row = Profile::full( (int) $rid, (int) $uid );
@@ -242,9 +250,12 @@ final class RequestsScreen {
 		}
 
 		/* ---- sent ---- */
-		$sent = array();
-		foreach ( self::sent( $uid ) as $sid ) {
-			$sent[] = self::person( $sid );
+		// Full profiles, 24 at a time, like Received (v1.89.63).
+		$sent       = array();
+		$sent_ids   = array_values( array_filter( array_map( 'intval', (array) self::sent( $uid ) ) ) );
+		$sent_total = count( $sent_ids );
+		foreach ( array_slice( $sent_ids, 0, $limit ) as $sid ) {
+			$sent[] = self::card( $sid, $uid, 'sent' );
 		}
 
 		/*
@@ -277,6 +288,7 @@ final class RequestsScreen {
 			) );
 		}
 
+		$match_ids = array();
 		foreach ( $mids as $mid ) {
 			$mid = (int) $mid;
 			if ( ! $mid || ! get_userdata( $mid ) ) {
@@ -286,7 +298,11 @@ final class RequestsScreen {
 			if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $uid, $mid ) ) {
 				continue;
 			}
-			$matches[] = self::person( $mid );
+			$match_ids[] = $mid;
+		}
+		$matches_total = count( $match_ids );
+		foreach ( array_slice( $match_ids, 0, $limit ) as $mid ) {
+			$matches[] = self::card( $mid, $uid, 'match' );
 		}
 
 		/* ---- viewers: gated ---- */
@@ -303,10 +319,13 @@ final class RequestsScreen {
 			$ago = $ts ? human_time_diff( $ts, $now ) . ' ' . __( 'ago', 'cashaadi-ui' ) : '';
 
 			if ( $premium ) {
-				$viewers[] = array_merge(
-					self::person( (int) $r->viewer_id ),
-					array( 'ago' => $ago, 'hits' => (int) $r->hits )
-				);
+				// Full profiles for the page shown; the rest are counted (v1.89.63).
+				if ( count( $viewers ) < $limit ) {
+					$viewers[] = array_merge(
+						self::card( (int) $r->viewer_id, $uid, 'viewer' ),
+						array( 'ago' => $ago, 'hits' => (int) $r->hits )
+					);
+				}
 				continue;
 			}
 
@@ -418,8 +437,10 @@ final class RequestsScreen {
 			'filters'      => $has_filters ? \CAShaadi\Modules\Discover\Filters::state( $uid ) : null,
 			'hiddenByFilter' => max( 0, $all_rids - count( $rids ) ),
 			'matches'      => $matches,
+			'matchesTotal' => $matches_total,
 			'sent'         => $sent,
-			'viewers'      => array_slice( $viewers, 0, $premium ? 200 : 6 ),
+			'sentTotal'    => $sent_total,
+			'viewers'      => array_slice( $viewers, 0, $premium ? $limit : 6 ),
 			'viewersTotal' => count( $rows ),
 		), 200 );
 	}

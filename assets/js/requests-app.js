@@ -45,8 +45,8 @@
 		var wrap = el( 'div', 'csm-r-tabs' );
 		[
 			[ 'received', 'Received', undefined !== data.receivedTotal ? data.receivedTotal : ( data.received || [] ).length ],
-			[ 'matches', 'Matches', ( data.matches || [] ).length ],
-			[ 'sent', 'Sent', ( data.sent || [] ).length ],
+			[ 'matches', 'Matches', undefined !== data.matchesTotal ? data.matchesTotal : ( data.matches || [] ).length ],
+			[ 'sent', 'Sent', undefined !== data.sentTotal ? data.sentTotal : ( data.sent || [] ).length ],
 			[ 'saved', 'Saved', undefined !== data.savedOpenTotal ? data.savedOpenTotal + ( data.saved || [] ).filter( function ( x ) { return x.masked; } ).length : ( data.saved || [] ).length ],
 			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ]
 		].forEach( function ( t ) {
@@ -232,11 +232,11 @@
 			 * once a request was accepted the person left Received, was never in
 			 * Sent, and the only trace of them was a conversation thread.
 			 */
-			data.matches.forEach( function ( p ) {
-				list.appendChild( personRow( p, [
-					{ kind: 'accept', label: 'Message', action: 'message' }
-				] ) );
-			} );
+			// Tiles and the full card, like Received (v1.89.63).
+			root.appendChild( list );
+			root.appendChild( window.csmDeck.tiles( data.matches, function ( i ) { deck( data.matches, i, 'All matches' ); } ) );
+			moreButton( data.matchesTotal, data.matches.length );
+			return;
 		} else if ( 'sent' === tab ) {
 			if ( ! ( data.sent || [] ).length ) {
 				root.appendChild( emptyBox( 'Nothing sent yet', 'Requests you send from Discover will show here until they are answered.' ) );
@@ -248,11 +248,10 @@
 				gb.href = window.csmSrc( CFG.upgrade, 'requests-gold' );
 				root.appendChild( gb );
 			}
-			data.sent.forEach( function ( p ) {
-				list.appendChild( personRow( p, [
-					{ kind: 'withdraw', label: 'Withdraw', action: 'withdraw' }
-				] ) );
-			} );
+			root.appendChild( list );
+			root.appendChild( window.csmDeck.tiles( data.sent, function ( i ) { deck( data.sent, i, 'All sent' ); } ) );
+			moreButton( data.sentTotal, data.sent.length );
+			return;
 		} else if ( 'saved' === tab ) {
 			if ( ! ( data.saved || [] ).length ) {
 				root.appendChild( emptyBox( 'Nothing saved yet', 'Use Save on a profile in Discover to keep it here and decide later.' ) );
@@ -306,7 +305,9 @@
 				return;
 			}
 			if ( data.isPremium ) {
-				data.viewers.forEach( function ( p ) { list.appendChild( personRow( p, null ) ); } );
+				root.appendChild( window.csmDeck.tiles( data.viewers, function ( i ) { deck( data.viewers, i, 'All visitors' ); } ) );
+				moreButton( data.viewersTotal, data.viewers.length );
+				return;
 			} else {
 				data.viewers.forEach( function ( v ) {
 					var row = el( 'li', 'csm-r-row csm-r-masked' );
@@ -340,6 +341,19 @@
 			backLabel: backLabel,
 			onBack: function () { draw(); window.scrollTo( 0, 0 ); },
 			actions: function ( p ) {
+				// Matches: message them. Sent: withdraw. Viewed me (Premium): send a request.
+				if ( 'match' === p.kind ) {
+					return [ { cls: 'csm-d-like', label: 'Send message', icon: I.chat, run: function ( q ) {
+						if ( q.msgUrl ) { window.location.href = q.msgUrl; }
+						return Promise.resolve( false ); // stays in the list
+					} } ];
+				}
+				if ( 'sent' === p.kind ) {
+					return [ { cls: 'csm-d-pass', label: 'Withdraw request', icon: I.pass, run: function ( q ) { return send( q, 'withdraw' ); } } ];
+				}
+				if ( 'viewer' === p.kind ) {
+					return [ { cls: 'csm-d-like', label: 'Send request', icon: I.like, run: function ( q ) { return send( q, 'like' ); } } ];
+				}
 				if ( 'request' === p.kind ) {
 					var a = [ { cls: 'csm-d-pass', label: 'Decline request', icon: I.pass, run: function ( q ) { return send( q, 'reject' ); } } ];
 					if ( 'saved' !== tab ) {
@@ -370,12 +384,10 @@
 			// The deck removes p from the list it shows; drop it everywhere else too,
 			// and keep the totals (which count beyond the loaded page) true.
 			data.saved = ( data.saved || [] ).filter( function ( x ) { return x.masked || x.id !== p.id; } );
-			if ( 'saved' === tab ) {
-				data.savedOpenTotal = Math.max( 0, ( data.savedOpenTotal || 1 ) - 1 );
-			} else {
-				data.receivedTotal = Math.max( 0, ( data.receivedTotal || 1 ) - 1 );
-				if ( 'save_request' === action ) { data.savedOpenTotal = ( data.savedOpenTotal || 0 ) + 1; }
-			}
+			var totals = { received: 'receivedTotal', saved: 'savedOpenTotal', sent: 'sentTotal', matches: 'matchesTotal', viewers: 'viewersTotal' };
+			if ( totals[ tab ] ) { data[ totals[ tab ] ] = Math.max( 0, ( data[ totals[ tab ] ] || 1 ) - 1 ); }
+			if ( 'save_request' === action ) { data.savedOpenTotal = ( data.savedOpenTotal || 0 ) + 1; }
+			if ( 'accept' === action ) { data.matchesTotal = ( data.matchesTotal || 0 ) + 1; }
 			if ( 'accept' === action ) { ( data.matches = data.matches || [] ).push( p ); }
 			if ( 'save_request' === action ) {
 				data.saved.unshift( p );
