@@ -61,7 +61,13 @@ final class Filters {
 		 * not choose which profiles fill it (owner, 2026-10-25: "the filter
 		 * should only work on the profiles in my tray"). So no
 		 * csm_refill_extra_where hook: the weekly set is drawn as for anyone.
+		 *
+		 * Except Gold (v1.89.39): Gold sees everyone, a page at a time, so
+		 * narrowing a page of unfiltered profiles left a few per page and
+		 * "Show more" stopped early (owner, 2026-10-26). For Gold the filters
+		 * choose what loads; nothing is gained, since Gold can see all.
 		 */
+		add_filter( 'csm_refill_extra_where', array( __CLASS__, 'where_gold' ), 10, 2 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 	}
 
@@ -361,6 +367,11 @@ final class Filters {
 		return array_values( array_intersect( $ids, $ok ) );
 	}
 
+	/** The filters as refill SQL, for Gold members only (see register()). */
+	public static function where_gold( $sql, $uid ) {
+		return Membership::is_gold( (int) $uid ) ? self::where( $sql, $uid ) : $sql;
+	}
+
 	/** How many undecided profiles in the tray the current filters let through. For the UI hint. */
 	public static function pool_size( $uid ) {
 		global $wpdb;
@@ -482,6 +493,13 @@ final class Filters {
 		}
 
 		// The tray is left as it is: the queue hides what the filters exclude.
+		// Gold: add a page drawn with the new filters. Not by clearing the old
+		// page: a loaded profile counts as shown and would never come back.
+		if ( Membership::is_gold( $uid ) && function_exists( 'csm_refill_tray' ) && class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ) {
+			\CAShaadi\Modules\Premium\Gold::$more = true;
+			csm_refill_tray( $uid );
+			\CAShaadi\Modules\Premium\Gold::$more = false;
+		}
 		$state            = self::state( $uid );
 		$state['applied'] = true;
 		return new \WP_REST_Response( $state, 200 );

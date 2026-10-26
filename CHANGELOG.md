@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.39 — 2026-10-26
+
+- Gold + filters: for Gold members the filters now choose which profiles load (refill uses `Filters::where_gold`), and Apply adds a fresh page of matching profiles. Before, each page of 24 was loaded unfiltered and then narrowed, leaving a handful, and "Show more" stopped early with "That is everyone". Premium keeps the narrow-the-week rule. Already-loaded profiles are not deleted (a loaded profile counts as shown).
+
 ## 1.89.38 — 2026-10-26
 
 - Gold launch and opening sales purge the LiteSpeed cache, so visitors' cached pricing page stops saying "phone numbers open on 28 October" once they do.
