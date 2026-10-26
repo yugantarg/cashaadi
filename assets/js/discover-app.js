@@ -320,9 +320,11 @@
 		/* The real number, not just what has loaded (v1.89.7): Gold is
 		   unlimited; everyone else sees what is left of the week. */
 		var weekLeft = Math.max( left.length, ( meta.quota || 0 ) - ( meta.decidedWeek || 0 ) - countActed() );
+		// Premium's undecided profiles carry over (v1.89.42), so the deck can
+		// hold more than one week's worth: then say how many are waiting.
 		var head = el( 'p', 'csm-d-gridcount', meta.unlimited
 			? 'Unlimited profiles'
-			: weekLeft + ' of ' + meta.quota + ' left this week' );
+			: ( left.length > meta.quota ? left.length + ' profiles to see' : weekLeft + ' of ' + meta.quota + ' left this week' ) );
 		// Owner's screenshot (2026-10-25): "Show all" belongs right here.
 		if ( meta.hiddenByFilter ) {
 			head.appendChild( document.createTextNode( ' \u00b7 ' + meta.hiddenByFilter + ' hidden by your filters \u00b7' ) );

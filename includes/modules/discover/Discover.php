@@ -59,6 +59,9 @@ final class Discover {
 		// Event log is kept permanently for every member (owner, 2026-10-04);
 		// Engine::prune_events() stays available but is no longer scheduled.
 
+		// Premium: last week's undecided profiles stay AND the new week's arrive (v1.89.42).
+		add_filter( 'csm_tray_open_cap', array( __CLASS__, 'premium_carry_over' ), 20, 2 );
+
 		// #11600 — lazy weekly reset on every front-end load.
 		add_action( 'template_redirect', 'csm_maybe_weekly_reset' );
 
@@ -94,6 +97,27 @@ final class Discover {
 	 * untouched — and the weekly reset only processes liked/passed/expired, so
 	 * saved rows survive resets on their own with no further change.
 	 */
+	/*
+	 * Premium profiles never expire (owner, 2026-10-26: "previous week's
+	 * profiles continue to add to the deck... after 4 weeks they would have 40
+	 * profiles even if they have seen all"). Undecided rows always carried
+	 * over, but the open cap (the weekly size) then blocked the new week's
+	 * profiles. For Premium the cap is what is waiting plus whatever is left
+	 * of this week's grant, so the week's profiles always arrive. Gold keeps
+	 * its own paging; free members keep the cap.
+	 */
+	public static function premium_carry_over( $cap, $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid || ! \CAShaadi\Core\Membership::is_premium( $uid ) || \CAShaadi\Core\Membership::is_gold( $uid ) ) {
+			return $cap;
+		}
+		global $wpdb;
+		$t = $wpdb->prefix . 'csm_tray';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE viewer_id = %d AND status = 'pending'", $uid ) );
+		return max( (int) $cap, $pending + self::quota_for( $uid ) );
+	}
+
 	public static function ensure_saved_status() {
 		if ( get_option( 'csm_tray_saved_status' ) ) {
 			return;
