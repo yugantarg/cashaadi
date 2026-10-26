@@ -244,6 +244,99 @@ final class Dashboard {
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE viewer_id = %d AND status IN ('liked','passed')", $uid ) );
 	}
 
+	/** Every member's row for the table, from bulk queries rather than ~10 lookups each. */
+	private static function rows() {
+		global $wpdb;
+		$pending_emails = self::pending_signup_emails();
+		$users = get_users( array(
+			'number'  => -1,
+			'fields'  => array( 'ID', 'user_login', 'user_email', 'user_registered', 'display_name' ),
+			/*
+			 * Admins by id, NOT role__not_in: that becomes a meta query on
+			 * capabilities, and members who have not verified their email have
+			 * no role yet, so it silently dropped every one of them. Closed
+			 * (member-deleted) accounts are left out too (owner, 2026-10-03).
+			 */
+			'exclude' => array_merge(
+				array_map( 'intval', get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) ) ),
+				class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array()
+			),
+		) );
+		$ids = array_map( 'intval', wp_list_pluck( $users, 'ID' ) );
+		if ( ! $ids ) {
+			return array();
+		}
+		cache_users( $ids ); // user objects and all their meta, in a few queries
+
+		$xp    = $wpdb->prefix . 'bp_xprofile_data';
+		$field = function ( $fid ) use ( $wpdb, $xp ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			return wp_list_pluck( (array) $wpdb->get_results( $wpdb->prepare( "SELECT user_id, value FROM {$xp} WHERE field_id = %d", $fid ) ), 'value', 'user_id' );
+		};
+		$phones  = $field( Config::FIELD_PHONE );
+		$genders = $field( Config::FIELD_GENDER );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$acted = wp_list_pluck( (array) $wpdb->get_results( "SELECT viewer_id, COUNT(*) n FROM {$wpdb->prefix}csm_tray WHERE status IN ('liked','passed') GROUP BY viewer_id" ), 'n', 'viewer_id' );
+		$last  = wp_list_pluck( (array) $wpdb->get_results( "SELECT user_id, MAX(date_recorded) d FROM {$wpdb->prefix}bp_activity WHERE type = 'last_activity' GROUP BY user_id" ), 'd', 'user_id' );
+		$levels = array();
+		if ( ! empty( $wpdb->pmpro_memberships_users ) ) {
+			$levels = wp_list_pluck( (array) $wpdb->get_results(
+				"SELECT user_id, MAX(membership_id) l FROM {$wpdb->pmpro_memberships_users}
+				 WHERE status = 'active' AND ( enddate IS NULL OR enddate = '0000-00-00 00:00:00' OR enddate > UTC_TIMESTAMP() ) GROUP BY user_id"
+			), 'l', 'user_id' );
+		}
+		// phpcs:enable
+
+		$out = array();
+		foreach ( $users as $u ) {
+			$uid  = (int) $u->ID;
+			$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : $u->display_name;
+			if ( ! $name ) {
+				$name = $u->display_name;
+			}
+			// The phone may be stored wrapped in a tel: anchor; keep the number.
+			$raw   = isset( $phones[ $uid ] ) ? (string) $phones[ $uid ] : '';
+			$phone = trim( wp_strip_all_tags( $raw ) );
+			if ( '' === $phone && $raw ) {
+				$phone = preg_replace( '/[^0-9+]/', '', $raw );
+			}
+			$lvl = isset( $levels[ $uid ] ) ? (int) $levels[ $uid ] : 0;
+			if ( (int) Config::PMPRO_GOLD_LEVEL === $lvl ) {
+				$member = 'Gold';
+			} elseif ( (int) Config::PMPRO_PREMIUM_LEVEL === $lvl ) {
+				$member = 'Premium';
+			} elseif ( $lvl ) {
+				$member = self::membership_label( $uid );
+			} else {
+				$member = function_exists( 'csm_lead_is_pending' ) && csm_lead_is_pending( $uid ) ? 'Lead' : 'Free';
+			}
+			$pending = self::profile_pending_label( $uid, in_array( strtolower( $u->user_email ), $pending_emails, true ) );
+			$last_ts = isset( $last[ $uid ] ) ? strtotime( $last[ $uid ] . ' UTC' ) : 0;
+			$src     = class_exists( '\\CAShaadi\\Modules\\Tracking\\Attribution' )
+				? \CAShaadi\Modules\Tracking\Attribution::describe( $uid )
+				: array( 'key' => 'unknown', 'label' => 'Unknown', 'campaign' => '' );
+			$out[] = array(
+				'id'            => $uid,
+				'name'          => $name,
+				'login'         => $u->user_login,
+				'email'         => $u->user_email,
+				'phone'         => $phone,
+				'complete'      => $pending,
+				'complete_rank' => self::pending_rank_from_label( $pending ),
+				'member'        => $member,
+				'gender'        => isset( $genders[ $uid ] ) ? (string) $genders[ $uid ] : '',
+				'acted'         => isset( $acted[ $uid ] ) ? (int) $acted[ $uid ] : 0,
+				// Shifted to site time: date_i18n() below treats the stamp as local.
+				'registered'    => strtotime( get_date_from_gmt( $u->user_registered ) ),
+				'last_ts'       => $last_ts,
+				'source'        => $src['label'],
+				'source_key'    => $src['key'],
+				'campaign'      => $src['campaign'],
+			);
+		}
+		return $out;
+	}
+
 	public static function render() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( 'Access denied.' );
@@ -256,79 +349,25 @@ final class Dashboard {
 		$orderby    = isset( $_GET['orderby'] )   ? sanitize_text_field( $_GET['orderby'] )   : 'registered';
 		$order      = ( isset( $_GET['order'] ) && strtolower( $_GET['order'] ) === 'asc' ) ? 'asc' : 'desc';
 
-		$pending_emails = self::pending_signup_emails();
-
 		/*
-		 * Same population as the Registered tile (owner, 2026-10-03: the two
-		 * did not match): no administrators, no closed (member-deleted)
-		 * accounts, whose rows are kept but are not members any more.
+		 * The member table is built once and kept for 10 minutes (owner,
+		 * 2026-10-26: "pretty slow to load"): ~4,000 members with ~10 lookups
+		 * each on every open. Built with bulk queries (rows()), then filtered,
+		 * searched, sorted and paged here. ?refresh=1 rebuilds it now.
 		 */
-		$args = array(
-			'number'       => -1,
-			'fields'       => array( 'ID', 'user_login', 'user_email', 'user_registered', 'display_name' ),
-			/*
-			 * Admins by id, NOT role__not_in: that becomes a meta query on
-			 * capabilities, and members who have not verified their email
-			 * have no role yet, so it silently dropped every one of them.
-			 */
-			'exclude'      => array_merge(
-				array_map( 'intval', get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) ) ),
-				class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) ? \CAShaadi\Modules\Settings\Closed::ids() : array()
-			),
-		);
-		if ( $search !== '' ) {
-			$args['search']         = '*' . $search . '*';
-			$args['search_columns'] = array( 'user_login', 'user_email', 'display_name' );
+		$built = isset( $_GET['refresh'] ) ? false : get_transient( 'csm_sd_rows' );
+		if ( ! is_array( $built ) || empty( $built['rows'] ) ) {
+			$built = array( 'at' => time(), 'rows' => self::rows() );
+			set_transient( 'csm_sd_rows', $built, 10 * MINUTE_IN_SECONDS );
 		}
-		$users = get_users( $args );
-
-		$rows = array();
-		foreach ( $users as $u ) {
-			$uid   = $u->ID;
-			$name  = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : $u->display_name;
-			if ( ! $name ) $name = $u->display_name;
-			$phone_raw = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( Config::FIELD_PHONE, $uid ) : '';
-			// Phone Number field type returns an HTML tel: anchor; strip to a clean number.
-			$phone = trim( wp_strip_all_tags( (string) $phone_raw ) );
-			if ( $phone === '' && $phone_raw ) { $phone = preg_replace( '/[^0-9+]/', '', (string) $phone_raw ); }
-			$is_pending  = in_array( strtolower( $u->user_email ), $pending_emails, true );
-			$pending    = self::profile_pending_label( $uid, $is_pending );
-			$member      = self::membership_label( $uid );
-			$gender = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( Config::FIELD_GENDER, $uid ) : '';
-			$acted  = self::acted_count( $uid );
-			$last_active = function_exists( 'bp_get_user_last_activity' ) ? bp_get_user_last_activity( $uid ) : get_user_meta( $uid, 'last_activity', true );
-			$last_ts     = $last_active ? strtotime( $last_active ) : 0;
-
-			if ( $f_pending !== '' && $pending !== $f_pending ) continue;
-			if ( $f_member === 'premium' && strtolower( $member ) !== 'premium' ) continue;
-			if ( $f_member === 'free'    && strtolower( $member ) !== 'free' ) continue;
-			if ( $f_member === 'lead'    && strtolower( $member ) !== 'lead' ) continue;
-
-			// Where they came from (v1.65.4). Members from before then read "Unknown".
-			$src = class_exists( '\\CAShaadi\\Modules\\Tracking\\Attribution' )
-				? \CAShaadi\Modules\Tracking\Attribution::describe( $uid )
-				: array( 'key' => 'unknown', 'label' => 'Unknown', 'campaign' => '' );
-			if ( $f_source !== '' && $src['key'] !== $f_source ) continue;
-
-			$rows[] = array(
-				'id'         => $uid,
-				'name'       => $name,
-				'email'      => $u->user_email,
-				'phone'      => $phone,
-				'complete'   => $pending,
-				'complete_rank' => self::pending_rank_from_label( $pending ),
-				'member'     => $member,
-				'gender'     => $gender,
-				'acted'      => $acted,
-				// Shifted to site time: date_i18n() below treats the stamp as local.
-				'registered' => strtotime( get_date_from_gmt( $u->user_registered ) ),
-				'last_ts'    => $last_ts,
-				// $last_ts is UTC, so compare with UTC now — current_time('timestamp')
-				// is site time and made every "ago" 5½ hours too old.
-				'last_human' => $last_ts ? human_time_diff( $last_ts, time() ) . ' ago' : 'Never',
-				'source'     => $src['label'],
-				'campaign'   => $src['campaign'],
-			);
+		$needle = strtolower( $search );
+		$rows   = array();
+		foreach ( $built['rows'] as $r ) {
+			if ( $f_pending !== '' && $r['complete'] !== $f_pending ) continue;
+			if ( $f_member !== '' && strtolower( $r['member'] ) !== $f_member ) continue;
+			if ( $f_source !== '' && $r['source_key'] !== $f_source ) continue;
+			if ( '' !== $needle && false === strpos( strtolower( $r['name'] . ' ' . $r['email'] . ' ' . $r['login'] ), $needle ) ) continue;
+			$rows[] = $r;
 		}
 
 		$sort_map = array(
@@ -348,6 +387,11 @@ final class Dashboard {
 		} );
 
 		$total = count( $rows );
+		// 200 rows a page: thousands of table rows were slow in the browser too.
+		$per   = 200;
+		$pages = max( 1, (int) ceil( $total / $per ) );
+		$paged = min( $pages, max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ) );
+		$shown = array_slice( $rows, ( $paged - 1 ) * $per, $per );
 
 		$base = admin_url( 'admin.php?page=csm-sales-dashboard' );
 		$qs   = array( 'fpending' => $f_pending, 'fmember' => $f_member, 'fsrc' => $f_source, 's' => $search );
@@ -411,7 +455,16 @@ final class Dashboard {
 		echo '<a class="button" href="' . esc_url( $base ) . '">Reset</a>';
 		echo '</form>';
 
-		echo '<p><strong>' . intval( $total ) . '</strong> user(s) match.</p>';
+		$pager = '';
+		if ( $pages > 1 ) {
+			$pager .= '<span style="margin-left:12px">Page ';
+			for ( $n = 1; $n <= $pages; $n++ ) {
+				$pager .= $n === $paged ? ' <strong>' . $n . '</strong>' : ' <a href="' . esc_url( add_query_arg( array_merge( $qs, array( 'orderby' => $orderby, 'order' => $order, 'paged' => $n ) ), $base ) ) . '">' . $n . '</a>';
+			}
+			$pager .= '</span>';
+		}
+		echo '<p><strong>' . intval( $total ) . '</strong> user(s) match.' . $pager // phpcs:ignore WordPress.Security.EscapeOutput
+			. ' <span style="color:#666;margin-left:12px">Updated ' . esc_html( human_time_diff( $built['at'], time() ) ) . ' ago · <a href="' . esc_url( add_query_arg( 'refresh', 1, $base ) ) . '">Refresh now</a></span></p>';
 
 		echo '<table class="wp-list-table widefat fixed striped">';
 		echo '<thead><tr>';
@@ -430,7 +483,8 @@ final class Dashboard {
 		if ( ! $rows ) {
 			echo '<tr><td colspan="10">No users match the current filters.</td></tr>';
 		}
-		foreach ( $rows as $r ) {
+		foreach ( $shown as $r ) {
+			$r['last_human'] = $r['last_ts'] ? human_time_diff( $r['last_ts'], time() ) . ' ago' : 'Never';
 			$comp_color   = $r['complete'] === 'Complete' ? '#1a7f37' : '#996800';
 			$profile_url  = function_exists( 'bp_members_get_user_url' ) ? bp_members_get_user_url( $r['id'] ) : get_edit_user_link( $r['id'] );
 			echo '<tr>';

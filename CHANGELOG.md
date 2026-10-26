@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.61 — 2026-10-26
+
+- Sales Dashboard is faster (owner: slow to load). The member table was built with ~10 lookups per member on every open; it is now built from bulk queries (phones, genders, actions, last activity and plans in one query each, user data primed with `cache_users`), kept for 10 minutes (transient `csm_sd_rows`, "Updated N min ago · Refresh now"), filtered and searched in memory, and shown 200 rows a page.
+
 ## 1.89.60 — 2026-10-26
 
 - When profiles come back to Discover (owner): ignored (shown, never decided, and no longer in the deck) after 15 days from the last showing; passed after 30 days (was one month); sent a request never. Filters `csm_ignore_reshow_days` / `csm_pass_reshow_days` replace `csm_pass_reshow_months`. Gold is unchanged: ignored profiles are never held back.
