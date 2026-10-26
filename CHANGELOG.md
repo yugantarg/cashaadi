@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.72 — 2026-10-26
+
+- Requests → Received: the Filters button and chips sat flush against the screen edge and under the sticky tabs (top clipped); they now have the page's side padding and space below the tabs, as does the "N requests hidden by your filters" line.
+
 ## 1.89.71 — 2026-10-26
 
 - City → state: about 70 towns and spellings from the first `wp csm buckets report` added (Gurgaon / Bengaluru / Ahmedabad misspellings, Jamkhandi, Adoni, Tirur, Kasargod, Barabanki, Hathras …). Run `wp csm buckets rebuild`.
