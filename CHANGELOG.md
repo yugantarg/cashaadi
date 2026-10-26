@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.44 — 2026-10-26
+
+- Discover loads 24 profiles at a time for everyone (owner): the queue returns the first `limit` (24, then +24 per "Show more") of the undecided deck and its `total`, so a Premium deck built up over weeks no longer loads in one go.
+
 ## 1.89.43 — 2026-10-26
 
 - Discover opens on the grid of profile cards for every Premium and Gold member, men included (owner); free members keep the one-card view. "Show more profiles" appears only while the week still owes profiles that have not loaded.

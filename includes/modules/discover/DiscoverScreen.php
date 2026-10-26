@@ -109,6 +109,8 @@ final class DiscoverScreen {
 	 * Only pending rows, in assignment order — exactly what the shortcode showed,
 	 * so the two views of the same tray agree.
 	 */
+	const PAGE = 24;
+
 	public static function rest_queue( $request ) {
 		$viewer_id = get_current_user_id();
 		// Gold "Show more": load another page (v1.88.2).
@@ -137,6 +139,15 @@ final class DiscoverScreen {
 			$keep = array_flip( Filters::keep( $viewer_id, wp_list_pluck( $rows, 'profile_id' ) ) );
 			$rows = array_values( array_filter( $rows, function ( $r ) use ( $keep ) { return isset( $keep[ (int) $r->profile_id ] ); } ) );
 		}
+
+		/*
+		 * 24 at a time for everyone (owner, 2026-10-26): a Premium deck that
+		 * has built up over weeks must not load in one go. The screen asks for
+		 * more with ?limit=; the deck itself is untouched.
+		 */
+		$total = count( (array) $rows );
+		$limit = max( self::PAGE, (int) $request->get_param( 'limit' ) );
+		$rows  = array_slice( (array) $rows, 0, $limit );
 
 		$week     = gmdate( 'o-\WW' );
 		$profiles = array();
@@ -176,7 +187,9 @@ final class DiscoverScreen {
 			'ok'        => true,
 			'profiles'  => $profiles,
 			// Undecided profiles the filters are hiding right now.
-			'hiddenByFilter' => max( 0, $in_tray - count( (array) $rows ) ),
+			'hiddenByFilter' => max( 0, $in_tray - $total ),
+			// Undecided profiles waiting beyond those loaded (paging).
+			'total'     => $total,
 			'isPremium' => $premium,
 			'resetOn'   => $next ? $next->format( 'l, j M' ) : '',
 			'resetIso'  => $next ? $next->format( 'c' ) : '',

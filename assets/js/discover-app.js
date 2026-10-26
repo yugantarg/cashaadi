@@ -21,6 +21,13 @@
 	var acted = {};   // profile ids already liked/passed this session
 	var viewed = {};  // profile ids already reported as viewed, so nav doesn't re-post
 
+	/* 24 profiles at a time (v1.89.44); "more" asks for the next 24. */
+	var limit = 24;
+	function queueUrl( more ) {
+		if ( more ) { limit += 24; }
+		return CFG.queue + ( CFG.queue.indexOf( '?' ) === -1 ? '?' : '&' ) + 'limit=' + limit + ( more ? '&more=1' : '' );
+	}
+
 	function api( url, opts ) {
 		opts = opts || {};
 		opts.credentials = 'same-origin';
@@ -307,10 +314,11 @@
 		// Page decided: fetch the next one rather than saying "that's all".
 		if ( ! left.length && meta.grid && ! meta.noMore ) {
 			root.appendChild( el( 'p', 'csm-app-loading', 'Loading more profiles\u2026' ) );
-			api( CFG.queue + ( CFG.queue.indexOf( '?' ) === -1 ? '?' : '&' ) + 'more=1' ).then( function ( d ) {
+			api( queueUrl( true ) ).then( function ( d ) {
 				var fresh = ( d && d.ok && d.profiles ) ? d.profiles.filter( function ( p ) { return ! acted[ p.id ]; } ) : [];
 				if ( ! fresh.length ) { meta.noMore = true; return empty(); }
 				profiles = d.profiles;
+				meta.total = d.total || meta.total;
 				drawGrid();
 			} );
 			return;
@@ -342,16 +350,17 @@
 
 		// Grid members (Gold, Premium women): a page at a time (v1.88.3).
 		// More only while this week still owes profiles that have not loaded.
-		if ( ( meta.unlimited || weekLeft > left.length ) && ! meta.noMore ) {
+		if ( ( meta.unlimited || ( meta.total || 0 ) > profiles.length || weekLeft > left.length ) && ! meta.noMore ) {
 			var more = el( 'button', 'csm-d-more', 'Show more profiles' );
 			more.type = 'button';
 			more.addEventListener( 'click', function () {
 				more.disabled = true;
 				more.textContent = 'Loading\u2026';
 				var before = profiles.length, y = window.scrollY;
-				api( CFG.queue + ( CFG.queue.indexOf( '?' ) === -1 ? '?' : '&' ) + 'more=1' ).then( function ( d ) {
+				api( queueUrl( true ) ).then( function ( d ) {
 					if ( d && d.ok ) {
 						profiles = d.profiles || profiles;
+						meta.total = d.total || meta.total;
 						if ( profiles.length <= before ) { meta.noMore = true; }
 					}
 					drawGrid();
@@ -575,22 +584,24 @@
 	}
 
 	function load() {
-		return api( CFG.queue ).then( function ( d ) {
+		limit = 24;
+		return api( queueUrl( false ) ).then( function ( d ) {
 			if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 			profiles = d.profiles || [];
 			meta.filters = d.filters || meta.filters;
 			// Not for unlimited (Gold): only a page is loaded, so the count misleads (owner, 2026-10-26).
 			meta.hiddenByFilter = meta.unlimited ? 0 : ( d.hiddenByFilter || 0 );
+			meta.total = d.total || 0;
 			idx = 0;
 			view = meta.grid ? 'grid' : 'single';
 			draw();
 		} );
 	}
 
-	api( CFG.queue ).then( function ( d ) {
+	api( queueUrl( false ) ).then( function ( d ) {
 		if ( ! d || ! d.ok ) { return empty( 'We could not load profiles just now.' ); }
 		profiles = d.profiles || [];
-		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, hiddenByFilter: d.unlimited ? 0 : ( d.hiddenByFilter || 0 ), goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
+		meta = { isPremium: d.isPremium, resetOn: d.resetOn, resetIso: d.resetIso, upgrade: d.upgrade, freeQuota: d.freeQuota, premiumQuota: d.premiumQuota, quota: d.quota, filters: d.filters, grid: d.grid, nextSteps: d.nextSteps || [], boost: d.boost || null, decidedWeek: d.decidedWeek || 0, unlimited: !! d.unlimited, total: d.total || 0, hiddenByFilter: d.unlimited ? 0 : ( d.hiddenByFilter || 0 ), goldOnSale: !! ( window.CSM_APP && window.CSM_APP.goldOnSale ) };
 		idx = 0;
 		view = d.grid ? 'grid' : 'single';
 		draw();
