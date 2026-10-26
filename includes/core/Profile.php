@@ -251,19 +251,6 @@ final class Profile {
 	 * 'Location' or 'About Me', which do not exist here and silently returned
 	 * empty on every card until v0.29.0.
 	 */
-	/** A field's value by id, '' when this viewer may not see it. */
-	public static function by_id( $fid, $profile_id, $hidden = array() ) {
-		$fid = (int) $fid;
-		if ( ! $fid || ! function_exists( 'xprofile_get_field_data' ) || in_array( $fid, (array) $hidden, true ) ) {
-			return '';
-		}
-		$v = xprofile_get_field_data( $fid, (int) $profile_id );
-		if ( is_array( $v ) ) {
-			$v = implode( ', ', array_filter( array_map( 'strval', $v ) ) );
-		}
-		return self::text( wp_strip_all_tags( (string) $v ) );
-	}
-
 	public static function field( $label, $profile_id, $hidden = null ) {
 		if ( ! function_exists( 'xprofile_get_field_data' ) ) {
 			return '';
@@ -502,8 +489,7 @@ final class Profile {
 			'age'      => self::age_of( $profile_id, $hidden ),
 			// Feet and inches, the unit this site shows — '' when hidden or unset.
 			'height'   => self::height_label( self::field( 'Height', $profile_id, $hidden ) ),
-			// By field id, not the label 'City', which did not match the live field (v1.89.66).
-			'city'     => self::by_id( Config::FIELD_CITY, $profile_id, $hidden ),
+			'city'     => self::field( 'City', $profile_id, $hidden ),
 			'bio'      => self::field( 'Bio', $profile_id, $hidden ),
 			'job'      => self::field( 'Current Job Title', $profile_id, $hidden ),
 			'avatar'   => function_exists( 'bp_core_fetch_avatar' )
@@ -641,8 +627,7 @@ final class Profile {
 					}
 					continue;
 				}
-				// City is in the header (by id, whatever the field is called).
-				if ( in_array( $field->name, $skip, true ) || (int) Config::FIELD_CITY === (int) $field->id ) {
+				if ( in_array( $field->name, $skip, true ) ) {
 					continue;
 				}
 				if ( in_array( (int) $field->id, $hidden, true ) ) {

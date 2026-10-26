@@ -283,7 +283,6 @@
 		var meta2 = [];
 		if ( p.age ) { meta2.push( p.age ); }
 		if ( p.height ) { meta2.push( p.height ); }
-		if ( p.city ) { meta2.push( p.city ); }
 		cell.appendChild( el( 'span', 'csm-d-tilename', p.name || 'Member' ) );
 		cell.appendChild( el( 'span', 'csm-d-tilemeta', meta2.join( '  \u00b7  ' ) ) );
 

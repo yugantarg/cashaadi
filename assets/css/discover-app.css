@@ -439,4 +439,3 @@ body.csm-member-view .csm-d-card {
 
 /* In place of the decision buttons once a number was opened (v1.89.65). */
 .csm-d-decided { align-self: center; padding: 10px 16px; border-radius: 999px; background: var(--csm-blue-tint, #e9f1f8); color: var(--csm-blue, #2c5b8c); font-weight: 700; font-size: 14px; }
-.csm-d-tilemeta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
