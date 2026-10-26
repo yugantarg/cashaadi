@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.67 — 2026-10-26
+
+- v1.89.66 reverted (owner: clutter). Instead the city is its own line under the job on the profile card, read by field id (`cityLine`). Tiles unchanged.
+
 ## 1.89.65 — 2026-10-26
 
 - Opening a phone number decides the card (owner): the request it sent, or the one it accepted, replaces Pass / Save / Send request (or Decline / Accept) with "✓ Request sent" / "✓ You're a match", keeping previous / next. The viewer's tray row is marked as a request, so the profile leaves Discover and Saved; Requests reloads its lists on the way back.

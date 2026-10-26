@@ -490,6 +490,9 @@ final class Profile {
 			// Feet and inches, the unit this site shows — '' when hidden or unset.
 			'height'   => self::height_label( self::field( 'Height', $profile_id, $hidden ) ),
 			'city'     => self::field( 'City', $profile_id, $hidden ),
+			// City by field id (v1.89.67): the 'City' label does not find the live field.
+			'cityLine' => in_array( (int) Config::FIELD_CITY, (array) $hidden, true ) || ! function_exists( 'xprofile_get_field_data' )
+				? '' : self::text( wp_strip_all_tags( (string) xprofile_get_field_data( Config::FIELD_CITY, $profile_id ) ) ),
 			'bio'      => self::field( 'Bio', $profile_id, $hidden ),
 			'job'      => self::field( 'Current Job Title', $profile_id, $hidden ),
 			'avatar'   => function_exists( 'bp_core_fetch_avatar' )

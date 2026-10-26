@@ -421,6 +421,8 @@ window.csmProfileCard = function ( p ) {
 	over.appendChild( mk( 'h1', 'csm-d-name', p.name + ( p.age ? ', ' + p.age : '' ) ) );
 	var sub = [ p.job, p.city ].filter( Boolean ).join( ' \u00b7 ' );
 	if ( sub ) { over.appendChild( mk( 'p', 'csm-d-sub', sub ) ); }
+	// City on its own line under the job (owner, 2026-10-26).
+	if ( p.cityLine && p.cityLine !== p.city ) { over.appendChild( mk( 'p', 'csm-d-sub', p.cityLine ) ); }
 	media.appendChild( over );
 	card.appendChild( media );
 
