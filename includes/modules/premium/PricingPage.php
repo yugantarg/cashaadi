@@ -109,6 +109,8 @@ final class PricingPage {
 				'lead'  => 'Everything in Free, plus:',
 				'items' => array(
 					$prem_n . ' profiles a week',
+					// Owner, 2026-10-26: undecided profiles carry over (Discover::premium_carry_over).
+					'Profiles never expire: the ones you have not decided on stay, and new ones add up every week',
 					'Advanced filters',
 					'See who viewed your profile, and send them a request',
 					'See blurred photos',
