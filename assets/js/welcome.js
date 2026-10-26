@@ -327,7 +327,7 @@
 		cb.type = 'checkbox';
 		cb.checked = !! a.show;
 		var txt = el( 'span', 'csm-w-astro-l' );
-		function label() { txt.textContent = cb.checked ? 'Shown on my profile' : 'Hidden from my profile'; }
+		function label() { txt.textContent = 'Show on profile'; } // a fixed label: the switch says on or off
 		cb.addEventListener( 'change', label );
 		label();
 		sw.appendChild( txt );

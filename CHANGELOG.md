@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.81 — 2026-10-27
+
+- Astro details switch reads "Show on profile" (owner), on = shown. It said "Hidden from my profile" while off, which read as the setting rather than its state.
+
 ## 1.89.80 — 2026-10-27
 
 - Action bar on profile cards (Discover, Requests, member pages) is floating pills instead of a thick white bar (owner): icon and label side by side, on a see-through blurred background, with small glass arrows at the ends. Bar height 124px → 64px, so the photo gets that room back. Labels in the pill are short (Save, Decline, Accept); the full wording stays the button's accessible name. Checked at 360 / 390 / 412px wide.
