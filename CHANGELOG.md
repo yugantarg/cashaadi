@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.71 — 2026-10-26
+
+- City → state: about 70 towns and spellings from the first `wp csm buckets report` added (Gurgaon / Bengaluru / Ahmedabad misspellings, Jamkhandi, Adoni, Tirur, Kasargod, Barabanki, Hathras …). Run `wp csm buckets rebuild`.
+
 ## 1.89.70 — 2026-10-26
 
 - Requests gains a **Declined** tab (owner): the requests you turned down, newest first, as profile tiles with "Declined N ago", opening the full card with a Send request button in case you change your mind. Premium and Gold only, like Viewed me: free members see initials and times and an upgrade box (`src=requests-declined`). Read from `csm_rejections`; people since matched, or who have asked again, are left out.
