@@ -37,7 +37,9 @@
 	font-size: 27px; font-weight: 500; line-height: 1.15; color: #fff;
 }
 .csm-d-sub {
-	margin: 5px 0 0; font-size: 14px; color: rgba(255,255,255,.9);
+	/* Its own line height: .csm-d-media sets 0 (no gap under the photo), and
+	   inheriting it with the clamp below made job and city 0px tall (v1.89.76). */
+	margin: 5px 0 0; font-size: 14px; line-height: 1.35; color: rgba(255,255,255,.9);
 	/* long job titles were overshooting the card — clamp rather than overflow */
 	display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.76 — 2026-10-26
+
+- The real cause of the missing city (and job title) on profile cards: the photo area sets `line-height: 0`, the job/city lines inherited it, and with their two-line clamp they were 0px tall. They now have their own line height.
+
 ## 1.89.75 — 2026-10-26
 
 - City shows on profile cards (owner: still missing). It was on the job line ("Job · City"), which is clamped to two lines, so a long job title cut it off; and the separate city line was skipped when it matched. Now the job has its line and the city always its own line under it.
