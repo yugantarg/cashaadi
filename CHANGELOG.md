@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.69 — 2026-10-26
+
+- Filter sheet takes less room (owner chose ideas 1–3): each pick list (Community, Mother tongue, State, Religion, …) is one line showing what is chosen ("Brahmin +2 ›", "Any ›"); tapping it opens that list on its own, with Back / Done. Long lists (more than 10 groups) get a search box and the most common groups first ("Popular", counted twice a day, transient `csm_popular_<key>`), then the rest A–Z with Others last.
+- The filters in use show as chips beside the Filter button on Discover and Requests ("Age 26–30 ×", "Gujarat ×"); × removes that one filter straight away.
+
 ## 1.89.68 — 2026-10-26
 
 - City grouped by state (owner): the member types their city as before and the profile shows it as typed; it is also sorted into a state (or Abroad / Others) in `Core\Buckets` (kind `city`, field 587), with a "State" picker under the field in Edit profile. Discover / Requests filters gain **State**, ticked like Community. Native Place (new) is grouped the same way (kind `native`), not yet a filter. Run `wp csm buckets rebuild`, then `wp csm buckets report` to see cities that fit no state.

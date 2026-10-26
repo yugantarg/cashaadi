@@ -372,3 +372,32 @@ img.avatar {
 /* On the icon itself (v1.89.54): positioned from the nav item it landed above the bar. */
 .csm-app-nav-ic { position: relative; display: inline-flex; font-style: normal; }
 .csm-app-nav-count { position: absolute; top: -6px; left: 14px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #d93025; color: #fff; font: 700 11px/18px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--csm-surface, #fff); }
+
+/* Filters in use as chips beside the button (v1.89.69). */
+.csm-d-filterbar.has-chips { justify-content: flex-start; flex-wrap: nowrap; }
+.csm-d-filterbar.has-chips .csm-d-filterbtn { flex: none; }
+.csm-d-fchiprow { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.csm-d-fchiprow::-webkit-scrollbar { display: none; }
+.csm-d-fchipon {
+	flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 200px;
+	padding: 6px 8px 6px 12px; border-radius: 999px; cursor: pointer;
+	border: 1px solid var(--csm-blue, #2c5b8c); background: rgba(44, 91, 140, .08);
+	color: var(--csm-blue, #2c5b8c); font: 600 12.5px/1.2 inherit;
+}
+.csm-d-fchipt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.csm-d-fchipx { font-size: 16px; line-height: 1; opacity: .8; }
+.csm-d-fchipon[disabled] { opacity: .5; }
+
+/* One line per pick list; tapping opens its own list (v1.89.69). */
+.csm-d-fsum { width: 100%; padding: 11px 0; margin: 0; border: 0; border-top: 1px solid var(--csm-hair, #e4eaf0); background: none; font: inherit; text-align: left; cursor: pointer; }
+.csm-d-fsumv { font-size: 14px; color: var(--csm-muted, #5c6a76); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.csm-d-fsum.is-set .csm-d-fsumv { color: var(--csm-blue, #2c5b8c); font-weight: 600; }
+.csm-d-fsum + .csm-d-sheethint { margin-top: 12px; }
+.csm-d-fphead { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.csm-d-fphead h2 { margin: 0; }
+.csm-d-fpback { padding: 4px 0; border: 0; background: none; font: 600 14px/1 inherit; color: var(--csm-blue, #2c5b8c); cursor: pointer; }
+.csm-d-fsearch { width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 10px 12px; font-size: 16px; border: 1px solid var(--csm-hair-2, #d6dfe7); border-radius: 8px; }
+.csm-d-fsec { margin: 14px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--csm-muted, #5c6a76); }
+.csm-d-tick[hidden], .csm-d-fsec[hidden] { display: none; }
+.csm-d-fpanel .csm-d-ticklist { margin-bottom: 4px; }
+.csm-d-fpanel .csm-d-sheetact { margin-top: 12px; }

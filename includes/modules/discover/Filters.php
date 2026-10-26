@@ -438,12 +438,35 @@ final class Filters {
 			$opts = self::choice_options( $k );
 			if ( $opts ) {
 				// 'tick': shown as a list of tick boxes (groups), not chips.
-				$out[] = array( 'key' => $k, 'label' => $def[1], 'options' => $opts, 'tick' => (bool) self::bucket_kind( $k ) );
+				$row = array( 'key' => $k, 'label' => $def[1], 'options' => $opts, 'tick' => (bool) self::bucket_kind( $k ) );
+				if ( self::bucket_kind( $k ) && count( $opts ) > 10 ) {
+					$row['popular'] = self::popular( $k );
+				}
+				$out[] = $row;
 			} elseif ( '' !== self::own_value( $uid, $k ) ) {
 				$out[] = array( 'key' => $k, 'label' => $def[1], 'same' => true, 'mine' => self::own_value( $uid, $k ) );
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * The groups most members are in, largest first (v1.89.69): shown at the
+	 * top of long lists (community, state). Counted twice a day.
+	 */
+	public static function popular( $k, $n = 8 ) {
+		$key = 'csm_popular_' . $k;
+		$top = get_transient( $key );
+		if ( ! is_array( $top ) ) {
+			global $wpdb;
+			$top = array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare(
+				"SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = %s GROUP BY meta_value ORDER BY COUNT(*) DESC LIMIT %d",
+				\CAShaadi\Core\Buckets::meta_key( $k ),
+				(int) $n
+			) ) );
+			set_transient( $key, $top, 12 * HOUR_IN_SECONDS );
+		}
+		return $top;
 	}
 
 	/** The member's own answer for a dimension, as typed. */

@@ -701,12 +701,46 @@ window.csmProfileCard = function ( p ) {
 		var cur  = f.filters || {};
 		var btn  = el( 'button', 'csm-d-filterbtn' );
 		btn.type = 'button';
-		var on = ( cur.age_min || cur.in_min || pickCount( cur ) );
+		var active = chipList( cur );
 		btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M7 12h10M10 19h4"/></svg>';
-		btn.appendChild( document.createTextNode( on ? summary( cur ) : 'Filter' ) );
-		if ( on ) { btn.classList.add( 'is-on' ); }
+		btn.appendChild( document.createTextNode( active.length ? 'Filters' : 'Filter' ) );
+		if ( active.length ) { btn.classList.add( 'is-on' ); }
 		btn.addEventListener( 'click', sheet );
 		wrap.appendChild( btn );
+
+		/*
+		 * The filters in use as chips, each removable with one tap (v1.89.69;
+		 * owner chose "chips at the top"). The button opens the sheet for more.
+		 */
+		if ( active.length ) {
+			wrap.classList.add( 'has-chips' );
+			var row = el( 'div', 'csm-d-fchiprow' );
+			active.forEach( function ( a ) {
+				var c = el( 'button', 'csm-d-fchipon' );
+				c.type = 'button';
+				c.setAttribute( 'aria-label', 'Remove filter: ' + a.text );
+				c.appendChild( el( 'span', 'csm-d-fchipt', a.text ) );
+				c.appendChild( el( 'span', 'csm-d-fchipx', '\u00d7' ) );
+				c.addEventListener( 'click', function () {
+					row.querySelectorAll( 'button' ).forEach( function ( b ) { b.disabled = true; } );
+					var payload = {};
+					Object.keys( cur ).forEach( function ( k ) { payload[ k ] = cur[ k ]; } );
+					a.keys.forEach( function ( k ) { delete payload[ k ]; } );
+					api( o.url, payload ).then( function ( d ) {
+						if ( d && d.ok ) {
+							meta.filters = d;
+							if ( o.onApplied ) { o.onApplied( d ); }
+							return;
+						}
+						row.querySelectorAll( 'button' ).forEach( function ( b ) { b.disabled = false; } );
+					} ).catch( function () {
+						row.querySelectorAll( 'button' ).forEach( function ( b ) { b.disabled = false; } );
+					} );
+				} );
+				row.appendChild( c );
+			} );
+			wrap.appendChild( row );
+		}
 
 		return wrap;
 	}
@@ -715,22 +749,32 @@ window.csmProfileCard = function ( p ) {
 		return Math.floor( inches / 12 ) + '\u2032' + ( inches % 12 ) + '\u2033';
 	}
 
-	/* How many pick-list filters are set (community, religion, …). */
-	function pickCount( c ) {
-		var n = 0;
-		( ( meta.filters && meta.filters.choices ) || [] ).forEach( function ( ch ) {
-			if ( c[ ch.key ] && ( 'same' === c[ ch.key ] || c[ ch.key ].length ) ) { n++; }
-		} );
-		return n;
+	/* A range as words: "26–30", "26+", "up to 30". */
+	function span( lo, hi, fmt ) {
+		fmt = fmt || String;
+		if ( lo && hi ) { return fmt( lo ) + '\u2013' + fmt( hi ); }
+		return lo ? fmt( lo ) + '+' : 'up to ' + fmt( hi );
 	}
 
-	function summary( c ) {
-		var bits = [];
-		if ( c.age_min ) { bits.push( c.age_min + '\u2013' + c.age_max + ' yrs' ); }
-		if ( c.in_min ) { bits.push( ftIn( c.in_min ) + '\u2013' + ftIn( c.in_max ) ); }
-		var n = pickCount( c );
-		if ( n ) { bits.push( n + ' more' ); }
-		return bits.join( ' \u00b7 ' );
+	/* Chosen values in a few words: "Gujarat", "Gujarat +2". */
+	function pickText( v ) {
+		if ( 'same' === v ) { return 'Same as mine'; }
+		if ( ! v || ! v.length ) { return 'Any'; }
+		return v[0] + ( v.length > 1 ? ' +' + ( v.length - 1 ) : '' );
+	}
+
+	/* Every filter in use: { text, keys to drop when removed }. */
+	function chipList( c ) {
+		var out = [];
+		if ( c.age_min || c.age_max ) { out.push( { text: 'Age ' + span( c.age_min, c.age_max ), keys: [ 'age_min', 'age_max' ] } ); }
+		if ( c.in_min || c.in_max ) { out.push( { text: 'Height ' + span( c.in_min, c.in_max, ftIn ), keys: [ 'in_min', 'in_max' ] } ); }
+		( ( meta.filters && meta.filters.choices ) || [] ).forEach( function ( ch ) {
+			var v = c[ ch.key ];
+			if ( v && ( 'same' === v || v.length ) ) {
+				out.push( { text: ( 'same' === v ? 'Same ' + ch.label.toLowerCase() : pickText( v ) ), keys: [ ch.key ] } );
+			}
+		} );
+		return out;
 	}
 
 	/* A free-text field: one switch, "Same as mine". */
@@ -744,68 +788,133 @@ window.csmProfileCard = function ( p ) {
 		return { row: row, read: function () { return cb.checked ? 'same' : ''; } };
 	}
 
-	/* Groups as tick boxes, with Select all / Clear (owner, 2026-10-24:
-	   "I can tick whatever categories I'm okay with and all those show").
-	   Nothing ticked means no filter. */
-	function ticks( ch, chosen ) {
-		var row = el( 'div', 'csm-d-frow csm-d-fticks' );
-		var head = el( 'div', 'csm-d-ftickhead' );
-		head.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
+	/*
+	 * Pick lists (v1.89.69; owner: "the caste one is taking a lot of space").
+	 * The sheet shows one line per question with what is chosen; tapping it
+	 * opens that question's own list. Long lists (community, state) get a
+	 * search box and the most common groups first, then the rest A-Z.
+	 * Nothing ticked means any; everything ticked is the same.
+	 */
+	function pickRow( ch, chosen, open ) {
+		var picked = {};
+		( Array.isArray( chosen ) ? chosen : [] ).forEach( function ( v ) { picked[ v ] = true; } );
+		var row = el( 'button', 'csm-d-frow csm-d-fsum' );
+		row.type = 'button';
+		row.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
+		var val = el( 'span', 'csm-d-fsumv' );
+		row.appendChild( val );
+		function read() {
+			var on = ch.options.filter( function ( x ) { return picked[ x ]; } );
+			return ( ch.tick && on.length === ch.options.length ) ? [] : on;
+		}
+		function show() {
+			var v = read();
+			val.textContent = pickText( v ) + ' \u203a';
+			row.classList.toggle( 'is-set', v.length > 0 );
+		}
+		show();
+		row.addEventListener( 'click', function () { open( ch, picked, show ); } );
+		return { row: row, read: read };
+	}
+
+	/* One question's full list, inside the sheet. done() goes back. */
+	function pickPanel( ch, picked, done ) {
+		var pane = el( 'div', 'csm-d-fpanel' );
+		var head = el( 'div', 'csm-d-fphead' );
+		var back = el( 'button', 'csm-d-fpback', '\u2039 Back' );
+		back.type = 'button';
+		head.appendChild( back );
+		head.appendChild( el( 'h2', null, ch.label ) );
+		pane.appendChild( head );
+
+		var long = ch.options.length > 10;
+		var q = null;
+		if ( long ) {
+			q = el( 'input', 'csm-d-fsearch' );
+			q.type = 'search';
+			q.placeholder = 'Search ' + ch.label.toLowerCase();
+			pane.appendChild( q );
+		}
+		var tools = el( 'div', 'csm-d-ftickhead' );
 		var all = el( 'button', 'csm-d-tickall', 'Select all' );
 		var none = el( 'button', 'csm-d-tickall', 'Clear' );
 		all.type = none.type = 'button';
-		head.appendChild( all );
-		head.appendChild( none );
-		row.appendChild( head );
-		var list = el( 'div', 'csm-d-ticklist' );
-		var picked = {};
-		( chosen || [] ).forEach( function ( v ) { picked[ v ] = true; } );
-		var boxes = ch.options.map( function ( opt ) {
+		tools.appendChild( all );
+		tools.appendChild( none );
+		pane.appendChild( tools );
+
+		var boxes = [];
+		function item( list, opt ) {
 			var lab = el( 'label', 'csm-d-tick' );
 			var cb = document.createElement( 'input' );
 			cb.type = 'checkbox';
 			cb.checked = !! picked[ opt ];
+			cb.addEventListener( 'change', function () { picked[ opt ] = cb.checked; } );
 			lab.appendChild( cb );
 			lab.appendChild( el( 'span', null, opt ) );
 			list.appendChild( lab );
-			return { opt: opt, cb: cb };
-		} );
-		all.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = true; } ); } );
-		none.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = false; } ); } );
-		row.appendChild( list );
-		return { row: row, read: function () {
-			var on = boxes.filter( function ( b ) { return b.cb.checked; } );
-			// Everything ticked is the same as no filter.
-			return on.length === boxes.length ? [] : on.map( function ( b ) { return b.opt; } );
-		} };
-	}
+			boxes.push( { opt: opt, cb: cb, lab: lab } );
+		}
+		var heads = [];
+		function section( title, opts ) {
+			if ( ! opts.length ) { return; }
+			if ( title ) {
+				var h = el( 'p', 'csm-d-fsec', title );
+				heads.push( h );
+				pane.appendChild( h );
+			}
+			var list = el( 'div', 'csm-d-ticklist' );
+			opts.forEach( function ( x ) { item( list, x ); } );
+			pane.appendChild( list );
+		}
+		var pop = long ? ( ch.popular || [] ).filter( function ( x ) { return ch.options.indexOf( x ) !== -1; } ) : [];
+		if ( pop.length ) {
+			var rest = ch.options.filter( function ( x ) { return pop.indexOf( x ) === -1; } );
+			var last = rest.filter( function ( x ) { return 'Others' === x; } );
+			rest = rest.filter( function ( x ) { return 'Others' !== x; } ).sort().concat( last );
+			section( 'Popular', pop );
+			section( 'All A\u2013Z', rest );
+		} else {
+			section( '', ch.options );
+		}
+		var nothing = el( 'p', 'csm-d-fhint', 'No match.' );
+		nothing.hidden = true;
+		pane.appendChild( nothing );
 
-	/* A pick list as tappable chips; returns a reader for the chosen values. */
-	function chips( ch, chosen ) {
-		var row = el( 'div', 'csm-d-frow csm-d-fchips' );
-		row.appendChild( el( 'span', 'csm-d-flabel', ch.label ) );
-		var box = el( 'div', 'csm-d-chipset' );
-		var picked = {};
-		( chosen || [] ).forEach( function ( v ) { picked[ v ] = true; } );
-		ch.options.forEach( function ( opt ) {
-			var c = el( 'button', 'csm-d-chip' + ( picked[ opt ] ? ' is-on' : '' ), opt );
-			c.type = 'button';
-			c.addEventListener( 'click', function () {
-				picked[ opt ] = ! picked[ opt ];
-				c.classList.toggle( 'is-on', !! picked[ opt ] );
+		if ( q ) {
+			q.addEventListener( 'input', function () {
+				var t = q.value.trim().toLowerCase();
+				var any = false;
+				boxes.forEach( function ( b ) {
+					var hit = ! t || b.opt.toLowerCase().indexOf( t ) !== -1;
+					b.lab.hidden = ! hit;
+					any = any || hit;
+				} );
+				heads.forEach( function ( h ) { h.hidden = !! t; } );
+				nothing.hidden = any;
 			} );
-			box.appendChild( c );
-		} );
-		row.appendChild( box );
-		return { row: row, read: function () { return ch.options.filter( function ( o ) { return picked[ o ]; } ); } };
+		}
+		all.addEventListener( 'click', function () { boxes.forEach( function ( b ) { if ( ! b.lab.hidden ) { b.cb.checked = true; picked[ b.opt ] = true; } } ); } );
+		none.addEventListener( 'click', function () { boxes.forEach( function ( b ) { b.cb.checked = false; picked[ b.opt ] = false; } ); } );
+
+		var act = el( 'div', 'csm-d-sheetact' );
+		var ok = el( 'button', 'csm-d-fsave', 'Done' );
+		ok.type = 'button';
+		act.appendChild( ok );
+		pane.appendChild( act );
+		back.addEventListener( 'click', done );
+		ok.addEventListener( 'click', done );
+		return pane;
 	}
 
 	function sheet() {
 		var f = meta.filters, b = f.bounds, cur = f.filters || {};
 		var back = el( 'div', 'csm-d-sheetback' );
 		var box  = el( 'div', 'csm-d-sheet' );
-		box.appendChild( el( 'h2', null, 'Filter profiles' ) );
-		if ( o.hint ) { box.appendChild( el( 'p', 'csm-d-sheethint', o.hint ) ); }
+		var main = el( 'div', 'csm-d-fmain' );
+		box.appendChild( main );
+		main.appendChild( el( 'h2', null, 'Filter profiles' ) );
+		if ( o.hint ) { main.appendChild( el( 'p', 'csm-d-sheethint', o.hint ) ); }
 
 		function num( label, name, min, max, val, fmt ) {
 			var row = el( 'label', 'csm-d-frow' );
@@ -830,19 +939,31 @@ window.csmProfileCard = function ( p ) {
 		var aMax = num( 'Age to', 'age_max', b.ageMin, b.ageMax, cur.age_max );
 		var hMin = num( 'Height from', 'in_min', b.inMin, b.inMax, cur.in_min, ftIn );
 		var hMax = num( 'Height to', 'in_max', b.inMin, b.inMax, cur.in_max, ftIn );
-		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { box.appendChild( n.row ); } );
+		[ aMin, aMax, hMin, hMax ].forEach( function ( n ) { main.appendChild( n.row ); } );
+
+		function open( ch, picked, refresh ) {
+			var pane = pickPanel( ch, picked, function () {
+				box.removeChild( pane );
+				main.hidden = false;
+				refresh();
+				box.scrollTop = 0;
+			} );
+			main.hidden = true;
+			box.appendChild( pane );
+			box.scrollTop = 0;
+		}
 
 		var picks = ( f.choices || [] ).map( function ( ch ) {
-			var c = ch.same ? sameSwitch( ch, cur[ ch.key ] ) : ( ch.tick ? ticks( ch, cur[ ch.key ] ) : chips( ch, cur[ ch.key ] ) );
-			box.appendChild( c.row );
+			var c = ch.same ? sameSwitch( ch, cur[ ch.key ] ) : pickRow( ch, cur[ ch.key ], open );
+			main.appendChild( c.row );
 			return { key: ch.key, read: c.read };
 		} );
 		if ( picks.length ) {
-			box.appendChild( el( 'p', 'csm-d-sheethint', 'Nothing ticked means any. Community and mother tongue: "Others" covers everyone not in a listed group. Other questions: profiles that have not answered are still shown.' ) );
+			main.appendChild( el( 'p', 'csm-d-sheethint', 'Any means no filter. "Others" covers everyone not in a listed group. Profiles that have not answered a question are still shown.' ) );
 		}
 
 		var err = el( 'p', 'csm-d-ferr' );
-		box.appendChild( err );
+		main.appendChild( err );
 
 		/* The same rule the server applies, checked as they choose. */
 		function validate() {
@@ -864,7 +985,7 @@ window.csmProfileCard = function ( p ) {
 		save.type = 'button';
 		actions.appendChild( clear );
 		actions.appendChild( save );
-		box.appendChild( actions );
+		main.appendChild( actions );
 
 		function close() { if ( back.parentNode ) { back.parentNode.removeChild( back ); } }
 
