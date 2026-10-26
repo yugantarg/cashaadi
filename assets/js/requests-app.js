@@ -20,7 +20,7 @@
 	 * into a bounce to the home page. It now points here, and a hash says which
 	 * tab it meant.
 	 */
-	var VALID_TABS = [ 'received', 'matches', 'sent', 'saved', 'viewers' ];
+	var VALID_TABS = [ 'received', 'matches', 'sent', 'saved', 'viewers', 'declined' ];
 	var tab = ( function () {
 		var h = ( window.location.hash || '' ).replace( /^#\/?/, '' );
 		return VALID_TABS.indexOf( h ) !== -1 ? h : 'received';
@@ -48,7 +48,8 @@
 			[ 'matches', 'Matches', undefined !== data.matchesTotal ? data.matchesTotal : ( data.matches || [] ).length ],
 			[ 'sent', 'Sent', undefined !== data.sentTotal ? data.sentTotal : ( data.sent || [] ).length ],
 			[ 'saved', 'Saved', undefined !== data.savedOpenTotal ? data.savedOpenTotal + ( data.saved || [] ).filter( function ( x ) { return x.masked; } ).length : ( data.saved || [] ).length ],
-			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ]
+			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ],
+			[ 'declined', 'Declined', 0 ]
 		].forEach( function ( t ) {
 			var b = el( 'button', 'csm-r-tab' + ( tab === t[0] ? ' is-on' : '' ) );
 			b.type = 'button';
@@ -299,6 +300,29 @@
 				root.appendChild( lock );
 				return;
 			}
+		} else if ( 'declined' === tab ) {
+			/* Who I declined (2026-10-26): Premium and Gold, like Viewed me. */
+			if ( ! ( data.declined || [] ).length ) {
+				root.appendChild( emptyBox( 'No declined requests', 'Requests you decline are listed here.' ) );
+				return;
+			}
+			if ( data.isPremium ) {
+				root.appendChild( window.csmDeck.tiles( data.declined, function ( i ) { deck( data.declined, i, 'All declined' ); } ) );
+				moreButton( data.declinedTotal, data.declined.length );
+				return;
+			}
+			data.declined.forEach( function ( v ) {
+				var row = el( 'li', 'csm-r-row csm-r-masked' );
+				row.appendChild( el( 'span', 'csm-r-initial', v.initial ) );
+				var meta = el( 'div', 'csm-r-meta' );
+				meta.appendChild( el( 'span', 'csm-r-name', '\u2022\u2022\u2022\u2022\u2022\u2022' ) );
+				if ( v.ago ) { meta.appendChild( el( 'span', 'csm-r-sub', v.ago ) ); }
+				row.appendChild( meta );
+				list.appendChild( row );
+			} );
+			root.appendChild( list );
+			root.appendChild( upgradeBox( data.declinedTotal || 0, [ 'request you declined', 'requests you declined' ], 'Upgrade to Premium to see who you declined, and send them a request if you change your mind.', 'requests-declined' ) );
+			return;
 		} else {
 			if ( ! ( data.viewers || [] ).length ) {
 				root.appendChild( emptyBox( 'No visitors yet', 'Complete your profile and start matching to get noticed.' ) );
@@ -352,7 +376,7 @@
 				if ( 'sent' === p.kind ) {
 					return [ { cls: 'csm-d-pass', label: 'Withdraw request', icon: I.pass, run: function ( q ) { return send( q, 'withdraw' ); } } ];
 				}
-				if ( 'viewer' === p.kind ) {
+				if ( 'viewer' === p.kind || 'declined' === p.kind ) {
 					return [ { cls: 'csm-d-like', label: 'Send request', icon: I.like, run: function ( q ) { return send( q, 'like' ); } } ];
 				}
 				if ( 'request' === p.kind ) {
@@ -385,7 +409,7 @@
 			// The deck removes p from the list it shows; drop it everywhere else too,
 			// and keep the totals (which count beyond the loaded page) true.
 			data.saved = ( data.saved || [] ).filter( function ( x ) { return x.masked || x.id !== p.id; } );
-			var totals = { received: 'receivedTotal', saved: 'savedOpenTotal', sent: 'sentTotal', matches: 'matchesTotal', viewers: 'viewersTotal' };
+			var totals = { received: 'receivedTotal', saved: 'savedOpenTotal', sent: 'sentTotal', matches: 'matchesTotal', viewers: 'viewersTotal', declined: 'declinedTotal' };
 			if ( totals[ tab ] ) { data[ totals[ tab ] ] = Math.max( 0, ( data[ totals[ tab ] ] || 1 ) - 1 ); }
 			if ( 'save_request' === action ) { data.savedOpenTotal = ( data.savedOpenTotal || 0 ) + 1; }
 			if ( 'accept' === action ) { data.matchesTotal = ( data.matchesTotal || 0 ) + 1; }
@@ -401,15 +425,17 @@
 		} );
 	}
 
-	function upgradeBox() {
-		var n = data.viewersTotal || 0;
+	/* Viewed me by default; Declined passes its own words (2026-10-26). */
+	function upgradeBox( n, words, line, src ) {
+		if ( undefined === n ) { n = data.viewersTotal || 0; }
+		words = words || [ 'member viewed your profile', 'members viewed your profile' ];
 		var box = el( 'div', 'csm-r-upgrade' );
 		box.appendChild( el( 'div', 'csm-r-upgrade-n', String( n ) ) );
-		box.appendChild( el( 'h3', null, ( 1 === n ? 'member viewed your profile' : 'members viewed your profile' ) ) );
-		box.appendChild( el( 'p', null, 'Upgrade to Premium to see exactly who visited you, and when.' ) );
+		box.appendChild( el( 'h3', null, 1 === n ? words[0] : words[1] ) );
+		box.appendChild( el( 'p', null, line || 'Upgrade to Premium to see exactly who visited you, and when.' ) );
 		var a = document.createElement( 'a' );
 		a.className = 'csm-r-upgrade-cta';
-		a.href = window.csmSrc( CFG.upgrade, 'requests-viewers' );
+		a.href = window.csmSrc( CFG.upgrade, src || 'requests-viewers' );
 		a.textContent = 'Upgrade to Premium';
 		box.appendChild( a );
 		return box;

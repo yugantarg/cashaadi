@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.70 — 2026-10-26
+
+- Requests gains a **Declined** tab (owner): the requests you turned down, newest first, as profile tiles with "Declined N ago", opening the full card with a Send request button in case you change your mind. Premium and Gold only, like Viewed me: free members see initials and times and an upgrade box (`src=requests-declined`). Read from `csm_rejections`; people since matched, or who have asked again, are left out.
+
 ## 1.89.69 — 2026-10-26
 
 - Filter sheet takes less room (owner chose ideas 1–3): each pick list (Community, Mother tongue, State, Religion, …) is one line showing what is chosen ("Brahmin +2 ›", "Any ›"); tapping it opens that list on its own, with Back / Done. Long lists (more than 10 groups) get a search box and the most common groups first ("Popular", counted twice a day, transient `csm_popular_<key>`), then the rest A–Z with Others last.

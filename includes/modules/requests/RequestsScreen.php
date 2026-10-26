@@ -344,6 +344,43 @@ final class RequestsScreen {
 		}
 
 		/*
+		 * Declined (owner, 2026-10-26): the requests this member turned down,
+		 * newest first, from the record Premium already keeps (csm_rejections).
+		 * Premium and Gold only, like Viewed me: free members get initials and
+		 * times, never identities. Anyone they have since matched with, or who
+		 * has asked again, is left out: they are in Matches or Received.
+		 */
+		$declined     = array();
+		$declined_ids = array();
+		global $wpdb;
+		$rej = $wpdb->get_results( $wpdb->prepare(
+			"SELECT rejected_id, created_at FROM {$wpdb->prefix}csm_rejections WHERE rejecter_id = %d AND source = 'request' ORDER BY created_at DESC LIMIT 500",
+			$uid
+		) );
+		foreach ( (array) $rej as $r ) {
+			$did = (int) $r->rejected_id;
+			if ( ! $did || ! get_userdata( $did ) ) {
+				continue;
+			}
+			if ( function_exists( 'friends_check_friendship_status' ) && 'not_friends' !== friends_check_friendship_status( $uid, $did ) ) {
+				continue;
+			}
+			$declined_ids[] = array( $did, (string) $r->created_at );
+		}
+		$now = current_time( 'timestamp' );
+		foreach ( array_slice( $declined_ids, 0, $premium ? $limit : 6 ) as $d ) {
+			$ts  = strtotime( $d[1] );
+			$ago = $ts ? sprintf( 'Declined %s ago', human_time_diff( $ts, $now ) ) : '';
+			if ( $premium ) {
+				$declined[] = array_merge( self::card( $d[0], $uid, 'declined' ), array( 'ago' => $ago ) );
+				continue;
+			}
+			$name       = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $d[0] ) : '';
+			$initial    = strtoupper( mb_substr( trim( (string) $name ), 0, 1 ) );
+			$declined[] = array( 'masked' => true, 'initial' => '' !== $initial ? $initial : 'C', 'ago' => $ago );
+		}
+
+		/*
 		 * Saved profiles. These live in the tray as status='saved' rather than in a
 		 * table of their own: they are still tray rows, they still count against
 		 * the week they were served in, and the weekly reset already leaves them
@@ -442,6 +479,8 @@ final class RequestsScreen {
 			'sentTotal'    => $sent_total,
 			'viewers'      => array_slice( $viewers, 0, $premium ? $limit : 6 ),
 			'viewersTotal' => count( $rows ),
+			'declined'      => $declined,
+			'declinedTotal' => count( $declined_ids ),
 		), 200 );
 	}
 
