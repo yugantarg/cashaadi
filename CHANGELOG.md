@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.66 — 2026-10-26
+
+- City shows on profile cards again: the header read it by the label 'City', which did not match the live field, so it was blank; it is now read by field id (`Profile::by_id`, `FIELD_CITY`). Tiles show age · height · city.
+
 ## 1.89.65 — 2026-10-26
 
 - Opening a phone number decides the card (owner): the request it sent, or the one it accepted, replaces Pass / Save / Send request (or Decline / Accept) with "✓ Request sent" / "✓ You're a match", keeping previous / next. The viewer's tray row is marked as a request, so the profile leaves Discover and Saved; Requests reloads its lists on the way back.

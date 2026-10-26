@@ -1002,7 +1002,7 @@ window.csmProfileCard = function ( p ) {
 			if ( p.priority ) { ph.appendChild( mk( 'span', 'csm-d-tilenew is-gold', 'Gold' ) ); }
 			cell.appendChild( ph );
 			cell.appendChild( mk( 'span', 'csm-d-tilename', p.name || 'Member' ) );
-			cell.appendChild( mk( 'span', 'csm-d-tilemeta', [ p.age, p.height ].filter( Boolean ).join( '  ·  ' ) ) );
+			cell.appendChild( mk( 'span', 'csm-d-tilemeta', [ p.age, p.height, p.city ].filter( Boolean ).join( '  ·  ' ) ) );
 			cell.addEventListener( 'click', function () { open( i ); } );
 			grid.appendChild( cell );
 		} );
