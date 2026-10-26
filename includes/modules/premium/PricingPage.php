@@ -110,7 +110,7 @@ final class PricingPage {
 				'items' => array(
 					$prem_n . ' profiles a week',
 					// Owner, 2026-10-26: undecided profiles carry over (Discover::premium_carry_over).
-					'Profiles never expire: the ones you have not decided on stay, and new ones add up every week',
+					'Profiles never expire: undecided ones add up week after week',
 					'Advanced filters',
 					'See who viewed your profile, and send them a request',
 					'See blurred photos',

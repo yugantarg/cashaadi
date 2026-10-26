@@ -7,7 +7,7 @@ commit per version.
 
 - Premium profiles never expire (owner): undecided profiles always carried over, but the weekly cap then blocked the new week's. For Premium (not Gold) the cap is now what is waiting plus this week's grant, so the deck grows — e.g. 40 after four weeks if none are decided (`Discover::premium_carry_over`). Free members unchanged.
 - Discover grid says "N profiles to see" when the deck holds more than a week's worth.
-- Pricing: new Premium line "Profiles never expire: the ones you have not decided on stay, and new ones add up every week".
+- Pricing: new Premium line "Profiles never expire: undecided ones add up week after week".
 
 ## 1.89.41 — 2026-10-26
 
