@@ -341,7 +341,8 @@
 		root.appendChild( grid );
 
 		// Grid members (Gold, Premium women): a page at a time (v1.88.3).
-		if ( ( meta.unlimited || ( meta.quota || 0 ) > profiles.length ) && ! meta.noMore ) {
+		// More only while this week still owes profiles that have not loaded.
+		if ( ( meta.unlimited || weekLeft > left.length ) && ! meta.noMore ) {
 			var more = el( 'button', 'csm-d-more', 'Show more profiles' );
 			more.type = 'button';
 			more.addEventListener( 'click', function () {

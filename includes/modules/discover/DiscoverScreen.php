@@ -206,7 +206,8 @@ final class DiscoverScreen {
 			 * many, the app opens on a grid and the carousel becomes the detail
 			 * view you reach by tapping a card (owner, 2026-09-22).
 			 */
-			'grid'         => Discover::quota_for( $viewer_id ) >= (int) apply_filters( 'csm_discover_grid_from', 20 ),
+			// Every Premium and Gold member gets the grid, men's 10 a week too (owner, 2026-10-26).
+			'grid'         => Discover::quota_for( $viewer_id ) >= (int) apply_filters( 'csm_discover_grid_from', 20 ) || $premium,
 
 			'filters'      => class_exists( __NAMESPACE__ . '\\Filters' ) ? Filters::state( $viewer_id ) : null,
 			'upgrade'   => site_url( '/membership-pricing/' ),
