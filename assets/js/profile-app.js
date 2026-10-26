@@ -45,6 +45,10 @@
 		if ( b.available > 0 ) {
 			box.appendChild( el( 'strong', null, 'Boost my profile' ) );
 			box.appendChild( el( 'span', null, 'Be shown first in Discover for 24 hours. ' + b.available + ( 1 === b.available ? ' boost' : ' boosts' ) + ' left.' ) );
+			// Say where the free one comes from (owner, 2026-10-26).
+			var perk = 'gold' === b.plan ? 'As a Gold member you get 1 free boost every week.'
+				: ( 'premium' === b.plan ? 'As a Premium member you get 1 free boost every month.' : '' );
+			if ( perk ) { box.appendChild( el( 'span', 'csm-p-boost-perk', perk ) ); }
 			var go = el( 'button', 'csm-p-boost-btn', 'Boost now' );
 			go.type = 'button';
 			go.addEventListener( 'click', function () {

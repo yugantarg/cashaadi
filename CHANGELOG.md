@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.56 — 2026-10-26
+
+- Boost card: "As a Premium member you get 1 free boost every month." (Gold: "every week") under the boosts left.
+
 ## 1.89.55 — 2026-10-26
 
 - Discover drew two bottom bars: Discover is also a WordPress page, so the old theme shell (`AppShell`) added its bar under the app's own. The shell now stays out of every app screen (`AppPage::$open`, set when a screen is claimed).
