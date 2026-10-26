@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.46 — 2026-10-26
+
+- Members who already have a photo or an approved badge are marked as having used the one-time boost (`Boost::mark_existing_used`, once on deploy): they get no more +5. Profiles already in anyone's deck stay; only future refills stop adding the 5.
+
 ## 1.89.45 — 2026-10-26
 
 - The +5 profiles for a photo and +5 for CA verification are one-time (owner): each applies only in the week it is first earned (user meta `csm_boost_week_photo` / `csm_boost_week_verify`, never cleared, so removing and re-adding cannot earn it again). Earned mid-week, the next Discover load adds the 5. Members who already had a photo or badge get it once, this week. Prompts say "this week" / "once approved" instead of "every week".

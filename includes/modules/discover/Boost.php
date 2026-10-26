@@ -32,6 +32,7 @@ final class Boost {
 
 	public static function register() {
 		add_filter( 'csm_tray_size', array( __CLASS__, 'tray_size' ), 30, 2 );
+		add_action( 'init', array( __CLASS__, 'mark_existing_used' ), 5 );
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 	}
 
@@ -132,6 +133,38 @@ final class Boost {
 	 * the next Discover load fills the 5 extra slots.
 	 */
 	const EARNED = 'csm_boost_week_%s'; // user meta per kind: the week it was earned
+
+	/*
+	 * Once, when the one-time rule arrives (owner, 2026-10-26): members who
+	 * already have a photo or an approved badge have had their boost. Marked
+	 * 'used' so it never counts again. Nothing already in anyone's deck is
+	 * removed; only future weekly refills stop adding the 5.
+	 */
+	public static function mark_existing_used() {
+		if ( get_option( 'csm_boost_onetime_marked' ) ) {
+			return;
+		}
+		update_option( 'csm_boost_onetime_marked', current_time( 'mysql' ), false );
+		global $wpdb;
+		$um   = $wpdb->usermeta;
+		$sets = array(
+			'photo'  => $wpdb->prepare( "SELECT user_id FROM {$um} WHERE meta_key = %s AND meta_value LIKE %s AND meta_value <> %s", 'csm_photos', 'a:%', 'a:0:{}' ),
+			'verify' => $wpdb->prepare( "SELECT user_id FROM {$um} WHERE meta_key = %s AND meta_value = %s", 'csm_av_status', 'approved' ),
+		);
+		foreach ( $sets as $kind => $sql ) {
+			$key = sprintf( self::EARNED, $kind );
+			// v1.89.45, if it ran first, recorded existing holders as earning this week.
+			$wpdb->query( $wpdb->prepare( "UPDATE {$um} SET meta_value = 'used' WHERE meta_key = %s", $key ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare(
+				"INSERT INTO {$um} ( user_id, meta_key, meta_value )
+				 SELECT s.user_id, %s, 'used' FROM ( {$sql} ) s
+				 WHERE NOT EXISTS ( SELECT 1 FROM {$um} x WHERE x.user_id = s.user_id AND x.meta_key = %s )",
+				$key, $key
+			) );
+		}
+		wp_cache_flush();
+	}
 
 	public static function extra( $uid ) {
 		$uid  = (int) $uid;
