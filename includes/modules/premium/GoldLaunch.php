@@ -50,6 +50,9 @@ final class GoldLaunch {
 		update_option( 'csm_pricing_v2', 1 );
 		update_option( 'csm_gold_on_sale', 1 );
 		update_option( 'csm_gold_phone_live', 1 );
+		// Cached pages (the pricing page for visitors) still say "phone numbers
+		// open on …" until LiteSpeed is purged.
+		do_action( 'litespeed_purge_all' );
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'gold_launched', 0, 0, array() );
 		}
@@ -59,6 +62,7 @@ final class GoldLaunch {
 	public static function open_sales() {
 		update_option( 'csm_pricing_v2', 1 );
 		update_option( 'csm_gold_on_sale', 1 );
+		do_action( 'litespeed_purge_all' );
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'gold_sales_opened', 0, 0, array() );
 		}

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.38 — 2026-10-26
+
+- Gold launch and opening sales purge the LiteSpeed cache, so visitors' cached pricing page stops saying "phone numbers open on 28 October" once they do.
+
 ## 1.89.37 — 2026-10-26
 
 - Discover: no "N hidden by your filters · Show all" for unlimited (Gold) members. Their tray is loaded a page at a time, so the count was wrong (owner's screen recording). The filter button and its Clear still work.
