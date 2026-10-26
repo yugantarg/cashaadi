@@ -369,5 +369,6 @@ img.avatar {
 .csm-filter-showall[disabled] { color: var(--csm-muted, #5c6a76); text-decoration: none; cursor: default; }
 
 /* Unanswered requests on the Requests tab (v1.89.53). */
-.csm-app-nav-item { position: relative; }
-.csm-app-nav-count { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #d93025; color: #fff; font: 700 11px/18px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--csm-surface, #fff); }
+/* On the icon itself (v1.89.54): positioned from the nav item it landed above the bar. */
+.csm-app-nav-ic { position: relative; display: inline-flex; font-style: normal; }
+.csm-app-nav-count { position: absolute; top: -6px; left: 14px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #d93025; color: #fff; font: 700 11px/18px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--csm-surface, #fff); }

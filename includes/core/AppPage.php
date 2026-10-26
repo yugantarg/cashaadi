@@ -293,11 +293,13 @@ final class AppPage {
 				<a class="csm-app-nav-item<?php echo $key === $current ? ' is-on' : ''; ?>"
 					href="<?php echo esc_url( $item['url'] ); ?>"
 					<?php echo $key === $current ? 'aria-current="page"' : ''; ?>>
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $item['icon']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup above ?></svg>
+					<i class="csm-app-nav-ic">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $item['icon']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup above ?></svg>
+						<?php if ( 'requests' === $key && ( $n = self::requests_waiting() ) ) : ?>
+							<b class="csm-app-nav-count" aria-label="<?php echo esc_attr( $n . ' new' ); ?>"><?php echo esc_html( $n > 9 ? '9+' : (string) $n ); ?></b>
+						<?php endif; ?>
+					</i>
 					<span><?php echo esc_html( $item['label'] ); ?></span>
-					<?php if ( 'requests' === $key && ( $n = self::requests_waiting() ) ) : ?>
-						<b class="csm-app-nav-count" aria-label="<?php echo esc_attr( $n . ' new' ); ?>"><?php echo esc_html( $n > 9 ? '9+' : (string) $n ); ?></b>
-					<?php endif; ?>
 				</a>
 			<?php endforeach; ?>
 		</nav>

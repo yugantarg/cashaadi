@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.54 — 2026-10-26
+
+- The red Requests count sits on the heart icon; it was positioned from the nav item and landed half above the bottom bar, cut off.
+
 ## 1.89.53 — 2026-10-26
 
 - The "match requests waiting" popup is off (owner: too often). Instead the Requests tab in the bottom bar carries a red count of requests received and not yet answered or saved for later (9+ above nine). The weekly "requests waiting" email is unchanged.
