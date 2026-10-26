@@ -1095,14 +1095,18 @@ window.csmProfileCard = function ( p ) {
 		next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
 	};
 
+	/* Pills (owner, 2026-10-27): icon and label in one floating pill. Three
+	   long labels and the arrows do not fit a phone, so the pill says it
+	   short; the full wording stays the button's accessible name. */
+	var SHORT = { 'Save for later': 'Save', 'Decline request': 'Decline', 'Accept request': 'Accept' };
 	function button( cls, label, svg ) {
 		var w = mk( 'div', 'csm-d-actw' );
 		var b = mk( 'button', 'csm-d-btn ' + cls );
 		b.type = 'button';
 		b.setAttribute( 'aria-label', label );
 		b.innerHTML = svg;
+		b.appendChild( mk( 'span', 'csm-d-actl', SHORT[ label ] || label ) );
 		w.appendChild( b );
-		w.appendChild( mk( 'span', 'csm-d-actl', label ) );
 		w.btn = b;
 		return w;
 	}
