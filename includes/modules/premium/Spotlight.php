@@ -40,6 +40,8 @@ final class Spotlight {
 	const SEEN_DAY   = 'csm_spot_seen_day';   // viewer: the day they last got a boosted card
 	const PRODUCT    = 'csm_spot_product';    // option: the pack's product id
 	const WEEK_ROW   = 'boost';               // tray week_assigned for a boosted card
+	const START_BAR  = 0.6;  // share of the full match points a viewer needs at the start…
+	const WIDEN_HOURS = 18;  // …falling evenly to none after this many hours
 
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
@@ -154,17 +156,42 @@ final class Spotlight {
 		}
 		$exclude = array_flip( array_map( 'intval', $exclude ) );
 
-		// The boost furthest from its cap goes first, so running boosts share viewers fairly.
-		$pick = 0;
-		$best = -1;
+		/*
+		 * Best matches first (owner, 2026-10-26): the viewer must be a strong
+		 * match at the start of the boost, using Discover's own match points
+		 * (Ranker::match_parts: language, community, religion, age, city,
+		 * diet). The bar falls as the hours pass, to anyone eligible after
+		 * WIDEN_HOURS, so the boost still fills. The viewer's filters are not
+		 * used. Among boosts this viewer qualifies for, the best match wins,
+		 * then the one furthest from its cap.
+		 */
+		$cands = array();
 		foreach ( $live as $b ) {
 			$b = (int) $b;
-			if ( isset( $exclude[ $b ] ) ) {
+			if ( ! isset( $exclude[ $b ] ) && self::cap_for( $b ) - (int) get_user_meta( $b, self::REACHED, true ) > 0 ) {
+				$cands[] = $b;
+			}
+		}
+		if ( ! $cands ) {
+			return;
+		}
+		$R     = '\\CAShaadi\\Modules\\Discover\\Ranker';
+		$P     = $R::points();
+		$max   = $P['tongue'] + $P['community'] + $P['religion'] + $P['age_fit'] + $P['city'] + $P['diet'];
+		$attrs = $R::attributes( array_merge( $cands, array( $viewer ) ) );
+		$me    = isset( $attrs[ $viewer ] ) ? $attrs[ $viewer ] : array();
+		$pick  = 0;
+		$best  = array( -1, -1 );
+		foreach ( $cands as $b ) {
+			$score = array_sum( $R::match_parts( $me, isset( $attrs[ $b ] ) ? $attrs[ $b ] : array(), $P ) );
+			$hours = ( time() - (int) get_user_meta( $b, self::STARTED, true ) ) / HOUR_IN_SECONDS;
+			$need  = $max * self::START_BAR * max( 0, 1 - $hours / self::WIDEN_HOURS );
+			if ( $score < $need ) {
 				continue;
 			}
-			$left = self::cap_for( $b ) - (int) get_user_meta( $b, self::REACHED, true );
-			if ( $left > $best && $left > 0 ) {
-				$best = $left;
+			$rank = array( $score, self::cap_for( $b ) - (int) get_user_meta( $b, self::REACHED, true ) );
+			if ( $rank > $best ) {
+				$best = $rank;
 				$pick = $b;
 			}
 		}

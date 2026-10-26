@@ -141,7 +141,8 @@ final class DiscoverScreen {
 		$in_tray = count( (array) $rows );
 		if ( $rows && class_exists( __NAMESPACE__ . '\\Filters' ) ) {
 			$keep = array_flip( Filters::keep( $viewer_id, wp_list_pluck( $rows, 'profile_id' ) ) );
-			$rows = array_values( array_filter( $rows, function ( $r ) use ( $keep ) { return isset( $keep[ (int) $r->profile_id ] ); } ) );
+			// A boosted card is shown whatever the filters (owner, 2026-10-26).
+			$rows = array_values( array_filter( $rows, function ( $r ) use ( $keep ) { return 'boost' === $r->week_assigned || isset( $keep[ (int) $r->profile_id ] ); } ) );
 		}
 
 		/*

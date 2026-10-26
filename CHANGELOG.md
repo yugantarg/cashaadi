@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.48 — 2026-10-26
+
+- Profile boosts go to the best matches first (owner): a viewer must reach a match-score bar from Discover's own match points (language, community, religion, age, city, diet). The bar starts at 60% of the full points and falls evenly to none at 18 hours, so the boost still fills. Among boosts a viewer qualifies for, the best match wins. A boosted card is shown whatever the viewer's filters.
+
 ## 1.89.47 — 2026-10-26
 
 - Profile boosts (`Premium\Spotlight`, owner): 24 hours at the front of Discover. While a boost runs, the member is slotted in at the front of Discover for members of the other gender who open it, as a bonus card that does not use up their week (`week_assigned = 'boost'`). Reach is capped: a man's boost reaches up to 50 women, a woman's up to 150 men (options `csm_spot_cap_male` / `csm_spot_cap_female`); never someone already shown them; at most one boosted card per viewer a day.
