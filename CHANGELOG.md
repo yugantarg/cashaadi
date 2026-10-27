@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.12 — 2026-10-27
+
+- `tools/audit-b.php`: read-only security audit part B (versions, wp-config switches, file modes, PHP in uploads, world-writable files, admin accounts, plugin updates, WPCode snippet list). Prints no secrets and no snippet code.
+
 ## 1.90.11 — 2026-10-27
 
 Security audit, part C (requests from outside) and the BuddyPress match button:
