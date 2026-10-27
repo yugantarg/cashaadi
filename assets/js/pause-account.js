@@ -22,7 +22,7 @@
 	function draw( paused ) {
 		root.innerHTML = '';
 
-		var back = el( 'a', 'csm-mb-back', '← Back to settings' );
+		var back = el( 'a', 'csm-mb-back', '← Back to profile' );
 		back.href = CFG.back;
 		root.appendChild( back );
 

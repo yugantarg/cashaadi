@@ -179,3 +179,11 @@
 .csm-p-reach-list { margin: 6px 0 0; padding: 0; list-style: none; }
 .csm-p-reach-list li { margin: 6px 0; }
 .csm-p-reach-a { font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none; }
+/* Sections from Core\AccountMenu (v1.90.7). Values read as states, quietly. */
+.csm-p-sections .csm-p-sub { color: var(--csm-muted, #5c6a76); font-weight: 500; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.csm-p-sections .csm-p-sub.is-ok { color: #137333; font-weight: 600; }
+.csm-p-sections .csm-p-sub.is-warn { color: #a3231f; font-weight: 600; }
+.csm-p-row.is-cta .csm-p-label { color: var(--csm-blue, #2c5b8c); font-weight: 700; }
+.csm-p-row.is-out .csm-p-label { color: #a3231f; }
+.csm-p-static { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 13px 18px; }
+.csm-p-sections { scroll-margin-top: 70px; }

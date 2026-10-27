@@ -202,6 +202,8 @@ final class ProfileApp {
 			'goldOnSale'  => (bool) get_option( 'csm_gold_on_sale' ),
 			// Profile boosts (v1.89.47).
 			'boost'       => class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ? \CAShaadi\Modules\Premium\Spotlight::state( $uid ) : null,
+			// Everything about me, in sections (Core\AccountMenu, v1.90.7).
+			'menu'        => class_exists( '\\CAShaadi\\Core\\AccountMenu' ) ? \CAShaadi\Core\AccountMenu::sections( $uid ) : array(),
 			// Few people saw you this week: what would help (v1.89.99).
 			'reach'       => class_exists( '\\CAShaadi\\Modules\\Discover\\Reach' ) ? \CAShaadi\Modules\Discover\Reach::card( $uid ) : null,
 			// One-time ask for astro details (v1.89.74).

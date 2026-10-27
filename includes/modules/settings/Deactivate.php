@@ -189,7 +189,7 @@ final class Deactivate {
 			'submit' => rest_url( 'csm/v1/settings/pause' ),
 			'paused' => self::is_paused( $uid ),
 			'since'  => (string) get_user_meta( $uid, self::META, true ),
-			'back'   => home_url( '/settings/' ),
+			'back'   => home_url( '/profile/#privacy' ),
 			'delete' => class_exists( '\CAShaadi\Modules\Settings\DeleteAccount' ) ? DeleteAccount::url() : '',
 		) );
 

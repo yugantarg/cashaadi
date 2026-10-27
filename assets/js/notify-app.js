@@ -32,7 +32,7 @@
 	function draw( options ) {
 		root.innerHTML = '';
 
-		var back = el( 'a', 'csm-st-back', '← Back to settings' );
+		var back = el( 'a', 'csm-st-back', '← Back to profile' );
 		back.href = CFG.settings;
 		root.appendChild( back );
 

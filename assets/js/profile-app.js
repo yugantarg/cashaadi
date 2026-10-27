@@ -240,48 +240,42 @@
 		sec.appendChild( list );
 		root.appendChild( sec );
 
-		/* ---- manage ---- */
-		var manage = el( 'section', 'csm-p-sections' );
-		manage.appendChild( el( 'h2', 'csm-p-h', 'Manage' ) );
-		var mlist = el( 'ul', 'csm-p-list' );
-		var rows = [];
-		/* Refer & earn first: it is the one row here that pays the member. The
-		   subtitle says what they have, or what they could earn. */
-		if ( d.links.refer ) {
-			rows.push( [ 'Refer & earn', d.links.refer,
-				d.cash > 0
-					? '\u20b9' + Number( d.cash ).toLocaleString( 'en-IN' ) + ' CA Shaadi cash'
-					: ( d.referFemale ? 'Earn up to \u20b9' + d.referFemale + ' per friend' : '' ) ] );
-		}
-		rows.push( [ 'My photos', d.links.photos ] );
-		// Who sees what is about the profile, not the account — it belongs here
-		// rather than two taps away under Settings.
-		if ( d.links.visibility ) { rows.push( [ 'Who sees what', d.links.visibility ] ); }
-		if ( d.links.emails ) { rows.push( [ 'Email preferences', d.links.emails ] ); }
-		rows.push( [ 'Settings', d.links.settings ] );
-		if ( ! d.isPremium ) { rows.push( [ 'Upgrade to Premium', window.csmSrc( d.links.upgrade, 'profile' ) ] ); }
-		// Premium, not Gold: the next step up (owner, 2026-10-25).
-		else if ( ! d.isGold && d.goldOnSale ) { rows.push( [ 'Upgrade to Gold', window.csmSrc( d.links.upgrade, 'profile-gold' ) ] ); }
-		if ( d.links.support ) { rows.push( [ 'Help and support', d.links.support ] ); }
-		rows.forEach( function ( r ) {
-			var li = el( 'li', 'csm-p-row' );
-			var a = link( '', r[1] );
-			a.appendChild( el( 'span', 'csm-p-label', r[0] ) );
-			// mailto: rows say WHERE they go — a chevron alone would suggest
-			// another in-app screen, and this one leaves for the mail client.
-			if ( r[2] ) {
-				a.appendChild( el( 'span', 'csm-p-sub', r[2] ) );
-			} else if ( 0 === r[1].indexOf( 'mailto:' ) ) {
-				a.appendChild( el( 'span', 'csm-p-sub', r[1].slice( 7 ) ) );
-			}
-			var chev = el( 'span', 'csm-p-chev' );
-			chev.innerHTML = chevron;
-			a.appendChild( chev );
-			li.appendChild( a );
-			mlist.appendChild( li );
+		/*
+		 * Everything else about me, in sections (v1.90.7): the same list the
+		 * photo menu in the top bar draws on (Core\AccountMenu), so the two
+		 * cannot disagree. The Settings page is folded in here. Each section
+		 * has an id (#membership, #privacy, #account ...) for links into it.
+		 */
+		( d.menu || [] ).forEach( function ( m ) {
+			var rows = ( m.rows || [] ).filter( function ( r ) { return 'Edit profile' !== r.label; } ); // the list above is Edit profile
+			if ( ! rows.length ) { return; }
+			var box = el( 'section', 'csm-p-sections' );
+			box.id = m.key;
+			box.appendChild( el( 'h2', 'csm-p-h', m.title ) );
+			var ul = el( 'ul', 'csm-p-list' );
+			rows.forEach( function ( r ) {
+				var li = el( 'li', 'csm-p-row' + ( r.cta ? ' is-cta' : '' ) + ( r.out ? ' is-out' : '' ) );
+				var inner = r.url ? link( '', r.url ) : el( 'div', 'csm-p-static' );
+				inner.appendChild( el( 'span', 'csm-p-label', r.label ) );
+				if ( r.value ) {
+					inner.appendChild( el( 'span', 'csm-p-sub' + ( false === r.ok ? ' is-warn' : ( true === r.ok ? ' is-ok' : '' ) ), r.value ) );
+				}
+				if ( r.url && ! r.out ) {
+					var chev = el( 'span', 'csm-p-chev' );
+					chev.innerHTML = chevron;
+					inner.appendChild( chev );
+				}
+				li.appendChild( inner );
+				ul.appendChild( li );
+			} );
+			box.appendChild( ul );
+			root.appendChild( box );
 		} );
-		manage.appendChild( mlist );
-		root.appendChild( manage );
+		// Arrived from the menu with a section in the address: go there.
+		if ( window.location.hash ) {
+			var target = document.getElementById( window.location.hash.slice( 1 ) );
+			if ( target ) { setTimeout( function () { target.scrollIntoView( { block: 'start' } ); }, 0 ); }
+		}
 	}
 
 	function fail() {

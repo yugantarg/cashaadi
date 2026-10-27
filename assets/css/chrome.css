@@ -1,0 +1,25 @@
+/* The app's top bar on theme pages, for logged-in members (Core\Chrome, v1.90.7).
+   The theme's own header and menus give way to it; logged-out visitors keep them. */
+body.csm-chrome #masthead,
+body.csm-chrome .buddyx-mobile-menu,
+body.csm-chrome .mobile-menu-wrapper,
+body.csm-chrome #site-sub-header,
+body.csm-chrome .csm-topbar-actions { display: none !important; }
+
+body.csm-chrome .csm-chrome-top {
+	position: sticky; top: 0; z-index: 50;
+	display: flex; align-items: center; justify-content: space-between;
+	gap: 12px; padding: 10px 16px; margin: 0;
+	background: var(--csm-surface, #fff);
+	border-bottom: 1px solid var(--csm-hair, #e4eaf0);
+	font-family: var(--csm-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
+	line-height: 1.2;
+}
+body.csm-chrome.admin-bar .csm-chrome-top { top: 32px; }
+@media (max-width: 782px) { body.csm-chrome.admin-bar .csm-chrome-top { top: 46px; } }
+body.csm-chrome .csm-chrome-top a,
+body.csm-chrome .csm-chrome-top button { box-shadow: none; }
+/* The theme styles every <button>; the photo button must stay a plain circle. */
+body.csm-chrome .csm-app-me-btn { background: none !important; border: 0 !important; padding: 0 !important; min-height: 0; }
+body.csm-chrome .csm-app-menu { font-family: var(--csm-sans, ui-sans-serif, system-ui, -apple-system, sans-serif); }
+body.csm-chrome .csm-app-menu ul { margin: 0; padding: 6px 0; list-style: none; }

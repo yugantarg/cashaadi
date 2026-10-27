@@ -174,8 +174,9 @@ final class SettingsScreen {
 		return array_values( array_unique( $hidden ) );
 	}
 
+	/** Settings live in the Profile tab now (v1.90.7): its Privacy & safety section. */
 	public static function url() {
-		return home_url( '/settings/' );
+		return home_url( '/profile/#privacy' );
 	}
 
 	/* -------------------------------------------------------------- route */
@@ -196,6 +197,9 @@ final class SettingsScreen {
 		if ( ! AppPage::claim( 'settings' ) ) {
 			return;
 		}
+		// Folded into the Profile tab (owner, 2026-10-27): old links and emails land there.
+		wp_safe_redirect( self::url() );
+		exit;
 
 		AppPage::assets();
 		Assets::style( 'settings-app', 'assets/css/settings-app.css', array( 'cashaadi-app-screens' ) );

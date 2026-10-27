@@ -401,3 +401,41 @@ img.avatar {
 .csm-d-tick[hidden], .csm-d-fsec[hidden] { display: none; }
 .csm-d-fpanel .csm-d-ticklist { margin-bottom: 4px; }
 .csm-d-fpanel .csm-d-sheetact { margin-top: 12px; }
+
+/* ---- top bar: bell + the member's photo as the menu (v1.90.7) ---- */
+.csm-app-top-acts { display: flex; align-items: center; gap: 6px; }
+.csm-app-bell {
+	position: relative; display: inline-flex; align-items: center; justify-content: center;
+	width: 44px; height: 44px; color: var(--csm-ink, #16212b); text-decoration: none; border-radius: 999px;
+}
+.csm-app-bell svg { width: 22px; height: 22px; }
+.csm-app-bell:hover { background: var(--csm-ground, #f4f6f8); }
+.csm-app-bell-n {
+	position: absolute; top: 4px; right: 3px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
+	border-radius: 999px; background: #c62828; color: #fff; font: 700 11px/18px var(--csm-sans, system-ui, sans-serif); font-style: normal; text-align: center;
+}
+.csm-app-me-btn {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 44px; height: 44px; padding: 0; margin: -4px -6px -4px 0;
+	border: 0; background: none; border-radius: 999px; cursor: pointer;
+}
+.csm-app-me-av { width: 34px; height: 34px; border-radius: 999px; object-fit: cover; box-shadow: 0 0 0 2px var(--csm-surface, #fff), 0 0 0 3px var(--csm-hair-2, #d6dfe7); }
+.csm-app-me-btn.is-open .csm-app-me-av,
+.csm-app-me-btn:hover .csm-app-me-av { box-shadow: 0 0 0 2px var(--csm-surface, #fff), 0 0 0 3px var(--csm-blue, #2c5b8c); }
+
+/* The panel: who I am (links to the Profile tab), the shortcuts, Everything, Log out. */
+.csm-app-menu .csm-app-menu-me { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--csm-hair, #e4eaf0); text-decoration: none; color: inherit; }
+.csm-app-menu .csm-app-menu-me:hover { background: var(--csm-ground, #f4f6f8); }
+.csm-app-menu-av { width: 44px; height: 44px; border-radius: 999px; object-fit: cover; }
+.csm-app-menu-name { display: flex; flex-direction: column; font-weight: 700; font-size: 16px; color: var(--csm-ink, #16212b); }
+.csm-app-menu-name small { font-weight: 500; font-size: 13px; color: var(--csm-blue, #2c5b8c); }
+.csm-app-menu .csm-app-menu-all { font-weight: 700; color: var(--csm-blue, #2c5b8c); }
+.csm-app-menu-out { display: block; padding: 13px 18px; border-top: 1px solid var(--csm-hair, #e4eaf0); color: #a3231f; text-decoration: none; font-size: 15px; }
+@media (min-width: 783px) {
+	/* A dropdown under the photo, not a full-width sheet. */
+	.csm-app-menu {
+		position: fixed; top: 60px; right: 16px; left: auto; z-index: 60;
+		width: 300px; border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 14px; overflow: hidden;
+		box-shadow: 0 18px 40px -16px rgba(22, 33, 43, .35);
+	}
+}

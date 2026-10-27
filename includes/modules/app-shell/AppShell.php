@@ -87,7 +87,7 @@ final class AppShell {
 		// /settings/, not the profile hub.
 		if ( $on_settings && class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' ) ) {
 			$back = \CAShaadi\Modules\Settings\SettingsScreen::url();
-			$text = __( 'Back to settings', 'cashaadi-ui' );
+			$text = __( 'Back to profile', 'cashaadi-ui' );
 		}
 
 		printf(
@@ -120,6 +120,11 @@ final class AppShell {
 		// also a WordPress page, so it got both bars, one under the other (v1.89.55).
 		if ( class_exists( '\CAShaadi\Core\AppPage' ) && \CAShaadi\Core\AppPage::$open ) {
 			return false;
+		}
+		// Every theme page a member sees gets the nav too: pricing, checkout,
+		// orders ... (v1.90.7, with Core\Chrome's top bar).
+		if ( class_exists( '\\CAShaadi\\Core\\Chrome' ) && \CAShaadi\Core\Chrome::active() ) {
+			return true;
 		}
 		return is_user_logged_in() && self::is_member_screen() && ! self::is_focused();
 	}
@@ -265,7 +270,9 @@ final class AppShell {
 		// The app menu renders here, at body level — NOT inside #item-header where
 		// the Messages screen's own CSS (#item-header > *:not(.csm-topbar)) would
 		// hide it. Its hamburger lives in the top bar; the toggle finds both by id.
-		if ( class_exists( '\CAShaadi\Core\AppPage' ) ) {
+		// The menu now comes with Core\Chrome's top bar (v1.90.7); printing it
+		// here as well gave two #csm-app-menu.
+		if ( class_exists( '\CAShaadi\Core\AppPage' ) && ! class_exists( '\CAShaadi\Core\Chrome' ) ) {
 			\CAShaadi\Core\AppPage::render_menu();
 		}
 	}
@@ -336,23 +343,7 @@ final class AppShell {
 
 		echo '<div class="csm-topbar">';
 		echo '<span class="csm-topbar-title">' . esc_html( self::screen_title() ) . '</span>';
-		echo '<span class="csm-topbar-actions">';
-		// Notifications stay a one-tap action (they are not in the menu).
-		$badge = $unread > 0 ? '<i class="csm-topbar-badge">' . esc_html( $unread > 99 ? '99+' : $unread ) . '</i>' : '';
-		printf(
-			'<a class="csm-topbar-act" href="%s" aria-label="Notifications">%s%s</a>',
-			esc_url( $notif_url ),
-			self::icon_bell(), // trusted inline SVG
-			$badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_html above
-		);
-		/*
-		 * The hamburger opens OUR app menu — the same one Discover/Settings use —
-		 * instead of BuddyX's off-canvas theme menu (whose hamburger is hidden on
-		 * member screens). The old settings gear is gone: it led to BuddyPress's
-		 * settings, not our app settings hub, and Settings now lives in the menu.
-		 */
-		echo '<button type="button" class="csm-topbar-act csm-app-menu-btn" id="csm-app-menu-btn" aria-expanded="false" aria-controls="csm-app-menu" aria-label="' . esc_attr__( 'Menu', 'cashaadi-ui' ) . '"><span></span><span></span><span></span></button>';
-		echo '</span>';
+		// Bell and menu live in the top bar every member page now has (Core\Chrome, v1.90.7).
 		echo '</div>';
 		unset( $settings_slug, $settings_url );
 	}

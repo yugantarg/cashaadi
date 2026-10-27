@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.7 — 2026-10-27
+
+Menu review (owner: the pricing page showed the WordPress menu to logged-in members, the menu did not work on a laptop on several screens, and the menu / settings / profile split was clumsy):
+- One list for everything about "me" (`Core\AccountMenu`). The Profile tab shows all of it in sections: Your profile (each part, with what is left), My profile (photos, astro details, who sees what, how others see me), Membership (plan, dates, payments, upgrade, Refer & earn), Privacy & safety (blocked members, pause), Account (email, phone, password, ICAI verification, email notifications, delete), Help (support, log out). Sections have ids for links (`/profile/#membership`, `#privacy`, `#account`).
+- The Settings page is folded into the Profile tab: `/settings/` redirects to `/profile/#privacy`; its sub-pages (who sees what, blocked, notifications, pause, delete) stay and go "Back to profile".
+- Top bar: logo, notifications bell and the member's photo, which opens the menu: View my profile, the most used destinations (Edit profile, My photos, upgrade, Membership, Refer & earn, Privacy & account, Help), Everything (the Profile tab) and Log out. On a laptop it is a dropdown under the photo.
+- Every page a logged-in member sees gets that top bar and the nav (`Core\Chrome`): pricing, checkout and orders, Messages, My photos, notifications, BuddyPress profile pages and settings. The theme's header and menu are hidden for members; logged-out visitors keep them. This also fixes the laptop menu: on BuddyPress pages the only menu button was in a top bar hidden above 782px.
+
 ## 1.90.6 — 2026-10-27
 
 Security audit follow-ups (owner's decisions):

@@ -75,7 +75,7 @@ final class DeleteAccount {
 		wp_localize_script( 'cashaadi-delete-account', 'CSM_DELETE', array(
 			'nonce'  => wp_create_nonce( 'wp_rest' ),
 			'submit' => rest_url( 'csm/v1/settings/delete-account' ),
-			'back'   => home_url( '/settings/' ),
+			'back'   => home_url( '/profile/#account' ),
 			'home'   => home_url( '/' ),
 			// The reversible alternative, offered ON this screen: most people
 			// who get this far want to stop being seen, not to lose everything.

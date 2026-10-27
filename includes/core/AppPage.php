@@ -106,23 +106,10 @@ final class AppPage {
 	 * @param string $title   Browser title.
 	 * @param string $current Nav key to highlight.
 	 */
-	/** True while an app screen is being drawn: it brings its own bottom nav. */
-	public static $open = false;
-
-	public static function open( $title, $current = '' ) {
-		self::$open = true;
+	/** The logo link for the top bar (app screens and the theme pages' frame). */
+	public static function brand() {
+		ob_start();
 		?>
-<!doctype html>
-<html <?php language_attributes(); ?>>
-<head>
-	<meta charset="<?php bloginfo( 'charset' ); ?>">
-	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-	<title><?php echo esc_html( $title ); ?></title>
-	<?php wp_head(); ?>
-</head>
-<body class="csm-app csm-app-<?php echo esc_attr( $current ); ?>">
-	<div class="csm-app-wrap">
-		<header class="csm-app-top">
 			<a class="csm-app-brand" href="<?php echo esc_url( home_url( '/discover/' ) ); ?>">
 				<?php
 				/*
@@ -167,9 +154,35 @@ final class AppPage {
 				}
 				?>
 			</a>
-			<button type="button" class="csm-app-menu-btn" id="csm-app-menu-btn" aria-expanded="false" aria-controls="csm-app-menu" aria-label="<?php esc_attr_e( 'Menu', 'cashaadi-ui' ); ?>">
-				<span></span><span></span><span></span>
-			</button>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	/** True while an app screen is being drawn: it brings its own bottom nav. */
+	public static $open = false;
+
+	public static function open( $title, $current = '' ) {
+		self::$open = true;
+		?>
+<!doctype html>
+<html <?php language_attributes(); ?>>
+<head>
+	<meta charset="<?php bloginfo( 'charset' ); ?>">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title><?php echo esc_html( $title ); ?></title>
+	<?php wp_head(); ?>
+</head>
+<body class="csm-app csm-app-<?php echo esc_attr( $current ); ?>">
+	<div class="csm-app-wrap">
+		<header class="csm-app-top">
+			<?php echo self::brand(); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped ?>
+			<span class="csm-app-top-acts">
+				<?php
+				// Notifications, and the member's photo as the menu (v1.90.7).
+				AccountMenu::bell();
+				AccountMenu::button();
+				?>
+			</span>
 		</header>
 
 		<?php self::render_menu(); ?>
@@ -219,53 +232,8 @@ final class AppPage {
 	 * not belong in a menu as well.
 	 */
 	public static function render_menu() {
-		$uid = get_current_user_id();
-		$me  = function_exists( 'bp_members_get_user_url' ) && $uid
-			? trailingslashit( bp_members_get_user_url( $uid ) )
-			: home_url( '/' );
-
-		$name = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $uid ) : '';
-		if ( ! $name ) {
-			$u    = get_userdata( $uid );
-			$name = $u ? $u->display_name : __( 'My account', 'cashaadi-ui' );
-		}
-
-		$edit = class_exists( '\CAShaadi\Modules\ProfileEdit\ProfileEditScreen' )
-			? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url()
-			: $me . 'profile/edit/group/1/';
-		$settings = class_exists( '\CAShaadi\Modules\Settings\SettingsScreen' )
-			? \CAShaadi\Modules\Settings\SettingsScreen::url()
-			: $me . 'settings/';
-
-		$items = array(
-			array( __( 'Edit my profile', 'cashaadi-ui' ), $edit ),
-			array( __( 'My photos', 'cashaadi-ui' ), $me . 'profile/change-avatar/' ),
-			// The owner asked to be able to see their profile as others do; the
-			// public view is exactly that, so it belongs here rather than only on
-			// the hub.
-			array( __( 'View as others see me', 'cashaadi-ui' ), home_url( '/profile/preview/' ) ),
-			array( __( 'Refer & earn', 'cashaadi-ui' ), home_url( '/refer/' ) ),
-			array( __( 'Settings', 'cashaadi-ui' ), $settings ),
-			array( __( 'Help & support', 'cashaadi-ui' ), 'mailto:' . Config::SUPPORT_EMAIL ),
-		);
-		?>
-		<nav class="csm-app-menu" id="csm-app-menu" hidden>
-			<div class="csm-app-menu-me">
-				<?php
-				echo get_avatar( $uid, 80, '', '', array( 'class' => 'csm-app-menu-av' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core markup
-				?>
-				<span class="csm-app-menu-name"><?php echo esc_html( $name ); ?></span>
-			</div>
-			<ul>
-				<?php foreach ( $items as $item ) : ?>
-					<li><a href="<?php echo esc_url( $item[1] ); ?>"><?php echo esc_html( $item[0] ); ?></a></li>
-				<?php endforeach; ?>
-			</ul>
-			<a class="csm-app-menu-out" href="<?php echo esc_url( wp_logout_url( home_url( '/' ) ) ); ?>">
-				<?php esc_html_e( 'Log out', 'cashaadi-ui' ); ?>
-			</a>
-		</nav>
-		<?php
+		// One list for the menu and the Profile tab (Core\AccountMenu, v1.90.7).
+		AccountMenu::panel();
 	}
 
 	/**
