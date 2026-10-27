@@ -48,6 +48,7 @@ final class Exposure {
 	const OVER_MEDIAN   = 5;    // a profile shown >5x the median for its gender
 	const NEW_MIN       = 5;    // a newcomer past their 24 hours shown to <5 people
 	const EMPTY_SHARE   = 0.05; // >5% of viewers finding Discover empty
+	const BOOST_MIN     = 0.5;  // a finished boost that reached under half its cap
 
 	public static function register() {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -239,6 +240,40 @@ final class Exposure {
 		}
 		if ( $low ) {
 			$shape[] = sprintf( '%d newcomer(s) were shown to fewer than %d people in their first days: %s', count( $low ), self::NEW_MIN, implode( ', ', array_slice( $low, 0, 5 ) ) );
+		}
+
+		/*
+		 * Boosts: each finished boost against what it was sold as, close to
+		 * its cap within its 24 hours and never past it. Under half is
+		 * reported with how many members of the other gender used Discover
+		 * in those hours, which says whether there was anyone to reach.
+		 */
+		$boosts = $wpdb->get_results( $wpdb->prepare(
+			"SELECT actor_id, created_at, metadata FROM {$ev} WHERE event_type = 'boost_started' AND created_at >= %s AND created_at <= %s",
+			$since, wp_date( 'Y-m-d H:i:s', time() - Spotlight::HOURS * HOUR_IN_SECONDS )
+		) );
+		$fills = array();
+		foreach ( (array) $boosts as $b ) {
+			$uid  = (int) $b->actor_id;
+			$meta = json_decode( (string) $b->metadata, true );
+			$cap  = isset( $meta['cap'] ) ? (int) $meta['cap'] : Spotlight::cap_for( $uid );
+			$end  = wp_date( 'Y-m-d H:i:s', strtotime( $b->created_at ) + Spotlight::HOURS * HOUR_IN_SECONDS );
+			$got  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$ev} WHERE event_type = 'boost_shown' AND actor_id = %d AND created_at BETWEEN %s AND %s", $uid, $b->created_at, $end ) );
+			$fills[] = $cap ? $got / $cap : 0;
+			if ( $got > $cap ) {
+				$rules[] = sprintf( 'Boost of #%d (%s) reached %d people, past its cap of %d.', $uid, wp_date( 'j M H:i', strtotime( $b->created_at ) ), $got, $cap );
+			} elseif ( $cap && $got < self::BOOST_MIN * $cap ) {
+				$opp = 'Female' === trim( (string) cashaadi()->get_gender( $uid ) ) ? 'Male' : 'Female';
+				$pool = (int) $wpdb->get_var( $wpdb->prepare(
+					"SELECT COUNT( DISTINCT s.viewer_id ) FROM {$seen} s JOIN {$wpdb->prefix}bp_xprofile_data g ON g.user_id = s.viewer_id AND g.field_id = %d AND g.value = %s WHERE s.last_seen_at BETWEEN %s AND %s",
+					Config::FIELD_GENDER, $opp, $b->created_at, $end
+				) );
+				$shape[] = sprintf( 'Boost of #%d (%s) reached only %d of %d in its 24 hours; %d %s used Discover in that time.', $uid, wp_date( 'j M H:i', strtotime( $b->created_at ) ), $got, $cap, $pool, 'Male' === $opp ? 'men' : 'women' );
+			}
+		}
+		if ( $fills ) {
+			sort( $fills );
+			$stats[] = sprintf( 'Boosts finished: %d; reach as a share of the cap: median %d%%, lowest %d%%, highest %d%%.', count( $fills ), round( 100 * $fills[ (int) floor( ( count( $fills ) - 1 ) / 2 ) ] ), round( 100 * $fills[0] ), round( 100 * end( $fills ) ) );
 		}
 
 		// Members who opened Discover to nothing.

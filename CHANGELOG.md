@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.96 — 2026-10-27
+
+- Exposure audit checks boosts (owner: boosted members too, more or less than they deserve). Each boost whose 24 hours are over: reached past its cap is a RULE anomaly; under half its cap is a SHAPE anomaly, with how many members of the other gender used Discover in those hours. Summary line: boosts finished and reach as a share of the cap (median, lowest, highest).
+
 ## 1.89.95 — 2026-10-27
 
 - Gold is no longer exempt from Discover's weekly ceilings (showings and requests received), owner: Gold is shown more only through its weekly boost. The exemption had survived the removal of the permanent 3x (v1.89.47). Option `csm_gold_ceiling_exempt` now defaults to 0. If the option was ever saved as 1 on the server, delete it.
