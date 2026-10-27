@@ -384,5 +384,6 @@ final class Buckets {
 	/** Nightly safety net: anything a save missed is regrouped (v1.89.86). */
 	public static function nightly() {
 		self::rebuild_all();
+		update_option( 'csm_buckets_nightly_at', time(), false ); // Watch checks it ran
 	}
 }

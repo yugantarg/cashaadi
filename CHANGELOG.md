@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.89 — 2026-10-27
+
+- Daily check for the quiet failures (owner: "these are silent and I won't come to know"), `Core\Watch`, 02:40 daily and `wp csm watch` on demand. Looks in the data for each bug class found on 26-27 Oct: members whose stored groups no longer match their answers; the nightly regroup not running; members who joined 2-14 days ago and are in nobody's Discover; phone numbers opened with no request; the app's API being cached. Emails the site admin when anything fails, and shows a red notice in wp-admin until a clean run. Silent when all is well.
+
 ## 1.89.88 — 2026-10-27
 
 - Diagnostics for profile cards that show only Phone / Gender / City on the site but in full from WP-CLI: `wp option update csm_debug_card <id>` records the next build of that card (viewer, hidden field ids, sections) in `csm_debug_card_last`. Off otherwise.
