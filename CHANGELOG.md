@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.99 — 2026-10-27
+
+- "Few members saw your profile" (owner, option 1, men and women): an active member shown to fewer than 3 people in 7 days, past their first week, with something they can fix, is told what: add a photo, verify CA / CA Inter (not while a document is pending), and the unanswered matching questions (community, mother tongue, religion, diet), each linked to where it is fixed. Email on Thursdays (IST), once a week, respecting the match-email setting, logged as `reach_nudge`; and a card on their Profile page while it applies. No counts or scoring are revealed. `wp csm reach` shows who it applies to and what they lack. `Discover\Reach`.
+
 ## 1.89.98 — 2026-10-27
 
 - Fix (found by the exposure audit): members could be drawn several weeks' worth of Discover cards at once. Opening the app sends several requests together; each refill counted "0 drawn this week" before the others had saved, so each drew a full week (a free member got 30 cards at 00:33 on Monday; 257 viewers over their allowance this week). The refill now holds a per-member MySQL lock (`GET_LOCK csm_refill_<id>`), and boost / newcomer delivery another, so the second request waits and finds the week already drawn.

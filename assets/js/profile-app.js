@@ -80,6 +80,24 @@
 	}
 
 	/*
+	 * Few members saw this profile this week (v1.89.99): what would help,
+	 * each a link to where it is fixed. Shown while it applies.
+	 */
+	function reachCard( r ) {
+		var box = el( 'div', 'csm-p-boost csm-p-reach' );
+		box.appendChild( el( 'strong', null, r.title ) );
+		box.appendChild( el( 'span', null, r.body ) );
+		var ul = el( 'ul', 'csm-p-reach-list' );
+		( r.items || [] ).forEach( function ( it ) {
+			var li = el( 'li' );
+			li.appendChild( link( 'csm-p-reach-a', it.url, it.text + ' \u203a' ) );
+			ul.appendChild( li );
+		} );
+		box.appendChild( ul );
+		return box;
+	}
+
+	/*
 	 * Astro details, asked once (v1.89.74). Either button answers it; the
 	 * card does not come back.
 	 */
@@ -152,6 +170,7 @@
 		root.appendChild( head );
 		var bc = boostCard( d.boost );
 		if ( bc ) { root.appendChild( bc ); }
+		if ( d.reach ) { root.appendChild( reachCard( d.reach ) ); }
 		if ( d.astroAsk ) { root.appendChild( astroCard( d.astroAsk ) ); }
 
 		/* ---- verification told plainly ----

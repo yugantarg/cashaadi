@@ -174,3 +174,8 @@
 /* Boost and astro cards in the same centred column as the rest (v1.89.82;
    on desktop they ran the full width of the page). */
 .csm-p-boost { max-width: 560px; margin: 16px auto 0; box-sizing: border-box; }
+/* Few members saw your profile (v1.89.99). */
+.csm-p-reach { border-color: var(--csm-gold, #a9822b); }
+.csm-p-reach-list { margin: 6px 0 0; padding: 0; list-style: none; }
+.csm-p-reach-list li { margin: 6px 0; }
+.csm-p-reach-a { font-weight: 600; color: var(--csm-blue, #2c5b8c); text-decoration: none; }
