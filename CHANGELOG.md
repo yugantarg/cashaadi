@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.0 — 2026-10-27
+
+- "Few members saw your profile": "Verify" only for members whose qualification is CA or CA Inter (verification is by ICAI document; ACCA, CMA, CS and others choose "Other" and are not asked). A blank qualification is asked for instead ("Add your qualification").
+- Half-and-half test (owner): members are split by id; in the first week it runs, the "hold" half gets neither the email nor the Profile card and is logged as `reach_hold`; from the next week everyone. `wp csm reach-result` compares the halves: gaps fixed since (photo, verification, matching questions) and showings in the 7 days after.
+
 ## 1.89.99 — 2026-10-27
 
 - "Few members saw your profile" (owner, option 1, men and women): an active member shown to fewer than 3 people in 7 days, past their first week, with something they can fix, is told what: add a photo, verify CA / CA Inter (not while a document is pending), and the unanswered matching questions (community, mother tongue, religion, diet), each linked to where it is fixed. Email on Thursdays (IST), once a week, respecting the match-email setting, logged as `reach_nudge`; and a card on their Profile page while it applies. No counts or scoring are revealed. `wp csm reach` shows who it applies to and what they lack. `Discover\Reach`.

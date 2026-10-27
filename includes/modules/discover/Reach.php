@@ -37,6 +37,25 @@ final class Reach {
 	const LOW  = 3;  // shown to fewer than this many people in 7 days
 	const DAYS = 7;
 	const SEND_DOW = 4; // Thursday (ISO day of week, IST)
+	const TEST     = 'csm_reach_test'; // option: array( week ) of the half-and-half test
+
+	/*
+	 * Half and half (owner, 2026-10-27): for the first week it runs, half the
+	 * members (fixed by id) get neither the email nor the card, so the effect
+	 * can be measured against them. From the next week, everyone.
+	 */
+	public static function arm( $uid ) {
+		return 0 === crc32( 'reach-' . (int) $uid ) % 2 ? 'nudge' : 'hold';
+	}
+
+	public static function held( $uid ) {
+		if ( 'hold' !== self::arm( $uid ) ) {
+			return false;
+		}
+		$t = get_option( self::TEST );
+		// Before the first send, and during the test week.
+		return ! is_array( $t ) || empty( $t['week'] ) || $t['week'] === strtolower( ( new \DateTimeImmutable( 'now', new \DateTimeZone( 'Asia/Kolkata' ) ) )->format( 'o-\WW' ) );
+	}
 
 	public static function register() {
 		add_action( 'csm_engagement_daily', array( __CLASS__, 'send_emails' ), 30 );
@@ -50,7 +69,49 @@ final class Reach {
 				}
 				\WP_CLI::log( 'Emails go out on Thursdays (IST) to those who allow match emails.' );
 			} );
+			// wp csm reach-result: the half-and-half test, nudged vs held.
+			\WP_CLI::add_command( 'csm reach-result', function () {
+				foreach ( Reach::result() as $arm => $r ) {
+					\WP_CLI::log( sprintf( '%-6s %4d members · fixed since: %s · shown in the 7 days after: average %.1f',
+						$arm, $r['n'], $r['fixed'] ? implode( ', ', array_map( function ( $k, $v ) use ( $r ) { return $k . ' ' . $v . '/' . $r['had'][ $k ] . ' (' . round( 100 * $v / max( 1, $r['had'][ $k ] ) ) . '%)'; }, array_keys( $r['fixed'] ), $r['fixed'] ) ) : 'nothing yet', $r['shown'] ) );
+				}
+			} );
 		}
+	}
+
+	/**
+	 * The test, per arm: members, how many of each gap they have fixed since,
+	 * and how many people they were shown to in the 7 days after.
+	 */
+	public static function result() {
+		global $wpdb;
+		$out = array();
+		foreach ( array( 'nudge' => 'reach_nudge', 'hold' => 'reach_hold' ) as $arm => $type ) {
+			$t    = get_option( self::TEST );
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT actor_id, created_at, metadata FROM {$wpdb->prefix}csm_event_log WHERE event_type = %s ORDER BY id", $type ) );
+			$r    = array( 'n' => 0, 'had' => array(), 'fixed' => array(), 'shown' => 0 );
+			$seen = array();
+			$sum  = 0;
+			foreach ( (array) $rows as $e ) {
+				$uid = (int) $e->actor_id;
+				if ( isset( $seen[ $uid ] ) ) {
+					continue; // first time only
+				}
+				$seen[ $uid ] = true;
+				$r['n']++;
+				$m   = json_decode( (string) $e->metadata, true );
+				$now = wp_list_pluck( self::gaps( $uid ), 0 );
+				foreach ( (array) ( $m['gaps'] ?? array() ) as $g ) {
+					$r['had'][ $g ]   = ( $r['had'][ $g ] ?? 0 ) + 1;
+					$r['fixed'][ $g ] = ( $r['fixed'][ $g ] ?? 0 ) + ( in_array( $g, $now, true ) ? 0 : 1 );
+				}
+				$end  = wp_date( 'Y-m-d H:i:s', strtotime( $e->created_at ) + 7 * DAY_IN_SECONDS );
+				$sum += (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_impressions WHERE profile_id = %d AND served_at BETWEEN %s AND %s", $uid, $e->created_at, $end ) );
+			}
+			$r['shown']  = $r['n'] ? $sum / $r['n'] : 0;
+			$out[ $arm ] = $r;
+		}
+		return $out;
 	}
 
 	/** Who it applies to now: counts by gender and by what is missing. */
@@ -101,10 +162,19 @@ final class Reach {
 		if ( class_exists( '\CAShaadi\Modules\Onboarding\PhotoOptions' ) && ! \CAShaadi\Modules\Onboarding\PhotoOptions::has_photo( $uid ) ) {
 			$out[] = array( 'photo', 'Add a photo', home_url( '/profile/' ) );
 		}
+		/*
+		 * Verification is by ICAI document, so only for a CA or CA Inter
+		 * claim (owner, 2026-10-27: not ACCA, CMA, CS..., who choose "Other").
+		 * A blank qualification is asked for first.
+		 */
+		$qual     = trim( wp_strip_all_tags( (string) xprofile_get_field_data( Config::FIELD_QUALIFICATION, $uid ) ) );
+		$claim    = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ? \CAShaadi\Modules\CaVerify\CaVerify::claim( $uid ) : '';
 		$verified = method_exists( '\CAShaadi\Core\Verification', 'ca_verified' ) && \CAShaadi\Core\Verification::ca_verified( $uid );
 		$state    = class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ? \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid ) : '';
-		if ( ! $verified && 'pending' !== $state ) {
-			$out[] = array( 'verify', 'Verify your CA or CA Inter status', $edit ? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( 10 ) : home_url( '/profile/edit/?g=10' ) );
+		if ( '' === $qual ) {
+			$out[] = array( 'qual', 'Add your qualification', $url( Config::FIELD_QUALIFICATION ) );
+		} elseif ( in_array( $claim, array( 'ca', 'inter' ), true ) && ! $verified && 'pending' !== $state ) {
+			$out[] = array( 'verify', 'inter' === $claim ? 'Verify your CA Inter status' : 'Verify that you are a CA', $edit ? \CAShaadi\Modules\ProfileEdit\ProfileEditScreen::url( 10 ) : home_url( '/profile/edit/?g=10' ) );
 		}
 		$fields = array(
 			'community' => array( \CAShaadi\Core\Buckets::field_id( 'community' ), 'your community' ),
@@ -153,7 +223,7 @@ final class Reach {
 
 	/** For the Profile page: the card's lines, or null. */
 	public static function card( $uid ) {
-		if ( ! self::applies( $uid ) ) {
+		if ( self::held( $uid ) || ! self::applies( $uid ) ) {
 			return null;
 		}
 		return array(
@@ -174,6 +244,9 @@ final class Reach {
 			return;
 		}
 		$week = strtolower( $now->format( 'o-\WW' ) );
+		if ( ! get_option( self::TEST ) ) {
+			update_option( self::TEST, array( 'week' => $week ), false );
+		}
 		global $wpdb;
 		$ids = $wpdb->get_col( $wpdb->prepare(
 			"SELECT u.ID FROM {$wpdb->users} u
@@ -187,6 +260,11 @@ final class Reach {
 				continue;
 			}
 			$gaps = self::gaps( $uid );
+			if ( self::held( $uid ) ) {
+				// The comparison half: recorded, not told.
+				cashaadi()->log_event( 'reach_hold', $uid, 0, array( 'gaps' => wp_list_pluck( $gaps, 0 ) ) );
+				continue;
+			}
 			$list = '';
 			foreach ( $gaps as $g ) {
 				$list .= '<li style="margin:6px 0"><a href="' . esc_url( $g[2] ) . '">' . esc_html( $g[1] ) . '</a></li>';
