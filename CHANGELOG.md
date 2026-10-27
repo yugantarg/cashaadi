@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.95 — 2026-10-27
+
+- Gold is no longer exempt from Discover's weekly ceilings (showings and requests received), owner: Gold is shown more only through its weekly boost. The exemption had survived the removal of the permanent 3x (v1.89.47). Option `csm_gold_ceiling_exempt` now defaults to 0. If the option was ever saved as 1 on the server, delete it.
+- Exposure audit counts Gold members like everyone else; only profiles boosted in the period are left out of the shape checks.
+
 ## 1.89.94 — 2026-10-27
 
 - Exposure audit (owner): how often members are shown and whether it matches the rules. `wp csm exposure [--days=7]`, and `--who=<email>` for one member's showings by day and route (weekly draw, boost, newcomer intro) against their caps. RULE anomalies: boost / intro past their caps, intros outside the 24 hours, a viewer given more than 1 boost or intro a day or 3 intros a week, a viewer drawn past their weekly allowance, a liked profile shown again, a passed one inside 30 days, a paused or held member shown. SHAPE anomalies (rules held, result odd; Gold and boosted left out): >10% of active members with a photo shown to nobody, the top 1% taking >15% of showings, profiles above 5x the median, newcomers shown to fewer than 5 after their 24 hours, >5% of viewers finding Discover empty. Part of the daily check and its email.

@@ -75,7 +75,9 @@ final class Gold {
 	}
 
 	public static function ceiling_exempt() {
-		return (bool) get_option( 'csm_gold_ceiling_exempt', 1 );
+		// Off since v1.89.95 (owner, 2026-10-27): Gold is not shown more
+		// without a boost, so it takes the weekly ceilings like everyone.
+		return (bool) get_option( 'csm_gold_ceiling_exempt', 0 );
 	}
 
 	/** On for everyone from launch; before that, for the owner's test accounts. */

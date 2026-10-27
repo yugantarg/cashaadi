@@ -98,7 +98,8 @@ final class Ranker {
 		$me_p  = self::popularity( self::own_stats( $viewer_id ), $rate, $P );
 
 		$trust     = self::trust( $ids );
-		// Gold (v1.87.0): 3x points and, by default, no weekly ceilings.
+		// Gold (v1.87.0): 3x points and no weekly ceilings, both off by default
+		// since v1.89.47 / v1.89.95: Gold's extra reach is its weekly boost.
 		$gold      = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ? array_flip( \CAShaadi\Modules\Premium\Gold::ids_among( $ids ) ) : array();
 		$g_mult    = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ? \CAShaadi\Modules\Premium\Gold::multiplier() : 1;
 		$g_exempt  = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) && \CAShaadi\Modules\Premium\Gold::ceiling_exempt();

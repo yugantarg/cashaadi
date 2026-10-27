@@ -20,8 +20,9 @@
  *         photo shown to nobody, a few profiles taking an outsized share,
  *         profiles far above the typical count, newcomers who got almost
  *         nothing from their introduction, members finding Discover empty.
- *         Gold and boosted profiles are left out of the shape checks: they
- *         are meant to be shown more.
+ *         Profiles boosted in the period are left out of the shape checks:
+ *         they are meant to be shown more. Gold is not (owner, 2026-10-27:
+ *         Gold is shown more only through its boost).
  *
  *   wp csm exposure [--days=7]            the audit
  *   wp csm exposure --who=<email or id>   one member: showings by route and day
@@ -167,7 +168,7 @@ final class Exposure {
 		$boosted = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT actor_id FROM {$ev} WHERE event_type = 'boost_started' AND created_at >= %s", $since ) ) ) );
 
 		// Who counts: gender set, a photo, active in the last 14 days, joined
-		// more than 7 days ago, not paused or held, not Gold, not boosted.
+		// more than 7 days ago, not paused or held, not boosted.
 		$active_since = gmdate( 'Y-m-d H:i:s', time() - 14 * DAY_IN_SECONDS );
 		$joined_by    = gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS );
 		$members = $wpdb->get_results( $wpdb->prepare(
@@ -182,7 +183,7 @@ final class Exposure {
 		$by     = array( 'Male' => array(), 'Female' => array() );
 		foreach ( (array) $members as $m ) {
 			$id = (int) $m->id;
-			if ( isset( $offset[ $id ] ) || isset( $boosted[ $id ] ) || Membership::is_gold( $id ) ) {
+			if ( isset( $offset[ $id ] ) || isset( $boosted[ $id ] ) ) {
 				continue;
 			}
 			$by[ $m->gender ][ $id ] = $count[ $id ] ?? 0;
