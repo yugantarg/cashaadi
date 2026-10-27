@@ -228,17 +228,12 @@ final class Buckets {
 			}
 		}
 		/*
-		 * English counts only when nothing else was named. Hindi is dropped
-		 * when a regional language is also given ("gujarati, hindi" is a
-		 * Gujarati speaker who also speaks Hindi), except for the Hindi-belt
-		 * languages, which stay alongside it.
+		 * English counts only when nothing else was named. Every other
+		 * language named counts (owner, 2026-10-27: "Hindi, Punjabi" is in
+		 * both groups; Hindi was dropped beside a regional language before).
 		 */
 		if ( 'tongue' === $kind && count( $out ) > 1 ) {
 			$out = array_values( array_diff( $out, array( 'English' ) ) );
-			$belt = array( 'Hindi', 'Bhojpuri', 'Haryanvi', 'Maithili', 'Pahadi (Garhwali / Kumaoni / Dogri)' );
-			if ( in_array( 'Hindi', $out, true ) && array_diff( $out, $belt ) ) {
-				$out = array_values( array_diff( $out, array( 'Hindi' ) ) );
-			}
 		}
 		return $out;
 	}

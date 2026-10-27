@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.87 — 2026-10-27
+
+- Mother tongue: every language named counts (owner): "Hindi, Punjabi" is in both the Hindi and the Punjabi groups. Hindi was dropped beside a regional language before. English still counts only when it is the only one. The profile always showed the words as typed. Run `wp csm buckets rebuild`.
+
 ## 1.89.86 — 2026-10-27
 
 - Groups (community, mother tongue, city, native place) are built from the value being saved, not read back: a member who joined with "Hindi, punjabi" had no mother-tongue group at all, so the Punjabi filter missed him. Safety net: everyone is regrouped nightly (`csm_buckets_nightly`, 03:10).
