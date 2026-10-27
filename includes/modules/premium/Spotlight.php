@@ -237,7 +237,7 @@ final class Spotlight {
 	}
 
 	/** The boosted member's Discover score for this viewer, as the ranker computes it. */
-	private static function score_for( $viewer, $b ) {
+	public static function score_for( $viewer, $b ) {
 		global $wpdb;
 		$seen = $wpdb->prefix . 'csm_seen';
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

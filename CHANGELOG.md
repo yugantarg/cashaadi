@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.91 — 2026-10-27
+
+- New member introductions (owner: someone joining mid-week reached nobody until Monday). When a member opens Discover, they may get one newcomer as an extra card at the front: 1 a day, 3 a week, on top of their weekly cards. Newcomers: joined in the last 7 days, with a photo, passing the viewer's filters, never shown to them. Each new man is introduced to at most 20 women, each new woman to 40 men. The pick is the newcomer the viewer scores highest with on Discover's relevance score, and only if at least the viewer's average over 30 days. Tray week `intro`; logged as `intro_shown`. `Discover\Intro`.
+- The NEW tag means the member joined in the last 14 days. It meant "drawn into your Discover this week", which was nearly every card.
+
 ## 1.89.90 — 2026-10-27
 
 - Daily check, "unseen": reads the permanent showing record (`csm_seen`), not Discover trays (cleared weekly, so 354 members were wrongly reported), and fails only for new members with a photo; those without one are counted, since the ranking puts them last by design.

@@ -126,6 +126,10 @@ final class DiscoverScreen {
 		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
 			\CAShaadi\Modules\Premium\Spotlight::deliver( $viewer_id );
 		}
+		// A member who joined mid-week, as an extra card (v1.89.91).
+		if ( class_exists( __NAMESPACE__ . '\\Intro' ) ) {
+			Intro::deliver( $viewer_id );
+		}
 
 		global $wpdb;
 		$tray = $wpdb->prefix . 'csm_tray';
@@ -133,7 +137,7 @@ final class DiscoverScreen {
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT profile_id, week_assigned FROM {$tray}
 			 WHERE viewer_id = %d AND status = 'pending'
-			 ORDER BY ( week_assigned = 'boost' ) DESC, assigned_at ASC",
+			 ORDER BY ( week_assigned = 'boost' ) DESC, ( week_assigned = 'intro' ) DESC, assigned_at ASC",
 			$viewer_id
 		) );
 
@@ -195,7 +199,13 @@ final class DiscoverScreen {
 			}
 
 			$p          = Profile::full( $pid, $viewer_id );
-			$p['isNew'] = ( isset( $row->week_assigned ) && $row->week_assigned === $week );
+			/*
+			 * NEW: the member joined in the last 14 days (v1.89.91). It meant
+			 * "drawn into your Discover this week", which was every card, and
+			 * read as a new member (owner, 2026-10-27).
+			 */
+			$reg        = get_userdata( $pid );
+			$p['isNew'] = $reg && strtotime( $reg->user_registered . ' UTC' ) > time() - 14 * DAY_IN_SECONDS;
 			$profiles[] = $p;
 		}
 
