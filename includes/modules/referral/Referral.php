@@ -68,8 +68,19 @@ final class Referral {
 		add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'apply_fee' ), 20 );
 		add_action( 'woocommerce_store_api_checkout_order_processed', array( __CLASS__, 'record_spend' ) );
 		add_action( 'woocommerce_checkout_order_processed', array( __CLASS__, 'record_spend_classic' ), 20, 3 );
-		foreach ( array( 'cancelled', 'failed', 'refunded' ) as $s ) {
+		/*
+		 * Cash comes back only on cancelled or refunded (security audit,
+		 * 2026-10-27). On "failed" it came back while the order kept its
+		 * discount, and a failed order can still be paid from My Account, so
+		 * the same cash discounted order after order. Unpaid failed orders are
+		 * cancelled by cleanup_unpaid(), which returns it then.
+		 */
+		foreach ( array( 'cancelled', 'refunded' ) as $s ) {
 			add_action( 'woocommerce_order_status_' . $s, array( __CLASS__, 'restore_spend' ) );
+		}
+		// Backstop: an order whose cash was returned, paid after all, takes it again.
+		foreach ( array( 'processing', 'completed' ) as $s ) {
+			add_action( 'woocommerce_order_status_' . $s, array( __CLASS__, 'retake_spend' ) );
 		}
 		add_filter( 'the_content', array( __CLASS__, 'pricing_note' ), 25 );
 		add_action( self::CLEANUP_HOOK, array( __CLASS__, 'cleanup_unpaid' ) );
@@ -307,9 +318,31 @@ final class Referral {
 		$take = (int) $order->get_meta( self::ORDER_META );
 		$uid  = (int) $order->get_customer_id();
 		if ( $take > 0 && $uid && self::post( $uid, $take, 'restore', 0, $order->get_id(), 'Returned from order #' . $order->get_id() ) ) {
+			$order->update_meta_data( '_csm_cash_restored', $take );
 			$order->add_order_note( sprintf( 'CA Shaadi cash returned: Rs %d.', $take ) );
 			$order->save();
 		}
+	}
+
+	/** The cash was returned, then the order was paid with its discount: take it again. */
+	public static function retake_spend( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+		$back = (int) $order->get_meta( '_csm_cash_restored' );
+		$uid  = (int) $order->get_customer_id();
+		if ( $back <= 0 || ! $uid ) {
+			return;
+		}
+		$take = min( $back, max( 0, self::balance( $uid ) ) );
+		if ( $take > 0 ) {
+			// Its own kind: the ledger's UNIQUE (user, kind, ref, order) would drop a second 'redeem'.
+			self::post( $uid, -$take, 'retake', 0, $order->get_id(), 'Taken again: order #' . $order->get_id() . ' was paid after its cash was returned' );
+		}
+		$order->delete_meta_data( '_csm_cash_restored' );
+		$order->add_order_note( sprintf( 'Paid after its CA Shaadi cash was returned: Rs %d taken again%s.', $take, $take < $back ? ' (balance short by Rs ' . ( $back - $take ) . ')' : '' ) );
+		$order->save();
 	}
 
 	/** Orders that used cash but were never paid are cancelled after 2 hours, which returns the cash. */
@@ -319,14 +352,14 @@ final class Referral {
 		}
 		$orders = wc_get_orders( array(
 			'type'         => 'shop_order', // never a refund record
-			'status'       => array( 'pending' ),
+			'status'       => array( 'pending', 'failed' ),
 			'date_created' => '<' . ( time() - 2 * HOUR_IN_SECONDS ),
 			'meta_key'     => self::ORDER_META,
 			'meta_compare' => 'EXISTS',
 			'limit'        => 50,
 		) );
 		foreach ( $orders as $o ) {
-			$o->update_status( 'cancelled', 'Unpaid for 2 hours; CA Shaadi cash returned.' );
+			$o->update_status( 'cancelled', 'Unpaid or failed for 2 hours; CA Shaadi cash returned.' );
 		}
 	}
 }

@@ -470,10 +470,17 @@ final class Analytics {
 				$alt = sprintf( 'Profile photo of %s', $name );
 			}
 		}
+		/*
+		 * Callbacks, not replacement strings (security audit, 2026-10-27): in a
+		 * replacement string "$0" / "\0" are back-references, so a display name
+		 * containing them pasted the matched text back in, quotes and all, and
+		 * broke out of the attribute (stored XSS through the name).
+		 */
+		$attr = esc_attr( $alt );
 		if ( preg_match( '/alt\s*=\s*"\s*"/i', $html ) ) {
-			$html = preg_replace( '/alt\s*=\s*"\s*"/i', 'alt="' . esc_attr( $alt ) . '"', $html, 1 );
+			$html = preg_replace_callback( '/alt\s*=\s*"\s*"/i', function () use ( $attr ) { return 'alt="' . $attr . '"'; }, $html, 1 );
 		} elseif ( false === strpos( $html, ' alt=' ) ) {
-			$html = preg_replace( '/<img /i', '<img alt="' . esc_attr( $alt ) . '" ', $html, 1 );
+			$html = preg_replace_callback( '/<img /i', function () use ( $attr ) { return '<img alt="' . $attr . '" '; }, $html, 1 );
 		}
 		return $html;
 	}

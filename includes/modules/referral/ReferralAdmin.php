@@ -63,7 +63,7 @@ final class ReferralAdmin {
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$out   = (int) $wpdb->get_var( "SELECT COALESCE(SUM(amount),0) FROM {$t}" );
 		$given = (int) $wpdb->get_var( "SELECT COALESCE(SUM(amount),0) FROM {$t} WHERE kind IN ('referral','welcome')" );
-		$spent = - (int) $wpdb->get_var( "SELECT COALESCE(SUM(amount),0) FROM {$t} WHERE kind IN ('redeem','restore')" );
+		$spent = - (int) $wpdb->get_var( "SELECT COALESCE(SUM(amount),0) FROM {$t} WHERE kind IN ('redeem','restore','retake')" );
 		$refs  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = '" . Referral::BY_META . "'" );
 		$top   = $wpdb->get_results( "SELECT user_id, COUNT(*) n, SUM(amount) amt FROM {$t} WHERE kind = 'referral' GROUP BY user_id ORDER BY n DESC LIMIT 10" );
 		$rows  = $wpdb->get_results( "SELECT * FROM {$t} ORDER BY id DESC LIMIT 200" );
@@ -101,7 +101,7 @@ final class ReferralAdmin {
 			echo '<tr><td colspan="8">No entries yet.</td></tr>';
 		}
 		foreach ( (array) $rows as $e ) {
-			$related = (int) $e->order_id && in_array( $e->kind, array( 'redeem', 'restore' ), true )
+			$related = (int) $e->order_id && in_array( $e->kind, array( 'redeem', 'restore', 'retake' ), true )
 				? sprintf( '<a href="%s">Order #%d</a>', esc_url( admin_url( 'admin.php?page=wc-orders&action=edit&id=' . (int) $e->order_id ) ), (int) $e->order_id )
 				: self::who( $e->ref_user_id );
 			$ip = 'referral' === $e->kind ? (string) get_user_meta( (int) $e->ref_user_id, Referral::IP_META, true ) : '';

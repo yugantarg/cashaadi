@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.3 — 2026-10-27
+
+Security audit, part 1 (code review), confirmed findings fixed:
+- Stored XSS through a display name: the avatar alt-text fix-up used `preg_replace` with the name in the replacement string, where `$0` is a back-reference, so a name containing it broke out of the attribute (admin Reports page, Viewed me, blocked list). Now `preg_replace_callback`.
+- Stored XSS in the admin CA Verify queue: "Run AI check" put the model's reading of the member's document (name, number, reason) into the page as HTML. Now text only.
+- Referral cash reused: on a failed payment the cash was returned while the order kept its discount, and a failed order can still be paid, so the same cash discounted order after order. Cash now returns only on cancelled / refunded; unpaid failed orders are cancelled after 2 hours like pending ones; an order paid after its cash was returned takes it again (ledger kind `retake`).
+- CA verification auto-approval: any AI "verify" approved, read from keys the prompt never defines, at any confidence, with no name check, and text in the uploaded document could steer the model. Auto-approval now needs `recommendation` = verify, `is_ca_document` and `supports_claim` true, confidence at the threshold setting (0.80), and a profile name in the name read off the document; otherwise the member goes to manual review (`csm_av_hold_reason`). Instructions are sent as the system message and the documents alone as the user message, with document text declared content, never instructions.
+
 ## 1.90.2 — 2026-10-27
 
 - Members with gallery photos but no main picture file (Riya: 1 gallery photo, no avatar files) showed a default picture to everyone, and a private photo could not be blurred. `wp csm photos missing` lists them; `wp csm photos repair [--dry-run]` rebuilds the main picture from the first gallery photo, keeping the member's last-active time. The daily check reports any such member.

@@ -63,6 +63,7 @@ final class ReferralScreen {
 			case 'welcome':
 				return __( 'Welcome credit for joining through a referral', 'cashaadi-ui' );
 			case 'redeem':
+			case 'retake':
 				return __( 'Used at checkout', 'cashaadi-ui' );
 			case 'restore':
 				return __( 'Returned — the order did not go through', 'cashaadi-ui' );

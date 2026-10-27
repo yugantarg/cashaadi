@@ -188,7 +188,16 @@ final class CaCron {
 		update_user_meta( $uid, 'csm_av_result', wp_json_encode( $verdict ) );
 		update_user_meta( $uid, 'csm_av_time', time() );
 
+		// Only the key the prompt defines (security audit, 2026-10-27).
+		$rec = is_array( $verdict ) ? (string) ( $verdict['recommendation'] ?? '' ) : '';
 		if ( 'verify' === $rec ) {
+			$why = CaVerify::auto_ok( $uid, $verdict );
+			if ( '' !== $why ) {
+				// The model said yes but something does not hold: a person decides.
+				update_user_meta( $uid, 'csm_av_status', 'review' );
+				update_user_meta( $uid, 'csm_av_hold_reason', $why );
+				return 'held:' . $why;
+			}
 			update_user_meta( $uid, 'csm_av_status', 'approved' ); /* triggers the verified-email hook */
 			update_user_meta( $uid, 'csm_av_auto', 1 );
 			update_user_meta( $uid, 'csm_av_decided_by', 0 );

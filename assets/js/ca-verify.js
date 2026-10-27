@@ -36,13 +36,25 @@
 			post( 'csm_av_check', uid ).then( function ( res ) {
 				c.disabled = false;
 				c.textContent = 'Run AI check';
+				/* Text only (security audit, 2026-10-27): the verdict is the AI's
+				   reading of a document the MEMBER uploaded, so any field can carry
+				   their markup into this admin page. */
+				cell.textContent = '';
+				var sm = document.createElement( 'small' );
 				if ( res && res.success ) {
 					var v = res.data.verdict || {};
-					cell.innerHTML = '<small><b>' + ( v.recommendation || '?' ) + '</b> (' + ( v.authenticity_confidence != null ? v.authenticity_confidence : '?' ) + ') '
-						+ ( v.document_type || '' ) + ' — ' + ( v.full_name || '' ) + ' ' + ( v.membership_number || '' ) + '<br>' + ( v.reason || '' ) + '</small>';
+					var b = document.createElement( 'b' );
+					b.textContent = String( v.recommendation || '?' );
+					sm.appendChild( b );
+					sm.appendChild( document.createTextNode( ' (' + ( v.authenticity_confidence != null ? v.authenticity_confidence : '?' ) + ') '
+						+ ( v.document_type || '' ) + ' — ' + ( v.full_name || '' ) + ' ' + ( v.membership_number || '' ) ) );
+					sm.appendChild( document.createElement( 'br' ) );
+					sm.appendChild( document.createTextNode( String( v.reason || '' ) ) );
 				} else {
-					cell.innerHTML = '<small style="color:#b3261e">' + ( ( res && res.data && res.data.error ) || 'Error' ) + '</small>';
+					sm.style.color = '#b3261e';
+					sm.textContent = String( ( res && res.data && res.data.error ) || 'Error' );
 				}
+				cell.appendChild( sm );
 			} );
 		}
 		var d = e.target.closest( '.csm-av-decide' );
