@@ -179,7 +179,8 @@ final class ProfileEditScreen {
 		}
 
 		wp_send_json_success( array(
-			'url'  => $doc['url'],
+			// The gated link: the folder itself is closed to the web (DocGuard).
+			'url'  => \CAShaadi\Modules\CaVerify\DocGuard::url( $uid ),
 			'name' => basename( parse_url( $doc['url'], PHP_URL_PATH ) ),
 		) );
 	}
@@ -268,7 +269,7 @@ final class ProfileEditScreen {
 			&& class_exists( '\CAShaadi\Modules\CaVerify\CaVerify' ) ) {
 			$doc = \CAShaadi\Modules\CaVerify\CaVerify::doc( (int) $uid );
 			if ( ! empty( $doc['url'] ) ) {
-				return (string) $doc['url'];
+				return \CAShaadi\Modules\CaVerify\DocGuard::url( (int) $uid );
 			}
 		}
 		$val = is_array( $raw ) ? reset( $raw ) : (string) $raw;

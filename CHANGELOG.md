@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.6 — 2026-10-27
+
+Security audit follow-ups (owner's decisions):
+- ICAI documents are no longer public files. `uploads/bpxcftr-profile-uploads/` and `uploads/csm-ca-extra/` get a deny-all `.htaccess` (written on admin_init), and documents are served by `admin-post.php?action=csm_doc` only to administrators and the member they belong to (`CaVerify\DocGuard`). The CA Verify queue, extra pages and the member's own link in Edit profile use it; the AI reads files from disk as before.
+- A refunded or cancelled boost-pack order removes the boosts it added that are still unused (`boost_refunded`).
+- Photo moderation checks a private member's real main picture, not the blurred copy it was handed (`Privacy::original_url`).
+- At most 10 automated CA checks per member per 24 hours; past that the member is told to email support or try again after 24 hours (reason `limit`).
+
 ## 1.90.5 — 2026-10-27
 
 - CA verification (owner: if the AI cannot verify with good confidence, the member is told and writes to support, as before): an AI "verify" that fails the new checks is a rejection with its reason, not manual review: not an ICAI document → `not_icai`, not the claimed level → `wrong_level`, confidence under the threshold → `unclear`, name not matching the profile → `name`. The member sees that reason and the usual support note.

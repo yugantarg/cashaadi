@@ -144,6 +144,23 @@ final class Privacy {
 		return self::gallery_file( $owner_id );
 	}
 
+	/**
+	 * The member's real main picture URL, unblurred, or ''. For moderation
+	 * only: never hand this to a viewer.
+	 */
+	public static function original_url( $owner_id ) {
+		if ( ! function_exists( 'bp_core_avatar_upload_path' ) || ! function_exists( 'bp_core_avatar_url' ) ) {
+			return '';
+		}
+		$dir = bp_core_avatar_upload_path() . '/avatars/' . (int) $owner_id;
+		foreach ( (array) glob( $dir . '/*-bpfull.*' ) as $f ) {
+			if ( $f && 0 !== strpos( basename( $f ), 'csm-blur-' ) ) {
+				return bp_core_avatar_url() . '/avatars/' . (int) $owner_id . '/' . rawurlencode( basename( $f ) );
+			}
+		}
+		return '';
+	}
+
 	/*
 	 * No main picture file, but a gallery photo (v1.90.2): blur that, so a
 	 * private photo is still a blurred photo (owner, 2026-10-27: Riya).

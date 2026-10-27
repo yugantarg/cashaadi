@@ -104,6 +104,16 @@ final class Nsfw {
 		if ( ! function_exists( 'bp_get_user_has_avatar' ) || ! bp_get_user_has_avatar( $uid ) ) {
 			return '';
 		}
+		/*
+		 * The real picture, not what Privacy shows (owner, 2026-10-27): this
+		 * runs with no viewer, so for a member who blurs their photo the
+		 * filtered avatar is the 64px blur, and the photo matches and Premium
+		 * members actually see was never checked.
+		 */
+		$raw = Privacy::original_url( $uid );
+		if ( '' !== $raw ) {
+			return $raw;
+		}
 		return bp_core_fetch_avatar( array( 'item_id' => $uid, 'object' => 'user', 'type' => 'full', 'html' => false ) );
 	}
 

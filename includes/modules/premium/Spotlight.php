@@ -48,6 +48,8 @@ final class Spotlight {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'on_paid' ), 30, 1 );
 		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'on_paid' ), 30, 1 );
+		add_action( 'woocommerce_order_status_refunded', array( __CLASS__, 'on_refund' ), 30, 1 );
+		add_action( 'woocommerce_order_status_cancelled', array( __CLASS__, 'on_refund' ), 30, 1 );
 		// Buy boosts starts a clean cart of one pack, as Buy Premium / Gold do (v1.89.57).
 		add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'guard_add_to_cart' ), 10, 2 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -296,6 +298,31 @@ final class Spotlight {
 		$order->add_order_note( 'CA Shaadi: ' . $n . ' profile boosts added.' );
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'boost_bought', $uid, (int) $order_id, array( 'boosts' => $n ) );
+		}
+	}
+
+	/**
+	 * A refunded or cancelled pack takes back the boosts it added that are
+	 * still unused (owner, 2026-10-27). Once per order; never below zero.
+	 */
+	public static function on_refund( $order_id ) {
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+		if ( ! $order instanceof \WC_Order || $order->get_meta( '_csm_spot_removed' ) ) {
+			return;
+		}
+		$n   = (int) $order->get_meta( '_csm_spot_added' );
+		$uid = (int) $order->get_customer_id();
+		if ( ! $n || ! $uid ) {
+			return;
+		}
+		$have = self::credits( $uid );
+		$take = min( $n, $have );
+		update_user_meta( $uid, self::CREDITS, $have - $take );
+		$order->update_meta_data( '_csm_spot_removed', $take );
+		$order->save();
+		$order->add_order_note( sprintf( 'CA Shaadi: %d profile boosts removed (%d of %d were already used).', $take, $n - $take, $n ) );
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'boost_refunded', $uid, (int) $order_id, array( 'removed' => $take, 'used' => $n - $take ) );
 		}
 	}
 

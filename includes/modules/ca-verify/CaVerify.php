@@ -198,6 +198,8 @@ final class CaVerify {
 
 	const EXTRA_META = 'csm_av_extra';
 	const MAX_EXTRA  = 3;
+	const MAX_CHECKS = 10;               // automated checks per member per 24 hours
+	const RUNS_META  = 'csm_av_runs';    // array( checks, since )
 
 	/** Extra pages that still exist on disk: list of array( path, url, name ). */
 	public static function extra_files( $uid ) {
@@ -282,7 +284,7 @@ final class CaVerify {
 
 	public static function extras_for_js( $uid ) {
 		return array_map( function ( $f ) {
-			return array( 'url' => $f['url'], 'name' => preg_replace( '/^[A-Za-z0-9]{12}-/', '', $f['name'] ) );
+			return array( 'url' => DocGuard::url( $uid, $f['name'] ), 'name' => preg_replace( '/^[A-Za-z0-9]{12}-/', '', $f['name'] ) );
 		}, self::extra_files( $uid ) );
 	}
 
@@ -497,6 +499,7 @@ final class CaVerify {
 			'wrong_level' => __( 'The document does not support the qualification on your profile. Please upload proof of the level you have claimed.', 'cashaadi-ui' ),
 			'expired'     => __( 'The document could not be verified as current. Please upload a recent ICAI document.', 'cashaadi-ui' ),
 			'format'      => __( 'We could not open that file type. Please upload your ICAI document as a PDF, JPG or PNG.', 'cashaadi-ui' ),
+			'limit'       => __( 'You have tried 10 times in the last 24 hours. Please email support@cashaadi.in with your ICAI document, or try again after 24 hours.', 'cashaadi-ui' ),
 			'other'       => __( 'We could not verify the document you uploaded. Please upload a clear ICAI certificate, marksheet or membership card showing your name.', 'cashaadi-ui' ),
 		);
 	}
@@ -747,6 +750,22 @@ final class CaVerify {
 		if ( 'approved' === $status ) {
 			return;   // an approved member changing their document is a reviewer's call, not an automatic one
 		}
+		/*
+		 * At most MAX_CHECKS automated checks in 24 hours (owner, 2026-10-27):
+		 * each costs an AI call, and re-uploading until the model happens to
+		 * say yes is the attack. Past it the member is told to write to
+		 * support or come back after 24 hours.
+		 */
+		$runs = get_user_meta( $uid, self::RUNS_META, true );
+		$runs = ( is_array( $runs ) && isset( $runs[0], $runs[1] ) && time() - (int) $runs[1] < DAY_IN_SECONDS ) ? $runs : array( 0, time() );
+		if ( (int) $runs[0] >= self::MAX_CHECKS ) {
+			if ( 'limit' !== (string) get_user_meta( $uid, 'csm_av_reason', true ) ) {
+				self::reject( $uid, 'limit', 0, '' );
+			}
+			return;
+		}
+		update_user_meta( $uid, self::RUNS_META, array( (int) $runs[0] + 1, (int) $runs[1] ) );
+
 		delete_user_meta( $uid, 'csm_av_status' );
 		delete_user_meta( $uid, 'csm_av_result' );
 		delete_user_meta( $uid, 'csm_av_reason' );
@@ -836,9 +855,9 @@ final class CaVerify {
 			echo '<td><a href="' . esc_url( $prof ) . '" target="_blank">' . esc_html( $name ) . '</a><br><small>#' . (int) $uid . '</small></td>';
 			$extra_links = '';
 			foreach ( self::extra_files( $uid ) as $i => $xf ) {
-				$extra_links .= '<br><a href="' . esc_url( $xf['url'] ) . '" target="_blank">Extra page ' . ( $i + 1 ) . '</a>';
+				$extra_links .= '<br><a href="' . esc_url( DocGuard::url( $uid, $xf['name'] ) ) . '" target="_blank">Extra page ' . ( $i + 1 ) . '</a>';
 			}
-			echo '<td>' . ( $doc ? '<a href="' . esc_url( $doc['url'] ) . '" target="_blank">View file</a>' : '<em>none</em>' ) . $extra_links . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput
+			echo '<td>' . ( $doc ? '<a href="' . esc_url( DocGuard::url( $uid ) ) . '" target="_blank">View file</a>' : '<em>none</em>' ) . $extra_links . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput
 			echo '<td>' . ( $ext ? '.' . esc_html( $ext ) : '?' ) . ( $aichk ? '' : ' <small>(manual)</small>' ) . '</td>';
 			echo '<td class="csm-av-status">' . self::status_label( $uid ) . '</td>';
 			echo '<td class="csm-av-result"><small>' . ( $result ? esc_html( mb_substr( (string) $result, 0, 160 ) ) : '—' ) . '</small></td>';
