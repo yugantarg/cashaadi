@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.83 — 2026-10-27
+
+- The astro switch governs BuddyPress's own profile pages too (owner): with it on, date of birth is shown to others; off or never set, Time and Place of Birth are hidden from others. Before, those pages showed time and place whatever the switch said, and never the date of birth. Via `bp_xprofile_get_hidden_fields_for_user` (priority 50, after FieldLogic), so the app's cards follow the same rule.
+
 ## 1.89.82 — 2026-10-27
 
 - Profile page on desktop: the Boost card (and the astro card) ran the full page width; they now sit in the same 560px centred column as the other cards.

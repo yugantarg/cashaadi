@@ -30,6 +30,8 @@ final class Astro {
 
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
+		// After FieldLogic (10), which withholds date of birth from others.
+		add_filter( 'bp_xprofile_get_hidden_fields_for_user', array( __CLASS__, 'hidden_fields' ), 50, 3 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm astro', __NAMESPACE__ . '\\AstroCli' );
 		}
@@ -125,6 +127,24 @@ final class Astro {
 			'show' => $wizard ? self::switch_state( $uid ) : self::shown( $uid ),
 			'save' => rest_url( 'csm/v1/astro/show' ),
 		);
+	}
+
+	/*
+	 * The switch governs every profile view, BuddyPress's own pages included
+	 * (owner, 2026-10-27: there time and place showed with the switch off, and
+	 * date of birth stayed hidden with it on). On: date of birth is shown to
+	 * others. Off, or never set: time and place of birth are hidden.
+	 */
+	public static function hidden_fields( $hidden, $displayed = 0, $viewer = 0 ) {
+		$hidden    = (array) $hidden;
+		$displayed = (int) $displayed;
+		if ( ! $displayed || $displayed === (int) $viewer ) {
+			return $hidden;
+		}
+		if ( self::shown( $displayed ) ) {
+			return array_values( array_diff( array_map( 'intval', $hidden ), array( (int) Config::FIELD_DOB ) ) );
+		}
+		return array_values( array_unique( array_merge( array_map( 'intval', $hidden ), array_values( self::field_ids() ) ) ) );
 	}
 
 	public static function rest_routes() {
