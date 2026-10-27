@@ -123,7 +123,12 @@ final class Watch {
 			: ( $last ? 'Nightly regroup last ran ' . human_time_diff( $last ) . ' ago.' : 'Nightly regroup has not run yet (normal on the first day).' ) );
 	}
 
-	/** Joined 2-14 days ago, gender set, not paused or held, in nobody's Discover. */
+	/*
+	 * Joined 2-14 days ago, gender set, not paused or held, and never shown to
+	 * anyone (csm_seen: the permanent record; tray rows are cleared weekly).
+	 * Only members WITH a photo fail the check: the ranking puts a profile
+	 * without one far down on purpose, so those are counted, not alarmed.
+	 */
 	private static function unseen() {
 		global $wpdb;
 		$from = gmdate( 'Y-m-d H:i:s', time() - 14 * DAY_IN_SECONDS );
@@ -132,17 +137,29 @@ final class Watch {
 		if ( ! $gid ) {
 			return self::row( 'unseen', true, 'Skipped: no Gender field.' );
 		}
-		$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
-			"SELECT u.ID FROM {$wpdb->users} u
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT u.ID id,
+			        EXISTS ( SELECT 1 FROM {$wpdb->usermeta} ph WHERE ph.user_id = u.ID AND ph.meta_key = 'csm_photos' AND ph.meta_value NOT IN ( '', 'a:0:{}' ) ) photo
+			 FROM {$wpdb->users} u
 			 JOIN {$wpdb->prefix}bp_xprofile_data g ON g.user_id = u.ID AND g.field_id = %d AND g.value IN ( 'Male', 'Female' )
 			 WHERE u.user_registered BETWEEN %s AND %s
-			   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->prefix}csm_tray t WHERE t.profile_id = u.ID )
+			   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->prefix}csm_seen s WHERE s.profile_id = u.ID )
 			   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->usermeta} m WHERE m.user_id = u.ID AND m.meta_key IN ( 'csm_deactivated', 'csm_photo_hold' ) AND m.meta_value <> '' )",
 			$gid, $from, $to
-		) ) );
-		return self::row( 'unseen', ! $ids, $ids
-			? count( $ids ) . ' members who joined 2-14 days ago have not been put in anyone\'s Discover. E.g. ' . self::names( $ids )
-			: 'Every member who joined in the last two weeks is reaching Discover.' );
+		) );
+		$with = array();
+		$without = 0;
+		foreach ( (array) $rows as $r ) {
+			if ( (int) $r->photo ) {
+				$with[] = (int) $r->id;
+			} else {
+				$without++;
+			}
+		}
+		$note = $without ? " ({$without} without a photo have not been shown either; the ranking puts those last on purpose.)" : '';
+		return self::row( 'unseen', ! $with, $with
+			? count( $with ) . ' members with a photo who joined 2-14 days ago have never been shown to anyone. E.g. ' . self::names( $with ) . $note
+			: 'Every member with a photo who joined in the last two weeks has been shown.' . $note );
 	}
 
 	/** Numbers opened with no request either way. */

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.90 — 2026-10-27
+
+- Daily check, "unseen": reads the permanent showing record (`csm_seen`), not Discover trays (cleared weekly, so 354 members were wrongly reported), and fails only for new members with a photo; those without one are counted, since the ranking puts them last by design.
+
 ## 1.89.89 — 2026-10-27
 
 - Daily check for the quiet failures (owner: "these are silent and I won't come to know"), `Core\Watch`, 02:40 daily and `wp csm watch` on demand. Looks in the data for each bug class found on 26-27 Oct: members whose stored groups no longer match their answers; the nightly regroup not running; members who joined 2-14 days ago and are in nobody's Discover; phone numbers opened with no request; the app's API being cached. Emails the site admin when anything fails, and shows a red notice in wp-admin until a clean run. Silent when all is well.
