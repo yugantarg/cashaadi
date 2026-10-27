@@ -98,3 +98,21 @@ foreach ( array_keys( Buckets::FIELDS ) as $kind ) {
 		is_array( $set ) ? ' | his own choice: ' . wp_json_encode( $set ) : ''
 	) );
 }
+
+// Every field he has answered: who may see it, and whether this viewer can.
+$hidden = \CAShaadi\Core\Profile::hidden_for( $p->ID, $v->ID );
+$rows   = $wpdb->get_results( $wpdb->prepare(
+	"SELECT d.field_id, f.name, g.name grp FROM {$wpdb->prefix}bp_xprofile_data d
+	 JOIN {$wpdb->prefix}bp_xprofile_fields f ON f.id = d.field_id
+	 JOIN {$wpdb->prefix}bp_xprofile_groups g ON g.id = f.group_id
+	 WHERE d.user_id = %d AND d.value <> '' ORDER BY g.group_order, f.field_order",
+	$p->ID
+) );
+WP_CLI::log( count( $rows ) . ' answered fields:' );
+$levels = array();
+foreach ( $rows as $r ) {
+	$level = xprofile_get_field_visibility_level( (int) $r->field_id, $p->ID );
+	$levels[ $level ] = ( $levels[ $level ] ?? 0 ) + 1;
+	WP_CLI::log( sprintf( '  %-22s %-28s %-10s %s', $r->grp, $r->name, $level, in_array( (int) $r->field_id, $hidden, true ) ? 'HIDDEN from viewer' : 'shown' ) );
+}
+WP_CLI::log( 'Levels: ' . wp_json_encode( $levels ) . ' · stored per-field choices: ' . wp_json_encode( get_user_meta( $p->ID, 'bp_xprofile_visibility_levels', true ) ) );
