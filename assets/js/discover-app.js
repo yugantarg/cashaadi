@@ -313,15 +313,9 @@
 		   indexes stay valid; the grid filters on the same map. */
 		var left = profiles.filter( function ( p ) { return ! acted[ p.id ]; } );
 		// Page decided: fetch the next one rather than saying "that's all".
-		if ( ! left.length && meta.grid && ! meta.noMore ) {
+		if ( ! left.length && meta.grid ) {
 			root.appendChild( el( 'p', 'csm-app-loading', 'Loading more profiles\u2026' ) );
-			api( queueUrl( true ) ).then( function ( d ) {
-				var fresh = ( d && d.ok && d.profiles ) ? d.profiles.filter( function ( p ) { return ! acted[ p.id ]; } ) : [];
-				if ( ! fresh.length ) { meta.noMore = true; return empty(); }
-				profiles = d.profiles;
-				meta.total = d.total || meta.total;
-				drawGrid();
-			} );
+			fetchMore( function ( got ) { return got ? drawGrid() : empty(); } );
 			return;
 		}
 		if ( ! left.length ) { return empty(); }
@@ -374,10 +368,46 @@
 		}
 	}
 
+	/*
+	 * The next page from the server, whatever an earlier "Show more" found
+	 * (owner, 2026-10-27: Gold reached the end, saw "widen your filters", and a
+	 * reload brought the profiles). Asked fresh each time the loaded ones run
+	 * out; then(true) when there is an undecided profile to show.
+	 */
+	function fetchMore( then ) {
+		api( queueUrl( true ) ).then( function ( d ) {
+			var fresh = ( d && d.ok && d.profiles ) ? d.profiles.filter( function ( p ) { return ! acted[ p.id ]; } ) : [];
+			if ( ! fresh.length ) { meta.noMore = true; return then( false ); }
+			meta.noMore = false;
+			profiles = d.profiles;
+			meta.total = d.total || meta.total;
+			then( true );
+		} ).catch( function () { then( false ); } );
+	}
+
+	/* More may be waiting beyond the loaded page. */
+	function mayHaveMore() {
+		return meta.unlimited || meta.grid || ( meta.total || 0 ) > profiles.length;
+	}
+
 	function draw() {
 		if ( 'grid' === view ) { return drawGrid(); }
 		var p = profiles[ idx ];
-		if ( ! p ) { return empty(); }
+		if ( ! p ) {
+			// The loaded page is decided: the grid fetches more; the card view asks here.
+			if ( meta.grid ) { view = 'grid'; return drawGrid(); }
+			if ( mayHaveMore() ) {
+				root.innerHTML = '';
+				root.appendChild( el( 'p', 'csm-app-loading', 'Loading more profiles…' ) );
+				return fetchMore( function ( got ) {
+					if ( ! got ) { return empty(); }
+					idx = -1;
+					idx = Math.max( 0, step( 1 ) );
+					draw();
+				} );
+			}
+			return empty();
+		}
 
 		root.innerHTML = '';
 		if ( meta.grid ) {
@@ -463,11 +493,24 @@
 		 * profile still ahead of them, get the plain behaviour.
 		 */
 		var atEnd = ( step( 1 ) < 0 );
-		next.disabled = atEnd && !! meta.isPremium;
+		// Premium and Gold: at the last LOADED card, Next loads the next page.
+		next.disabled = atEnd && !! meta.isPremium && ! mayHaveMore();
 		if ( atEnd && ! meta.isPremium ) { next.classList.add( 'is-upsell' ); }
 		prev.addEventListener( 'click', function () { go( -1 ); } );
 		next.addEventListener( 'click', function () {
 			if ( atEnd && ! meta.isPremium ) { return upsell(); }
+			if ( atEnd ) {
+				next.disabled = true;
+				var cur = p.id;
+				return fetchMore( function ( got ) {
+					// Carry on after the card on screen, wherever it sits in the new list.
+					idx = profiles.map( function ( q ) { return q.id; } ).indexOf( cur ); // -1: from the top
+					var i = got ? step( 1 ) : -1;
+					if ( i < 0 ) { next.disabled = true; return; }
+					idx = i;
+					draw();
+				} );
+			}
 			go( 1 );
 		} );
 
@@ -602,6 +645,7 @@
 			// Not for unlimited (Gold): only a page is loaded, so the count misleads (owner, 2026-10-26).
 			meta.hiddenByFilter = meta.unlimited ? 0 : ( d.hiddenByFilter || 0 );
 			meta.total = d.total || 0;
+			meta.noMore = false; // new filters, new deck
 			idx = 0;
 			view = meta.grid ? 'grid' : 'single';
 			draw();

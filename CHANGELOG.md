@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.9 — 2026-10-27
+
+- Discover no longer says "You've seen everyone" when more profiles are waiting (owner: as Gold, reached the end, went back, saw "widen your filters"; a reload brought the profiles). Deciding the last loaded card in the card view now loads the next page instead of the end screen; Next on the last loaded card loads more for Premium and Gold; and one "Show more" that found nothing no longer stops every later load until a reload.
+
 ## 1.90.8 — 2026-10-27
 
 - The menu works for an administrator and when switched into a member. WordPress's admin bar (shown on the site to administrators, and kept after switching into a member) sat over the top bar and covered the photo button. The top bar and menu now sit below the admin bar on app screens and on theme pages.
