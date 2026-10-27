@@ -15,10 +15,11 @@
  *   - each newcomer is introduced to at most 20 women (a new man) or 40 men
  *     (a new woman): enough for a first week, not a free boost;
  *   - relevance: the newcomer this viewer scores highest with (the ranker's
- *     own score), and only if that is at least the average score of what
- *     this viewer was shown in the last 30 days.
+ *     own score), compared among newcomers only. No bar against the
+ *     viewer's usual cards: a newcomer has few details and no history, so
+ *     they rarely beat established profiles (owner, 2026-10-27).
  *
- * Logged as intro_shown (newcomer, viewer, score, bar).
+ * Logged as intro_shown (newcomer, viewer, score).
  */
 
 namespace CAShaadi\Modules\Discover;
@@ -101,15 +102,11 @@ final class Intro {
 		if ( ! $cands || ! class_exists( '\CAShaadi\Modules\Premium\Spotlight' ) ) {
 			return;
 		}
-		$bar  = (float) $wpdb->get_var( $wpdb->prepare(
-			"SELECT AVG( score ) FROM {$wpdb->prefix}csm_impressions WHERE viewer_id = %d AND served_at > %s",
-			$viewer, wp_date( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS )
-		) );
 		$pick = 0;
 		$best = -1;
 		foreach ( $cands as $n ) {
 			$score = \CAShaadi\Modules\Premium\Spotlight::score_for( $viewer, $n );
-			if ( $score >= $bar && $score > $best ) {
+			if ( $score > $best ) {
 				$best = $score;
 				$pick = $n;
 			}
@@ -131,6 +128,6 @@ final class Intro {
 		update_user_meta( $viewer, self::WEEK, array( $week, $used + 1 ) );
 		update_user_meta( $pick, self::REACHED, (int) get_user_meta( $pick, self::REACHED, true ) + 1 );
 		Seen::record_served( $viewer, $pick, self::WEEK_ROW );
-		cashaadi()->log_event( 'intro_shown', $pick, $viewer, array( 'score' => round( $best, 2 ), 'bar' => round( $bar, 2 ) ) );
+		cashaadi()->log_event( 'intro_shown', $pick, $viewer, array( 'score' => round( $best, 2 ), 'of' => count( $cands ) ) );
 	}
 }
