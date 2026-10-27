@@ -691,12 +691,14 @@ final class Profile {
 		}
 
 		/*
-		 * Diagnostics (v1.89.88): `wp option update csm_debug_card <profile id>`,
+		 * Diagnostics (v1.89.88): `wp option update csm_debug_card <profile id or name>`,
 		 * open that card in the browser, then read `csm_debug_card_last`. Off
 		 * unless the option names this profile.
 		 */
-		if ( (int) get_option( 'csm_debug_card' ) === $profile_id ) {
+		$dbg = (string) get_option( 'csm_debug_card', '' );
+		if ( '' !== $dbg && ( ( ctype_digit( $dbg ) && (int) $dbg === $profile_id ) || ( ! ctype_digit( $dbg ) && false !== stripos( $name, $dbg ) ) ) ) {
 			update_option( 'csm_debug_card_last', array(
+				'profile' => $profile_id . ' ' . $name,
 				'at'      => current_time( 'mysql' ),
 				'viewer'  => $viewer_id,
 				'current' => get_current_user_id(),
