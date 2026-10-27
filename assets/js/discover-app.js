@@ -31,6 +31,7 @@
 	function api( url, opts ) {
 		opts = opts || {};
 		opts.credentials = 'same-origin';
+		opts.cache = 'no-store'; // never an old copy (v1.89.85)
 		opts.headers = opts.headers || {};
 		opts.headers['X-WP-Nonce'] = CFG.nonce;
 		// Without this WordPress does not read a JSON body, and the filter

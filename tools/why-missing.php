@@ -84,3 +84,17 @@ foreach ( $checks as $what => $yes ) {
 	WP_CLI::log( sprintf( '  %-22s %s', $what, $yes ? 'YES → EXCLUDED' : 'no' ) );
 }
 WP_CLI::log( 'Gold filter in refill SQL: ' . ( '' !== Filters::where_gold( '', $v->ID ) ? 'on' : 'off' ) );
+
+// Groups: his answer, what is stored, and what the answer gives today.
+foreach ( array_keys( Buckets::FIELDS ) as $kind ) {
+	$fid = Buckets::field_id( $kind );
+	$val = $fid ? xprofile_get_field_data( $fid, $p->ID ) : '';
+	$val = is_array( $val ) ? implode( ', ', $val ) : (string) $val;
+	$set = get_user_meta( $p->ID, sprintf( Buckets::SET, $kind ), true );
+	WP_CLI::log( sprintf( '  %-9s field %d answer %s | stored: %s | from answer: %s%s',
+		$kind, $fid, var_export( $val, true ),
+		implode( ', ', Buckets::get( $p->ID, $kind ) ) ?: 'none',
+		implode( ', ', Buckets::of( $kind, $val ) ) ?: 'none',
+		is_array( $set ) ? ' | his own choice: ' . wp_json_encode( $set ) : ''
+	) );
+}

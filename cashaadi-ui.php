@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.89.84
+ * Version:           1.89.85
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.89.84' );
+define( 'CASHAADI_UI_VER', '1.89.85' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -413,6 +413,19 @@ if ( class_exists( 'CAShaadi\\Modules\\Matches\\Matches' ) ) {
 if ( class_exists( 'CAShaadi\\Core\\Buckets' ) ) {
 	\CAShaadi\Core\Buckets::register();
 }
+
+// The app's own API is never cached (v1.89.85). A cached Discover queue gave
+// the old list after a filter was removed, until the page was reloaded
+// (owner, 2026-10-27). Applies to every csm/v1 route: Discover, Requests,
+// Profile, filters.
+add_filter( 'rest_post_dispatch', function ( $response, $server, $request ) {
+	if ( 0 === strpos( (string) $request->get_route(), '/csm/v1/' ) && $response instanceof WP_REST_Response ) {
+		$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+		$response->header( 'X-LiteSpeed-Cache-Control', 'no-cache' );
+		do_action( 'litespeed_control_set_nocache', 'csm app api' );
+	}
+	return $response;
+}, 10, 3 );
 
 // Astro details step and Native Place (v1.89.68).
 if ( class_exists( 'CAShaadi\\Core\\Astro' ) ) {

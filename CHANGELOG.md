@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.85 — 2026-10-27
+
+- Removing a filter chip (or applying filters) shows the new list straight away (owner: it needed a page reload). The app's API (every `csm/v1` route: Discover, Requests, Profile, filters) is now sent as never-cache, to the browser and to LiteSpeed, and the Discover / Requests / Edit profile screens fetch with `cache: 'no-store'`.
+- `tools/why-missing.php` also prints the refill's own exclusions (gender, seen, blocked, paused, photo hold) and, for each grouped question, the profile's answer, stored groups and the groups the answer gives today.
+
 ## 1.89.84 — 2026-10-27
 
 - Gold with filters sees new members who match (owner: a member who joined today and passed every filter never showed). Profiles served before the filters were set stay pending but hidden, and they kept the deck counted as full, so nothing new was added. A Gold deck is now topped up whenever fewer than a page (24) pass the filters, with members who match them. No change without filters. `tools/why-missing.php` tests each filter against a profile and shows its deck state.
