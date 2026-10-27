@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.13 — 2026-10-27
+
+Security audit part B:
+- The site's PHP `error_log` was downloadable at `/error_log`. `tools/harden.php` (dry run by default, `apply` to act) moves it out of `public_html` (kept), denies `error_log`, `*.log`, `readme.html`, `license.txt` and `wp-config-sample.php` in the root `.htaccess`, and stops PHP from running in `uploads/`. Rules sit between WordPress markers; each `.htaccess` is backed up first.
+- `tools/audit-b.php` no longer stops at a folder it cannot read.
+
 ## 1.90.12 — 2026-10-27
 
 - `tools/audit-b.php`: read-only security audit part B (versions, wp-config switches, file modes, PHP in uploads, world-writable files, admin accounts, plugin updates, WPCode snippet list). Prints no secrets and no snippet code.
