@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.2 — 2026-10-27
+
+- Members with gallery photos but no main picture file (Riya: 1 gallery photo, no avatar files) showed a default picture to everyone, and a private photo could not be blurred. `wp csm photos missing` lists them; `wp csm photos repair [--dry-run]` rebuilds the main picture from the first gallery photo, keeping the member's last-active time. The daily check reports any such member.
+- A private photo is blurred from the first gallery photo when the main picture file is missing; blurred copies are always written to the member's own avatar folder (a gallery source sits in a shared uploads folder, where the old-copy sweep would have removed other members' blurred copies).
+
 ## 1.90.1 — 2026-10-27
 
 - A private photo whose blurred copy cannot be made now shows the site's own default picture (the grey figure members without a photo have), not BuddyPress's black-and-white default, which looked like a photo the member had chosen (owner: Riya's card).

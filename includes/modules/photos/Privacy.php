@@ -125,12 +125,12 @@ final class Privacy {
 		}
 		$dir = bp_core_avatar_upload_path() . '/avatars/' . (int) $owner_id;
 		if ( ! is_dir( $dir ) ) {
-			return '';
+			return self::gallery_file( $owner_id );
 		}
 		$needle = ( 'thumb' === $type ) ? '-bpthumb.' : '-bpfull.';
 		$files  = glob( $dir . '/*' );
 		if ( empty( $files ) ) {
-			return '';
+			return self::gallery_file( $owner_id );
 		}
 		foreach ( $files as $file ) {
 			$base = basename( $file );
@@ -141,7 +141,21 @@ final class Privacy {
 				return $file;
 			}
 		}
-		return '';
+		return self::gallery_file( $owner_id );
+	}
+
+	/*
+	 * No main picture file, but a gallery photo (v1.90.2): blur that, so a
+	 * private photo is still a blurred photo (owner, 2026-10-27: Riya).
+	 * `wp csm photos repair` rebuilds the main picture itself.
+	 */
+	private static function gallery_file( $owner_id ) {
+		if ( ! class_exists( __NAMESPACE__ . '\\AvatarRepair' ) ) {
+			return '';
+		}
+		$att  = AvatarRepair::first_photo( $owner_id );
+		$file = $att ? get_attached_file( $att ) : '';
+		return ( $file && file_exists( $file ) ) ? $file : '';
 	}
 
 	/**
@@ -253,7 +267,14 @@ final class Privacy {
 		$stamp = (int) @filemtime( $src ); // phpcs:ignore
 		$key   = basename( $src ) . '|' . $stamp . '|v' . self::BLUR_VERSION . '|' . self::blur_pixels( $type );
 		$name  = 'csm-blur-' . $type . '-' . substr( md5( $key ), 0, 12 ) . '.jpg';
-		$dest  = dirname( $src ) . '/' . $name;
+		// Always in the member's own avatar folder (v1.90.2): the source may be
+		// a gallery photo in a shared uploads month folder, where the sweep
+		// below would delete other members' blurred copies.
+		$own   = bp_core_avatar_upload_path() . '/avatars/' . $owner_id;
+		if ( ! is_dir( $own ) ) {
+			wp_mkdir_p( $own );
+		}
+		$dest  = $own . '/' . $name;
 
 		if ( ! file_exists( $dest ) ) {
 			if ( ! self::make_blur( $src, $dest, $type ) ) {
@@ -262,7 +283,7 @@ final class Privacy {
 			// Sweep the superseded derivatives for this type. Without this every
 			// strength change leaves a dead file per member per size behind, and
 			// this host has had inodes run short before.
-			foreach ( (array) glob( dirname( $src ) . '/csm-blur-' . $type . '-*.jpg' ) as $old ) {
+			foreach ( (array) glob( $own . '/csm-blur-' . $type . '-*.jpg' ) as $old ) {
 				if ( $old !== $dest ) {
 					@unlink( $old ); // phpcs:ignore
 				}

@@ -68,6 +68,7 @@ final class Watch {
 			self::phone(),
 			self::cache(),
 			self::exposure(),
+			self::avatars(),
 		);
 		$ok = ! in_array( false, wp_list_pluck( $checks, 'ok' ), true );
 		$r  = array( 'ok' => $ok, 'at' => current_time( 'mysql' ), 'checks' => $checks );
@@ -179,6 +180,17 @@ final class Watch {
 		return self::row( 'exposure', ! $bad, $bad
 			? 'Showings (last 7 days): ' . implode( ' | ', $bad ) . ' — ' . $stat . ' Details: wp csm exposure; one member: wp csm exposure --who=<email>.'
 			: 'Showings match the rules and look normal. ' . $stat );
+	}
+
+	/** Gallery photos but no main picture: shown with a default picture to everyone. */
+	private static function avatars() {
+		if ( ! class_exists( '\\CAShaadi\\Modules\\Photos\\AvatarRepair' ) ) {
+			return self::row( 'avatars', true, 'Skipped.' );
+		}
+		$ids = \CAShaadi\Modules\Photos\AvatarRepair::missing();
+		return self::row( 'avatars', ! $ids, $ids
+			? count( $ids ) . ' members have gallery photos but no main picture, so everyone sees a default picture. Fix with: wp csm photos repair. E.g. ' . self::names( $ids )
+			: 'Every member with gallery photos has a main picture.' );
 	}
 
 	/** Numbers opened with no request either way. */
