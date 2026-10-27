@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.86 — 2026-10-27
+
+- Groups (community, mother tongue, city, native place) are built from the value being saved, not read back: a member who joined with "Hindi, punjabi" had no mother-tongue group at all, so the Punjabi filter missed him. Safety net: everyone is regrouped nightly (`csm_buckets_nightly`, 03:10).
+- `tools/why-missing.php` also prints what the profile card would show the viewer.
+
 ## 1.89.85 — 2026-10-27
 
 - Removing a filter chip (or applying filters) shows the new list straight away (owner: it needed a page reload). The app's API (every `csm/v1` route: Discover, Requests, Profile, filters) is now sent as never-cache, to the browser and to LiteSpeed, and the Discover / Requests / Edit profile screens fetch with `cache: 'no-store'`.

@@ -116,3 +116,9 @@ foreach ( $rows as $r ) {
 	WP_CLI::log( sprintf( '  %-22s %-28s %-10s %s', $r->grp, $r->name, $level, in_array( (int) $r->field_id, $hidden, true ) ? 'HIDDEN from viewer' : 'shown' ) );
 }
 WP_CLI::log( 'Levels: ' . wp_json_encode( $levels ) . ' · stored per-field choices: ' . wp_json_encode( get_user_meta( $p->ID, 'bp_xprofile_visibility_levels', true ) ) );
+
+// What the card would show this viewer right now.
+$card = \CAShaadi\Core\Profile::full( $p->ID, $v->ID );
+foreach ( (array) $card['groups'] as $g ) {
+	WP_CLI::log( sprintf( 'Card · %-22s %s', $g['name'], implode( ', ', wp_list_pluck( $g['fields'], 'label' ) ) ) );
+}

@@ -156,6 +156,10 @@ final class Buckets {
 
 	public static function register() {
 		add_action( 'xprofile_data_after_save', array( __CLASS__, 'on_save' ) );
+		add_action( 'csm_buckets_nightly', array( __CLASS__, 'nightly' ) );
+		if ( ! wp_next_scheduled( 'csm_buckets_nightly' ) ) {
+			wp_schedule_event( strtotime( 'tomorrow 03:10' ), 'daily', 'csm_buckets_nightly' );
+		}
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm buckets', __NAMESPACE__ . '\\BucketsCli' );
@@ -245,12 +249,21 @@ final class Buckets {
 	}
 
 	/** Recompute and store one member's groups from their current answer. */
-	public static function rebuild_user( $uid, $kind ) {
+	public static function rebuild_user( $uid, $kind, $val = null ) {
 		$fid = self::field_id( $kind );
 		if ( ! $fid ) {
 			return array();
 		}
-		$val = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
+		/*
+		 * The value just saved, when the save hands it over (v1.89.86): read
+		 * back here it could still be the cached old answer, and a member who
+		 * joined with "Hindi, punjabi" was left with no group at all.
+		 */
+		if ( null === $val ) {
+			$val = function_exists( 'xprofile_get_field_data' ) ? xprofile_get_field_data( $fid, (int) $uid ) : '';
+		} else {
+			$val = maybe_unserialize( $val );
+		}
 		$val = is_array( $val ) ? implode( ', ', $val ) : (string) $val;
 		$groups = self::of( $kind, $val );
 		$set    = get_user_meta( (int) $uid, sprintf( self::SET, $kind ), true );
@@ -338,8 +351,43 @@ final class Buckets {
 		}
 		foreach ( array_keys( self::FIELDS ) as $kind ) {
 			if ( self::field_id( $kind ) === $fid ) {
-				self::rebuild_user( $uid, $kind );
+				self::rebuild_user( $uid, $kind, isset( $data->value ) ? $data->value : null );
 			}
 		}
+	}
+
+	/** Regroup everyone from their current answers. Returns how many answers. */
+	public static function rebuild_all() {
+		global $wpdb;
+		$n = 0;
+		foreach ( array_keys( self::FIELDS ) as $kind ) {
+			$fid = self::field_id( $kind );
+			if ( ! $fid ) {
+				continue;
+			}
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT user_id, value FROM {$wpdb->prefix}bp_xprofile_data WHERE field_id = %d AND value <> ''", $fid ) );
+			$want = array();
+			foreach ( $rows as $r ) {
+				$want[ (int) $r->user_id ] = $r->value;
+			}
+			// Members with a value: regrouped (their own choice still applies).
+			foreach ( $want as $uid => $val ) {
+				self::rebuild_user( $uid, $kind, $val );
+				$n++;
+			}
+			// Members whose answer is gone: no groups.
+			$stale = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s", self::meta_key( $kind ) ) );
+			foreach ( $stale as $uid ) {
+				if ( ! isset( $want[ (int) $uid ] ) ) {
+					delete_user_meta( (int) $uid, self::meta_key( $kind ) );
+				}
+			}
+		}
+		return $n;
+	}
+
+	/** Nightly safety net: anything a save missed is regrouped (v1.89.86). */
+	public static function nightly() {
+		self::rebuild_all();
 	}
 }
