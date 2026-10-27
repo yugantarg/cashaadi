@@ -268,6 +268,7 @@
 	function gridCard( p, i ) {
 		var cell = el( 'button', 'csm-d-tile' );
 		cell.type = 'button';
+		cell.setAttribute( 'data-id', p.id );
 
 		var ph = document.createElement( 'div' );
 		ph.className = 'csm-d-tilephoto';
@@ -294,6 +295,16 @@
 			window.scrollTo( 0, 0 );
 		} );
 		return cell;
+	}
+
+	/* The first tile after this profile (it was just decided, so it has no tile). */
+	function nextTile( id ) {
+		var at = profiles.map( function ( q ) { return q.id; } ).indexOf( id );
+		for ( var i = at + 1; at >= 0 && i < profiles.length; i++ ) {
+			var t = root.querySelector( '.csm-d-tile[data-id="' + profiles[ i ].id + '"]' );
+			if ( t ) { return t; }
+		}
+		return null;
 	}
 
 	/* Decided in this visit (not yet counted by the server's decidedWeek). */
@@ -415,7 +426,14 @@
 			back.type = 'button';
 			back.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
 			back.appendChild( document.createTextNode( 'All profiles' ) );
-			back.addEventListener( 'click', function () { view = 'grid'; draw(); } );
+			// Back to the grid where this profile is, not the top (owner, 2026-10-27).
+			back.addEventListener( 'click', function () {
+				var cur = p.id;
+				view = 'grid';
+				draw();
+				var t = root.querySelector( '.csm-d-tile[data-id="' + cur + '"]' ) || nextTile( cur );
+				if ( t ) { t.scrollIntoView( { block: 'center' } ); }
+			} );
 			root.appendChild( back );
 		} else {
 			var fb = filterBar();

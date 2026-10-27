@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.10 — 2026-10-27
+
+- Discover: "All profiles" returns to the grid at the profile you were on (or the next one, if you just decided it), not the top.
+
 ## 1.90.9 — 2026-10-27
 
 - Discover no longer says "You've seen everyone" when more profiles are waiting (owner: as Gold, reached the end, went back, saw "widen your filters"; a reload brought the profiles). Deciding the last loaded card in the card view now loads the next page instead of the end screen; Next on the last loaded card loads more for Premium and Gold; and one "Show more" that found nothing no longer stops every later load until a reload.
