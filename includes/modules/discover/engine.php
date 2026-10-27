@@ -33,6 +33,26 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 	 * @return int[]  Profile IDs newly inserted.
 	 */
 	function csm_refill_tray( $viewer_id, $week_id = '' ) {
+		/*
+		 * One refill per member at a time (v1.89.98). Opening the app sends
+		 * several requests at once; each counted "0 drawn this week" before
+		 * the others had saved, and each drew a full week: a free member got
+		 * 30 cards at 00:33 on a Monday (owner's exposure audit, 2026-10-27).
+		 * A MySQL named lock makes the others wait, then find the week full.
+		 */
+		global $wpdb;
+		$lock = 'csm_refill_' . (int) $viewer_id;
+		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, 10 )', $lock ) ) ) {
+			return array();
+		}
+		try {
+			return csm_refill_tray_unlocked( $viewer_id, $week_id );
+		} finally {
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $lock ) );
+		}
+	}
+
+	function csm_refill_tray_unlocked( $viewer_id, $week_id = '' ) {
 
 		global $wpdb;
 

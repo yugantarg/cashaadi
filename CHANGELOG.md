@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.98 — 2026-10-27
+
+- Fix (found by the exposure audit): members could be drawn several weeks' worth of Discover cards at once. Opening the app sends several requests together; each refill counted "0 drawn this week" before the others had saved, so each drew a full week (a free member got 30 cards at 00:33 on Monday; 257 viewers over their allowance this week). The refill now holds a per-member MySQL lock (`GET_LOCK csm_refill_<id>`), and boost / newcomer delivery another, so the second request waits and finds the week already drawn.
+
 ## 1.89.97 — 2026-10-27
 
 - Exposure audit, from its first run: the weekly allowance is checked on the week's cards still in the viewer's list (a card removed because its member paused, was photo-held or left is replaced by design; 336 viewers were wrongly reported). Paused / held members are reported only if shown after their pause or hold began.

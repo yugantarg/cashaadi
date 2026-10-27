@@ -122,13 +122,20 @@ final class DiscoverScreen {
 		if ( function_exists( 'csm_refill_tray' ) ) {
 			csm_refill_tray( $viewer_id );
 		}
-		// A running profile boost, as a bonus card at the front (v1.89.47).
-		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
-			\CAShaadi\Modules\Premium\Spotlight::deliver( $viewer_id );
-		}
-		// A member who joined mid-week, as an extra card (v1.89.91).
-		if ( class_exists( __NAMESPACE__ . '\\Intro' ) ) {
-			Intro::deliver( $viewer_id );
+		// Boost and newcomer cards: one request at a time per member, so two
+		// opened together cannot both deliver today's card (v1.89.98).
+		global $wpdb;
+		$dlock = 'csm_deliver_' . (int) $viewer_id;
+		if ( '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, 10 )', $dlock ) ) ) {
+			// A running profile boost, as a bonus card at the front (v1.89.47).
+			if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
+				\CAShaadi\Modules\Premium\Spotlight::deliver( $viewer_id );
+			}
+			// A member who joined mid-week, as an extra card (v1.89.91).
+			if ( class_exists( __NAMESPACE__ . '\\Intro' ) ) {
+				Intro::deliver( $viewer_id );
+			}
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $dlock ) );
 		}
 
 		global $wpdb;
