@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: why are some active members shown to nobody? Low scores, or
  * bad luck?

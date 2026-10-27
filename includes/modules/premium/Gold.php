@@ -231,16 +231,37 @@ final class Gold {
 		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $me, $pid ) ) {
 			return $no( 'That member could not be found.' );
 		}
+		/*
+		 * Only someone this member could match with (security audit,
+		 * 2026-10-27): the id came from the request and any member was
+		 * accepted: the same gender, paused, photo-held or closed accounts,
+		 * administrators.
+		 */
+		$opp = function_exists( 'cashaadi' ) ? (string) cashaadi()->get_opposite_gender( $me ) : '';
+		if ( '' === $opp || $opp !== trim( (string) cashaadi()->get_gender( $pid ) )
+			|| user_can( $pid, 'manage_options' )
+			|| ( class_exists( '\\CAShaadi\\Modules\\Settings\\Deactivate' ) && \CAShaadi\Modules\Settings\Deactivate::is_paused( $pid ) )
+			|| ( class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) && \CAShaadi\Modules\Settings\Closed::is_closed( $pid ) )
+			|| ( class_exists( '\\CAShaadi\\Modules\\Photos\\PhotoHold' ) && \CAShaadi\Modules\Photos\PhotoHold::is_held( $pid ) ) ) {
+			return $no( 'That member could not be found.' );
+		}
 		$p = \CAShaadi\Core\Profile::phone( $pid, $me );
 		if ( 'not_shared' === $p['state'] || '' === $p['state'] ) {
 			return $no( 'This member does not share their number.' );
 		}
 		if ( ! self::revealed( $me, $pid ) ) {
+			global $wpdb;
+			// One reveal at a time per member, so parallel requests cannot pass the daily cap.
+			$lock = 'csm_reveal_' . (int) $me;
+			if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, 10 )', $lock ) ) ) {
+				return $no( 'Please try again.' );
+			}
 			if ( self::views_today( $me ) >= self::DAILY_PHONES ) {
+				$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $lock ) );
 				return $no( sprintf( 'You can view up to %d new numbers a day. More tomorrow.', self::DAILY_PHONES ) );
 			}
-			global $wpdb;
 			$wpdb->insert( $wpdb->prefix . 'csm_phone_views', array( 'viewer_id' => $me, 'profile_id' => $pid, 'viewed_at' => current_time( 'mysql' ) ) );
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $lock ) );
 			$result = self::send_request( $me, $pid );
 			if ( function_exists( 'cashaadi' ) ) {
 				cashaadi()->log_event( 'gold_phone_view', $me, $pid, array() );

@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: how much more is a Gold profile shown?
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/gold-lift.php someone@example.com [days]

@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: every distinct answer in the free-text filter fields (Community
  * on this install), with how many members gave it. For grouping spellings.

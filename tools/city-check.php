@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: why a profile card shows no city.
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/city-check.php viewer@example.com

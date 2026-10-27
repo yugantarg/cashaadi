@@ -393,7 +393,14 @@ final class PhotoRequest {
 			return;
 		}
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET status = 'approved', acted_at = %s WHERE owner_id = %d AND status = 'pending'", current_time( 'mysql' ), $owner_id ) );
+		/*
+		 * 'uploaded', not 'approved' (security audit, 2026-10-27): 'approved'
+		 * is the member's consent to show a private photo (reveal_for_approved),
+		 * so answering "add a photo" requests with it let every asker, free
+		 * members included, see a photo the member chose to blur. An upload
+		 * answers the request; seeing a private photo still needs a yes.
+		 */
+		$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET status = 'uploaded', acted_at = %s WHERE owner_id = %d AND status = 'pending'", current_time( 'mysql' ), $owner_id ) );
 
 		foreach ( $waiting as $rid ) {
 			self::notify_requester( (int) $rid, $owner_id );

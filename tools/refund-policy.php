@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Replace the Refund Policy page's content (owner, 2026-10-23).
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/refund-policy.php          (shows what it would change)

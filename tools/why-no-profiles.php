@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: why is this member not getting new profiles?
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/why-no-profiles.php someone@example.com

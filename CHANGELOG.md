@@ -3,6 +3,18 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.4 — 2026-10-27
+
+Security audit, part 1 (code review), second batch:
+- Private photos: when a member with no photo uploaded one, every pending "ask for a photo" request was marked `approved`, which is the consent that unblurs a private photo, so anyone who had asked (free members too) saw a photo the member chose to blur. Such requests are now `uploaded`; seeing a private photo still needs the member's yes. (Requests already resolved this way before today stay approved.)
+- Verified badge: a member approved as CA Inter could change Qualification to CA and be shown as "Verified CA". A real change of level by an approved member now sends them to manual review (`csm_av_hold_reason`).
+- Phone reveal: the target id came from the request and any member was accepted. Now only the viewer's other gender, not paused, closed, photo-held or an administrator. The 20-a-day cap holds under parallel requests (per-member lock).
+- Admin URL tools that change data or cost money (`?csmdob=apply`, `?csmage=apply`, `?csm_avc_runnow`, `?csm_avc_dryrun`, `?csm_pm_runnow`) stop at a "Confirm and run" link with a nonce (`Core\AdminTool`), so another page cannot trigger them (CSRF).
+- Profile save refuses file / image fields as typed text (the ICAI document could be pointed at any path); `CaVerify::doc()` only accepts a path that resolves inside uploads.
+- Photo uploads: images only (jpg, png, webp, heic), checked by the server, not the browser's claim.
+- Magic sign-in links do not sign in a closed account.
+- `tools/`: denied to the web (`.htaccess`) and each script exits unless run by WP-CLI.
+
 ## 1.90.3 — 2026-10-27
 
 Security audit, part 1 (code review), confirmed findings fixed:

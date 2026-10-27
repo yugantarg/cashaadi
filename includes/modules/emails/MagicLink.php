@@ -138,6 +138,10 @@ final class MagicLink {
 		if ( ! $user || user_can( $user, 'manage_options' ) ) {
 			return false;
 		}
+		// A closed account is not signed back in by an old email (security audit, 2026-10-27).
+		if ( class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) && \CAShaadi\Modules\Settings\Closed::is_closed( (int) $user->ID ) ) {
+			return false;
+		}
 
 		global $wpdb;
 		$wpdb->update( Queue::table(), array( 'login_used_at' => current_time( 'mysql' ) ), array( 'id' => (int) $row->id ) );

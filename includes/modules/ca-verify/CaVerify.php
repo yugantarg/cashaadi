@@ -36,6 +36,9 @@ final class CaVerify {
 	public static function register() {
 		// A fresh upload restarts the review -- see on_doc_changed().
 		add_action( 'xprofile_data_after_save', array( __CLASS__, 'on_doc_changed' ) );
+		// A verified member who changes their qualification is checked again.
+		add_action( 'xprofile_data_before_save', array( __CLASS__, 'qual_before' ) );
+		add_action( 'xprofile_data_after_save', array( __CLASS__, 'qual_after' ) );
 
 		/*
 		 * What the ICAI upload accepts. bpxcftr's 'file' type allowed only
@@ -161,6 +164,10 @@ final class CaVerify {
 		if ( strpos( $url, $up['baseurl'] ) === 0 ) {
 			$path = $up['basedir'] . substr( $url, strlen( $up['baseurl'] ) );
 			$path = urldecode( $path );
+			// Must resolve inside uploads (security audit, 2026-10-27: "../" was not refused).
+			$real = realpath( $path );
+			$base = realpath( $up['basedir'] );
+			$path = ( $real && $base && 0 === strpos( $real, $base . DIRECTORY_SEPARATOR ) ) ? $real : '';
 		}
 		$ext = strtolower( pathinfo( parse_url( $url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
 		return array( 'url' => $url, 'path' => $path, 'ext' => $ext );
@@ -546,8 +553,14 @@ final class CaVerify {
 	 */
 	public static function claim( $uid ) {
 		$raw = class_exists( '\BP_XProfile_ProfileData' )
-			? strtolower( trim( wp_strip_all_tags( (string) \BP_XProfile_ProfileData::get_value_byid( Config::FIELD_QUALIFICATION, (int) $uid ) ) ) )
+			? (string) \BP_XProfile_ProfileData::get_value_byid( Config::FIELD_QUALIFICATION, (int) $uid )
 			: '';
+		return self::claim_of( $raw );
+	}
+
+	/** The level a Qualification answer claims: 'ca', 'inter' or ''. */
+	public static function claim_of( $raw ) {
+		$raw = strtolower( trim( wp_strip_all_tags( (string) $raw ) ) );
 		if ( '' === $raw ) {
 			return '';
 		}
@@ -687,6 +700,38 @@ final class CaVerify {
 			return;
 		}
 		self::restart_review( $uid );
+	}
+
+	/*
+	 * Approval was for the level claimed at the time (security audit,
+	 * 2026-10-27): a member approved as CA Inter could switch Qualification to
+	 * CA and the badge read "Verified CA". A real change of level by an
+	 * approved member sends them to a person. Saving the same answer again
+	 * (every save of the group re-saves it) changes nothing.
+	 */
+	private static $qual_old = array();
+
+	public static function qual_before( $data ) {
+		if ( is_object( $data ) && isset( $data->field_id, $data->user_id ) && (int) $data->field_id === (int) Config::FIELD_QUALIFICATION ) {
+			self::$qual_old[ (int) $data->user_id ] = self::claim( (int) $data->user_id );
+		}
+	}
+
+	public static function qual_after( $data ) {
+		if ( ! is_object( $data ) || ! isset( $data->field_id, $data->user_id ) || (int) $data->field_id !== (int) Config::FIELD_QUALIFICATION ) {
+			return;
+		}
+		$uid = (int) $data->user_id;
+		if ( ! array_key_exists( $uid, self::$qual_old ) || 'approved' !== (string) get_user_meta( $uid, 'csm_av_status', true ) ) {
+			return;
+		}
+		$old = self::$qual_old[ $uid ];
+		unset( self::$qual_old[ $uid ] );
+		$new = self::claim_of( isset( $data->value ) ? maybe_unserialize( $data->value ) : '' ); // the saved value, not a cached read
+		if ( $old !== $new ) {
+			update_user_meta( $uid, 'csm_av_status', 'review' );
+			update_user_meta( $uid, 'csm_av_hold_reason', 'qualification changed after approval (' . ( $old ?: 'none' ) . ' to ' . ( $new ?: 'other' ) . ')' );
+		}
 	}
 
 	/** Clear the last decision and check again within minutes (not for an approved member). */

@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only research for designing Premium and Gold, split by gender
  * (owner, 2026-10-24: "a fully data backed design of premium and gold.

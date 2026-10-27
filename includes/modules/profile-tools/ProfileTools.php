@@ -61,6 +61,9 @@ final class ProfileTools {
 		if ( ! current_user_can( 'manage_options' ) ) { return; }
 		if ( empty( $_GET['csmdob'] ) ) { return; }
 		$mode = sanitize_text_field( wp_unslash( $_GET['csmdob'] ) );
+		if ( 'apply' === $mode ) {
+			\CAShaadi\Core\AdminTool::confirm( 'Applying the date-of-birth visibility change' );
+		}
 		global $wpdb;
 		$fid = Config::FIELD_DOB;
 		$ids = $wpdb->get_col( "SELECT ID FROM " . $wpdb->users );
@@ -189,6 +192,9 @@ final class ProfileTools {
 		if ( ! current_user_can( 'manage_options' ) ) { return; }
 		if ( empty( $_GET['csmage'] ) ) { return; }
 		$mode = sanitize_text_field( wp_unslash( $_GET['csmage'] ) );
+		if ( 'apply' === $mode ) {
+			\CAShaadi\Core\AdminTool::confirm( 'Applying the age backfill' );
+		}
 		$next = wp_next_scheduled( self::CRON_HOOK );
 		$msg  = 'CSMAGE mode=' . $mode . ' next=' . ( $next ? gmdate( 'Y-m-d H:i:s', $next ) . ' UTC' : 'NOT SCHEDULED' );
 		$msg .= ' last=[' . (string) get_option( 'csm_age_refresh_last', 'never' ) . ']';

@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: why does this member not show as Gold?
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/gold-check.php someone@example.com

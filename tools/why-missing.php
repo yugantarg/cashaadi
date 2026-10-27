@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: why a profile does not show in a viewer's Discover.
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/why-missing.php viewer@example.com user_86116cfc1fea

@@ -480,6 +480,12 @@ final class ProfileEditScreen {
 				continue; // not part of this section — refused, not written
 			}
 			$type = $allowed[ $fid ];
+			// Files only through their upload (csm_pe_file), never as typed text
+			// (security audit, 2026-10-27: the ICAI document could be pointed at
+			// any path or another member's file).
+			if ( in_array( $type, array( 'file', 'image' ), true ) ) {
+				continue;
+			}
 
 			if ( is_array( $val ) ) {
 				$clean = array_values( array_filter( array_map( 'sanitize_text_field', array_map( 'strval', $val ) ) ) );

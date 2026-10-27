@@ -382,6 +382,7 @@ final class CaCron {
 		}
 
 		if ( ! empty( $_GET['csm_avc_dryrun'] ) ) {
+			\CAShaadi\Core\AdminTool::confirm( 'A CA verification dry run (it sends documents to the AI, which costs money)' );
 			$ids   = self::pending_ids( 1 );
 			$lines = array();
 			foreach ( $ids as $uid ) {
@@ -391,6 +392,7 @@ final class CaCron {
 		}
 
 		if ( ! empty( $_GET['csm_avc_runnow'] ) ) {
+			\CAShaadi\Core\AdminTool::confirm( 'Running CA verification now (live)' );
 			$ids   = self::pending_ids( self::batch() );
 			$lines = array();
 			foreach ( $ids as $uid ) {

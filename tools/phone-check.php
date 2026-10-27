@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: why a profile card shows (or hides) a phone number.
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/phone-check.php viewer@example.com "Profile name"

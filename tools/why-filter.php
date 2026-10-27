@@ -1,4 +1,5 @@
 <?php
+defined( 'ABSPATH' ) || exit; // run with wp eval-file only
 /**
  * Read-only: are this member's Discover filters being applied?
  *   wp eval-file wp-content/plugins/cashaadi-ui/tools/why-filter.php someone@example.com

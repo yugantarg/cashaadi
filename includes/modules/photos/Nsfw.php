@@ -461,6 +461,7 @@ final class Nsfw {
 			wp_die( 'csm_pm dryrun (no writes): ' . esc_html( empty( $lines ) ? 'nothing pending' : implode( ' | ', $lines ) ) );
 		}
 		if ( ! empty( $_GET['csm_pm_runnow'] ) ) {
+			\CAShaadi\Core\AdminTool::confirm( 'Running the photo moderation sweep now (live)' );
 			self::sweep();
 			wp_die( 'csm_pm sweep done. ' . esc_html( 'enforce=' . ( self::enforce() ? 'on' : 'off' ) ) );
 		}

@@ -372,7 +372,21 @@ final class Gallery {
 				'size'     => $files['size'][ $i ],
 			);
 			$_FILES = array( 'csm_ph_file' => $single );
-			$att_id = media_handle_upload( 'csm_ph_file', 0 );
+			/*
+			 * Images only, checked by the server (security audit, 2026-10-27):
+			 * the type above is the browser's word, and WordPress's own list
+			 * for members also takes zip, pdf, docx, mp4 ... which then sat on
+			 * the site as orphan files outside the 5-photo limit.
+			 */
+			$att_id = media_handle_upload( 'csm_ph_file', 0, array(), array(
+				'test_form' => false,
+				'mimes'     => array(
+					'jpg|jpeg|jpe' => 'image/jpeg',
+					'png'          => 'image/png',
+					'webp'         => 'image/webp',
+					'heic'         => 'image/heic',
+				),
+			) );
 			if ( is_wp_error( $att_id ) ) {
 				$errors[] = $att_id->get_error_message();
 				continue;
