@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.97 — 2026-10-27
+
+- Exposure audit, from its first run: the weekly allowance is checked on the week's cards still in the viewer's list (a card removed because its member paused, was photo-held or left is replaced by design; 336 viewers were wrongly reported). Paused / held members are reported only if shown after their pause or hold began.
+
 ## 1.89.96 — 2026-10-27
 
 - Exposure audit checks boosts (owner: boosted members too, more or less than they deserve). Each boost whose 24 hours are over: reached past its cap is a RULE anomaly; under half its cap is a SHAPE anomaly, with how many members of the other gender used Discover in those hours. Summary line: boosts finished and reach as a share of the cap (median, lowest, highest).

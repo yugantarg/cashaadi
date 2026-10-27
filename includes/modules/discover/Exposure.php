@@ -109,10 +109,15 @@ final class Exposure {
 			$rules[] = "{$wk} viewer(s) got more than " . Intro::PER_WEEK . ' intros in a week.';
 		}
 
-		// Weekly draw above the viewer's allowance (this week; Gold has none).
+		/*
+		 * Weekly draw above the viewer's allowance (this week; Gold has none).
+		 * Counted as the week's cards still in their list: a card removed
+		 * because its member paused, was photo-held or left is replaced, by
+		 * design, and the replacement is not extra.
+		 */
 		$week = function_exists( 'cashaadi' ) ? cashaadi()->get_week_id() : '';
 		$over = array();
-		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT viewer_id, COUNT(*) n FROM {$imp} WHERE week_id = %s GROUP BY viewer_id HAVING n > 5", $week ) ) as $r ) {
+		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT viewer_id, COUNT(*) n FROM {$wpdb->prefix}csm_tray WHERE week_assigned = %s GROUP BY viewer_id HAVING n > 5", $week ) ) as $r ) {
 			$uid = (int) $r->viewer_id;
 			if ( Membership::is_gold( $uid ) ) {
 				continue;
@@ -137,23 +142,34 @@ final class Exposure {
 			$rules[] = "{$passed} passed profile(s) were shown again within {$pass_days} days.";
 		}
 
-		// Paused or held members shown in the last day.
-		$off = array();
+		// Paused or held members shown after their pause or hold began.
+		$off   = array();
+		$began = array();
 		if ( class_exists( '\CAShaadi\Modules\Settings\Deactivate' ) ) {
-			$off = array_merge( $off, \CAShaadi\Modules\Settings\Deactivate::paused_ids() );
+			foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT user_id, meta_value v FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value <> ''", \CAShaadi\Modules\Settings\Deactivate::META ) ) as $r ) {
+				$off[]                          = (int) $r->user_id;
+				$began[ (int) $r->user_id ] = (string) $r->v; // site time, Y-m-d H:i:s
+			}
 		}
 		if ( class_exists( '\CAShaadi\Modules\Photos\PhotoHold' ) ) {
-			$off = array_merge( $off, \CAShaadi\Modules\Photos\PhotoHold::held_ids() );
-		}
-		$off = array_values( array_unique( array_map( 'intval', $off ) ) );
-		if ( $off ) {
-			$in    = implode( ',', $off );
-			$day   = wp_date( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$shown = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT profile_id FROM {$seen} WHERE profile_id IN ({$in}) AND last_seen_at >= %s", $day ) );
-			if ( $shown ) {
-				$rules[] = count( $shown ) . ' paused or photo-held member(s) were shown in the last day (if they paused today, after being shown, ignore): ' . implode( ', ', array_map( function ( $id ) { return '#' . $id; }, array_slice( $shown, 0, 5 ) ) );
+			foreach ( \CAShaadi\Modules\Photos\PhotoHold::held_ids() as $id ) {
+				$h     = \CAShaadi\Modules\Photos\PhotoHold::get( $id );
+				$off[] = (int) $id;
+				if ( $h && ! empty( $h['at'] ) ) {
+					$at = wp_date( 'Y-m-d H:i:s', (int) $h['at'] );
+					$began[ (int) $id ] = isset( $began[ (int) $id ] ) ? min( $began[ (int) $id ], $at ) : $at;
+				}
 			}
+		}
+		$off   = array_values( array_unique( $off ) );
+		$after = array();
+		foreach ( $began as $id => $at ) {
+			if ( $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$seen} WHERE profile_id = %d AND last_seen_at > %s LIMIT 1", $id, $at ) ) ) {
+				$after[] = '#' . $id;
+			}
+		}
+		if ( $after ) {
+			$rules[] = count( $after ) . ' paused or photo-held member(s) were shown after their pause or hold began: ' . implode( ', ', array_slice( $after, 0, 5 ) );
 		}
 
 		/* ---------------------------------------------------------- SHAPE */
