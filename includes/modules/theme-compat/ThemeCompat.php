@@ -106,6 +106,11 @@ final class ThemeCompat {
 		add_filter( 'bp_nouveau_feedback_messages', array( __CLASS__, 'register_notices' ) );
 		add_filter( 'bp_nouveau_get_user_feedback', array( __CLASS__, 'matches_copy' ) );
 		add_filter( 'bp_get_add_friend_button', array( __CLASS__, 'match_button' ) );
+		// Requests go through Discover and the profile screen only (owner, 2026-10-27).
+		add_action( 'bp_actions', array( __CLASS__, 'no_bp_match_action' ), 1 );
+		add_action( 'wp_ajax_friends_add_friend', array( __CLASS__, 'no_bp_match_ajax' ), 1 );
+		add_action( 'wp_ajax_addremove_friend', array( __CLASS__, 'no_bp_match_ajax' ), 1 );
+		add_filter( 'rest_pre_dispatch', array( __CLASS__, 'no_bp_match_rest' ), 10, 3 );
 
 		// Members directory.
 		add_filter( 'bp_after_has_members_parse_args', array( __CLASS__, 'directory_exclude' ) );
@@ -242,6 +247,9 @@ final class ThemeCompat {
 	 * replacement produced "Match" where the site says "Add Match".
 	 */
 	public static function match_button( $args ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return array(); // no BuddyPress match button for members
+		}
 		$map = array(
 			'Add Friend'                => array( 'Add Match', 'Add Match' ),
 			'Cancel Friendship Request' => array( 'Cancel Match Request', 'Cancel Match Requested' ),
@@ -254,6 +262,34 @@ final class ThemeCompat {
 			$args['link_title'] = $pair[1];
 		}
 		return $args;
+	}
+
+	/*
+	 * BuddyPress's own "Add Match" (security audit, owner 2026-10-27: admins
+	 * only). It skipped everything Discover checks before a request: the weekly
+	 * set, gender, blocks, pauses and holds. The button is gone above; these
+	 * close the links and calls behind it. Discover and Gold call
+	 * friends_add_friend() directly and are not affected.
+	 */
+	public static function no_bp_match_action() {
+		if ( ! current_user_can( 'manage_options' ) && function_exists( 'bp_is_current_action' ) && bp_is_current_action( 'add-friend' ) ) {
+			remove_action( 'bp_actions', 'friends_action_add_friend' );
+			bp_core_redirect( home_url( '/discover/' ) );
+		}
+	}
+
+	public static function no_bp_match_ajax() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'feedback' => __( 'Send requests from Discover.', 'cashaadi-ui' ) ), 403 );
+		}
+	}
+
+	public static function no_bp_match_rest( $result, $server, $request ) {
+		unset( $server );
+		if ( null === $result && 'POST' === $request->get_method() && 0 === strpos( $request->get_route(), '/buddypress/v1/friends' ) && ! current_user_can( 'manage_options' ) ) {
+			return new \WP_Error( 'csm_forbidden', __( 'Send requests from Discover.', 'cashaadi-ui' ), array( 'status' => 403 ) );
+		}
+		return $result;
 	}
 
 	/* --------------------------------------------------- members directory */

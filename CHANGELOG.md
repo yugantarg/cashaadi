@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.11 — 2026-10-27
+
+Security audit, part C (requests from outside) and the BuddyPress match button:
+- The plugin's internal notes were readable by anyone (`CHANGELOG.md`, `HANDOFF.md`, `docs/`, which describe how Discover, boosts and reach work). A plugin-root `.htaccess` now denies `.md`, `.sql` and `.log` files, and `docs/` denies everything.
+- Browser security headers on every page (`Core\Headers`): HSTS (a year), nosniff, SAMEORIGIN framing, a referrer policy and no camera / microphone / location.
+- BuddyPress's own "Add Match" is for admins only (owner). The button is gone for members, and its link, its ajax calls and the BuddyPress REST route for new requests refuse members. Requests from Discover and Gold are unaffected.
+
 ## 1.90.10 — 2026-10-27
 
 - Discover: "All profiles" returns to the grid at the profile you were on (or the next one, if you just decided it), not the top.

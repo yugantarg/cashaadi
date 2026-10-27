@@ -1,0 +1,11 @@
+# Internal notes are not for the web (security audit, 2026-10-27): they
+# describe how Discover, boosts and reach work. docs/ and tools/ have their own.
+<FilesMatch "\.(md|sql|log)$">
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order allow,deny
+		Deny from all
+	</IfModule>
+</FilesMatch>

@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.90.10
+ * Version:           1.90.11
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.90.10' );
+define( 'CASHAADI_UI_VER', '1.90.11' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -112,6 +112,11 @@ if ( class_exists( 'CAShaadi\\Core\\Health' ) ) {
 // account menu and the nav, in place of the theme's header (v1.90.7).
 if ( class_exists( 'CAShaadi\\Core\\Chrome' ) ) {
 	\CAShaadi\Core\Chrome::register();
+}
+
+// Browser security headers (security audit, v1.90.11).
+if ( class_exists( 'CAShaadi\\Core\\Headers' ) ) {
+	\CAShaadi\Core\Headers::register();
 }
 
 // Install/upgrade custom tables in one place. Schemas are registered by the
