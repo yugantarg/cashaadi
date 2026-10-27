@@ -132,13 +132,24 @@ final class Gold {
 		if ( ! $uid || (int) $cap <= self::PAGE ) {
 			return $cap;
 		}
-		if ( ! self::$more ) {
-			return self::PAGE;
-		}
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'", (int) $uid ) );
-		return min( (int) $cap, $pending + self::PAGE );
+		if ( self::$more ) {
+			return min( (int) $cap, $pending + self::PAGE );
+		}
+		/*
+		 * A page of what the member can SEE (v1.89.84). Profiles served before
+		 * the filters were set stay pending but hidden, and counting them kept
+		 * the deck "full" for good: nobody new was added, so a member who
+		 * joined today and matched every filter never appeared (owner,
+		 * 2026-10-27). Room is now a page less what the filters let through;
+		 * with no filters that is the old rule exactly.
+		 */
+		$visible = class_exists( '\\CAShaadi\\Modules\\Discover\\Filters' ) && Membership::is_gold( (int) $uid )
+			? \CAShaadi\Modules\Discover\Filters::pool_size( (int) $uid )
+			: $pending;
+		return min( (int) $cap, $pending + max( 0, self::PAGE - $visible ) );
 	}
 
 	/** Gold badge: Gold AND verified. */

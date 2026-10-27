@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.84 — 2026-10-27
+
+- Gold with filters sees new members who match (owner: a member who joined today and passed every filter never showed). Profiles served before the filters were set stay pending but hidden, and they kept the deck counted as full, so nothing new was added. A Gold deck is now topped up whenever fewer than a page (24) pass the filters, with members who match them. No change without filters. `tools/why-missing.php` tests each filter against a profile and shows its deck state.
+
 ## 1.89.83 — 2026-10-27
 
 - The astro switch governs BuddyPress's own profile pages too (owner): with it on, date of birth is shown to others; off or never set, Time and Place of Birth are hidden from others. Before, those pages showed time and place whatever the switch said, and never the date of birth. Via `bp_xprofile_get_hidden_fields_for_user` (priority 50, after FieldLogic), so the app's cards follow the same rule.
