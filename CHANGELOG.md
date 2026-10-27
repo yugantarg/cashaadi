@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.82 — 2026-10-27
+
+- Profile page on desktop: the Boost card (and the astro card) ran the full page width; they now sit in the same 560px centred column as the other cards.
+
 ## 1.89.81 — 2026-10-27
 
 - Astro details switch reads "Show on profile" (owner), on = shown. It said "Hidden from my profile" while off, which read as the setting rather than its state.

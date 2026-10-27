@@ -171,3 +171,6 @@
 /* Astro details, asked once (v1.89.74). */
 .csm-p-astro-act { display: flex; align-items: center; gap: 14px; }
 .csm-p-astro-no { margin-top: 8px; padding: 9px 4px; border: 0; background: none; font: 600 14px/1 inherit; color: var(--csm-muted, #5c6a76); cursor: pointer; }
+/* Boost and astro cards in the same centred column as the rest (v1.89.82;
+   on desktop they ran the full width of the page). */
+.csm-p-boost { max-width: 560px; margin: 16px auto 0; box-sizing: border-box; }
