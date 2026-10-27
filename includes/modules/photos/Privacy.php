@@ -287,6 +287,15 @@ final class Privacy {
 		if ( '' !== $blur ) {
 			return $blur;
 		}
+		/*
+		 * No blurred copy (the photo file could not be read or blurred): the
+		 * site's own default picture, the same one a member without a photo
+		 * has (v1.90.1). BuddyPress's default is a different, black-and-white
+		 * figure, which read as a photo the member had chosen (owner, 2026-10-27).
+		 */
+		if ( class_exists( '\\CAShaadi\\Core\\Config' ) ) {
+			return \CAShaadi\Core\Config::default_avatar_url();
+		}
 		if ( function_exists( 'bp_core_avatar_default' ) ) {
 			$default = bp_core_avatar_default( 'local' );
 			if ( ! empty( $default ) ) {

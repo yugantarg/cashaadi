@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.1 — 2026-10-27
+
+- A private photo whose blurred copy cannot be made now shows the site's own default picture (the grey figure members without a photo have), not BuddyPress's black-and-white default, which looked like a photo the member had chosen (owner: Riya's card).
+
 ## 1.90.0 — 2026-10-27
 
 - "Few members saw your profile": "Verify" only for members whose qualification is CA or CA Inter (verification is by ICAI document; ACCA, CMA, CS and others choose "Other" and are not asked). A blank qualification is asked for instead ("Add your qualification").
