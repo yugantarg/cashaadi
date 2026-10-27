@@ -40,7 +40,8 @@ foreach ( array( 'readme.html', 'license.txt', 'wp-config-sample.php' ) as $f ) 
 }
 $up   = wp_get_upload_dir()['basedir'];
 $php  = array();
-$it   = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $up, FilesystemIterator::SKIP_DOTS ) );
+// CATCH_GET_CHILD: a folder PHP may not read is skipped, not fatal.
+$it   = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $up, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
 foreach ( $it as $f ) {
 	if ( preg_match( '/\.(php\d?|phtml|phar)$/i', $f->getFilename() ) ) {
 		$php[] = str_replace( $up, 'uploads', $f->getPathname() );
@@ -51,9 +52,9 @@ foreach ( array_slice( $php, 0, 15 ) as $f ) {
 	WP_CLI::log( '      ' . $f );
 }
 $ww = array();
-$it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( ABSPATH, FilesystemIterator::SKIP_DOTS ) );
+$it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( ABSPATH, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::LEAVES_ONLY, RecursiveIteratorIterator::CATCH_GET_CHILD );
 foreach ( $it as $f ) {
-	if ( $f->isFile() && ( $f->getPerms() & 0002 ) ) {
+	if ( $f->isFile() && ! $f->isLink() && ( @$f->getPerms() & 0002 ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
 		$ww[] = str_replace( ABSPATH, '', $f->getPathname() );
 	}
 }
