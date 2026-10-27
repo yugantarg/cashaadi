@@ -79,19 +79,24 @@ final class CaVerify {
 	 * Whether an AI "verify" may approve on its own (security audit,
 	 * 2026-10-27). Before, any "verify" approved: from keys the prompt never
 	 * asks for, at any confidence, with nobody comparing names, and the
-	 * document's own text could steer the model. Now all of these must hold;
-	 * otherwise a person decides. Returns '' when it may, else why not.
+	 * document's own text could steer the model. Now all of these must hold.
+	 * Otherwise it is a rejection like any other (owner: if the AI cannot
+	 * verify with good confidence, the member is told and writes to support).
+	 * Returns '' when it may approve, else the reason code for reject().
 	 */
 	public static function auto_ok( $uid, $verdict ) {
 		if ( ! is_array( $verdict ) || 'verify' !== (string) ( $verdict['recommendation'] ?? '' ) ) {
-			return 'not a verify recommendation';
+			return 'other';
 		}
-		if ( true !== ( $verdict['is_ca_document'] ?? null ) || true !== ( $verdict['supports_claim'] ?? null ) ) {
-			return 'document or claim not confirmed';
+		if ( true !== ( $verdict['is_ca_document'] ?? null ) ) {
+			return 'not_icai';
+		}
+		if ( true !== ( $verdict['supports_claim'] ?? null ) ) {
+			return 'wrong_level';
 		}
 		$min = (float) self::opt( 'threshold' );
 		if ( (float) ( $verdict['authenticity_confidence'] ?? 0 ) < ( $min > 0 ? $min : 0.8 ) ) {
-			return 'confidence below the threshold';
+			return 'unclear';
 		}
 		// A name on the profile must appear in the name read off the document.
 		$doc  = strtolower( (string) ( $verdict['full_name'] ?? '' ) );
@@ -103,7 +108,7 @@ final class CaVerify {
 				break;
 			}
 		}
-		return $hit ? '' : 'name on the document does not match the profile';
+		return $hit ? '' : 'name';
 	}
 
 	public static function opts() {
@@ -706,7 +711,7 @@ final class CaVerify {
 	 * Approval was for the level claimed at the time (security audit,
 	 * 2026-10-27): a member approved as CA Inter could switch Qualification to
 	 * CA and the badge read "Verified CA". A real change of level by an
-	 * approved member sends them to a person. Saving the same answer again
+	 * approved member has their document checked again. Saving the same answer again
 	 * (every save of the group re-saves it) changes nothing.
 	 */
 	private static $qual_old = array();
@@ -729,8 +734,10 @@ final class CaVerify {
 		unset( self::$qual_old[ $uid ] );
 		$new = self::claim_of( isset( $data->value ) ? maybe_unserialize( $data->value ) : '' ); // the saved value, not a cached read
 		if ( $old !== $new ) {
-			update_user_meta( $uid, 'csm_av_status', 'review' );
+			// The document is checked again against the new level, as on a new upload.
+			delete_user_meta( $uid, 'csm_av_status' );
 			update_user_meta( $uid, 'csm_av_hold_reason', 'qualification changed after approval (' . ( $old ?: 'none' ) . ' to ' . ( $new ?: 'other' ) . ')' );
+			self::restart_review( $uid );
 		}
 	}
 

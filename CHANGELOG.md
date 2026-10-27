@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.5 — 2026-10-27
+
+- CA verification (owner: if the AI cannot verify with good confidence, the member is told and writes to support, as before): an AI "verify" that fails the new checks is a rejection with its reason, not manual review: not an ICAI document → `not_icai`, not the claimed level → `wrong_level`, confidence under the threshold → `unclear`, name not matching the profile → `name`. The member sees that reason and the usual support note.
+- A verified member who changes their qualification level has their document checked again by the AI against the new level (approved again, or rejected with the reason), not sent to manual review.
+
 ## 1.90.4 — 2026-10-27
 
 Security audit, part 1 (code review), second batch:

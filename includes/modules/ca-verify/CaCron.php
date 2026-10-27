@@ -193,10 +193,10 @@ final class CaCron {
 		if ( 'verify' === $rec ) {
 			$why = CaVerify::auto_ok( $uid, $verdict );
 			if ( '' !== $why ) {
-				// The model said yes but something does not hold: a person decides.
-				update_user_meta( $uid, 'csm_av_status', 'review' );
-				update_user_meta( $uid, 'csm_av_hold_reason', $why );
-				return 'held:' . $why;
+				// The model said yes but it is not good enough: rejected like any
+				// other answer, with the reason and the support address.
+				CaVerify::reject( $uid, $why, 0, '' );
+				return 'rejected:' . $why;
 			}
 			update_user_meta( $uid, 'csm_av_status', 'approved' ); /* triggers the verified-email hook */
 			update_user_meta( $uid, 'csm_av_auto', 1 );
