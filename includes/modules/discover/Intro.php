@@ -14,12 +14,15 @@
  *     and passing the viewer's own filters;
  *   - each newcomer is introduced to at most 20 women (a new man) or 40 men
  *     (a new woman): enough for a first week, not a free boost;
- *   - relevance: the newcomer this viewer scores highest with (the ranker's
- *     own score), compared among newcomers only. No bar against the
- *     viewer's usual cards: a newcomer has few details and no history, so
- *     they rarely beat established profiles (owner, 2026-10-27).
+ *   - over 24 hours, like a boost (owner, 2026-10-27): from the moment the
+ *     newcomer is first eligible, their Discover score for this viewer is
+ *     multiplied by the boost's own steps (1.3x, 2x at 6 hours, 5x at 12)
+ *     and must reach the best score this viewer was shown in 30 days. So
+ *     their best matches get them first, and by the afternoon nearly
+ *     everyone qualifies; the window then closes. Among newcomers the
+ *     viewer qualifies for, the highest wins.
  *
- * Logged as intro_shown (newcomer, viewer, score).
+ * Logged as intro_shown (newcomer, viewer, hour, mult, score, bar).
  */
 
 namespace CAShaadi\Modules\Discover;
@@ -36,6 +39,8 @@ final class Intro {
 	const DAY       = 'csm_intro_day';   // viewer: date of their last intro
 	const WEEK      = 'csm_intro_week';  // viewer: array( week id, count )
 	const REACHED   = 'csm_intro_reach'; // newcomer: how many it was introduced to
+	const START     = 'csm_intro_start'; // newcomer: when their 24 hours began
+	const HOURS     = 24;
 	const PER_WEEK  = 3;
 	const NEW_DAYS  = 7;
 	const CAP_MALE  = 20;                // a new man, introduced to this many women
@@ -91,6 +96,15 @@ final class Intro {
 		$exclude = array_flip( array_map( 'intval', $exclude ) );
 		$cands   = array();
 		foreach ( $new as $n ) {
+			// The 24 hours start when the newcomer is first eligible (photo and all).
+			$start = (int) get_user_meta( $n, self::START, true );
+			if ( ! $start ) {
+				$start = time();
+				update_user_meta( $n, self::START, $start );
+			}
+			if ( time() - $start > self::HOURS * HOUR_IN_SECONDS ) {
+				continue;
+			}
 			if ( ! isset( $exclude[ $n ] ) && (int) get_user_meta( $n, self::REACHED, true ) < self::cap_for( $n ) ) {
 				$cands[] = $n;
 			}
@@ -102,13 +116,22 @@ final class Intro {
 		if ( ! $cands || ! class_exists( '\CAShaadi\Modules\Premium\Spotlight' ) ) {
 			return;
 		}
+		$bar  = (float) $wpdb->get_var( $wpdb->prepare(
+			"SELECT MAX( score ) FROM {$wpdb->prefix}csm_impressions WHERE viewer_id = %d AND served_at > %s",
+			$viewer, wp_date( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS )
+		) );
 		$pick = 0;
 		$best = -1;
+		$why  = array();
 		foreach ( $cands as $n ) {
-			$score = \CAShaadi\Modules\Premium\Spotlight::score_for( $viewer, $n );
-			if ( $score > $best ) {
+			$hours = ( time() - (int) get_user_meta( $n, self::START, true ) ) / HOUR_IN_SECONDS;
+			$mult  = \CAShaadi\Modules\Premium\Spotlight::multiplier( $hours );
+			$raw   = \CAShaadi\Modules\Premium\Spotlight::score_for( $viewer, $n );
+			$score = $raw * $mult;
+			if ( $score >= $bar && $score > $best ) {
 				$best = $score;
 				$pick = $n;
+				$why  = array( 'hour' => round( $hours, 1 ), 'mult' => round( $mult, 2 ), 'score' => round( $raw, 2 ), 'bar' => round( $bar, 2 ) );
 			}
 		}
 		if ( ! $pick ) {
@@ -128,6 +151,6 @@ final class Intro {
 		update_user_meta( $viewer, self::WEEK, array( $week, $used + 1 ) );
 		update_user_meta( $pick, self::REACHED, (int) get_user_meta( $pick, self::REACHED, true ) + 1 );
 		Seen::record_served( $viewer, $pick, self::WEEK_ROW );
-		cashaadi()->log_event( 'intro_shown', $pick, $viewer, array( 'score' => round( $best, 2 ), 'of' => count( $cands ) ) );
+		cashaadi()->log_event( 'intro_shown', $pick, $viewer, $why );
 	}
 }

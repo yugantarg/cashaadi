@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.93 — 2026-10-27
+
+- New member introductions run over 24 hours, like a boost (owner): from when the newcomer is first eligible, their score for each viewer is multiplied by the boost's steps (1.3x → 2x at 6 h → 5x at 12 h) and must reach the best score that viewer was shown in 30 days. Best matches get them first; by the afternoon nearly everyone qualifies; the window closes at 24 hours or at the cap (20 women for a new man, 40 men for a new woman). `csm_intro_start`; `intro_shown` logs hour, multiplier, score, bar.
+
 ## 1.89.92 — 2026-10-27
 
 - New member introductions: no bar against the viewer's usual cards (owner: a newcomer has few details and no history, so would rarely pass). The viewer gets the newcomer they score highest with among newcomers; reach caps (20 / 40) unchanged.
