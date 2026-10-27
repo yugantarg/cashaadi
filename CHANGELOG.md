@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.88 — 2026-10-27
+
+- Diagnostics for profile cards that show only Phone / Gender / City on the site but in full from WP-CLI: `wp option update csm_debug_card <id>` records the next build of that card (viewer, hidden field ids, sections) in `csm_debug_card_last`. Off otherwise.
+
 ## 1.89.87 — 2026-10-27
 
 - Mother tongue: every language named counts (owner): "Hindi, Punjabi" is in both the Hindi and the Punjabi groups. Hindi was dropped beside a regional language before. English still counts only when it is the only one. The profile always showed the words as typed. Run `wp csm buckets rebuild`.

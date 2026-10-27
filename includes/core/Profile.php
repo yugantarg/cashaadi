@@ -690,6 +690,25 @@ final class Profile {
 			}
 		}
 
+		/*
+		 * Diagnostics (v1.89.88): `wp option update csm_debug_card <profile id>`,
+		 * open that card in the browser, then read `csm_debug_card_last`. Off
+		 * unless the option names this profile.
+		 */
+		if ( (int) get_option( 'csm_debug_card' ) === $profile_id ) {
+			update_option( 'csm_debug_card_last', array(
+				'at'      => current_time( 'mysql' ),
+				'viewer'  => $viewer_id,
+				'current' => get_current_user_id(),
+				'rest'    => defined( 'REST_REQUEST' ) && REST_REQUEST,
+				'uri'     => isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '', // phpcs:ignore
+				'hidden'  => array_values( array_map( 'intval', (array) $hidden ) ),
+				'groups'  => count( (array) $groups ),
+				'fields'  => array_sum( array_map( function ( $g ) { return empty( $g->fields ) ? 0 : count( $g->fields ); }, (array) $groups ) ),
+				'shown'   => array_map( function ( $g ) { return $g['name'] . ': ' . count( $g['fields'] ); }, $out['groups'] ),
+			), false );
+		}
+
 		return $out;
 	}
 
