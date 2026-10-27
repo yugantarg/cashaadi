@@ -76,7 +76,7 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 */
 		if ( class_exists( '\\CAShaadi\\Core\\Membership' ) && ! \CAShaadi\Core\Membership::is_premium( $viewer_id ) ) {
 			$wpdb->query( $wpdb->prepare(
-				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost' )",
+				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost', 'intro' )",
 				$viewer_id, $week_id
 			) );
 		}

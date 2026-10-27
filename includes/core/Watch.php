@@ -16,6 +16,8 @@
  *                 the two (opening a number must send one).
  *   cache         the app's API answered from LiteSpeed's cache (old lists
  *                 after a filter change).
+ *   exposure      how often members are shown, against the rules and the
+ *                 expected shape (Discover\Exposure).
  *
  * Results: option csm_watch_last, a line on CA Shaadi > Health, a red admin
  * notice, and an email to the site admin when anything fails. Quiet when all
@@ -65,6 +67,7 @@ final class Watch {
 			self::unseen(),
 			self::phone(),
 			self::cache(),
+			self::exposure(),
 		);
 		$ok = ! in_array( false, wp_list_pluck( $checks, 'ok' ), true );
 		$r  = array( 'ok' => $ok, 'at' => current_time( 'mysql' ), 'checks' => $checks );
@@ -160,6 +163,22 @@ final class Watch {
 		return self::row( 'unseen', ! $with, $with
 			? count( $with ) . ' members with a photo who joined 2-14 days ago have never been shown to anyone. E.g. ' . self::names( $with ) . $note
 			: 'Every member with a photo who joined in the last two weeks has been shown.' . $note );
+	}
+
+	/** How often members are shown, against the rules and the expected shape (Discover\Exposure). */
+	private static function exposure() {
+		if ( ! class_exists( '\\CAShaadi\\Modules\\Discover\\Exposure' ) ) {
+			return self::row( 'exposure', true, 'Skipped.' );
+		}
+		$r    = \CAShaadi\Modules\Discover\Exposure::audit( 7 );
+		$bad  = array_merge(
+			array_map( function ( $s ) { return 'RULE: ' . $s; }, $r['rules'] ),
+			array_map( function ( $s ) { return 'SHAPE: ' . $s; }, $r['shape'] )
+		);
+		$stat = implode( ' ', $r['stats'] );
+		return self::row( 'exposure', ! $bad, $bad
+			? 'Showings (last 7 days): ' . implode( ' | ', $bad ) . ' — ' . $stat . ' Details: wp csm exposure; one member: wp csm exposure --who=<email>.'
+			: 'Showings match the rules and look normal. ' . $stat );
 	}
 
 	/** Numbers opened with no request either way. */

@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.89.94 — 2026-10-27
+
+- Exposure audit (owner): how often members are shown and whether it matches the rules. `wp csm exposure [--days=7]`, and `--who=<email>` for one member's showings by day and route (weekly draw, boost, newcomer intro) against their caps. RULE anomalies: boost / intro past their caps, intros outside the 24 hours, a viewer given more than 1 boost or intro a day or 3 intros a week, a viewer drawn past their weekly allowance, a liked profile shown again, a passed one inside 30 days, a paused or held member shown. SHAPE anomalies (rules held, result odd; Gold and boosted left out): >10% of active members with a photo shown to nobody, the top 1% taking >15% of showings, profiles above 5x the median, newcomers shown to fewer than 5 after their 24 hours, >5% of viewers finding Discover empty. Part of the daily check and its email.
+- Fix: a free member's newcomer card was deleted by the Discover refill on their next visit (only this week's and boost cards were kept).
+
 ## 1.89.93 — 2026-10-27
 
 - New member introductions run over 24 hours, like a boost (owner): from when the newcomer is first eligible, their score for each viewer is multiplied by the boost's steps (1.3x → 2x at 6 h → 5x at 12 h) and must reach the best score that viewer was shown in 30 days. Best matches get them first; by the afternoon nearly everyone qualifies; the window closes at 24 hours or at the cap (20 women for a new man, 40 men for a new woman). `csm_intro_start`; `intro_shown` logs hour, multiplier, score, bar.
