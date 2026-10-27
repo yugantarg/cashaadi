@@ -172,7 +172,7 @@ final class AppPage {
 	<title><?php echo esc_html( $title ); ?></title>
 	<?php wp_head(); ?>
 </head>
-<body class="csm-app csm-app-<?php echo esc_attr( $current ); ?>">
+<body class="csm-app csm-app-<?php echo esc_attr( $current ); ?><?php echo is_admin_bar_showing() ? ' admin-bar' : ''; ?>">
 	<div class="csm-app-wrap">
 		<header class="csm-app-top">
 			<?php echo self::brand(); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped ?>

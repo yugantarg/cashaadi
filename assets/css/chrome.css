@@ -15,8 +15,6 @@ body.csm-chrome .csm-chrome-top {
 	font-family: var(--csm-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
 	line-height: 1.2;
 }
-body.csm-chrome.admin-bar .csm-chrome-top { top: 32px; }
-@media (max-width: 782px) { body.csm-chrome.admin-bar .csm-chrome-top { top: 46px; } }
 body.csm-chrome .csm-chrome-top a,
 body.csm-chrome .csm-chrome-top button { box-shadow: none; }
 /* The theme styles every <button>; the photo button must stay a plain circle. */

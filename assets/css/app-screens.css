@@ -439,3 +439,19 @@ img.avatar {
 		box-shadow: 0 18px 40px -16px rgba(22, 33, 43, .35);
 	}
 }
+
+/* WordPress's admin bar (administrators, and an admin switched into a member)
+   is fixed above everything from 601px up. The sticky top bar slid under it,
+   so the menu button was covered and taps hit the admin bar (owner: "the menu
+   doesn't work" when logged in as admin / as another user). Sit below it. */
+@media (min-width: 601px) {
+	.csm-app.admin-bar .csm-app-top,
+	body.csm-chrome.admin-bar .csm-chrome-top { top: 46px; }
+	.csm-app.admin-bar .csm-app-menu { top: 103px; }
+}
+@media (min-width: 783px) {
+	.csm-app.admin-bar .csm-app-top,
+	body.csm-chrome.admin-bar .csm-chrome-top { top: 32px; }
+	.csm-app.admin-bar .csm-app-menu,
+	body.csm-chrome.admin-bar .csm-app-menu { top: 92px; }
+}
