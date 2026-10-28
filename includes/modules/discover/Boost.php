@@ -47,6 +47,12 @@ final class Boost {
 		if ( ! $uid || ! self::per() || user_can( $uid, 'manage_options' ) || get_user_meta( $uid, self::POPUP_SEEN, true ) ) {
 			return false;
 		}
+		// Not straight after the setup wizard either (owner, 2026-10-28): it
+		// opened on Discover the moment the wizard ended. Not marked seen, so
+		// it comes once the member has settled in.
+		if ( self::is_new( $uid ) ) {
+			return false;
+		}
 		$photo  = self::has_photo( $uid );
 		$verify = self::verify_state( $uid );
 		$need_v = self::can_verify( $uid ) && ! in_array( $verify, array( 'approved', 'pending' ), true ); // pending: nothing to do yet
@@ -201,10 +207,15 @@ final class Boost {
 	 */
 	const SETTLE_DAYS = 2;
 
+	/** Joined within SETTLE_DAYS: too soon for asks about photos and verification. */
+	public static function is_new( $uid ) {
+		$user = get_userdata( (int) $uid );
+		return $user && strtotime( $user->user_registered . ' UTC' ) > time() - self::SETTLE_DAYS * DAY_IN_SECONDS;
+	}
+
 	public static function state( $uid ) {
-		$uid  = (int) $uid;
-		$user = get_userdata( $uid );
-		$new  = $user && strtotime( $user->user_registered . ' UTC' ) > time() - self::SETTLE_DAYS * DAY_IN_SECONDS;
+		$uid = (int) $uid;
+		$new = self::is_new( $uid );
 		return array(
 			'hidden'    => (bool) get_user_meta( $uid, self::CARD_HIDDEN, true ),
 			'later'     => $new, // too soon after joining to show the card

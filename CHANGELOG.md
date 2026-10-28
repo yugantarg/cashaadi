@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.44 — 2026-10-28
+
+- The "Get 10 more profiles: add a photo / verify your CA" popup (Boost::popup) and the "Get your Verified CA badge" popup (VerifyNudge) no longer open on Discover the moment the setup wizard ends (owner). Both wait until two days after joining (`Boost::is_new`), like the Discover card since v1.90.40; they are not marked seen, so each still comes once, later.
+
 ## 1.90.43 — 2026-10-28
 
 - Sign-up screen: "Create my profile" said "Something went wrong" after a signup that had in fact worked and emailed its code (owner). Since BuddyPress 14 `bp_core_signup_user()` returns false on success (no user exists until activation); only a WP_Error is now treated as a failure.

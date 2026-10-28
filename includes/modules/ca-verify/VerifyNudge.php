@@ -46,6 +46,10 @@ final class VerifyNudge {
 		if ( ! $uid || user_can( $uid, 'manage_options' ) ) {
 			return false;
 		}
+		// Same wait as the boost popup: not on the first screen after the wizard.
+		if ( class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' ) && \CAShaadi\Modules\Discover\Boost::is_new( $uid ) ) {
+			return false;
+		}
 		// pct 0 ends the test outright: no new arms AND no pending popups
 		// (owner, 2026-10-04: ended once the Discover card asked everyone).
 		if ( (int) get_option( self::PCT_OPT, 0 ) <= 0 ) {
