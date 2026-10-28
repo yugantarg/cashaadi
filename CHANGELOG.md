@@ -3,6 +3,16 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.21 — 2026-10-28
+
+New landing page (owner: "premium with app screens and animations ... live data"), at `/home-preview/` (noindex) for review. The front page switches to it for logged-out visitors when the option `csm_landing_live` is 1; Elementor's page is untouched.
+- Its own document with only its own CSS (theme and Elementor styles left out); Yoast, the Meta pixel and Google tags still load.
+- Hero with a phone showing the Discover card, sliding to the next demo profile every few seconds; how it works with the verification screen, a profile card and a chat; privacy tiles; a plans teaser; FAQ; final call to action. Scroll reveals and count-ups; all motion off under reduced motion.
+- Live numbers: members, matches made, requests sent, profile views. Real, rounded down to the hundred, never shown lower than the highest shown before (`csm_landing_peaks`), refreshed hourly. No ICAI count (owner).
+- Live activity line from `csm/v1/landing/activity` (never cached): real joins alternating women and men, first name, city and the app's blurred thumbnail; matches by city only. Never a member with private photos, paused, held, closed, hidden by moderation or an admin.
+- Copy corrected: no claim that every member is verified or that only verified members see profiles.
+- Demo profiles use `assets/img/landing/demo-1.jpg` to `demo-4.jpg` (woman, man, woman, man) when present, else the default avatars.
+
 ## 1.90.20 — 2026-10-28
 
 - `tools/landing-stats.php`: read-only, the numbers the new landing page could show today (members, with a photo, ICAI-verified, matches, requests, active and joined in 7 / 30 days, cities), and the gender split for the owner only.

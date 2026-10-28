@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.90.20
+ * Version:           1.90.21
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.90.20' );
+define( 'CASHAADI_UI_VER', '1.90.21' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -325,6 +325,11 @@ if ( class_exists( 'CAShaadi\\Modules\\Settings\\SettingsScreen' ) ) {
 // those snippets are disabled. (#11242/#11638 were NOT migrated — already off.)
 if ( class_exists( 'CAShaadi\\Modules\\Site\\Site' ) ) {
 	Site::register();
+}
+
+// The new landing page: /home-preview/, and the front page once csm_landing_live is 1 (v1.90.21).
+if ( class_exists( 'CAShaadi\\Modules\\Landing\\Landing' ) ) {
+	\CAShaadi\Modules\Landing\Landing::register();
 }
 
 // Premium (upgrade button; gates/checkout to follow). Gated OFF by default
