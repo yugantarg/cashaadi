@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.19 — 2026-10-28
+
+- `tools/over-draw.php`: read-only check of who got more Discover cards this week than their own allowance (the engine's, Gold skipped), and on which day the extra cards came.
+
 ## 1.90.18 — 2026-10-28
 
 - Block: the check that refuses messages between a blocked pair was hooked to a Better Messages filter that does not exist (`bp_better_messages_user_can_send_message`), so it never ran. It now uses `better_messages_can_send_message` (present in Better Messages 2 and 3). Messages were already refused in practice: a block ends the match, and messaging is for matches only.
