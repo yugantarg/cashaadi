@@ -47,6 +47,30 @@
 		items.forEach( show );
 	}
 
+	/* Sticky register bar: shown while neither the hero's nor the final button is on screen. */
+	var bar = document.getElementById( 'lp-sticky' );
+	var heroBtn = document.querySelector( '[data-csm-cta="hero"]' );
+	var lastBtn = document.querySelector( '[data-csm-cta="final"]' );
+	if ( bar && heroBtn && 'IntersectionObserver' in window ) {
+		var seen = { hero: true, last: false };
+		var sync = function () {
+			var on = ! seen.hero && ! seen.last;
+			bar.classList.toggle( 'is-on', on );
+			bar.setAttribute( 'aria-hidden', on ? 'false' : 'true' );
+			bar.querySelector( 'a' ).tabIndex = on ? 0 : -1;
+		};
+		new IntersectionObserver( function ( e ) {
+			e.forEach( function ( x ) { seen[ x.target === heroBtn ? 'hero' : 'last' ] = x.isIntersecting; } );
+			sync();
+		} ).observe( heroBtn );
+		if ( lastBtn ) {
+			new IntersectionObserver( function ( e ) {
+				e.forEach( function ( x ) { seen.last = x.isIntersecting; } );
+				sync();
+			} ).observe( lastBtn );
+		}
+	}
+
 	/* The hero deck: the next card every 3.2 seconds. */
 	var deck = document.getElementById( 'lp-deck' );
 	if ( deck && ! still ) {

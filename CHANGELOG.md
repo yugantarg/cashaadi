@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.27 — 2026-10-28
+
+- Landing page: the register button can't be missed (owner). "Create your free profile" now also follows the numbers, how it works, safe and private, and the questions, and sits beside "See plans"; the nav button reads "Register free". A sticky bar with the button slides up once the hero's button scrolls away and hides again over the final one (full width on phones). Every button carries `data-csm-cta` with where it is.
+
 ## 1.90.26 — 2026-10-28
 
 - Landing page numbers (owner): members, matches made and joined this week. Profile views and requests sent are gone. Members and matches keep the highest-shown floor; joined this week is the real figure each time, rounded down to the hundred, and hidden below 300 (it goes up and down, so a floor would make it untrue).

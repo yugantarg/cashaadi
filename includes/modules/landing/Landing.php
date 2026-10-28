@@ -334,7 +334,7 @@ final class Landing {
 	<nav>
 		<a href="<?php echo esc_url( home_url( '/membership-pricing/' ) ); ?>" class="lp-nav-link">Pricing</a>
 		<a href="<?php echo esc_url( $login ); ?>" class="lp-nav-link">Log in</a>
-		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-sm" data-csm-cta="nav">Register</a>
+		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-sm" data-csm-cta="nav">Register free</a>
 	</nav>
 </header>
 
@@ -378,6 +378,8 @@ final class Landing {
 		<?php endforeach; ?>
 	</section>
 	<?php endif; ?>
+
+	<div class="lp-cta-mid lp-in"><a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-big" data-csm-cta="stats">Create your free profile</a><span>Free to register</span></div>
 
 	<section class="lp-how" id="how">
 		<h2 class="lp-in">How it works</h2>
@@ -423,6 +425,8 @@ final class Landing {
 		</div>
 	</section>
 
+	<div class="lp-cta-mid lp-in"><a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-big" data-csm-cta="how">Create your free profile</a><span>Free to register</span></div>
+
 	<section class="lp-trust">
 		<h2 class="lp-in">Safe and private</h2>
 		<div class="lp-tiles">
@@ -433,12 +437,17 @@ final class Landing {
 		</div>
 	</section>
 
+	<div class="lp-cta-mid lp-in"><a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-big" data-csm-cta="trust">Create your free profile</a><span>Free to register</span></div>
+
 	<section class="lp-plans lp-in">
 		<div>
 			<h2>Free to register</h2>
 			<p>Premium and Gold give you more profiles and more features.</p>
 		</div>
-		<a href="<?php echo esc_url( home_url( '/membership-pricing/' ) ); ?>" class="lp-btn lp-btn-ghost">See plans</a>
+		<div class="lp-plans-acts">
+			<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn" data-csm-cta="plans">Create your free profile</a>
+			<a href="<?php echo esc_url( home_url( '/membership-pricing/' ) ); ?>" class="lp-btn lp-btn-ghost">See plans</a>
+		</div>
 	</section>
 
 	<section class="lp-faq">
@@ -450,11 +459,19 @@ final class Landing {
 		<details class="lp-in"><summary>How do I get verified?</summary><p>Upload your ICAI certificate or ID card from your profile. Once checked, you get the Verified CA badge.</p></details>
 	</section>
 
+	<div class="lp-cta-mid lp-in"><a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-big" data-csm-cta="faq">Create your free profile</a><span>Free to register</span></div>
+
 	<section class="lp-final lp-in">
 		<h2>Find your CA match.</h2>
-		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn" data-csm-cta="final">Create your free profile</a>
+		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-big" data-csm-cta="final">Create your free profile</a>
 	</section>
 </main>
+
+<?php // Always in reach once the hero's button has scrolled away (owner, 2026-10-28: "so no one can miss it"). ?>
+<div class="lp-sticky" id="lp-sticky" aria-hidden="true">
+	<span>Free to register</span>
+	<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn" data-csm-cta="sticky" tabindex="-1">Create your free profile</a>
+</div>
 
 <footer class="lp-foot">
 	<nav>
