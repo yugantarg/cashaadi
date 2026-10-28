@@ -87,7 +87,7 @@ final class Landing {
 				wp_dequeue_style( $h );
 			}
 		}
-		wp_enqueue_style( 'cashaadi-landing-fonts', 'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap', array(), null );
+		wp_enqueue_style( 'cashaadi-landing-fonts', 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@1,6..72,500&display=swap', array(), null );
 		Assets::style( 'tokens', 'assets/css/tokens.css' );
 		Assets::style( 'landing', 'assets/css/landing.css', array( 'cashaadi-tokens' ) );
 		Assets::script( 'landing', 'assets/js/landing.js' );
@@ -294,7 +294,7 @@ final class Landing {
 		$login = home_url( '/login/' );
 		$stats = self::stats();
 		$label = array(
-			'members'  => 'Chartered Accountants and CA students',
+			'members'  => 'members',
 			'matches'  => 'matches made',
 			'requests' => 'requests sent',
 			'views'    => 'profile views',
@@ -306,7 +306,7 @@ final class Landing {
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-	<title><?php echo esc_html( 'CA Shaadi | The matrimony app for Chartered Accountants' ); ?></title>
+	<title><?php echo esc_html( 'CA Shaadi | India’s exclusive CA matrimony' ); ?></title>
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<?php wp_head(); ?>
 </head>
@@ -316,19 +316,23 @@ final class Landing {
 	<nav>
 		<a href="<?php echo esc_url( home_url( '/membership-pricing/' ) ); ?>" class="lp-nav-link">Pricing</a>
 		<a href="<?php echo esc_url( $login ); ?>" class="lp-nav-link">Log in</a>
-		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-sm" data-csm-cta="nav">Register free</a>
+		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-sm" data-csm-cta="nav">Register</a>
 	</nav>
 </header>
 
 <main>
 	<section class="lp-hero">
 		<div class="lp-hero-text">
-			<p class="lp-kicker lp-in">Matrimony, made for CAs</p>
-			<h1 class="lp-in">Meet someone who gets the <em>long hours</em>, the audits and the ambition.</h1>
-			<p class="lp-lead lp-in">CA Shaadi is the matrimony app for Chartered Accountants and CA students. Verify with ICAI, keep your photos private until you choose, and get a fresh set of matches every week.</p>
+			<p class="lp-kicker lp-in">India’s exclusive CA matrimony</p>
+			<h1 class="lp-in">Find your <em>CA match.</em></h1>
+			<ul class="lp-ticks lp-in">
+				<li>Verified CA profiles</li>
+				<li>Safe and private</li>
+				<li>Free to register</li>
+			</ul>
 			<div class="lp-cta-row lp-in">
-				<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn" data-csm-cta="hero">Register free</a>
-				<a href="#how" class="lp-btn lp-btn-ghost">See how it works</a>
+				<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn" data-csm-cta="hero">Create your free profile</a>
+				<a href="#how" class="lp-btn lp-btn-ghost">How it works</a>
 			</div>
 			<div class="lp-live lp-in" id="lp-live" aria-live="polite" hidden></div>
 		</div>
@@ -362,8 +366,8 @@ final class Landing {
 		<div class="lp-step">
 			<div class="lp-step-text lp-in">
 				<span class="lp-num">1</span>
-				<h3>Join and verify</h3>
-				<p>Sign up free in two minutes. Upload your ICAI certificate or ID card and get the Verified CA badge on your profile, so people know you are who you say.</p>
+				<h3>Sign up and verify</h3>
+				<p>Create your free profile. Upload your ICAI certificate or ID card to get the Verified CA badge.</p>
 			</div>
 			<div class="lp-mini lp-in">
 				<div class="lp-mini-screen lp-verify">
@@ -377,8 +381,8 @@ final class Landing {
 		<div class="lp-step lp-step-flip">
 			<div class="lp-step-text lp-in">
 				<span class="lp-num">2</span>
-				<h3>Get your matches every week</h3>
-				<p>Every Monday, a fresh set of profiles chosen for you: age, city, community, language and what you are looking for. Filter by what matters, save the ones you want to think about.</p>
+				<h3>See your matches</h3>
+				<p>New profiles every Monday. Use filters to find what you want.</p>
 			</div>
 			<div class="lp-mini lp-in">
 				<div class="lp-mini-screen"><?php echo self::card( $demo[2], 'is-top lp-card-still' ); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped ?></div>
@@ -387,50 +391,50 @@ final class Landing {
 		<div class="lp-step">
 			<div class="lp-step-text lp-in">
 				<span class="lp-num">3</span>
-				<h3>Connect when you both say yes</h3>
-				<p>Send a request. When it is accepted, you are a match: photos open up and you can talk privately in the app. Your phone number stays yours until you decide.</p>
+				<h3>Connect</h3>
+				<p>Send a request. When they accept, you can chat in the app.</p>
 			</div>
 			<div class="lp-mini lp-in">
 				<div class="lp-mini-screen lp-chat">
 					<div class="lp-chat-head"><i style="background-image:url('<?php echo esc_url( $demo[1]['photo'] ? $demo[1]['photo'] : Assets::url( 'assets/img/avatar-male.svg' ) ); ?>')"></i><b><?php echo esc_html( $demo[1]['name'] ); ?></b><span>Match</span></div>
-					<p class="lp-msg lp-msg-in">Hi! Saw you also cleared in 2021. Which firm are you with now?</p>
-					<p class="lp-msg lp-msg-out">Hey! Still at the same Big 4, audit season is around the corner 😅</p>
-					<p class="lp-msg lp-msg-in">Ha, I know that feeling. Coffee this weekend?</p>
+					<p class="lp-msg lp-msg-in">Hi! Nice to match with you.</p>
+					<p class="lp-msg lp-msg-out">Hi! Same here. Which city are you in?</p>
+					<p class="lp-msg lp-msg-in">Mumbai. You?</p>
 				</div>
 			</div>
 		</div>
 	</section>
 
 	<section class="lp-trust">
-		<h2 class="lp-in">Private by design</h2>
+		<h2 class="lp-in">Safe and private</h2>
 		<div class="lp-tiles">
-			<div class="lp-tile lp-in"><b>Your photos, your choice</b><p>Keep them private and they stay blurred for everyone you have not matched with.</p></div>
-			<div class="lp-tile lp-in"><b>Your number stays yours</b><p>Decide who can see your phone number, or keep it to yourself.</p></div>
-			<div class="lp-tile lp-in"><b>Block and report</b><p>Block anyone in one tap. Reported profiles are reviewed and taken down when they break the rules.</p></div>
-			<div class="lp-tile lp-in"><b>Verified badge</b><p>Members who verify with ICAI carry a badge, so you know who has been checked.</p></div>
+			<div class="lp-tile lp-in"><b>Private photos</b><p>Keep your photos blurred until you match.</p></div>
+			<div class="lp-tile lp-in"><b>Your phone number</b><p>You choose who can see it.</p></div>
+			<div class="lp-tile lp-in"><b>Block and report</b><p>Block anyone in one tap. We check every report.</p></div>
+			<div class="lp-tile lp-in"><b>Verified badge</b><p>See who has verified with ICAI.</p></div>
 		</div>
 	</section>
 
 	<section class="lp-plans lp-in">
 		<div>
-			<h2>Free to join. More when you want it.</h2>
-			<p>Every member gets a set of profiles each week. Premium brings more profiles and shows who viewed you. Gold adds unlimited profiles and the phone numbers members choose to share.</p>
+			<h2>Free to register</h2>
+			<p>Premium and Gold give you more profiles and more features.</p>
 		</div>
 		<a href="<?php echo esc_url( home_url( '/membership-pricing/' ) ); ?>" class="lp-btn lp-btn-ghost">See plans</a>
 	</section>
 
 	<section class="lp-faq">
 		<h2 class="lp-in">Questions</h2>
-		<details class="lp-in"><summary>Who can join?</summary><p>CA Shaadi is built for Chartered Accountants and CA students. Members who verify their ICAI status get the Verified CA badge.</p></details>
-		<details class="lp-in"><summary>Is it free?</summary><p>Yes. Joining and your weekly set of profiles are free. Premium and Gold are optional, for more profiles and features.</p></details>
-		<details class="lp-in"><summary>Who can see my photos?</summary><p>Logged-in members. If you set your photos to private, they stay blurred for everyone you have not matched with.</p></details>
-		<details class="lp-in"><summary>Who can see my phone number?</summary><p>You decide, in your settings: paying members, Gold members only, or nobody.</p></details>
-		<details class="lp-in"><summary>How does verification work?</summary><p>Upload your ICAI certificate or ID card from your profile. Once it is checked, the Verified CA badge appears on your profile.</p></details>
+		<details class="lp-in"><summary>Who can join?</summary><p>Chartered Accountants and CA students.</p></details>
+		<details class="lp-in"><summary>Is it free?</summary><p>Yes, registering is free. You get new profiles every week. Premium and Gold are optional.</p></details>
+		<details class="lp-in"><summary>Who can see my photos?</summary><p>Only logged-in members. Set them to private and they stay blurred until you match.</p></details>
+		<details class="lp-in"><summary>Who can see my phone number?</summary><p>You choose in your settings: paid members, Gold members only, or nobody.</p></details>
+		<details class="lp-in"><summary>How do I get verified?</summary><p>Upload your ICAI certificate or ID card from your profile. Once checked, you get the Verified CA badge.</p></details>
 	</section>
 
 	<section class="lp-final lp-in">
-		<h2>Your person might already be here.</h2>
-		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn lp-btn-light" data-csm-cta="final">Register free</a>
+		<h2>Find your CA match.</h2>
+		<a href="<?php echo esc_url( $reg ); ?>" class="lp-btn" data-csm-cta="final">Create your free profile</a>
 	</section>
 </main>
 
