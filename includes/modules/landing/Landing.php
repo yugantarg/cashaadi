@@ -78,6 +78,16 @@ final class Landing {
 			add_filter( 'wpseo_robots', function () { return 'noindex, nofollow'; } );
 		}
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 999 );
+		/*
+		 * Drawn last, not here (v1.90.31). Site Kit registers the Google tag
+		 * (GA4, Tag Manager) on template_redirect after this, so drawing at
+		 * priority 3 left the page without it. The claim above stays early so
+		 * nothing in between treats /home-preview/ as a 404.
+		 */
+		add_action( 'template_redirect', array( __CLASS__, 'draw' ), PHP_INT_MAX );
+	}
+
+	public static function draw() {
 		self::render();
 		exit;
 	}

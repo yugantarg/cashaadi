@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.31 — 2026-10-28
+
+- Landing page: Google's tag (Site Kit GA4 and Tag Manager) was missing, because the page was drawn on template_redirect at priority 3, before Site Kit registers its tag. The page is now claimed early (not a 404, status 200) and drawn last on template_redirect. The Meta pixel and the attribution cookie were already there.
+
 ## 1.90.30 — 2026-10-28
 
 - Landing FAQ: "and others from similar backgrounds" added to who is welcome (owner).
