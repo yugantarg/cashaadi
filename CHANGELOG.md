@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.20 — 2026-10-28
+
+- `tools/landing-stats.php`: read-only, the numbers the new landing page could show today (members, with a photo, ICAI-verified, matches, requests, active and joined in 7 / 30 days, cities), and the gender split for the owner only.
+
 ## 1.90.19 — 2026-10-28
 
 - `tools/over-draw.php`: read-only check of who got more Discover cards this week than their own allowance (the engine's, Gold skipped), and on which day the extra cards came.
