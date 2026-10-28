@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.25 — 2026-10-28
+
+- Landing page: the verified-badge tile reads "See who has verified their ICAI document" (owner).
+
 ## 1.90.24 — 2026-10-28
 
 - Landing page: four more demo profiles from the owner's photos (`demo-8.jpg` to `demo-11.jpg`), eleven in the hero deck. Photos after the first two load one card before they are shown, so the page opens as fast as before.

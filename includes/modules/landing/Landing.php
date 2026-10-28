@@ -419,7 +419,7 @@ final class Landing {
 			<div class="lp-tile lp-in"><b>Private photos</b><p>Keep your photos blurred until you match.</p></div>
 			<div class="lp-tile lp-in"><b>Your phone number</b><p>You choose who can see it.</p></div>
 			<div class="lp-tile lp-in"><b>Block and report</b><p>Block anyone in one tap. We check every report.</p></div>
-			<div class="lp-tile lp-in"><b>Verified badge</b><p>See who has verified with ICAI.</p></div>
+			<div class="lp-tile lp-in"><b>Verified badge</b><p>See who has verified their ICAI document.</p></div>
 		</div>
 	</section>
 
