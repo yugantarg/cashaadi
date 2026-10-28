@@ -23,7 +23,7 @@
 	 */
 	var VALID_TABS = [ 'received', 'matches', 'sent', 'saved', 'viewers', 'declined', 'passed' ];
 	/* The less used lists sit under one "More" tab (owner, 2026-10-28). */
-	var MORE = [ [ 'viewers', 'Viewed me' ], [ 'declined', 'Declined' ], [ 'passed', 'Passed' ] ];
+	var MORE = [ [ 'sent', 'Sent' ], [ 'viewers', 'Viewed me' ], [ 'declined', 'Declined' ], [ 'passed', 'Passed' ] ];
 	function inMore( t ) { return MORE.some( function ( m ) { return m[0] === t; } ); }
 	var tab = ( function () {
 		var h = ( window.location.hash || '' ).replace( /^#\/?/, '' );
@@ -51,9 +51,8 @@
 		[
 			[ 'received', 'Received', undefined !== data.receivedTotal ? data.receivedTotal : ( data.received || [] ).length ],
 			[ 'matches', 'Matches', undefined !== data.matchesTotal ? data.matchesTotal : ( data.matches || [] ).length ],
-			[ 'sent', 'Sent', undefined !== data.sentTotal ? data.sentTotal : ( data.sent || [] ).length ],
 			[ 'saved', 'Saved', undefined !== data.savedOpenTotal ? data.savedOpenTotal + ( data.saved || [] ).filter( function ( x ) { return x.masked; } ).length : ( data.saved || [] ).length ],
-			[ inMore( tab ) ? tab : 'viewers', 'More', data.viewersTotal || 0 ]
+			[ inMore( tab ) ? tab : 'sent', 'More', data.viewersTotal || 0 ]
 		].forEach( function ( t ) {
 			var b = el( 'button', 'csm-r-tab' + ( tab === t[0] ? ' is-on' : '' ) );
 			b.type = 'button';
@@ -258,6 +257,20 @@
 		} else if ( 'sent' === tab ) {
 			if ( ! ( data.sent || [] ).length ) {
 				root.appendChild( emptyBox( 'Nothing sent yet', 'Requests you send from Discover will show here until they are answered.' ) );
+				return;
+			}
+			// Premium and Gold only (2026-10-28): free members see initials.
+			if ( ! data.isPremium ) {
+				data.sent.forEach( function ( v ) {
+					var row = el( 'li', 'csm-r-row csm-r-masked' );
+					row.appendChild( el( 'span', 'csm-r-initial', v.initial ) );
+					var meta = el( 'div', 'csm-r-meta' );
+					meta.appendChild( el( 'span', 'csm-r-name', '\u2022\u2022\u2022\u2022\u2022\u2022' ) );
+					row.appendChild( meta );
+					list.appendChild( row );
+				} );
+				root.appendChild( list );
+				root.appendChild( upgradeBox( data.sentTotal || 0, [ 'request waiting for an answer', 'requests waiting for an answer' ], 'Upgrade to Premium to see who you sent requests to, and withdraw one if you change your mind.', 'requests-sent' ) );
 				return;
 			}
 			// Upgrade prompt (v1.89.0): Gold requests go to the top of their list.

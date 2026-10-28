@@ -254,8 +254,19 @@ final class RequestsScreen {
 		$sent       = array();
 		$sent_ids   = array_values( array_filter( array_map( 'intval', (array) self::sent( $uid ) ) ) );
 		$sent_total = count( $sent_ids );
-		foreach ( array_slice( $sent_ids, 0, $limit ) as $sid ) {
-			$sent[] = self::card( $sid, $uid, 'sent' );
+		/*
+		 * Under More, Premium and Gold only (owner, 2026-10-28): free members
+		 * get initials, never identities, like Declined.
+		 */
+		$sent_premium = class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid );
+		foreach ( array_slice( $sent_ids, 0, $sent_premium ? $limit : 6 ) as $sid ) {
+			if ( $sent_premium ) {
+				$sent[] = self::card( $sid, $uid, 'sent' );
+				continue;
+			}
+			$name    = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $sid ) : '';
+			$initial = strtoupper( mb_substr( trim( (string) $name ), 0, 1 ) );
+			$sent[]  = array( 'masked' => true, 'initial' => '' !== $initial ? $initial : 'C' );
 		}
 
 		/*

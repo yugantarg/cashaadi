@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.16 — 2026-10-28
+
+- Requests: Sent moves under More (Sent, Viewed me, Declined, Passed); main tabs are Received, Matches, Saved, More. Sent is now Premium and Gold only (owner): free members see initials, a count and an upgrade prompt, and the server sends them no identities.
+
 ## 1.90.15 — 2026-10-28
 
 Nothing lost to one tap (owner):
