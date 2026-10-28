@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.46 — 2026-10-28
+
+- Daily check / exposure audit: "drawn more than their weekly allowance" now lists only viewers whose extra cards were drawn in the last day (owner: "this keeps showing"). The week's 26 October extras, from the refill race fixed on the 27th, would otherwise have repeated every morning until Sunday.
+
 ## 1.90.45 — 2026-10-28
 
 - "Verify your CA" is the last step of the setup wizard (owner). For CA and CA Inter claims only (asked live through `/welcome/verify`, since the qualification may be answered earlier in the same wizard; anyone else passes straight on). Upload the ICAI document right there, through the same upload as Edit profile (admin-ajax `csm_pe_file`), so the AI check runs as usual. Optional: "Skip for now" finishes, and the step never holds onboarding open (`optional`, skipped by the completion check).

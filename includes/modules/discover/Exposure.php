@@ -124,11 +124,25 @@ final class Exposure {
 			}
 			$size = (int) apply_filters( 'csm_tray_size', Membership::is_premium( $uid ) ? 10 : 5, $uid );
 			if ( (int) $r->n > $size ) {
-				$over[] = '#' . $uid . ' ' . (int) $r->n . '/' . $size;
+				/*
+				 * Only if an extra card was drawn in the last day (owner,
+				 * 2026-10-28: "this keeps showing"). Extras from earlier in the
+				 * week were already reported, and the 26 October ones came from
+				 * the refill race fixed on the 27th; repeating them every
+				 * morning until Sunday hid whether anything new had happened.
+				 */
+				$times = $wpdb->get_col( $wpdb->prepare(
+					"SELECT assigned_at FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND week_assigned = %s ORDER BY assigned_at ASC, id ASC",
+					$uid, $week
+				) );
+				$extra = array_slice( $times, $size );
+				if ( $extra && strtotime( max( $extra ) ) >= current_time( 'timestamp' ) - DAY_IN_SECONDS ) { // assigned_at is site time, as current_time()
+					$over[] = '#' . $uid . ' ' . (int) $r->n . '/' . $size;
+				}
 			}
 		}
 		if ( $over ) {
-			$rules[] = sprintf( '%d viewer(s) were drawn more than their weekly allowance this week: %s', count( $over ), implode( ', ', array_slice( $over, 0, 5 ) ) );
+			$rules[] = sprintf( '%d viewer(s) were drawn more than their weekly allowance in the last day: %s', count( $over ), implode( ', ', array_slice( $over, 0, 5 ) ) );
 		}
 
 		// Liked shown again; passed shown again inside its window.
