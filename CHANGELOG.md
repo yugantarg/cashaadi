@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.37 — 2026-10-28
+
+- `tools/signups.php`: read-only, signups per day by channel, per hour for the last three days (IST), today's accounts with and without a complete profile, and which plugin folders changed in the last two days, to find when and why signups dropped.
+
 ## 1.90.36 — 2026-10-28
 
 Found by the first UI check:
