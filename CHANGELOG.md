@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.18 — 2026-10-28
+
+- Block: the check that refuses messages between a blocked pair was hooked to a Better Messages filter that does not exist (`bp_better_messages_user_can_send_message`), so it never ran. It now uses `better_messages_can_send_message` (present in Better Messages 2 and 3). Messages were already refused in practice: a block ends the match, and messaging is for matches only.
+
 ## 1.90.17 — 2026-10-28
 
 - Requests: a request accepted in this visit showed in Matches with Decline / Save / Accept until a reload (owner's screenshot). It now joins Matches as a match, with Remove match and Send message.

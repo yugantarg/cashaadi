@@ -62,7 +62,9 @@ final class Block {
 
 		// Undo any match request created between a blocked pair; deny messages.
 		add_action( 'friends_friendship_requested', array( __CLASS__, 'guard_request' ), 10, 3 );
-		add_filter( 'bp_better_messages_user_can_send_message', array( __CLASS__, 'guard_message' ), 10, 2 );
+		// Better Messages' real hook (v1.90.18; the old name never existed). The
+		// matches-only setting already stops these, since a block ends the match.
+		add_filter( 'better_messages_can_send_message', array( __CLASS__, 'guard_message' ), 10, 3 );
 
 		// Profile-header Block/Unblock button.
 		add_action( 'bp_member_header_actions', array( __CLASS__, 'header_button' ), 99 );
@@ -314,18 +316,17 @@ final class Block {
 		}
 	}
 
-	/** Best-effort: deny Better Messages sends between a blocked pair (if the filter exists). */
-	public static function guard_message( $can, $args = array() ) {
-		// Signature varies by plugin version; be defensive.
-		$sender    = isset( $args['sender_id'] ) ? (int) $args['sender_id'] : (int) get_current_user_id();
-		$recipient = 0;
-		if ( isset( $args['recipient_id'] ) ) {
-			$recipient = (int) $args['recipient_id'];
-		} elseif ( isset( $args['recipients'] ) && is_array( $args['recipients'] ) ) {
-			$recipient = (int) reset( $args['recipients'] );
+	/** Deny a Better Messages send in a thread with someone blocked either way. */
+	public static function guard_message( $can, $user_id = 0, $thread_id = 0 ) {
+		$user_id = (int) $user_id;
+		if ( ! $can || ! $user_id || ! $thread_id || ! function_exists( 'Better_Messages' ) ) {
+			return $can;
 		}
-		if ( $sender && $recipient && self::is_blocked_pair( $sender, $recipient ) ) {
-			return false;
+		foreach ( (array) Better_Messages()->functions->get_recipients_ids( (int) $thread_id ) as $other ) {
+			$other = (int) $other;
+			if ( $other > 0 && $other !== $user_id && self::is_blocked_pair( $user_id, $other ) ) {
+				return false;
+			}
 		}
 		return $can;
 	}
