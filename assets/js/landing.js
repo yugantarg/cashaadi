@@ -52,10 +52,17 @@
 	if ( deck && ! still ) {
 		var cards = [].slice.call( deck.querySelectorAll( '.lp-card' ) );
 		var at = 0;
+		// Photos after the first two load one card ahead of being shown.
+		var load = function ( c ) {
+			var ph = c && c.querySelector( '[data-bg]' );
+			if ( ph ) { ph.style.backgroundImage = 'url("' + ph.getAttribute( 'data-bg' ) + '")'; ph.removeAttribute( 'data-bg' ); }
+		};
 		setInterval( function () {
 			if ( document.hidden || cards.length < 2 ) { return; }
 			var cur = cards[ at ];
 			at = ( at + 1 ) % cards.length;
+			load( cards[ at ] );
+			load( cards[ ( at + 1 ) % cards.length ] );
 			cur.classList.remove( 'is-top' );
 			cur.classList.add( 'is-gone' );
 			cards[ at ].classList.remove( 'is-gone' );

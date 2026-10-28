@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.24 — 2026-10-28
+
+- Landing page: four more demo profiles from the owner's photos (`demo-8.jpg` to `demo-11.jpg`), eleven in the hero deck. Photos after the first two load one card before they are shown, so the page opens as fast as before.
+
 ## 1.90.23 — 2026-10-28
 
 - Landing page: the owner's seven AI-generated demo photos (`assets/img/landing/demo-1.jpg` to `demo-7.jpg`, 720×960, about 90 KB each). The hero deck now cycles seven made-up profiles, women and men alternating.

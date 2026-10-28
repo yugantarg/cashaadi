@@ -271,15 +271,20 @@ final class Landing {
 			array( 'name' => 'Meera', 'age' => 28, 'city' => 'Hyderabad', 'job' => 'Finance Manager', 'tags' => array( 'Verified CA', 'Telugu', '5\'3"' ), 'photo' => $img( 5 ), 'g' => 'f' ),
 			array( 'name' => 'Arjun', 'age' => 31, 'city' => 'Ahmedabad', 'job' => 'Own CA practice', 'tags' => array( 'Verified CA', 'Gujarati', '5\'11"' ), 'photo' => $img( 6 ), 'g' => 'm' ),
 			array( 'name' => 'Neha', 'age' => 25, 'city' => 'Chennai', 'job' => 'Audit Associate', 'tags' => array( 'Verified CA', 'Tamil', '5\'2"' ), 'photo' => $img( 7 ), 'g' => 'f' ),
+			array( 'name' => 'Vikram', 'age' => 28, 'city' => 'Udaipur', 'job' => 'Manager, Internal Audit', 'tags' => array( 'Verified CA', 'Marwari', '5\'9"' ), 'photo' => $img( 8 ), 'g' => 'm' ),
+			array( 'name' => 'Kavya', 'age' => 27, 'city' => 'Gurugram', 'job' => 'Assistant Manager, Taxation', 'tags' => array( 'Verified CA', 'Hindi', '5\'4"' ), 'photo' => $img( 9 ), 'g' => 'f' ),
+			array( 'name' => 'Aditya', 'age' => 29, 'city' => 'Nagpur', 'job' => 'Finance Controller', 'tags' => array( 'Verified CA', 'Marathi', '5\'8"' ), 'photo' => $img( 10 ), 'g' => 'm' ),
+			array( 'name' => 'Tanvi', 'age' => 27, 'city' => 'Goa', 'job' => 'Senior Consultant', 'tags' => array( 'Verified CA', 'Konkani', '5\'5"' ), 'photo' => $img( 11 ), 'g' => 'f' ),
 		);
 	}
 
-	private static function card( $p, $cls = '' ) {
+	/** $lazy: the photo loads only when the deck is about to show the card (landing.js). */
+	private static function card( $p, $cls = '', $lazy = false ) {
 		$fallback = Assets::url( 'assets/img/avatar-' . ( 'f' === $p['g'] ? 'female' : 'male' ) . '.svg' );
 		ob_start();
 		?>
 		<div class="lp-card <?php echo esc_attr( $cls ); ?>">
-			<div class="lp-card-photo" style="background-image:url('<?php echo esc_url( $p['photo'] ? $p['photo'] : $fallback ); ?>')">
+			<div class="lp-card-photo" <?php echo $lazy ? 'data-bg' : 'style'; ?>="<?php echo esc_attr( ( $lazy ? '' : 'background-image:url(\'' ) . esc_url( $p['photo'] ? $p['photo'] : $fallback ) . ( $lazy ? '' : '\')' ) ); ?>">
 				<span class="lp-badge"><?php echo esc_html( $p['tags'][0] ); ?></span>
 				<div class="lp-card-name"><?php echo esc_html( $p['name'] . ', ' . $p['age'] ); ?><small><?php echo esc_html( $p['job'] . ' · ' . $p['city'] ); ?></small></div>
 			</div>
@@ -344,7 +349,7 @@ final class Landing {
 				<div class="lp-phone-bar"><span>Discover</span></div>
 				<div class="lp-deck" id="lp-deck">
 					<?php foreach ( $demo as $i => $p ) : ?>
-						<?php echo self::card( $p, 0 === $i ? 'is-top' : '' ); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped ?>
+						<?php echo self::card( $p, 0 === $i ? 'is-top' : '', $i > 1 ); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped ?>
 					<?php endforeach; ?>
 				</div>
 			</div>
