@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.42 — 2026-10-28
+
+- Date of birth and city move from sign-up to the setup wizard (owner). Sign-up asks name, bride or groom, mobile, email and password. The wizard already asks every required field that is still empty, so both now appear there; the 18-or-over check moves with the date (Welcome step save). BuddyPress's /register/ form drops them too (`csm_signup_fields_v3`). Date of birth stays "Only me" by default (the field's own default visibility).
+
 ## 1.90.41 — 2026-10-28
 
 - No confirm-password box at sign-up (owner: "a burden"). The new screen never had one; on BuddyPress's /register/ form it is hidden again, and the server fills it from the password (v1.90.38), so it cannot block a signup.

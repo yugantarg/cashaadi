@@ -55,8 +55,6 @@
 		var e = {};
 		if ( v.name.trim().length < 2 ) { e.name = 'Please enter your name.'; }
 		if ( ! v.gender ) { e.gender = 'Please choose one.'; }
-		if ( ! v.dob ) { e.dob = 'Please choose day, month and year.'; }
-		if ( v.city.trim().length < 2 ) { e.city = 'Please enter your city.'; }
 		if ( v.phone.replace( /\D/g, '' ).length < 10 ) { e.phone = 'Please enter a valid mobile number.'; }
 		if ( ! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( v.email ) ) { e.email = 'Please enter a valid email address.'; }
 		if ( v.password.length < ( parseInt( pass.getAttribute( 'minlength' ), 10 ) || 8 ) ) { e.password = 'Use at least ' + ( pass.getAttribute( 'minlength' ) || 8 ) + ' characters.'; }
@@ -78,10 +76,9 @@
 		clear( form );
 		var d = form.elements;
 		var g = form.querySelector( 'input[name=gender]:checked' );
-		var dob = ( d.dob_y.value && d.dob_m.value && d.dob_d.value ) ? d.dob_y.value + '-' + d.dob_m.value + '-' + d.dob_d.value : '';
 		var v = {
 			nonce: CFG.nonce,
-			name: d.name.value, gender: g ? g.value : '', dob: dob, city: d.city.value,
+			name: d.name.value, gender: g ? g.value : '',
 			phone: d.phone.value, email: d.email.value.trim(), password: d.password.value,
 			agree: d.agree.checked, website: d.website.value
 		};

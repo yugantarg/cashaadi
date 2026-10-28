@@ -644,6 +644,13 @@ final class Welcome {
 					if ( ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
 						return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That date is not valid.', 'cashaadi-ui' ), 'field' => $fid ), 200 );
 					}
+					// 18 or over: checked here since the date moved off the sign-up form (v1.90.42).
+					if ( Config::FIELD_DOB === (int) $fid ) {
+						$age = (int) ( new \DateTime( trim( $value ) ) )->diff( new \DateTime( 'now', wp_timezone() ) )->y;
+						if ( $age < 18 || $age > 80 ) {
+							return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'You must be at least 18 to join.', 'cashaadi-ui' ), 'field' => $fid ), 200 );
+						}
+					}
 					$value = trim( $value ) . ' 00:00:00';
 				} else {
 					return new \WP_REST_Response( array( 'ok' => false, 'message' => sprintf( __( 'Please pick a valid date for %s.', 'cashaadi-ui' ), $f['label'] ), 'field' => $fid ), 200 );

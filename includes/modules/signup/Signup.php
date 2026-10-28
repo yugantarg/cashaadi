@@ -66,21 +66,26 @@ final class Signup {
 	 * Guarded by an option so it runs once; bump the option key to re-apply.
 	 */
 	public static function ensure_signup_fields() {
-		if ( get_option( 'csm_signup_fields_v2' ) ) {
+		if ( get_option( 'csm_signup_fields_v3' ) ) {
 			return;
 		}
 		if ( ! function_exists( 'bp_xprofile_update_meta' ) ) {
 			return;
 		}
+		// v3 (owner, 2026-10-28): date of birth and city move to the setup
+		// wizard, which asks any of these that are still empty.
 		$positions = array(
 			Config::FIELD_NAME   => 1,
 			Config::FIELD_GENDER => 2,
-			Config::FIELD_DOB    => 3,
-			Config::FIELD_CITY   => 4,
-			Config::FIELD_PHONE  => 5,
+			Config::FIELD_PHONE  => 3,
 		);
 		foreach ( $positions as $field_id => $pos ) {
 			bp_xprofile_update_meta( (int) $field_id, 'field', 'signup_position', (int) $pos );
+		}
+		foreach ( array( Config::FIELD_DOB, Config::FIELD_CITY ) as $field_id ) {
+			if ( function_exists( 'bp_xprofile_delete_meta' ) ) {
+				bp_xprofile_delete_meta( (int) $field_id, 'field', 'signup_position' );
+			}
 		}
 
 		/*
@@ -97,7 +102,7 @@ final class Signup {
 			bp_xprofile_update_meta( (int) Config::FIELD_AGE, 'field', 'signup_position', '' );
 		}
 
-		update_option( 'csm_signup_fields_v2', 1 );
+		update_option( 'csm_signup_fields_v3', 1 );
 	}
 
 	/* ===================================================================

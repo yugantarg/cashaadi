@@ -165,8 +165,6 @@ final class Join {
 		$pass   = (string) ( $p['password'] ?? '' );
 		$name   = trim( preg_replace( '/\s+/', ' ', sanitize_text_field( (string) ( $p['name'] ?? '' ) ) ) );
 		$gender = sanitize_text_field( (string) ( $p['gender'] ?? '' ) );
-		$dob    = sanitize_text_field( (string) ( $p['dob'] ?? '' ) ); // YYYY-MM-DD
-		$city   = trim( sanitize_text_field( (string) ( $p['city'] ?? '' ) ) );
 		$phone  = sanitize_text_field( (string) ( $p['phone'] ?? '' ) );
 		$agree  = ! empty( $p['agree'] );
 
@@ -192,18 +190,6 @@ final class Join {
 		}
 		if ( ! in_array( $gender, self::genders(), true ) ) {
 			$err['gender'] = 'Please choose one.';
-		}
-		$dt = \DateTime::createFromFormat( '!Y-m-d', $dob );
-		if ( ! $dt || $dt->format( 'Y-m-d' ) !== $dob ) {
-			$err['dob'] = 'Please enter your date of birth.';
-		} else {
-			$age = (int) $dt->diff( new \DateTime( 'now', wp_timezone() ) )->y;
-			if ( $age < self::MIN_AGE || $age > 80 ) {
-				$err['dob'] = sprintf( 'You must be at least %d to join.', self::MIN_AGE );
-			}
-		}
-		if ( mb_strlen( $city ) < 2 ) {
-			$err['city'] = 'Please enter your city.';
 		}
 		$digits = class_exists( '\\CAShaadi\\Core\\Verification' ) ? \CAShaadi\Core\Verification::normalize_phone( $phone ) : preg_replace( '/\D+/', '', $phone );
 		if ( strlen( $digits ) < 10 || strlen( $digits ) > 13 ) {
@@ -233,11 +219,10 @@ final class Join {
 		$values = array(
 			Config::FIELD_NAME   => $name,
 			Config::FIELD_GENDER => $gender,
-			Config::FIELD_DOB    => $dob . ' 00:00:00',
-			Config::FIELD_CITY   => $city,
 			Config::FIELD_PHONE  => $phone,
 		);
-		$keys = array( Config::FIELD_NAME => 'name', Config::FIELD_GENDER => 'gender', Config::FIELD_DOB => 'dob', Config::FIELD_CITY => 'city', Config::FIELD_PHONE => 'phone' );
+		// Date of birth and city are asked in the setup wizard (owner, 2026-10-28).
+		$keys = array( Config::FIELD_NAME => 'name', Config::FIELD_GENDER => 'gender', Config::FIELD_PHONE => 'phone' );
 		if ( function_exists( 'xprofile_get_field' ) ) {
 			foreach ( $values as $fid => $val ) {
 				$f = xprofile_get_field( $fid, null, false );
@@ -294,7 +279,6 @@ final class Join {
 		$genders = self::genders();
 		$logo_id = (int) get_theme_mod( 'custom_logo' );
 		$logo    = $logo_id ? wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
-		$max     = gmdate( 'Y' ) - self::MIN_AGE;
 		?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -331,22 +315,6 @@ final class Join {
 				<p class="cj-err" data-for="gender"></p>
 			</div>
 
-			<div class="cj-field">
-				<span class="cj-label">Date of birth</span>
-				<div class="cj-dob">
-					<select name="dob_d" aria-label="Day"><option value="">Day</option><?php for ( $d = 1; $d <= 31; $d++ ) { printf( '<option value="%1$02d">%1$d</option>', $d ); } ?></select>
-					<select name="dob_m" aria-label="Month"><option value="">Month</option><?php foreach ( array( 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ) as $i => $m ) { printf( '<option value="%02d">%s</option>', $i + 1, esc_html( $m ) ); } ?></select>
-					<select name="dob_y" aria-label="Year"><option value="">Year</option><?php for ( $y = $max; $y >= $max - 50; $y-- ) { printf( '<option value="%1$d">%1$d</option>', $y ); } ?></select>
-				</div>
-				<p class="cj-hint">Only your age is shown on the profile.</p>
-				<p class="cj-err" data-for="dob"></p>
-			</div>
-
-			<div class="cj-field">
-				<label for="cj-city">City</label>
-				<input id="cj-city" name="city" type="text" autocomplete="address-level2" required>
-				<p class="cj-err" data-for="city"></p>
-			</div>
 
 			<div class="cj-field">
 				<label for="cj-phone">Mobile number</label>
