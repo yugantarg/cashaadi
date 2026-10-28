@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.43 — 2026-10-28
+
+- Sign-up screen: "Create my profile" said "Something went wrong" after a signup that had in fact worked and emailed its code (owner). Since BuddyPress 14 `bp_core_signup_user()` returns false on success (no user exists until activation); only a WP_Error is now treated as a failure.
+- Choosing bride or groom now says what it means: "You are the bride, looking for a groom." / "You are the groom, looking for a bride." (owner).
+- The bot trap field is no longer named "website", so a browser's autofill cannot fill it for a real person.
+
 ## 1.90.42 — 2026-10-28
 
 - Date of birth and city move from sign-up to the setup wizard (owner). Sign-up asks name, bride or groom, mobile, email and password. The wizard already asks every required field that is still empty, so both now appear there; the 18-or-over check moves with the date (Welcome step save). BuddyPress's /register/ form drops them too (`csm_signup_fields_v3`). Date of birth stays "Only me" by default (the field's own default visibility).

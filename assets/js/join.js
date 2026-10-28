@@ -50,6 +50,15 @@
 		eye.setAttribute( 'aria-label', hidden ? 'Hide password' : 'Show password' );
 	} );
 
+	/* Say what the choice means (owner: avoid bride / groom confusion). */
+	var gHint = document.getElementById( 'cj-gender-hint' );
+	[].forEach.call( form.querySelectorAll( 'input[name=gender]' ), function ( r ) {
+		r.addEventListener( 'change', function () {
+			if ( ! gHint ) { return; }
+			gHint.textContent = 'Female' === r.value ? 'You are the bride, looking for a groom.' : ( 'Male' === r.value ? 'You are the groom, looking for a bride.' : '' );
+		} );
+	} );
+
 	/* Checks the browser can make; the server checks everything again. */
 	function local( v ) {
 		var e = {};
@@ -80,7 +89,7 @@
 			nonce: CFG.nonce,
 			name: d.name.value, gender: g ? g.value : '',
 			phone: d.phone.value, email: d.email.value.trim(), password: d.password.value,
-			agree: d.agree.checked, website: d.website.value
+			agree: d.agree.checked, cj_trap: d.cj_trap.value
 		};
 		var e = local( v );
 		var keys = Object.keys( e );

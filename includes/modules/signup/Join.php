@@ -150,7 +150,7 @@ final class Join {
 			return self::fail( array(), 'This page has expired. Please refresh it and try again.' );
 		}
 		// Bots fill every field, people never see this one.
-		if ( ! empty( $p['website'] ) ) {
+		if ( ! empty( $p['cj_trap'] ) ) {
 			return self::fail( array(), 'Something went wrong. Please try again.' );
 		}
 		$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
@@ -250,9 +250,15 @@ final class Join {
 		$usermeta['password']          = wp_hash_password( $pass );
 		$usermeta                      = apply_filters( 'bp_signup_usermeta', $usermeta );
 
+		/*
+		 * Only a WP_Error is a failure. Since BuddyPress 14 no user is created
+		 * until activation, so success returns FALSE (the user id it does not
+		 * have yet); treating that as failure showed "Something went wrong"
+		 * after a signup that had worked and emailed its code (owner, 2026-10-28).
+		 */
 		$res = bp_core_signup_user( $login, $pass, $email, $usermeta );
-		if ( is_wp_error( $res ) || ! $res ) {
-			return self::fail( array(), is_wp_error( $res ) ? wp_strip_all_tags( $res->get_error_message() ) : 'Something went wrong. Please try again.' );
+		if ( is_wp_error( $res ) ) {
+			return self::fail( array(), wp_strip_all_tags( $res->get_error_message() ) );
 		}
 		do_action( 'bp_complete_signup' );
 		delete_transient( $tk );
@@ -312,6 +318,7 @@ final class Join {
 						<label class="cj-choice"><input type="radio" name="gender" value="<?php echo esc_attr( $g ); ?>"><span><?php echo esc_html( 'Male' === $g ? 'Groom' : ( 'Female' === $g ? 'Bride' : $g ) ); ?></span></label>
 					<?php endforeach; ?>
 				</div>
+				<p class="cj-hint" id="cj-gender-hint" aria-live="polite">Who is this profile for?</p>
 				<p class="cj-err" data-for="gender"></p>
 			</div>
 
@@ -340,7 +347,7 @@ final class Join {
 				<p class="cj-err" data-for="password"></p>
 			</div>
 
-			<div class="cj-hp" aria-hidden="true"><label>Website <input name="website" type="text" tabindex="-1" autocomplete="off"></label></div>
+			<div class="cj-hp" aria-hidden="true"><label>Leave this empty <input name="cj_trap" type="text" tabindex="-1" autocomplete="off"></label></div>
 
 			<label class="cj-agree"><input type="checkbox" name="agree"> <span>I accept the <a href="<?php echo esc_url( home_url( '/terms-and-conditions/' ) ); ?>" target="_blank" rel="noopener">terms</a> and <a href="<?php echo esc_url( home_url( '/privacy-policy/' ) ); ?>" target="_blank" rel="noopener">privacy policy</a>.</span></label>
 			<p class="cj-err" data-for="agree"></p>
