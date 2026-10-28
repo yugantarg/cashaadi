@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.23 — 2026-10-28
+
+- Landing page: the owner's seven AI-generated demo photos (`assets/img/landing/demo-1.jpg` to `demo-7.jpg`, 720×960, about 90 KB each). The hero deck now cycles seven made-up profiles, women and men alternating.
+
 ## 1.90.22 — 2026-10-28
 
 - Landing page in the ad's words and look (owner: "very simple language", no "AI coded language"): "India’s exclusive CA matrimony", "Find your CA match.", the three ticks (Verified CA profiles, Safe and private, Free to register) and "Create your free profile". Poppins, navy and green, green pill buttons. Every section's copy cut to plain short sentences.

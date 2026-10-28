@@ -268,6 +268,9 @@ final class Landing {
 			array( 'name' => 'Rohan', 'age' => 29, 'city' => 'Mumbai', 'job' => 'Manager, Corporate Finance', 'tags' => array( 'Verified CA', 'Gujarati', '5\'10"' ), 'photo' => $img( 2 ), 'g' => 'm' ),
 			array( 'name' => 'Ishita', 'age' => 26, 'city' => 'Delhi', 'job' => 'Tax Consultant', 'tags' => array( 'Verified CA', 'Punjabi', '5\'5"' ), 'photo' => $img( 3 ), 'g' => 'f' ),
 			array( 'name' => 'Karthik', 'age' => 30, 'city' => 'Bengaluru', 'job' => 'Partner, CA Firm', 'tags' => array( 'Verified CA', 'Tamil', '5\'9"' ), 'photo' => $img( 4 ), 'g' => 'm' ),
+			array( 'name' => 'Meera', 'age' => 28, 'city' => 'Hyderabad', 'job' => 'Finance Manager', 'tags' => array( 'Verified CA', 'Telugu', '5\'3"' ), 'photo' => $img( 5 ), 'g' => 'f' ),
+			array( 'name' => 'Arjun', 'age' => 31, 'city' => 'Ahmedabad', 'job' => 'Own CA practice', 'tags' => array( 'Verified CA', 'Gujarati', '5\'11"' ), 'photo' => $img( 6 ), 'g' => 'm' ),
+			array( 'name' => 'Neha', 'age' => 25, 'city' => 'Chennai', 'job' => 'Audit Associate', 'tags' => array( 'Verified CA', 'Tamil', '5\'2"' ), 'photo' => $img( 7 ), 'g' => 'f' ),
 		);
 	}
 
