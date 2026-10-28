@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.33 — 2026-10-28
+
+- Landing page on phones (owner's screenshot): the real logo is wide, and "Log in" and "Register free" wrapped onto two lines. The logo now shrinks first (28px tall on phones) and the nav items never wrap; checked at 320–1280px.
+- The hero's background glow was wider than a phone screen, so the page could be dragged sideways. It is now held inside the page, and the page clips anything wider (`overflow-x: clip`).
+
 ## 1.90.32 — 2026-10-28
 
 - Landing page (now the live home page): one `<title>`, Yoast's, as on the old home page. The page printed its own as well, so it had two.

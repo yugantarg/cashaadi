@@ -21,7 +21,9 @@
 	line-height: 1.6;
 	-webkit-font-smoothing: antialiased;
 	overflow-x: hidden;
+	overflow-x: clip; /* hidden still lets a phone drag the page sideways */
 }
+html:has(> body.lp) { overflow-x: clip; }
 .lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
 .lp h1, .lp h2, .lp h3 { font-family: "Poppins", sans-serif; font-weight: 700; line-height: 1.1; margin: 0 0 .5em; letter-spacing: -.02em; color: var(--lp-ink); }
 .lp h2 { font-size: clamp(30px, 4.2vw, 44px); text-align: center; }
@@ -38,8 +40,12 @@
 	border-bottom: 1px solid rgba(22, 33, 43, .06);
 }
 .admin-bar .lp-nav { top: 32px; }
-.lp-logo { text-decoration: none; }
-.lp-logo img { height: 36px; width: auto; display: block; }
+.lp-logo { text-decoration: none; min-width: 0; flex: 0 1 auto; }
+.lp-logo img { height: 36px; width: auto; max-width: 100%; display: block; object-fit: contain; object-position: left center; }
+/* The real logo is wide: on a phone it shrinks before anything wraps (owner's screenshot, 2026-10-28). */
+.lp-nav { gap: 12px; }
+.lp-nav nav { flex: 0 0 auto; }
+.lp-nav-link, .lp-btn { white-space: nowrap; }
 .lp-logo span { font-size: 22px; font-weight: 700; color: var(--lp-blue); }
 .lp-nav nav { display: flex; align-items: center; gap: 18px; }
 .lp-nav-link { text-decoration: none; font-weight: 600; font-size: 15px; color: #45525e; }
@@ -68,7 +74,7 @@
 	position: relative;
 }
 .lp-hero::before {
-	content: ""; position: absolute; z-index: -1; inset: -10% -30% auto auto; width: 720px; height: 720px;
+	content: ""; position: absolute; z-index: -1; top: -10%; right: 0; width: min(720px, 100%); height: 720px; pointer-events: none;
 	background: radial-gradient(closest-side, rgba(111, 159, 46, .16), transparent 70%), radial-gradient(closest-side at 30% 60%, rgba(44, 91, 140, .14), transparent 70%);
 	filter: blur(10px);
 }
@@ -245,6 +251,8 @@
 	.lp-plans { padding: 28px 22px; }
 	.lp-nav-link:first-child { display: none; }
 	.lp-nav nav { gap: 12px; }
+	.lp-logo img { height: 28px; }
+	.lp-nav .lp-btn-sm { padding: 0 14px; }
 	.lp-live { border-radius: 18px; }
 	.lp-sticky { left: 12px; right: 12px; bottom: 12px; padding: 8px; transform: translateY(140%); }
 	.lp-sticky.is-on { transform: none; }
