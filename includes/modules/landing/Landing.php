@@ -334,7 +334,7 @@ final class Landing {
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-	<title><?php echo esc_html( 'CA Shaadi | India’s exclusive CA matrimony' ); ?></title>
+	<?php // No <title> here: wp_head prints Yoast's, the same one the old home page had (v1.90.32). ?>
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<?php wp_head(); ?>
 </head>
