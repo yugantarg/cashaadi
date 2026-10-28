@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.30 — 2026-10-28
+
+- Landing FAQ: "and others from similar backgrounds" added to who is welcome (owner).
+
 ## 1.90.29 — 2026-10-28
 
 - Landing FAQ (owner): "CA Inter qualified" in place of "CA students"; B Com and CA Foundation qualified added to those welcome to join.
