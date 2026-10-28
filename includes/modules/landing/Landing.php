@@ -100,6 +100,14 @@ final class Landing {
 				wp_dequeue_style( $h );
 			}
 		}
+		// Elementor's scripts too: without its own page around them they fail
+		// ("elementorFrontendConfig is not defined", UI check v1.90.35).
+		global $wp_scripts;
+		foreach ( (array) $wp_scripts->queue as $h ) {
+			if ( 0 === strpos( $h, 'elementor' ) ) {
+				wp_dequeue_script( $h );
+			}
+		}
 		wp_enqueue_style( 'cashaadi-landing-fonts', 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@1,6..72,500&display=swap', array(), null );
 		Assets::style( 'tokens', 'assets/css/tokens.css' );
 		Assets::style( 'landing', 'assets/css/landing.css', array( 'cashaadi-tokens' ) );

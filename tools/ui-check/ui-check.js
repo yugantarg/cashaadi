@@ -73,7 +73,7 @@ function inspect() {
 	const mark = ( el ) => { el.setAttribute( 'data-uicheck', ++n ); return n; };
 	const shown = ( el ) => {
 		const r = el.getBoundingClientRect();
-		if ( r.width < 1 || r.height < 1 ) { return false; }
+		if ( r.width < 3 || r.height < 3 ) { return false; } // screen-reader-only text is 1px
 		for ( let e = el; e && e !== document.body; e = e.parentElement ) {
 			const s = getComputedStyle( e );
 			if ( s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0 || e.hidden || e.getAttribute( 'aria-hidden' ) === 'true' ) { return false; }
@@ -209,7 +209,8 @@ async function login( ctx ) {
 	const report = [];
 	for ( const [ who, p, c ] of jobs ) {
 		for ( const [ vname, w, h ] of VIEWPORTS ) {
-			const page = await c.newPage( { viewport: { width: w, height: h } } );
+			const page = await c.newPage();
+			await page.setViewportSize( { width: w, height: h } );
 			const errors = [];
 			page.on( 'pageerror', ( e ) => errors.push( { kind: 'js-error', what: e.message.slice( 0, 160 ) } ) );
 			page.on( 'response', ( r ) => {
