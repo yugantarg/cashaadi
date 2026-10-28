@@ -350,3 +350,9 @@
 .csm-w-astro-sw input:checked ~ .csm-w-astro-knob::after { transform: translateX(18px); }
 .csm-w-astro-sw input:focus-visible ~ .csm-w-astro-knob { outline: 2px solid var(--csm-blue, #2c5b8c); outline-offset: 2px; }
 .csm-w-input:disabled { background: #f3f5f7; color: inherit; opacity: 1; }
+
+/* Verify your CA step (v1.90.45). */
+.csm-w-verify .csm-w-vpick { display: inline-flex; align-items: center; justify-content: center; margin: 4px 0 10px; cursor: pointer; }
+.csm-w-verify .csm-w-vpick.is-busy { opacity: .6; pointer-events: none; }
+.csm-w-vstatus.is-ok { color: #3f6f1a; font-weight: 600; }
+.csm-w-vstatus.is-bad { color: #96262a; font-weight: 600; }

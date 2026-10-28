@@ -177,6 +177,10 @@ final class Welcome {
 				'state'    => rest_url( 'csm/v1/welcome/state' ),
 				'step'     => rest_url( 'csm/v1/welcome/step' ),
 				'complete' => rest_url( 'csm/v1/welcome/complete' ),
+				// The verify step: its check, and the same document upload as Edit profile.
+				'verify'      => rest_url( 'csm/v1/welcome/verify' ),
+				'upload'      => admin_url( 'admin-ajax.php' ),
+				'uploadNonce' => wp_create_nonce( 'csm_pe_file' ),
 				'avatar'   => rest_url( 'buddypress/v1/members/' . get_current_user_id() . '/avatar' ),
 				'minPhoto' => class_exists( '\\CAShaadi\\Modules\\Media\\MediaQuality' )
 					? \CAShaadi\Modules\Media\MediaQuality::min_dimensions()
@@ -285,6 +289,12 @@ final class Welcome {
 				 */
 				'value' => array( 'required' => false ),
 			),
+		) );
+
+		register_rest_route( 'csm/v1', '/welcome/verify', array(
+			'methods'             => 'GET',
+			'callback'            => array( __CLASS__, 'rest_verify' ),
+			'permission_callback' => $auth,
 		) );
 
 		register_rest_route( 'csm/v1', '/welcome/complete', array(
@@ -507,7 +517,36 @@ final class Welcome {
 			$steps[] = $step;
 		}
 
+		/*
+		 * Verify your CA, as the last step (owner, 2026-10-28: "the verify CA
+		 * should be a part of the wizard"). Optional: "Skip for now" moves on.
+		 * Whether to ask depends on the qualification, which may be answered
+		 * earlier in this same wizard, so the screen asks /welcome/verify when
+		 * it gets here and passes over the step for anyone it does not apply to.
+		 */
+		if ( class_exists( '\\CAShaadi\\Modules\\CaVerify\\CaVerify' ) ) {
+			$steps[] = array(
+				'key'   => 'verify',
+				'type'  => 'verify',
+				'label' => 'Verify your CA',
+				'done'  => 'none' !== \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid ),
+				'optional' => true, // never holds onboarding open
+			);
+		}
+
 		return array_values( $steps );
+	}
+
+	/** For the verify step: does it apply now, and what to ask for. */
+	public static function rest_verify() {
+		$uid   = get_current_user_id();
+		$claim = \CAShaadi\Modules\CaVerify\CaVerify::claim( $uid );
+		return new \WP_REST_Response( array(
+			'ask'      => '' !== $claim && 'none' === \CAShaadi\Modules\CaVerify\CaVerify::member_state( $uid ),
+			'inter'    => 'inter' === $claim,
+			'docLabel' => \CAShaadi\Modules\CaVerify\CaVerify::doc_label( $uid ),
+			'field'    => (int) Config::FIELD_CA_DOC,
+		), 200 );
 	}
 
 	/**
@@ -683,7 +722,7 @@ final class Welcome {
 		// Trust the data, not the client: re-derive rather than believe a claim
 		// that onboarding finished.
 		foreach ( self::steps( $uid ) as $s ) {
-			if ( empty( $s['done'] ) ) {
+			if ( empty( $s['done'] ) && empty( $s['optional'] ) ) {
 				return new \WP_REST_Response( array(
 					'ok'      => false,
 					'message' => __( 'Some details are still missing.', 'cashaadi-ui' ),

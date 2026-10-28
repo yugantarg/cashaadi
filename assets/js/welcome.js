@@ -149,7 +149,7 @@
 		err.setAttribute( 'role', 'alert' );
 		card.appendChild( err );
 
-		var field = ( 'photo' === s.type ) ? photoField( s, err ) : groupField( s );
+		var field = ( 'photo' === s.type ) ? photoField( s, err ) : ( 'verify' === s.type ? verifyField( s, err ) : groupField( s ) );
 		card.appendChild( field.node );
 
 		var nav = el( 'div', 'csm-w-nav' );
@@ -588,6 +588,13 @@
 
 		function done() { button.disabled = false; }
 
+		// Verify is optional: Continue with or without a document moves on.
+		if ( field.isVerify ) {
+			done();
+			steps[ idx ].done = true;
+			return go( idx + 1 );
+		}
+
 		if ( field.isPhoto ) {
 			// Save the blur choice regardless — it is independent of the upload.
 			api( CFG.step, {
@@ -704,6 +711,83 @@
 			nav.parentNode.insertBefore( low, nav );
 		}
 		low.textContent = msg;
+	}
+
+	/*
+	 * Verify your CA (owner, 2026-10-28: part of the wizard). Asks the server
+	 * whether it applies now (the qualification may have been answered a step
+	 * ago) and passes straight on when it does not. The upload is the same as
+	 * Edit profile's, so the AI check runs as it does there.
+	 */
+	function verifyField( s, err ) {
+		var wrap = el( 'div', 'csm-w-verify' );
+		var help = el( 'p', 'csm-w-help', 'Checking…' );
+		wrap.appendChild( help );
+		var api_ = { node: wrap, isVerify: true };
+
+		api( CFG.verify ).then( function ( v ) {
+			if ( ! v || ! v.ask ) {
+				// Not a CA / CA Inter claim, or already uploaded: nothing to ask.
+				steps[ idx ].done = true;
+				return go( idx + 1 );
+			}
+			var h1 = document.querySelector( '.csm-w-q' );
+			if ( h1 && v.inter ) { h1.textContent = 'Verify your CA Inter status'; }
+			help.textContent = 'Upload your ' + ( v.docLabel || 'ICAI certificate' ) + ' to get the Verified badge on your profile. Verified profiles are shown more. You can also do this later from your profile.';
+
+			var status = el( 'p', 'csm-w-help csm-w-vstatus' );
+			var pick = el( 'label', 'csm-w-next csm-w-vpick' );
+			pick.appendChild( document.createTextNode( 'Upload document' ) );
+			var input = document.createElement( 'input' );
+			input.type = 'file';
+			input.accept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
+			input.hidden = true;
+			pick.appendChild( input );
+			input.addEventListener( 'change', function () {
+				if ( ! input.files || ! input.files.length ) { return; }
+				var fd = new FormData();
+				fd.append( 'action', 'csm_pe_file' );
+				fd.append( 'nonce', CFG.uploadNonce );
+				fd.append( 'field', v.field );
+				fd.append( 'file', input.files[0] );
+				status.textContent = 'Uploading…';
+				status.className = 'csm-w-help csm-w-vstatus';
+				pick.classList.add( 'is-busy' );
+				// admin-ajax, not REST: the host's firewall blocks file uploads to /wp-json/.
+				fetch( CFG.upload, { method: 'POST', credentials: 'same-origin', body: fd } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( d ) {
+						pick.classList.remove( 'is-busy' );
+						input.value = '';
+						if ( d && d.success ) {
+							status.textContent = '✓ Uploaded' + ( d.data && d.data.name ? ' (' + d.data.name + ')' : '' ) + '. We will check it shortly and let you know.';
+							status.className = 'csm-w-help csm-w-vstatus is-ok';
+							pick.firstChild.textContent = 'Replace document';
+							var next = document.querySelector( '.csm-w-nav .csm-w-next' );
+							if ( next ) { next.textContent = 'Continue'; }
+						} else {
+							status.textContent = ( d && d.data && d.data.message ) || 'That file could not be uploaded. Please use a PDF, JPG or PNG.';
+							status.className = 'csm-w-help csm-w-vstatus is-bad';
+						}
+					} )
+					.catch( function () {
+						pick.classList.remove( 'is-busy' );
+						input.value = '';
+						status.textContent = 'Network problem. Please try again.';
+						status.className = 'csm-w-help csm-w-vstatus is-bad';
+					} );
+			} );
+			wrap.appendChild( pick );
+			wrap.appendChild( status );
+			wrap.appendChild( el( 'p', 'csm-w-fhelp', 'Your document is never shared with any other member. They only see the Verified tag.' ) );
+			// Until something is uploaded, the main button says what it does.
+			var next = document.querySelector( '.csm-w-nav .csm-w-next' );
+			if ( next ) { next.textContent = 'Skip for now'; }
+		} ).catch( function () {
+			steps[ idx ].done = true;
+			go( idx + 1 );
+		} );
+		return api_;
 	}
 
 	function offerFallback( err, d ) {

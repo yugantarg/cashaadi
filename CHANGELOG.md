@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.45 — 2026-10-28
+
+- "Verify your CA" is the last step of the setup wizard (owner). For CA and CA Inter claims only (asked live through `/welcome/verify`, since the qualification may be answered earlier in the same wizard; anyone else passes straight on). Upload the ICAI document right there, through the same upload as Edit profile (admin-ajax `csm_pe_file`), so the AI check runs as usual. Optional: "Skip for now" finishes, and the step never holds onboarding open (`optional`, skipped by the completion check).
+
 ## 1.90.44 — 2026-10-28
 
 - The "Get 10 more profiles: add a photo / verify your CA" popup (Boost::popup) and the "Get your Verified CA badge" popup (VerifyNudge) no longer open on Discover the moment the setup wizard ends (owner). Both wait until two days after joining (`Boost::is_new`), like the Discover card since v1.90.40; they are not marked seen, so each still comes once, later.
