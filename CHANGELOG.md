@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.29 — 2026-10-28
+
+- Landing FAQ (owner): "CA Inter qualified" in place of "CA students"; B Com and CA Foundation qualified added to those welcome to join.
+
 ## 1.90.28 — 2026-10-28
 
 - Landing FAQ (owner): "Who can join?" says the site is mainly for CAs and CA students, that CS, CFA, CMA, ACCA and similar are welcome, and that the Verified badge is only for CAs and CA students who verify with ICAI. "Who can see my phone number?" removed.

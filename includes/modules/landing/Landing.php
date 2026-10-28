@@ -452,7 +452,7 @@ final class Landing {
 
 	<section class="lp-faq">
 		<h2 class="lp-in">Questions</h2>
-		<details class="lp-in"><summary>Who can join?</summary><p>CA Shaadi is mainly for Chartered Accountants and CA students. People from related professions, like CS, CFA, CMA and ACCA, are welcome to join too. The Verified badge is given only to CAs and CA students who verify with ICAI.</p></details>
+		<details class="lp-in"><summary>Who can join?</summary><p>CA Shaadi is mainly for Chartered Accountants and CA Inter qualified. People from related backgrounds, like CS, CFA, CMA, ACCA, B Com and CA Foundation qualified, are welcome to join too. The Verified badge is given only to CAs and CA Inter qualified who verify with ICAI.</p></details>
 		<details class="lp-in"><summary>Is it free?</summary><p>Yes, registering is free. You get new profiles every week. Premium and Gold are optional.</p></details>
 		<details class="lp-in"><summary>Who can see my photos?</summary><p>Only logged-in members. Set them to private and they stay blurred until you match.</p></details>
 		<details class="lp-in"><summary>How do I get verified?</summary><p>Upload your ICAI certificate or ID card from your profile. Once checked, you get the Verified CA badge.</p></details>
