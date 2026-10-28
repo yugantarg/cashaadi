@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.28 — 2026-10-28
+
+- Landing FAQ (owner): "Who can join?" says the site is mainly for CAs and CA students, that CS, CFA, CMA, ACCA and similar are welcome, and that the Verified badge is only for CAs and CA students who verify with ICAI. "Who can see my phone number?" removed.
+
 ## 1.90.27 — 2026-10-28
 
 - Landing page: the register button can't be missed (owner). "Create your free profile" now also follows the numbers, how it works, safe and private, and the questions, and sits beside "See plans"; the nav button reads "Register free". A sticky bar with the button slides up once the hero's button scrolls away and hides again over the final one (full width on phones). Every button carries `data-csm-cta` with where it is.
