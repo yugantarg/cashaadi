@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.36 — 2026-10-28
+
+Found by the first UI check:
+- Home page at 320px: "Create your free profile" broke onto two lines; buttons are a little narrower on small phones and stay on one line.
+- Log in page: "Show Password" broke onto three lines at 320px.
+- Footer on the theme's pages: Terms and Conditions, Privacy Policy and Refund Policy each broke onto two lines on small phones; they now sit on one line each and wrap as a row.
+- UI check: screen-reader-only text (hidden with `clip`) is no longer reported as overlapping or wrapping.
+
 ## 1.90.35 — 2026-10-28
 
 - Landing page: Elementor's scripts are no longer loaded there. Without Elementor's page they threw "elementorFrontendConfig is not defined" on every load (found by the UI check).

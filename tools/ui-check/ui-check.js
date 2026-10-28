@@ -77,6 +77,8 @@ function inspect() {
 		for ( let e = el; e && e !== document.body; e = e.parentElement ) {
 			const s = getComputedStyle( e );
 			if ( s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0 || e.hidden || e.getAttribute( 'aria-hidden' ) === 'true' ) { return false; }
+			// Screen-reader-only text (clip: rect(1px…), clip-path) is not on screen.
+			if ( ( s.clip && s.clip !== 'auto' && s.position === 'absolute' ) || ( s.clipPath && s.clipPath !== 'none' ) ) { return false; }
 		}
 		return true;
 	};

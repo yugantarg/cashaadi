@@ -132,3 +132,13 @@ aside#secondary { display: none !important; }
 	background: #c2185b !important;
 }
 .wc-block-components-checkout-step__title { font-weight: 700; }
+
+/* ---- small phones (v1.90.36, UI check) ----------------------------------
+   "Show Password" broke onto three lines at 320px, and each footer link
+   (Terms and Conditions, Privacy Policy, Refund Policy) onto two. */
+.pmpro_btn-password-toggle { white-space: nowrap; }
+@media (max-width: 400px) {
+	.site-info #menu-site-navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; }
+	.site-info #menu-site-navigation li { margin: 0; }
+	.site-info #menu-site-navigation a { white-space: nowrap; font-size: 13px; }
+}

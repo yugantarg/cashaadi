@@ -261,6 +261,11 @@ html:has(> body.lp) { overflow-x: clip; }
 	.lp-foot { padding-bottom: 96px; }
 }
 @media (max-width: 782px) { .admin-bar .lp-nav { top: 46px; } }
+/* 320px phones: the long button label must fit on one line (UI check). */
+@media (max-width: 400px) {
+	.lp-btn { padding: 0 20px; font-size: 16px; }
+	.lp-btn-big { padding: 0 22px; font-size: 17px; }
+}
 @media (max-width: 600px) { .admin-bar .lp-nav { top: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
