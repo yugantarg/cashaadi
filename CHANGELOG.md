@@ -3,6 +3,15 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.39 — 2026-10-28
+
+Our own sign-up screen at `/join/` (owner: "make this a part of the plugin and not go through BuddyPress"), so a BuddyPress, theme or WordPress update can no longer hide or break the form (as on 2026-10-28).
+- One page, its own document (no theme or BuddyPress styles or scripts): name, bride or groom, date of birth (day / month / year), city, mobile, email, password with show / hide, terms. Errors appear under their field, checked in the browser and again on the server. Then the 4-digit code on the same page, through ActivationCode's endpoints, and on to /welcome/.
+- The account is still made by BuddyPress (`bp_core_signup_user`, with BuddyPress's own email checks and each xProfile field type's validation), so the code email, referral attach, funnel, attribution and the Meta / Google sign-up events after activation are unchanged. Funnel `form_submit` and `validation_error` are recorded from the new screen too.
+- Someone who signed up before but never entered the code goes straight to the code step.
+- Spam: a hidden honeypot field and at most 8 submissions per IP per 10 minutes. Never cached (it carries nonces).
+- `/register/` sends logged-out visitors to `/join/` (keeping any ad parameters) once the option `csm_join_live` is 1; until then `/join/` is a noindex preview. Set it back to 0 and BuddyPress's page returns.
+
 ## 1.90.38 — 2026-10-28
 
 - **Signups stopped at about 1 pm IST (owner): fixed.** BuddyPress's stylesheet hides the confirm-password box on pages with a `js` body class and relies on WordPress's user-profile.js to copy the password into it. PasswordPolicy removes that script (with the strength meter), so the box was hidden and empty, and BuddyPress refused every signup with "Please make sure you enter your password twice". The confirm box is shown again (signup.css), and if it ever arrives empty the password is used for it (`bp_signup_pre_validate`); a filled-in confirm that differs is still refused.

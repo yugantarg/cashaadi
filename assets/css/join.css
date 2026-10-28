@@ -1,0 +1,86 @@
+/* ==========================================================================
+   Sign-up screen (/join/, v1.90.39). Its own document: no theme or
+   BuddyPress styles load here, so their updates cannot rearrange it.
+   Same look as the landing page and the ads: Poppins, navy and green.
+   ========================================================================== */
+
+.cj {
+	--cj-ink: #0f2a44;
+	--cj-green: #5f8f2a;
+	--cj-line: #dde5ec;
+	--cj-muted: #5c6a76;
+	--cj-red: #c62f3a;
+	margin: 0;
+	min-height: 100vh;
+	background: linear-gradient(160deg, #fbf9f4 0%, #f6f5ee 45%, #eef5e3 100%) fixed;
+	color: var(--cj-ink);
+	font-family: "Poppins", var(--csm-sans, system-ui, sans-serif);
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	overflow-x: clip;
+}
+.cj *, .cj *::before, .cj *::after { box-sizing: border-box; }
+.cj a { color: #1f5c99; }
+
+.cj-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 560px; margin: 0 auto; padding: 14px 16px; }
+.cj-logo { text-decoration: none; font-weight: 700; color: #1f5c99; min-width: 0; }
+.cj-logo img { height: 32px; width: auto; max-width: 100%; display: block; }
+.cj-login { font-weight: 600; text-decoration: none; white-space: nowrap; color: var(--cj-ink) !important; }
+
+.cj-main { max-width: 560px; margin: 0 auto; padding: 4px 16px 48px; }
+.cj-card { background: #fff; border-radius: 24px; padding: 28px 22px; box-shadow: 0 20px 50px -30px rgba(15, 42, 68, .45); }
+.cj-kicker { margin: 0 0 4px; font-style: italic; color: var(--cj-green); font-weight: 500; }
+.cj h1 { margin: 0 0 22px; font-size: clamp(26px, 6vw, 32px); line-height: 1.15; letter-spacing: -.02em; }
+.cj-lead { margin: -8px 0 20px; color: var(--cj-muted); }
+
+.cj-field { margin-bottom: 18px; }
+.cj-field label, .cj-label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 15px; }
+.cj input[type=text], .cj input[type=email], .cj input[type=tel], .cj input[type=password], .cj select {
+	width: 100%; min-height: 52px; padding: 12px 14px;
+	border: 1.5px solid var(--cj-line); border-radius: 14px; background: #fff;
+	font: inherit; font-size: 16px; /* 16px: no iOS zoom on focus */ color: var(--cj-ink);
+	-webkit-appearance: none; appearance: none;
+}
+.cj select { background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235c6a76' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 12px center; padding-right: 30px; }
+.cj input:focus, .cj select:focus { outline: none; border-color: #1f5c99; box-shadow: 0 0 0 3px #e3eef8; }
+.cj .is-bad input, .cj .is-bad select { border-color: var(--cj-red); }
+
+.cj-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cj-choice { position: relative; display: block; margin: 0 !important; }
+.cj-choice input { position: absolute; opacity: 0; }
+.cj-choice span { display: flex; align-items: center; justify-content: center; min-height: 52px; border: 1.5px solid var(--cj-line); border-radius: 14px; font-weight: 600; cursor: pointer; }
+.cj-choice input:checked + span { border-color: var(--cj-green); background: #eef6e2; color: var(--cj-ink); }
+.cj-choice input:focus-visible + span { box-shadow: 0 0 0 3px #e3eef8; }
+
+.cj-dob { display: grid; grid-template-columns: 1fr 1.3fr 1.2fr; gap: 8px; }
+.cj-pass { position: relative; }
+.cj-pass input { padding-right: 76px; }
+.cj-eye { position: absolute; right: 6px; top: 6px; bottom: 6px; padding: 0 12px; border: 0; border-radius: 10px; background: #f1f4f7; font: inherit; font-size: 14px; font-weight: 600; color: var(--cj-ink); cursor: pointer; }
+
+.cj-hint { margin: 6px 0 0; font-size: 13px; color: var(--cj-muted); }
+.cj-err { margin: 6px 0 0; font-size: 14px; color: var(--cj-red); font-weight: 500; }
+.cj-err:empty { display: none; }
+.cj-err-top { margin: 0 0 12px; }
+.cj-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.cj-agree { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin: 4px 0 6px; cursor: pointer; }
+.cj-agree input { width: 20px; height: 20px; margin: 2px 0 0; flex: 0 0 auto; accent-color: var(--cj-green); }
+
+.cj-btn {
+	display: flex; align-items: center; justify-content: center; width: 100%;
+	min-height: 56px; margin-top: 18px; border: 0; border-radius: 999px;
+	background: linear-gradient(180deg, #a9dc66, #8cc34a); color: var(--cj-ink);
+	font: inherit; font-size: 18px; font-weight: 700; cursor: pointer;
+	box-shadow: 0 12px 26px -12px rgba(95, 143, 42, .7);
+}
+.cj-btn[disabled] { opacity: .65; cursor: wait; }
+.cj-small { margin: 16px 0 0; text-align: center; font-size: 14px; color: var(--cj-muted); }
+.cj-link { border: 0; background: none; padding: 0; font: inherit; color: #1f5c99; text-decoration: underline; cursor: pointer; }
+
+.cj-code { text-align: center; font-size: 30px !important; letter-spacing: .5em; font-weight: 700; }
+
+@media (max-width: 360px) {
+	.cj-card { padding: 22px 16px; }
+	.cj-dob { grid-template-columns: 1fr 1.25fr 1.25fr; gap: 6px; }
+}
