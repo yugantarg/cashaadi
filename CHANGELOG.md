@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.34 — 2026-10-28
+
+- `tools/ui-check/ui-check.js` (Node + Playwright, run from a dev machine or a cloud session, not the server): opens the public pages, and with `CSM_TEST_EMAIL` / `CSM_TEST_PASSWORD` the member screens, at seven sizes from 320px phones to 1536px laptops, and reports sideways scrolling, things past the screen edge, short button labels that wrap or are cut off, overlapping buttons, broken images, JavaScript errors and failed requests, with outlined screenshots. Read-only: every request but GET is blocked, and member profile pages are never opened.
+
 ## 1.90.33 — 2026-10-28
 
 - Landing page on phones (owner's screenshot): the real logo is wide, and "Log in" and "Register free" wrapped onto two lines. The logo now shrinks first (28px tall on phones) and the nav items never wrap; checked at 320–1280px.
