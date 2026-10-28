@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.38 — 2026-10-28
+
+- **Signups stopped at about 1 pm IST (owner): fixed.** BuddyPress's stylesheet hides the confirm-password box on pages with a `js` body class and relies on WordPress's user-profile.js to copy the password into it. PasswordPolicy removes that script (with the strength meter), so the box was hidden and empty, and BuddyPress refused every signup with "Please make sure you enter your password twice". The confirm box is shown again (signup.css), and if it ever arrives empty the password is used for it (`bp_signup_pre_validate`); a filled-in confirm that differs is still refused.
+
 ## 1.90.37 — 2026-10-28
 
 - `tools/signups.php`: read-only, signups per day by channel, per hour for the last three days (IST), today's accounts with and without a complete profile, and which plugin folders changed in the last two days, to find when and why signups dropped.

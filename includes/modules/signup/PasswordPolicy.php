@@ -54,6 +54,28 @@ final class PasswordPolicy {
 		// 6. "Confirm new password" -> "Confirm password (required)", like
 		//    every other label on the form. There is nothing "new" at signup.
 		add_filter( 'gettext', array( __CLASS__, 'confirm_label' ), 10, 3 );
+
+		// 7. Never lose a signup to an empty confirm box (v1.90.38).
+		add_action( 'bp_signup_pre_validate', array( __CLASS__, 'fill_confirm' ), 1 );
+	}
+
+	/*
+	 * Signups stopped on 2026-10-28 at about 1 pm IST (owner). BuddyPress's
+	 * stylesheet hides the confirm box once the page carries a "js" class and
+	 * relies on WordPress's user-profile.js to copy the password into it; this
+	 * class removes that script (the meter, step 2), so the box was hidden AND
+	 * empty, and BuddyPress refused every signup with "Please make sure you
+	 * enter your password twice", on a box nobody could see. signup.css shows
+	 * the box again; this is the safety net if it is ever hidden or skipped.
+	 * A confirm box that was filled in and differs is still refused.
+	 */
+	public static function fill_confirm() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- BuddyPress checks its own nonce next
+		if ( isset( $_POST['signup_password'] ) && '' !== (string) $_POST['signup_password']
+			&& ( ! isset( $_POST['signup_password_confirm'] ) || '' === (string) $_POST['signup_password_confirm'] ) ) {
+			$_POST['signup_password_confirm'] = $_POST['signup_password']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		}
+		// phpcs:enable
 	}
 
 	public static function hint() {
