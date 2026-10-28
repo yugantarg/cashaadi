@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.26 — 2026-10-28
+
+- Landing page numbers (owner): members, matches made and joined this week. Profile views and requests sent are gone. Members and matches keep the highest-shown floor; joined this week is the real figure each time, rounded down to the hundred, and hidden below 300 (it goes up and down, so a floor would make it untrue).
+
 ## 1.90.25 — 2026-10-28
 
 - Landing page: the verified-badge tile reads "See who has verified their ICAI document" (owner).

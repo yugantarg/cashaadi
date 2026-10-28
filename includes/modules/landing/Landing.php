@@ -12,9 +12,11 @@
  *                        csm_landing_live is 1 (Elementor's page stays as it
  *                        is, so switching back is the option alone).
  *
- * Numbers (owner): real, rounded down to the hundred, and never lower than
- * the highest figure shown before (csm_landing_peaks). Only totals that
- * only grow are used, so the floor is never untrue. No ICAI count.
+ * Numbers (owner): members, matches made and joined this week. Real,
+ * rounded down to the hundred. Members and matches only grow and are never
+ * shown lower than the highest figure shown before (csm_landing_peaks);
+ * this week's joins go up and down, so they show as they are and are hidden
+ * below WEEK_MIN. No ICAI count.
  *
  * Activity line (owner): real joins, alternating men and women, with first
  * name, city and the blurred thumbnail the app uses; matches without names.
@@ -36,8 +38,9 @@ final class Landing {
 	const PATH   = 'home-preview';
 	const LIVE   = 'csm_landing_live';
 	const PEAKS  = 'csm_landing_peaks';
-	const STATS  = 'csm_landing_stats';
+	const STATS  = 'csm_landing_stats_v2'; // v2: members, matches, week
 	const FEED   = 'csm_landing_feed';
+	const WEEK_MIN = 300; // "joined this week" is hidden below this
 
 	private static $on = false;
 
@@ -113,6 +116,16 @@ final class Landing {
 				continue;
 			}
 			$shown = (int) floor( (int) $n / 100 ) * 100;
+			/*
+			 * This week's joins go up and down, so they are never held at a
+			 * past high: the real figure, hidden in a week below WEEK_MIN.
+			 */
+			if ( 'week' === $key ) {
+				if ( $shown >= self::WEEK_MIN ) {
+					$out[ $key ] = $shown;
+				}
+				continue;
+			}
 			if ( $shown > (int) ( $peaks[ $key ] ?? 0 ) ) {
 				$peaks[ $key ] = $shown;
 				$dirty         = true;
@@ -128,7 +141,7 @@ final class Landing {
 		return $out;
 	}
 
-	/** The live counts. Totals that only grow; null where a table is missing. */
+	/** The live counts (owner, 2026-10-28: members, matches made, joined this week); null where a table is missing. */
 	private static function count() {
 		global $wpdb;
 		$skip = array_unique( array_merge(
@@ -137,14 +150,12 @@ final class Landing {
 			array_map( 'intval', get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) ) )
 		) );
 		$has  = function ( $t ) use ( $wpdb ) { return (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $t ) ); };
-		$pv   = $wpdb->prefix . 'csm_profile_views';
 		$fr   = $wpdb->prefix . 'bp_friends';
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return array(
 			'members'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE ID NOT IN (" . implode( ',', $skip ) . ')' ),
 			'matches'  => $has( $fr ) ? (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$fr} WHERE is_confirmed = 1" ) : null,
-			'requests' => $has( $fr ) ? (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$fr}" ) : null,
-			'views'    => $has( $pv ) ? (int) $wpdb->get_var( "SELECT COALESCE( SUM( hits ), COUNT(*) ) FROM {$pv}" ) : null,
+			'week'     => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_registered >= %s AND ID NOT IN (" . implode( ',', $skip ) . ')', gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) ) ),
 		);
 		// phpcs:enable
 	}
@@ -304,8 +315,7 @@ final class Landing {
 		$label = array(
 			'members'  => 'members',
 			'matches'  => 'matches made',
-			'requests' => 'requests sent',
-			'views'    => 'profile views',
+			'week'     => 'joined this week',
 		);
 		$demo  = self::demo();
 		?>
