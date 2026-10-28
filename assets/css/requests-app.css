@@ -47,6 +47,22 @@
 }
 .csm-r-tab.is-on .csm-r-badge { background: var(--csm-blue, #2c5b8c); }
 
+/* Viewed me · Declined · Passed, under More (v1.90.15). */
+.csm-r-subtabs {
+	display: flex; gap: 8px; flex-wrap: wrap;
+	padding: 12px 12px 4px;
+}
+.csm-r-subtab {
+	min-height: 36px; padding: 6px 14px;
+	border: 1px solid var(--csm-hair, #e4eaf0); border-radius: 999px;
+	background: var(--csm-surface, #fff); color: var(--csm-muted, #5c6a76);
+	font-family: inherit; font-size: 13px; font-weight: 600;
+	cursor: pointer;
+}
+.csm-r-subtab.is-on {
+	background: var(--csm-blue, #2c5b8c); border-color: var(--csm-blue, #2c5b8c); color: #fff;
+}
+
 /* ---- rows ---- */
 .csm-r-list { margin: 0; padding: 0; list-style: none; max-width: 560px; margin: 0 auto; }
 .csm-r-row {

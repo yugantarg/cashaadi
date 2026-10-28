@@ -381,6 +381,46 @@ final class RequestsScreen {
 		}
 
 		/*
+		 * Passed (owner, 2026-10-28): the Discover profiles this member passed,
+		 * newest first, so a mistaken Pass can be undone. In "More", with Viewed
+		 * me and Declined, and like them Premium and Gold only. Left out: anyone
+		 * since matched or asked, blocked, or back in the deck.
+		 */
+		$passed     = array();
+		$passed_ids = array();
+		if ( class_exists( '\CAShaadi\Modules\Discover\Seen' ) ) {
+			$seen = \CAShaadi\Modules\Discover\Seen::table();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$prows = $wpdb->get_results( $wpdb->prepare(
+				"SELECT s.profile_id, s.acted_at FROM {$seen} s
+				 WHERE s.viewer_id = %d AND s.action = 'passed'
+				   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->prefix}csm_tray t WHERE t.viewer_id = s.viewer_id AND t.profile_id = s.profile_id AND t.status IN ( 'pending', 'saved' ) )
+				 ORDER BY s.acted_at DESC LIMIT 500",
+				$uid
+			) );
+			foreach ( (array) $prows as $r ) {
+				$pid = (int) $r->profile_id;
+				if ( ! $pid || ! get_userdata( $pid )
+					|| ( function_exists( 'friends_check_friendship_status' ) && 'not_friends' !== friends_check_friendship_status( $uid, $pid ) )
+					|| ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $uid, $pid ) ) ) {
+					continue;
+				}
+				$passed_ids[] = array( $pid, (string) $r->acted_at );
+			}
+		}
+		foreach ( array_slice( $passed_ids, 0, $premium ? $limit : 6 ) as $d ) {
+			$ts  = strtotime( $d[1] );
+			$ago = $ts ? sprintf( 'Passed %s ago', human_time_diff( $ts, $now ) ) : '';
+			if ( $premium ) {
+				$passed[] = array_merge( self::card( $d[0], $uid, 'passed' ), array( 'ago' => $ago ) );
+				continue;
+			}
+			$name     = function_exists( 'bp_core_get_user_displayname' ) ? bp_core_get_user_displayname( $d[0] ) : '';
+			$initial  = strtoupper( mb_substr( trim( (string) $name ), 0, 1 ) );
+			$passed[] = array( 'masked' => true, 'initial' => '' !== $initial ? $initial : 'C', 'ago' => $ago );
+		}
+
+		/*
 		 * Saved profiles. These live in the tray as status='saved' rather than in a
 		 * table of their own: they are still tray rows, they still count against
 		 * the week they were served in, and the weekly reset already leaves them
@@ -481,6 +521,8 @@ final class RequestsScreen {
 			'viewersTotal' => count( $rows ),
 			'declined'      => $declined,
 			'declinedTotal' => count( $declined_ids ),
+			'passed'        => $passed,
+			'passedTotal'   => count( $passed_ids ),
 		), 200 );
 	}
 
@@ -551,6 +593,16 @@ final class RequestsScreen {
 			}
 		} elseif ( 'withdraw' === $what && function_exists( 'friends_withdraw_friendship' ) ) {
 			$done = (bool) friends_withdraw_friendship( $me, $other );
+		} elseif ( 'unmatch' === $what && function_exists( 'friends_remove_friend' ) && function_exists( 'friends_check_friendship_status' ) ) {
+			// Remove a match (owner, 2026-10-28). Either side may; the other is not told.
+			$done = 'is_friend' === friends_check_friendship_status( $me, $other ) && (bool) friends_remove_friend( $me, $other );
+		} elseif ( 'unpass' === $what && Membership::is_premium( $me ) && class_exists( '\CAShaadi\Modules\Discover\Withdrawn' ) ) {
+			// A passed profile, from More → Passed: back in the deck, then the request.
+			$done = \CAShaadi\Modules\Discover\Withdrawn::restore( $me, $other );
+			if ( $done ) {
+				$res  = \CAShaadi\Modules\Discover\Discover::act( $me, $other, 'liked' );
+				$done = ! empty( $res['ok'] );
+			}
 		} elseif ( in_array( $what, array( 'like', 'pass' ), true ) && class_exists( '\CAShaadi\Modules\Discover\Discover' ) ) {
 			$res  = \CAShaadi\Modules\Discover\Discover::act( $me, $other, 'like' === $what ? 'liked' : 'passed' );
 			$done = ! empty( $res['ok'] );

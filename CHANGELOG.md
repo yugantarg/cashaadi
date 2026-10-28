@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.15 — 2026-10-28
+
+Nothing lost to one tap (owner):
+- Requests has a "More" tab holding the less used lists: Viewed me, Declined and the new Passed. Main tabs are now Received, Matches, Sent, Saved, More.
+- Passed: the Discover profiles a member passed, newest first, with "Send request" (puts the profile back and sends the request). Premium and Gold; free members see initials and an upgrade prompt, as with Declined. Leaves out anyone since matched or asked, blocked, or back in the deck.
+- Remove match: in Matches, after a confirmation. Either side may; the other member is not told.
+
 ## 1.90.14 — 2026-10-28
 
 - A withdrawn request puts the profile back in the sender's Discover, undecided (owner: "that should be the standard behaviour"; a Premium member withdrew one by accident and could not send it again). The card returns as part of this week, and the old like is cleared so a later like from the other side is not taken for a match. Not restored when the pair is blocked or the profile is paused or held. `Discover\Withdrawn::restore( $viewer, $profile )` does the same by hand.

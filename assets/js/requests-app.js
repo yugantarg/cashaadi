@@ -1,5 +1,6 @@
 /**
- * Requests — received, sent and profile viewers as three tabs on one screen.
+ * Requests — received, matches, sent and saved, and under More: viewers,
+ * declined and passed.
  *
  * The viewer list for a free member arrives already masked: initials and a
  * relative time, no ids and no names. There is deliberately nothing to un-blur
@@ -20,7 +21,10 @@
 	 * into a bounce to the home page. It now points here, and a hash says which
 	 * tab it meant.
 	 */
-	var VALID_TABS = [ 'received', 'matches', 'sent', 'saved', 'viewers', 'declined' ];
+	var VALID_TABS = [ 'received', 'matches', 'sent', 'saved', 'viewers', 'declined', 'passed' ];
+	/* The less used lists sit under one "More" tab (owner, 2026-10-28). */
+	var MORE = [ [ 'viewers', 'Viewed me' ], [ 'declined', 'Declined' ], [ 'passed', 'Passed' ] ];
+	function inMore( t ) { return MORE.some( function ( m ) { return m[0] === t; } ); }
 	var tab = ( function () {
 		var h = ( window.location.hash || '' ).replace( /^#\/?/, '' );
 		return VALID_TABS.indexOf( h ) !== -1 ? h : 'received';
@@ -49,14 +53,25 @@
 			[ 'matches', 'Matches', undefined !== data.matchesTotal ? data.matchesTotal : ( data.matches || [] ).length ],
 			[ 'sent', 'Sent', undefined !== data.sentTotal ? data.sentTotal : ( data.sent || [] ).length ],
 			[ 'saved', 'Saved', undefined !== data.savedOpenTotal ? data.savedOpenTotal + ( data.saved || [] ).filter( function ( x ) { return x.masked; } ).length : ( data.saved || [] ).length ],
-			[ 'viewers', 'Viewed me', data.viewersTotal || 0 ],
-			[ 'declined', 'Declined', 0 ]
+			[ inMore( tab ) ? tab : 'viewers', 'More', data.viewersTotal || 0 ]
 		].forEach( function ( t ) {
 			var b = el( 'button', 'csm-r-tab' + ( tab === t[0] ? ' is-on' : '' ) );
 			b.type = 'button';
 			b.appendChild( document.createTextNode( t[1] ) );
 			if ( t[2] ) { b.appendChild( el( 'span', 'csm-r-badge', String( t[2] ) ) ); }
 			b.addEventListener( 'click', function () { tab = t[0]; draw(); } );
+			wrap.appendChild( b );
+		} );
+		return wrap;
+	}
+
+	/* Viewed me · Declined · Passed, under More. */
+	function moreTabs() {
+		var wrap = el( 'div', 'csm-r-subtabs' );
+		MORE.forEach( function ( m ) {
+			var b = el( 'button', 'csm-r-subtab' + ( tab === m[0] ? ' is-on' : '' ), m[1] );
+			b.type = 'button';
+			b.addEventListener( 'click', function () { tab = m[0]; draw(); } );
 			wrap.appendChild( b );
 		} );
 		return wrap;
@@ -200,6 +215,7 @@
 	function draw() {
 		root.innerHTML = '';
 		root.appendChild( tabs() );
+		if ( inMore( tab ) ) { root.appendChild( moreTabs() ); }
 
 		var list = el( 'ul', 'csm-r-list' );
 
@@ -301,6 +317,29 @@
 				root.appendChild( lock );
 				return;
 			}
+		} else if ( 'passed' === tab ) {
+			/* Profiles passed in Discover (2026-10-28): Premium and Gold, like Declined. */
+			if ( ! ( data.passed || [] ).length ) {
+				root.appendChild( emptyBox( 'No passed profiles', 'Profiles you pass in Discover are listed here, so you can change your mind.' ) );
+				return;
+			}
+			if ( data.isPremium ) {
+				root.appendChild( window.csmDeck.tiles( data.passed, function ( i ) { deck( data.passed, i, 'All passed' ); } ) );
+				moreButton( data.passedTotal, data.passed.length );
+				return;
+			}
+			data.passed.forEach( function ( v ) {
+				var row = el( 'li', 'csm-r-row csm-r-masked' );
+				row.appendChild( el( 'span', 'csm-r-initial', v.initial ) );
+				var meta = el( 'div', 'csm-r-meta' );
+				meta.appendChild( el( 'span', 'csm-r-name', '\u2022\u2022\u2022\u2022\u2022\u2022' ) );
+				if ( v.ago ) { meta.appendChild( el( 'span', 'csm-r-sub', v.ago ) ); }
+				row.appendChild( meta );
+				list.appendChild( row );
+			} );
+			root.appendChild( list );
+			root.appendChild( upgradeBox( data.passedTotal || 0, [ 'profile you passed', 'profiles you passed' ], 'Upgrade to Premium to see who you passed, and send them a request if you change your mind.', 'requests-passed' ) );
+			return;
 		} else if ( 'declined' === tab ) {
 			/* Who I declined (2026-10-26): Premium and Gold, like Viewed me. */
 			if ( ! ( data.declined || [] ).length ) {
@@ -369,10 +408,25 @@
 			actions: function ( p ) {
 				// Matches: message them. Sent: withdraw. Viewed me (Premium): send a request.
 				if ( 'match' === p.kind ) {
-					return [ { cls: 'csm-d-like', label: 'Send message', icon: I.chat, run: function ( q ) {
-						if ( q.msgUrl ) { window.location.href = q.msgUrl; }
-						return Promise.resolve( false ); // stays in the list
-					} } ];
+					return [
+						// Remove a match (owner, 2026-10-28), after a confirmation: it cannot be undone.
+						{ cls: 'csm-d-pass', label: 'Remove match', icon: I.pass, run: function ( q ) {
+							var ask = 'Remove ' + ( q.name || 'this member' ) + ' from your matches? You will not see each other in Matches any more. They are not told.';
+							var yes = window.csmConfirm
+								? window.csmConfirm( ask, { title: 'Remove match?', okText: 'Remove', cancelText: 'Keep' } )
+								: Promise.resolve( window.confirm( ask ) );
+							return yes.then( function ( ok ) {
+								return ok ? send( q, 'unmatch' ) : false;
+							} );
+						} },
+						{ cls: 'csm-d-like', label: 'Send message', icon: I.chat, run: function ( q ) {
+							if ( q.msgUrl ) { window.location.href = q.msgUrl; }
+							return Promise.resolve( false ); // stays in the list
+						} }
+					];
+				}
+				if ( 'passed' === p.kind ) {
+					return [ { cls: 'csm-d-like', label: 'Send request', icon: I.like, run: function ( q ) { return send( q, 'unpass' ); } } ];
 				}
 				if ( 'sent' === p.kind ) {
 					return [ { cls: 'csm-d-pass', label: 'Withdraw request', icon: I.pass, run: function ( q ) { return send( q, 'withdraw' ); } } ];
@@ -410,7 +464,7 @@
 			// The deck removes p from the list it shows; drop it everywhere else too,
 			// and keep the totals (which count beyond the loaded page) true.
 			data.saved = ( data.saved || [] ).filter( function ( x ) { return x.masked || x.id !== p.id; } );
-			var totals = { received: 'receivedTotal', saved: 'savedOpenTotal', sent: 'sentTotal', matches: 'matchesTotal', viewers: 'viewersTotal', declined: 'declinedTotal' };
+			var totals = { received: 'receivedTotal', saved: 'savedOpenTotal', sent: 'sentTotal', matches: 'matchesTotal', viewers: 'viewersTotal', declined: 'declinedTotal', passed: 'passedTotal' };
 			if ( totals[ tab ] ) { data[ totals[ tab ] ] = Math.max( 0, ( data[ totals[ tab ] ] || 1 ) - 1 ); }
 			if ( 'save_request' === action ) { data.savedOpenTotal = ( data.savedOpenTotal || 0 ) + 1; }
 			if ( 'accept' === action ) { data.matchesTotal = ( data.matchesTotal || 0 ) + 1; }
