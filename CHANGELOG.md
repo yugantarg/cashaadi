@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.40 — 2026-10-28
+
+Owner's findings after signups were unblocked:
+- Setup wizard (/welcome/) showed the logo twice: the app top bar (Core\Chrome, v1.90.7) is meant to stay off onboarding, but checked `is_page( 'welcome' )`, and /welcome/ is drawn by the plugin, not a WordPress page. Chrome now also stays off by address (welcome, activate, register, join).
+- Setup wizard: Continue with a required answer empty did nothing visible when scrolled down (the message was only at the top of the step). Every missing answer is now marked in red with "Please fill this in", the first is scrolled to, and the message is repeated above Continue.
+- Discover: the "Get 10 more profiles this week" card no longer appears straight after the wizard; it waits until two days after joining (`Boost::SETTLE_DAYS`). The extra profiles are granted as before.
+- Sign-up screen: when `csm_join_live` is 1 it is shown AT /register/ (owner: keep /register/, it is what Meta and others track), not by a redirect to /join/.
+
 ## 1.90.39 — 2026-10-28
 
 Our own sign-up screen at `/join/` (owner: "make this a part of the plugin and not go through BuddyPress"), so a BuddyPress, theme or WordPress update can no longer hide or break the form (as on 2026-10-28).

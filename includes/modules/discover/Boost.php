@@ -193,10 +193,21 @@ final class Boost {
 	}
 
 	/** What the Discover card needs. */
+	/*
+	 * Not straight after the setup wizard (owner, 2026-10-28: "shouldn't hit
+	 * immediately after I finish the set-up wizard, give the user some time").
+	 * The card waits this long after joining; the extra profiles themselves
+	 * are granted as before whenever the photo or badge is earned.
+	 */
+	const SETTLE_DAYS = 2;
+
 	public static function state( $uid ) {
-		$uid = (int) $uid;
+		$uid  = (int) $uid;
+		$user = get_userdata( $uid );
+		$new  = $user && strtotime( $user->user_registered . ' UTC' ) > time() - self::SETTLE_DAYS * DAY_IN_SECONDS;
 		return array(
 			'hidden'    => (bool) get_user_meta( $uid, self::CARD_HIDDEN, true ),
+			'later'     => $new, // too soon after joining to show the card
 			'hide'      => rest_url( 'csm/v1/boost-hide' ),
 			'per'       => self::per(),
 			'photo'     => self::has_photo( $uid ),

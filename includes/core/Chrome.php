@@ -42,6 +42,14 @@ final class Chrome {
 			return false; // draws its own
 		}
 		// Onboarding and the BuddyPress profile-edit wizard stay focused, as before.
+		// By address too: /welcome/ is drawn by the plugin, not a WordPress page,
+		// so is_page() missed it and the wizard showed a second header with the
+		// logo (owner, 2026-10-28).
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path = strtolower( trim( (string) wp_parse_url( (string) $uri, PHP_URL_PATH ), '/' ) );
+		if ( in_array( strtok( $path, '/' ), array( 'welcome', 'activate', 'register', 'join' ), true ) ) {
+			return false;
+		}
 		if ( ( function_exists( 'is_page' ) && ( is_page( 'welcome' ) || is_page( 'activate' ) ) )
 			|| ( function_exists( 'bp_is_user_profile_edit' ) && bp_is_user_profile_edit() ) ) {
 			return false;

@@ -20,8 +20,9 @@
  * reuses ActivationCode's endpoints.
  *
  *   /join/       always available (noindex until it is the sign-up page);
- *   /register/   sends logged-out visitors to /join/ once csm_join_live is 1.
- *                Set it back to 0 and BuddyPress's page is back.
+ *   /register/   shows this screen to logged-out visitors once csm_join_live
+ *                is 1, at the same address, so Meta, Google and every link
+ *                keep tracking it. Set it back to 0 and BuddyPress's form is back.
  */
 
 namespace CAShaadi\Modules\Signup;
@@ -51,18 +52,19 @@ final class Join {
 	}
 
 	public static function url() {
-		return home_url( '/' . self::PATH . '/' );
+		return get_option( self::LIVE ) ? home_url( '/register/' ) : home_url( '/' . self::PATH . '/' );
 	}
 
 	public static function maybe_render() {
 		$here = self::here();
-		// BuddyPress's register page hands over once this screen is live.
-		if ( 'register' === $here && get_option( self::LIVE ) && ! is_user_logged_in() && 'GET' === ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) {
-			$qs = isset( $_SERVER['QUERY_STRING'] ) ? (string) wp_unslash( $_SERVER['QUERY_STRING'] ) : '';
-			wp_safe_redirect( self::url() . ( '' !== $qs ? '?' . $qs : '' ), 302 );
-			exit;
-		}
-		if ( self::PATH !== $here ) {
+		/*
+		 * Live: this screen IS /register/ (owner, 2026-10-28: "keep register as
+		 * the registration page, it is the one tracked by Meta and others"), in
+		 * place of BuddyPress's form, for logged-out visitors. /join/ is the
+		 * preview before that, and afterwards just another way in.
+		 */
+		$live = get_option( self::LIVE ) && 'register' === $here && 'GET' === ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) && ! is_user_logged_in();
+		if ( self::PATH !== $here && ! $live ) {
 			return;
 		}
 		if ( is_user_logged_in() ) {

@@ -105,6 +105,13 @@
 }
 .csm-w-err:empty { display: none; }
 .csm-w-err a { color: inherit; font-weight: 600; }
+/* A required answer left empty, marked where it is (v1.90.40). */
+.csm-w-groupfield.is-missing select,
+.csm-w-groupfield.is-missing input,
+.csm-w-groupfield.is-missing textarea { border-color: #c62f3a !important; }
+.csm-w-groupfield.is-missing .csm-w-flabel { color: #c62f3a; }
+.csm-w-ferr { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: #c62f3a; }
+.csm-w-err-low { margin: 14px 0 0; }
 
 /* ---- inputs ---- */
 .csm-w-field { margin: 0 0 20px; }

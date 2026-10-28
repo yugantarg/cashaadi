@@ -368,7 +368,7 @@
 			var ctl = fieldControl( f );
 			fw.appendChild( ctl.node );
 			wrap.appendChild( fw );
-			controls.push( { f: f, read: ctl.value } );
+			controls.push( { f: f, read: ctl.value, node: fw } );
 		} );
 		return {
 			node: wrap,
@@ -640,17 +640,32 @@
 		}
 
 		// Group step: gather every field, require the mandatory ones.
+		/* Every missing answer is marked where it is, the first is scrolled to,
+		   and the message also sits above Continue (owner, 2026-10-28: "if I
+		   scroll down and try to move ahead it refuses without telling me what
+		   is missing" -- the message was only at the top, out of sight). */
 		var values = field.values();
-		var missing = null;
+		var missing = [];
 		field.controls.forEach( function ( c ) {
-			if ( missing || ! c.f.required ) { return; }
+			if ( c.node ) {
+				c.node.classList.remove( 'is-missing' );
+				var old = c.node.querySelector( '.csm-w-ferr' );
+				if ( old ) { old.parentNode.removeChild( old ); }
+			}
+			if ( ! c.f.required ) { return; }
 			var v = values[ c.f.id ];
 			var empty = ! v || ( typeof v === 'string' && ! v.trim() ) || ( Array.isArray( v ) && ! v.length );
-			if ( empty ) { missing = c.f; }
+			if ( empty ) { missing.push( c ); }
 		} );
-		if ( missing ) {
+		if ( missing.length ) {
 			done();
-			err.textContent = missing.label + ' is required.';
+			missing.forEach( function ( c ) {
+				if ( ! c.node ) { return; }
+				c.node.classList.add( 'is-missing' );
+				c.node.appendChild( el( 'p', 'csm-w-ferr', 'Please fill this in.' ) );
+			} );
+			say( err, 1 === missing.length ? missing[0].f.label + ' is required.' : missing.length + ' required answers are missing: ' + missing.map( function ( c ) { return c.f.label; } ).join( ', ' ) + '.' );
+			if ( missing[0].node ) { missing[0].node.scrollIntoView( { block: 'center', behavior: 'smooth' } ); }
 			return;
 		}
 
@@ -669,12 +684,26 @@
 				steps[ idx ].done = true;
 				return go( idx + 1 );
 			}
-			err.textContent = ( d && d.message ) || 'We could not save that. Please try again.';
+			say( err, ( d && d.message ) || 'We could not save that. Please try again.' );
 		} ).catch( function () {
 			release();
 			done();
-			err.textContent = 'Network problem. Please try again.';
+			say( err, 'Network problem. Please try again.' );
 		} );
+	}
+
+	/* The step's message, at the top AND above Continue, where the member is. */
+	function say( err, msg ) {
+		err.textContent = msg;
+		var nav = document.querySelector( '.csm-w-nav' );
+		if ( ! nav ) { return; }
+		var low = nav.previousElementSibling && nav.previousElementSibling.classList.contains( 'csm-w-err-low' ) ? nav.previousElementSibling : null;
+		if ( ! low ) {
+			low = el( 'p', 'csm-w-err csm-w-err-low' );
+			low.setAttribute( 'aria-hidden', 'true' ); // the top one is the announced alert
+			nav.parentNode.insertBefore( low, nav );
+		}
+		low.textContent = msg;
 	}
 
 	function offerFallback( err, d ) {

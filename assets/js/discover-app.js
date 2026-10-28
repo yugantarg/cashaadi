@@ -190,7 +190,8 @@
 		var b = meta.boost;
 		// Verification is offered to CA and CA Inter members only.
 		var canV = !! b && b.canVerify;
-		if ( ! b || ! b.per || b.hidden || ( b.photo && ( ! canV || 'approved' === b.verify ) ) ) { return null; }
+		// b.later: joined in the last two days, too soon for this card (v1.90.40).
+		if ( ! b || ! b.per || b.hidden || b.later || ( b.photo && ( ! canV || 'approved' === b.verify ) ) ) { return null; }
 		var todo = ( b.photo ? 0 : 1 ) + ( canV && 'approved' !== b.verify ? 1 : 0 );
 		var box = el( 'div', 'csm-d-boost' );
 		// Closable for good (owner, 2026-10-25: "give option to remove it").
