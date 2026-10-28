@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.41 — 2026-10-28
+
+- No confirm-password box at sign-up (owner: "a burden"). The new screen never had one; on BuddyPress's /register/ form it is hidden again, and the server fills it from the password (v1.90.38), so it cannot block a signup.
+
 ## 1.90.40 — 2026-10-28
 
 Owner's findings after signups were unblocked:

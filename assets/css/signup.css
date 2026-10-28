@@ -96,10 +96,10 @@ body.activate #activation-form input[type=text] {
    first box with a gap below it — BuddyPress puts a <br> after that label and
    leaves room for the strength meter we removed. */
 body.register #signup-form .user-pass1-wrap { margin: 0 0 16px; }
-/* BuddyPress hides the confirm box on .js pages and expects a script we remove
-   to fill it; it must show (v1.90.38, signups stopped 2026-10-28). */
-body.buddypress.register.js #signup-form .user-pass2-wrap,
-body.register #signup-form .user-pass2-wrap { display: block !important; }
+/* No confirm-password box (owner, 2026-10-28: "a burden"). Hidden, and the
+   server fills it from the password (PasswordPolicy::fill_confirm), so it can
+   never block a signup as it did on 2026-10-28 when it was hidden AND empty. */
+body.register #signup-form .user-pass2-wrap { display: none !important; }
 body.register #signup-form .user-pass2-wrap br,
 body.register #signup-form #pass-strength-result { display: none; }
 body.register #signup-form .indicator-hint { margin: 8px 0 16px; font-size: 13px; color: var(--csm-muted, #5c6a76); }

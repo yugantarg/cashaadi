@@ -65,9 +65,9 @@ final class PasswordPolicy {
 	 * relies on WordPress's user-profile.js to copy the password into it; this
 	 * class removes that script (the meter, step 2), so the box was hidden AND
 	 * empty, and BuddyPress refused every signup with "Please make sure you
-	 * enter your password twice", on a box nobody could see. signup.css shows
-	 * the box again; this is the safety net if it is ever hidden or skipped.
-	 * A confirm box that was filled in and differs is still refused.
+	 * enter your password twice", on a box nobody could see. The box is now
+	 * hidden on purpose (owner: "we don't need confirm password, it's a
+	 * burden"), and this fills it, so one password is all a member types.
 	 */
 	public static function fill_confirm() {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- BuddyPress checks its own nonce next
