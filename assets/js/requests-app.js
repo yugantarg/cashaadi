@@ -112,6 +112,16 @@
 		return row;
 	}
 
+	/* An accepted request joins Matches as a match: its own kind picks the
+	   buttons, and a request card there still offered Decline / Accept
+	   (owner's screenshot, 2026-10-28). */
+	function asMatch( p ) {
+		var m = {};
+		Object.keys( p ).forEach( function ( k ) { m[ k ] = p[ k ]; } );
+		m.kind = 'match';
+		return m;
+	}
+
 	/** Drop a person from every list they could be in. */
 	function forget( id ) {
 		[ 'received', 'sent', 'saved' ].forEach( function ( key ) {
@@ -172,7 +182,7 @@
 				 */
 				forget( p.id );
 				if ( 'accept' === action ) {
-					( data.matches = data.matches || [] ).push( p );
+					( data.matches = data.matches || [] ).push( asMatch( p ) );
 				}
 				refreshTabs();
 				return;
@@ -481,7 +491,7 @@
 			if ( totals[ tab ] ) { data[ totals[ tab ] ] = Math.max( 0, ( data[ totals[ tab ] ] || 1 ) - 1 ); }
 			if ( 'save_request' === action ) { data.savedOpenTotal = ( data.savedOpenTotal || 0 ) + 1; }
 			if ( 'accept' === action ) { data.matchesTotal = ( data.matchesTotal || 0 ) + 1; }
-			if ( 'accept' === action ) { ( data.matches = data.matches || [] ).push( p ); }
+			if ( 'accept' === action ) { ( data.matches = data.matches || [] ).push( asMatch( p ) ); }
 			if ( 'save_request' === action ) {
 				data.saved.unshift( p );
 				if ( window.csmToast ) { window.csmToast( 'Saved. Find it under Saved.' ); }
