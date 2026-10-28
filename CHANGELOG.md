@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.14 — 2026-10-28
+
+- A withdrawn request puts the profile back in the sender's Discover, undecided (owner: "that should be the standard behaviour"; a Premium member withdrew one by accident and could not send it again). The card returns as part of this week, and the old like is cleared so a later like from the other side is not taken for a match. Not restored when the pair is blocked or the profile is paused or held. `Discover\Withdrawn::restore( $viewer, $profile )` does the same by hand.
+
 ## 1.90.13 — 2026-10-27
 
 Security audit part B:
