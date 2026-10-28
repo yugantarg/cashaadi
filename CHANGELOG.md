@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.47 — 2026-10-28
+
+- Daily check (Core\Watch): the email and the wp-admin notice appear only when there is something for the owner to do, one short line each (owner: "only disturb when there is something for me to fix", and not long). Each check carries a `fix` line; information-only findings (exposure shape, members not yet shown, groups the nightly regroup will correct, numbers opened after a withdrawn request) stay in `wp csm watch`. "Regroup has not run yet" on the first day is no longer a failure.
+
 ## 1.90.46 — 2026-10-28
 
 - Daily check / exposure audit: "drawn more than their weekly allowance" now lists only viewers whose extra cards were drawn in the last day (owner: "this keeps showing"). The week's 26 October extras, from the refill race fixed on the 27th, would otherwise have repeated every morning until Sunday.

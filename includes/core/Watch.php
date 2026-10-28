@@ -70,14 +70,25 @@ final class Watch {
 			self::exposure(),
 			self::avatars(),
 		);
-		$ok = ! in_array( false, wp_list_pluck( $checks, 'ok' ), true );
+		/*
+		 * Only what the owner must act on raises the alarm (owner, 2026-10-28:
+		 * "only disturb when there is something for me to fix", and short). A
+		 * failing check with a `fix` line alerts; the rest are for `wp csm watch`.
+		 */
+		$ok = true;
+		foreach ( $checks as $c ) {
+			if ( ! $c['ok'] && '' !== $c['fix'] ) {
+				$ok = false;
+			}
+		}
 		$r  = array( 'ok' => $ok, 'at' => current_time( 'mysql' ), 'checks' => $checks );
 		update_option( self::LAST, $r, false );
 		return $r;
 	}
 
-	private static function row( $key, $ok, $text ) {
-		return array( 'key' => $key, 'ok' => (bool) $ok, 'text' => $text );
+	/** $fix: one short line saying what to do; '' when a failure is for information only. */
+	private static function row( $key, $ok, $text, $fix = '' ) {
+		return array( 'key' => $key, 'ok' => (bool) $ok, 'text' => $text, 'fix' => $ok ? '' : $fix );
 	}
 
 	private static function names( array $ids ) {
@@ -121,10 +132,12 @@ final class Watch {
 
 	private static function regroup() {
 		$last = (int) get_option( 'csm_buckets_nightly_at', 0 );
-		$ok   = $last && time() - $last < 2 * DAY_IN_SECONDS;
+		// Never run yet is the first day, not a fault.
+		$ok   = ! $last || time() - $last < 2 * DAY_IN_SECONDS;
 		return self::row( 'regroup', $ok, $ok
-			? 'Nightly regroup ran ' . human_time_diff( $last ) . ' ago.'
-			: ( $last ? 'Nightly regroup last ran ' . human_time_diff( $last ) . ' ago.' : 'Nightly regroup has not run yet (normal on the first day).' ) );
+			? ( $last ? 'Nightly regroup ran ' . human_time_diff( $last ) . ' ago.' : 'Nightly regroup has not run yet (first day).' )
+			: 'Nightly regroup last ran ' . human_time_diff( $last ) . ' ago.',
+			'The nightly job has not run for 2 days. Send this to Claude.' );
 	}
 
 	/*
@@ -177,9 +190,11 @@ final class Watch {
 			array_map( function ( $s ) { return 'SHAPE: ' . $s; }, $r['shape'] )
 		);
 		$stat = implode( ' ', $r['stats'] );
+		// A broken rule is a bug to fix; an unusual shape is for information.
 		return self::row( 'exposure', ! $bad, $bad
 			? 'Showings (last 7 days): ' . implode( ' | ', $bad ) . ' — ' . $stat . ' Details: wp csm exposure; one member: wp csm exposure --who=<email>.'
-			: 'Showings match the rules and look normal. ' . $stat );
+			: 'Showings match the rules and look normal. ' . $stat,
+			$r['rules'] ? 'Discover broke one of its own rules. Send this to Claude.' : '' );
 	}
 
 	/** Gallery photos but no main picture: shown with a default picture to everyone. */
@@ -190,7 +205,8 @@ final class Watch {
 		$ids = \CAShaadi\Modules\Photos\AvatarRepair::missing();
 		return self::row( 'avatars', ! $ids, $ids
 			? count( $ids ) . ' members have gallery photos but no main picture, so everyone sees a default picture. Fix with: wp csm photos repair. E.g. ' . self::names( $ids )
-			: 'Every member with gallery photos has a main picture.' );
+			: 'Every member with gallery photos has a main picture.',
+			count( $ids ) . ' members\' photos are not showing. Run: wp csm photos repair' );
 	}
 
 	/** Numbers opened with no request either way. */
@@ -230,24 +246,34 @@ final class Watch {
 		$ok = 'hit' !== $hit && false !== strpos( $cc, 'no-store' );
 		return self::row( 'cache', $ok, $ok
 			? 'The app\'s API is not cached.'
-			: 'The app\'s API is being cached (LiteSpeed: ' . ( $hit ?: 'none' ) . ', Cache-Control: ' . ( $cc ?: 'none' ) . '). Members may see old lists until they reload.' );
+			: 'The app\'s API is being cached (LiteSpeed: ' . ( $hit ?: 'none' ) . ', Cache-Control: ' . ( $cc ?: 'none' ) . '). Members may see old lists until they reload.',
+			'Members may see out-of-date lists. Send this to Claude.' );
 	}
 
-	private static function email( array $r ) {
-		$lines = array();
-		foreach ( $r['checks'] as $c ) {
-			if ( ! $c['ok'] ) {
-				$lines[] = '• ' . $c['text'];
+	private static function fixes( array $r ) {
+		$out = array();
+		foreach ( (array) $r['checks'] as $c ) {
+			if ( empty( $c['ok'] ) && ! empty( $c['fix'] ) ) {
+				$out[] = $c['fix'];
 			}
+		}
+		return $out;
+	}
+
+	/** Short: one line per thing to do. Details stay in `wp csm watch`. */
+	private static function email( array $r ) {
+		$fix = self::fixes( $r );
+		if ( ! $fix ) {
+			return;
 		}
 		wp_mail(
 			get_option( 'admin_email' ),
-			'CA Shaadi daily check: ' . count( $lines ) . ' problem' . ( 1 === count( $lines ) ? '' : 's' ),
-			"The daily check found:\n\n" . implode( "\n\n", $lines ) . "\n\nRun `wp csm watch` to check again. Forward this to your developer."
+			'CA Shaadi: ' . count( $fix ) . ( 1 === count( $fix ) ? ' thing' : ' things' ) . ' to fix',
+			'• ' . implode( "\n• ", $fix ) . "\n\n(Details: wp csm watch)"
 		);
 	}
 
-	/** Red notice in wp-admin while the last run has a failure. */
+	/** In wp-admin, only while there is something to do. */
 	public static function notice() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -256,10 +282,13 @@ final class Watch {
 		if ( ! is_array( $r ) || ! empty( $r['ok'] ) ) {
 			return;
 		}
-		$bad = array_filter( (array) $r['checks'], function ( $c ) { return empty( $c['ok'] ); } );
-		echo '<div class="notice notice-error"><p><strong>CA Shaadi daily check (' . esc_html( $r['at'] ) . '):</strong></p><ul style="list-style:disc;margin-left:20px">';
-		foreach ( $bad as $c ) {
-			echo '<li>' . esc_html( $c['text'] ) . '</li>';
+		$fix = self::fixes( $r );
+		if ( ! $fix ) {
+			return;
+		}
+		echo '<div class="notice notice-error"><p><strong>CA Shaadi: to fix</strong></p><ul style="list-style:disc;margin-left:20px">';
+		foreach ( $fix as $f ) {
+			echo '<li>' . esc_html( $f ) . '</li>';
 		}
 		echo '</ul></div>';
 	}
