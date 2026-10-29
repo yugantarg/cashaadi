@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.50 — 2026-10-29
+
+- "Introducing CA Shaadi Gold" popup, run as an experiment (owner). One-time; members are assigned once to 'show' (share `csm_gold_intro_pct`, default 0 = off) or 'control'; seen and "See Gold" taps are recorded; `wp csm gold-intro` compares Gold bought after assignment, shown against not shown. Lists only what Gold gives (unlimited profiles, requests first on their list, phone numbers members share unless the plan already has them, founding places left, ₹7,999 a year, Premium days credited), never the ranking boost. Not for admins, Gold members, members in their first two days, or when Gold is sold out. It is last in the popup order and only offered on a page with no other popup due.
+- Dialog messages keep their line breaks (`white-space: pre-line`).
+
 ## 1.90.49 — 2026-10-29
 
 - The new home page shows to everyone who reaches the home page, not only logged-out visitors (owner: as admin he still saw the old page). Members are still sent to Discover first; this covers admins and members arriving by a tagged link.

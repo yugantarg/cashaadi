@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.90.49
+ * Version:           1.90.50
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.90.49' );
+define( 'CASHAADI_UI_VER', '1.90.50' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -492,6 +492,11 @@ if ( class_exists( 'CAShaadi\\Modules\\Premium\\PricingPage' ) ) {
 // credit, founding cap (v1.87.0).
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\Gold' ) ) {
 	\CAShaadi\Modules\Premium\Gold::register();
+}
+
+// "Introducing Gold" popup, an experiment (v1.90.50). Off until csm_gold_intro_pct > 0.
+if ( class_exists( 'CAShaadi\\Modules\\Premium\\GoldIntro' ) ) {
+	\CAShaadi\Modules\Premium\GoldIntro::register();
 }
 
 // Note with a match request, for Premium (v1.85.0).

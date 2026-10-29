@@ -326,6 +326,16 @@ final class AppPage {
 		$social = ! $ff15 && ! $reqs && ! $boost && class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\SocialIntro' )
 			? \CAShaadi\Modules\ProfileEdit\SocialIntro::payload( get_current_user_id() )
 			: false;
+		// Sampled one-time "get your Verified CA badge" popup. One popup per
+		// page: while the social one is pending this is not even assigned.
+		$vnudge = ! $ff15 && ! $reqs && ! $boost && ! $social && class_exists( '\\CAShaadi\\Modules\\CaVerify\\VerifyNudge' )
+			? \CAShaadi\Modules\CaVerify\VerifyNudge::payload( get_current_user_id() )
+			: false;
+		// "Introducing Gold" (v1.90.50, an experiment): last in line, only on a
+		// page where no other popup is due, so it never stacks on one.
+		$gold_intro = ! $ff15 && ! $reqs && ! $boost && ! $social && ! $vnudge && class_exists( '\\CAShaadi\\Modules\\Premium\\GoldIntro' )
+			? \CAShaadi\Modules\Premium\GoldIntro::payload( get_current_user_id() )
+			: false;
 		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
@@ -341,11 +351,8 @@ final class AppPage {
 			'reqsPopup'   => $reqs,
 			'boostPopup'  => $boost,
 			'socialIntro' => $social,
-			// Sampled one-time "get your Verified CA badge" popup. One popup per
-			// page: while the social one is pending this is not even assigned.
-			'verifyNudge' => ! $ff15 && ! $reqs && ! $boost && ! $social && class_exists( '\\CAShaadi\\Modules\\CaVerify\\VerifyNudge' )
-				? \CAShaadi\Modules\CaVerify\VerifyNudge::payload( get_current_user_id() )
-				: false,
+			'verifyNudge' => $vnudge,
+			'goldIntro'   => $gold_intro,
 		) );
 
 		// The spotlight overlay: the new-account tour and the first-action

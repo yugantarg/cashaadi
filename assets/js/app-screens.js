@@ -575,6 +575,38 @@ window.csmProfileCard = function ( p ) {
 } )();
 
 /*
+ * "Introducing Gold" (v1.90.50): one-time, sampled, an experiment. The server
+ * sends it only when no other popup is due on the page. Marked seen the
+ * moment it appears; "See Gold" is recorded separately.
+ */
+( function () {
+	var cfg = window.CSM_APP && window.CSM_APP.goldIntro;
+	if ( ! cfg || ! cfg.url || typeof window.csmConfirm !== 'function' ) { return; }
+	if ( /^\/(welcome|profile\/edit|membership-pricing)\b/.test( window.location.pathname ) ) { return; }
+	function mark( clicked ) {
+		try {
+			return fetch( cfg.seen + ( clicked ? '?clicked=1' : '' ), {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': window.CSM_APP.nonce }
+			} ).catch( function () {} );
+		} catch ( e ) {
+			return Promise.resolve();
+		}
+	}
+	setTimeout( function () {
+		mark( false );
+		window.csmConfirm( cfg.text, { title: cfg.title, okText: 'See Gold', cancelText: 'Not now' } ).then( function ( yes ) {
+			if ( ! yes ) { return; }
+			var go = function () { window.location.href = cfg.url; };
+			var p  = mark( true );
+			setTimeout( go, 800 );
+			if ( p && p.then ) { p.then( go, go ); }
+		} );
+	}, 1500 );
+} )();
+
+/*
  * One-time popup: free women now get 15 profiles a week (owner, 2026-10-03).
  * Only for women who joined before the change; the server decides who and
  * when. Marked seen the moment it is shown.

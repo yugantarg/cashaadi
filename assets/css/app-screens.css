@@ -113,7 +113,7 @@
 	font-family: var(--csm-serif, Georgia, serif);
 	font-size: 19px; font-weight: 600; color: var(--csm-ink, #16212b);
 }
-.csm-dlg-msg { margin: 0 0 18px; font-size: 14.5px; line-height: 1.5; color: var(--csm-muted, #5c6a76); }
+.csm-dlg-msg { margin: 0 0 18px; font-size: 14.5px; line-height: 1.5; color: var(--csm-muted, #5c6a76); white-space: pre-line; /* line breaks in a message show (Gold popup) */ }
 .csm-dlg-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .csm-dlg-btn {
 	min-height: 44px; padding: 11px 18px;
