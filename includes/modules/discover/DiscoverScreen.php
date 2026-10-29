@@ -127,6 +127,13 @@ final class DiscoverScreen {
 		global $wpdb;
 		$dlock = 'csm_deliver_' . (int) $viewer_id;
 		if ( '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, 10 )', $dlock ) ) ) {
+			/*
+			 * Re-read the member's notes ("today's intro given", the week's
+			 * count) now that the lock is held. A request that waited for it
+			 * still had the copy it loaded before waiting, so it gave a second
+			 * intro a second after the first (viewer #1679, 2026-10-28 15:50).
+			 */
+			wp_cache_delete( (int) $viewer_id, 'user_meta' );
 			// A running profile boost, as a bonus card at the front (v1.89.47).
 			if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
 				\CAShaadi\Modules\Premium\Spotlight::deliver( $viewer_id );

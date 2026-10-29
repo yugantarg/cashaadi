@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.48 — 2026-10-29
+
+- Intros: a viewer could still get two in one day, one second apart (#1679, 28 Oct 15:50; flagged by the daily check), and so four in a week. The delivery lock (v1.89.98) was held, but the waiting request kept the user meta it had loaded before waiting, which still said no intro today. The member's meta cache is now cleared once the lock is held, so the boost and intro limits are read fresh.
+
 ## 1.90.47 — 2026-10-28
 
 - Daily check (Core\Watch): the email and the wp-admin notice appear only when there is something for the owner to do, one short line each (owner: "only disturb when there is something for me to fix", and not long). Each check carries a `fix` line; information-only findings (exposure shape, members not yet shown, groups the nightly regroup will correct, numbers opened after a withdrawn request) stay in `wp csm watch`. "Regroup has not run yet" on the first day is no longer a failure.
