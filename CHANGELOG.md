@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.49 — 2026-10-29
+
+- The new home page shows to everyone who reaches the home page, not only logged-out visitors (owner: as admin he still saw the old page). Members are still sent to Discover first; this covers admins and members arriving by a tagged link.
+
 ## 1.90.48 — 2026-10-29
 
 - Intros: a viewer could still get two in one day, one second apart (#1679, 28 Oct 15:50; flagged by the daily check), and so four in a week. The delivery lock (v1.89.98) was held, but the waiting request kept the user meta it had loaded before waiting, which still said no intro today. The member's meta cache is now cleared once the lock is held, so the boost and intro limits are read fresh.

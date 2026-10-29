@@ -56,7 +56,9 @@ final class Landing {
 		if ( self::PATH === strtolower( $here ) ) {
 			return 'preview';
 		}
-		if ( get_option( self::LIVE ) && ! is_user_logged_in() && ( is_front_page() || is_home() ) ) {
+		// Everyone who reaches the home page: members are sent to Discover before this
+		// (Site::members_skip_home), so this is visitors, admins and tagged links (v1.90.49).
+		if ( get_option( self::LIVE ) && ( is_front_page() || is_home() ) ) {
 			return 'live';
 		}
 		return '';
