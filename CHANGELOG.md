@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.75 — 2026-10-30
+
+- Survey question 1 is a typed amount in rupees ("How much have you paid in total for matrimony services so far?", 0 if never) instead of ranges (owner). `wp csm survey` groups the amounts into bands and gives the median and average of those who paid.
+
 ## 1.90.74 — 2026-10-30
 
 - Survey reworked (owner): "who is involved" removed (Created for is the proxy); each feature rated 1–5 for importance; up to 2 biggest problems; a testimonial with a switch for permission to use name and photo. Reward is CA Shaadi cash, not a boost: 300 for answering, another 300 for a testimonial (30+ characters) with permission, posted to the cash ledger (shown on /refer/ as "For answering our survey" / "For your testimonial", reversible on the admin page). Not offered to anyone ever offered the ₹99 boost. Popup and screen say both amounts plainly. `wp csm survey [--text]` lists average importance, problems, NPS, testimonials (with permission flag), split by self / parent, gender and plan.

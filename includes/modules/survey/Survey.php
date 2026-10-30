@@ -2,7 +2,7 @@
 /**
  * Member survey (owner, 2026-10-30), at /survey/.
  *
- *   1. What they have paid for matrimony services: the price signal. No "what
+ *   1. What they have paid for matrimony services, typed in rupees: the price signal. No "what
  *      would you pay" (owner: "questions like these incentivize lying"); a
  *      past fact has nothing to gain by bending it.
  *   2. How important each feature is, 1 to 5.
@@ -48,15 +48,15 @@ final class Survey {
 	const CASH_TESTI = 300;
 	const TESTI_MIN  = 30;
 
-	const PAID = array(
-		'never'  => 'No, never',
-		'u2k'    => 'Under ₹2,000',
-		'2-5k'   => '₹2,000 – ₹5,000',
-		'5-15k'  => '₹5,000 – ₹15,000',
-		'15-50k' => '₹15,000 – ₹50,000',
-		'50k+'   => 'More than ₹50,000',
+	/** Bands for reading the amount members type in (question 1). */
+	const PAID_BANDS = array(
+		'never'  => array( 0, 0, 'Nothing' ),
+		'u2k'    => array( 1, 1999, 'Under ₹2,000' ),
+		'2-5k'   => array( 2000, 4999, '₹2,000 – ₹5,000' ),
+		'5-15k'  => array( 5000, 14999, '₹5,000 – ₹15,000' ),
+		'15-50k' => array( 15000, 49999, '₹15,000 – ₹50,000' ),
+		'50k+'   => array( 50000, PHP_INT_MAX, '₹50,000 or more' ),
 	);
-
 	const FEATURES = array(
 		'more'     => 'More profiles every week',
 		'phone'    => 'See phone numbers',
@@ -165,9 +165,11 @@ final class Survey {
 		$bad = array();
 		$a   = array();
 
-		$a['paid'] = (string) $request->get_param( 'paid' );
-		if ( ! isset( self::PAID[ $a['paid'] ] ) ) {
-			$bad['paid'] = 'Please choose one.';
+		// Typed in rupees (owner: "how much you paid should be text"); 0 = never.
+		$paid      = preg_replace( '/[^0-9]/', '', (string) $request->get_param( 'paid' ) );
+		$a['paid'] = '' === $paid ? -1 : (int) $paid;
+		if ( $a['paid'] < 0 || $a['paid'] > 10000000 ) {
+			$bad['paid'] = 'Please enter an amount in rupees. Write 0 if never.';
 		}
 		$imp = (array) $request->get_param( 'importance' );
 		$a['importance'] = array();
@@ -265,8 +267,9 @@ final class Survey {
 		$o .= '<div class="csm-sv-cash"><b>300 CA Shaadi cash</b> for answering the survey.<br><b>Another 300</b> for a testimonial with your name and photo.<br><small>1 CA Shaadi cash = ₹1 off any plan.</small></div>';
 		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '">';
 
-		$o .= self::q( 'paid', 1, 'Have you ever paid for a matrimony service (a site, app, bureau or agent)? How much in total?',
-			'<div class="csm-sv-opts">' . self::options( 'paid', self::PAID, 'radio' ) . '</div>' );
+		$o .= self::q( 'paid', 1, 'How much have you paid in total for matrimony services so far (sites, apps, bureaus or agents)?',
+			'<p class="csm-sv-hint">An approximate amount is fine. Write 0 if you never paid.</p>'
+			. '<label class="csm-sv-amt"><span>₹</span><input type="text" name="paid" inputmode="numeric" autocomplete="off" placeholder="0"></label>' );
 
 		$rows = '';
 		foreach ( self::FEATURES as $f => $label ) {
@@ -302,7 +305,7 @@ final class Survey {
 			. '[].forEach.call(f.querySelectorAll("fieldset[data-key=problems] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key=problems] input:checked").length>2){c.checked=false;}});});'
 			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={importance:{}};'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-err"),function(x){x.textContent="";});'
-			. 'var c=f.querySelector("input[name=paid]:checked");d.paid=c?c.value:"";'
+			. 'var c;d.paid=f.querySelector("input[name=paid]").value;'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-rate"),function(r){var k=r.getAttribute("data-f"),x=r.querySelector("input:checked");d.importance[k]=x?x.value:0;});'
 			. 'd.problems=[].map.call(f.querySelectorAll("input[name=problems]:checked"),function(i){return i.value;});'
 			. 'c=f.querySelector("input[name=nps]:checked");d.nps=c?c.value:"";'
@@ -331,6 +334,8 @@ final class Survey {
 			. '.csm-sv-opts.is-scale .csm-sv-opt input,.csm-sv-dot input{position:absolute;opacity:0;pointer-events:none}.csm-sv-ends{width:100%;display:flex;justify-content:space-between;color:#5c6a76;font-size:12px}'
 			. '.csm-sv-rate{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #f0f2f5;flex-wrap:wrap}.csm-sv-rate-l{flex:1 1 160px;font-size:15px}'
 			. '.csm-sv-dots{display:flex;gap:6px}.csm-sv-dot{position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid #e4eaf0;border-radius:50%;cursor:pointer;font-size:14px}'
+			. '.csm-sv-amt{display:flex;align-items:center;gap:8px;margin-top:8px;border:1px solid #c9d2dc;border-radius:10px;padding:0 12px;max-width:260px}.csm-sv-amt span{color:#5c6a76;font-weight:700}'
+			. '.csm-sv-amt input{border:0;outline:0;font:inherit;font-size:17px;padding:11px 0;width:100%;background:transparent}'
 			. '.csm-sv textarea{width:100%;box-sizing:border-box;border:1px solid #c9d2dc;border-radius:10px;padding:10px;font:inherit;margin-top:8px}'
 			. '.csm-sv-sw{display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer;font-size:14px}.csm-sv-sw input{position:absolute;opacity:0;pointer-events:none}'
 			. '.csm-sv-sw-t{flex:0 0 auto;width:40px;height:22px;border-radius:999px;background:#c9d2dc;position:relative;transition:background .15s}'
@@ -398,7 +403,28 @@ final class Survey {
 			\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
 		};
 
-		$share( 'Paid for matrimony services before', self::PAID, 'paid' );
+		// Paid before: bands of the typed amounts, then the median and the average.
+		$table = array();
+		foreach ( self::PAID_BANDS as $band ) {
+			$row = array( 'paid before' => $band[2] );
+			foreach ( $groups as $g => $fn ) {
+				$c = count( array_filter( $sets[ $g ], function ( $m ) use ( $band ) { $p = (int) ( $m['paid'] ?? -1 ); return $p >= $band[0] && $p <= $band[1]; } ) );
+				$row[ $head( $g ) ] = count( $sets[ $g ] ) ? round( 100 * $c / count( $sets[ $g ] ) ) . '%' : '-';
+			}
+			$table[] = $row;
+		}
+		foreach ( array( 'median of those who paid', 'average of those who paid' ) as $label ) {
+			$row = array( 'paid before' => $label );
+			foreach ( $groups as $g => $fn ) {
+				$v = array_values( array_filter( array_map( function ( $m ) { return (int) ( $m['paid'] ?? 0 ); }, $sets[ $g ] ) ) );
+				sort( $v );
+				$x = ! $v ? 0 : ( 0 === strpos( $label, 'median' ) ? $v[ (int) floor( ( count( $v ) - 1 ) / 2 ) ] : array_sum( $v ) / count( $v ) );
+				$row[ $head( $g ) ] = $v ? '₹' . number_format( $x ) : '-';
+			}
+			$table[] = $row;
+		}
+		\WP_CLI::log( "\nPaid for matrimony services before" );
+		\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
 
 		$table = array();
 		foreach ( self::FEATURES as $f => $label ) {
