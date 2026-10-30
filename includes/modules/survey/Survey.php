@@ -1,17 +1,31 @@
 <?php
 /**
- * Member survey: 5 questions and a short "what should we improve" (owner,
- * 2026-10-30). No direct price question (owner: "questions like these
- * incentivize lying"); the price signal is what members have already paid for
- * matrimony services, a past fact with nothing to gain by bending it.
+ * Member survey (owner, 2026-10-30), at /survey/.
  *
- * Reward: 1 profile boost (a bought-boost credit, Spotlight::CREDITS), given
- * on submit. Once per member, for the first csm_survey_max answers (default
- * 300) so Discover is not flooded with boosts. csm_survey_on = 0 stops it.
+ *   1. What they have paid for matrimony services: the price signal. No "what
+ *      would you pay" (owner: "questions like these incentivize lying"); a
+ *      past fact has nothing to gain by bending it.
+ *   2. How important each feature is, 1 to 5.
+ *   3. The biggest problems, up to 2.
+ *   4. How likely they are to recommend CA Shaadi, 0 to 10.
+ *   5. One thing to improve (required).
+ *   6. A testimonial (optional), with a switch giving us permission to use
+ *      their name and photo with it.
  *
- * Invited by a one-time popup (AppPage's chain) for members past their first
- * two days. The screen is /survey/. Answers: user meta csm_survey1 and a
- * survey_answer event. `wp csm survey [--text]` reads the results.
+ * Self or parent is read from "Created for", not asked (owner: "our proxy is
+ * enough").
+ *
+ * Rewards, in CA Shaadi cash (the referral ledger, 1 cash = ₹1 at checkout):
+ * 300 for answering; another 300 for a testimonial of 30+ characters with
+ * the permission switch on. Each once per member (the ledger's UNIQUE key).
+ *
+ * Who: members past their first two days who were never offered the ₹99
+ * boost (owner: "don't send survey to those you have given 99 boost
+ * option"). Invited by a one-time popup in AppPage's chain. First
+ * csm_survey_max answers (default 300); csm_survey_on = 0 stops it.
+ *
+ * Answers: user meta csm_survey1 and a survey_answer event.
+ * `wp csm survey [--text]` reads them.
  */
 
 namespace CAShaadi\Modules\Survey;
@@ -25,68 +39,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Survey {
 
-	const DONE_META = 'csm_survey1';
-	const SEEN_META = 'csm_survey1_seen';   // the invitation popup was shown
-	const COUNT_OPT = 'csm_survey1_count';
-	const MAX_OPT   = 'csm_survey_max';
-	const ON_OPT    = 'csm_survey_on';
+	const DONE_META  = 'csm_survey1';
+	const SEEN_META  = 'csm_survey1_seen';   // the invitation popup was shown
+	const COUNT_OPT  = 'csm_survey1_count';
+	const MAX_OPT    = 'csm_survey_max';
+	const ON_OPT     = 'csm_survey_on';
+	const CASH       = 300;
+	const CASH_TESTI = 300;
+	const TESTI_MIN  = 30;
 
-	/** key => [ question, [ value => label ], type ] */
-	public static function questions() {
-		return array(
-			'paid'    => array(
-				'Have you ever paid for a matrimony service (a site, app, bureau or agent)? How much in total?',
-				array(
-					'never'  => 'No, never',
-					'u2k'    => 'Under ₹2,000',
-					'2-5k'   => '₹2,000 – ₹5,000',
-					'5-15k'  => '₹5,000 – ₹15,000',
-					'15-50k' => '₹15,000 – ₹50,000',
-					'50k+'   => 'More than ₹50,000',
-				),
-				'one',
-			),
-			'helps'   => array(
-				'Which 2 would help you most in finding a match?',
-				array(
-					'more'     => 'More profiles every week',
-					'phone'    => 'See phone numbers',
-					'first'    => 'Your requests shown first',
-					'viewers'  => 'See who viewed you',
-					'verified' => 'Only verified CAs',
-					'filters'  => 'More filters',
-					'help'     => 'Personal help from our team',
-				),
-				'two',
-			),
-			'problem' => array(
-				'What is the biggest problem for you on CA Shaadi right now?',
-				array(
-					'few'      => 'Too few profiles',
-					'match'    => 'Profiles don\'t match what I want',
-					'reply'    => 'People don\'t reply',
-					'genuine'  => 'Not sure profiles are genuine',
-					'hard'     => 'The app is hard to use',
-					'other'    => 'Something else',
-				),
-				'one',
-			),
-			'who'     => array(
-				'Who is involved in finding the match?',
-				array(
-					'me'      => 'Mostly me',
-					'family'  => 'Mostly my parents / family',
-					'both'    => 'Both together',
-				),
-				'one',
-			),
-			'nps'     => array(
-				'How likely are you to recommend CA Shaadi to a friend?',
-				array_combine( range( 0, 10 ), array_map( 'strval', range( 0, 10 ) ) ),
-				'scale',
-			),
-		);
-	}
+	const PAID = array(
+		'never'  => 'No, never',
+		'u2k'    => 'Under ₹2,000',
+		'2-5k'   => '₹2,000 – ₹5,000',
+		'5-15k'  => '₹5,000 – ₹15,000',
+		'15-50k' => '₹15,000 – ₹50,000',
+		'50k+'   => 'More than ₹50,000',
+	);
+
+	const FEATURES = array(
+		'more'     => 'More profiles every week',
+		'phone'    => 'See phone numbers',
+		'first'    => 'Your requests shown first',
+		'viewers'  => 'See who viewed you',
+		'verified' => 'Only verified CAs',
+		'filters'  => 'More filters',
+		'help'     => 'Personal help from our team',
+	);
+
+	const PROBLEMS = array(
+		'few'     => 'Too few profiles',
+		'match'   => 'Profiles don\'t match what I want',
+		'reply'   => 'People don\'t reply',
+		'genuine' => 'Not sure profiles are genuine',
+		'hard'    => 'The app is hard to use',
+		'other'   => 'Something else',
+	);
 
 	public static function register() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
@@ -98,7 +86,22 @@ final class Survey {
 		}
 	}
 
-	/** Can this member still take it (and get the boost)? */
+	/** Ever offered the ₹99 boost (any month)? */
+	private static function had_boost_deal( $uid ) {
+		if ( ! class_exists( '\\CAShaadi\\Modules\\Premium\\BoostDeal' ) ) {
+			return false;
+		}
+		if ( 'show' === get_user_meta( $uid, \CAShaadi\Modules\Premium\BoostDeal::ARM_META, true ) ) {
+			return true;
+		}
+		global $wpdb;
+		return (bool) $wpdb->get_var( $wpdb->prepare(
+			"SELECT 1 FROM {$wpdb->prefix}csm_event_log WHERE event_type = 'boost_deal_arm' AND actor_id = %d AND metadata LIKE %s LIMIT 1",
+			(int) $uid, '%"arm":"show"%'
+		) );
+	}
+
+	/** Can this member still take it (and get the cash)? */
 	public static function open_for( $uid ) {
 		$uid = (int) $uid;
 		if ( ! $uid || ! get_option( self::ON_OPT, 1 ) || user_can( $uid, 'manage_options' ) || get_user_meta( $uid, self::DONE_META, true ) ) {
@@ -110,7 +113,7 @@ final class Survey {
 		if ( class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' ) && \CAShaadi\Modules\Discover\Boost::is_new( $uid ) ) {
 			return false;
 		}
-		return true;
+		return ! self::had_boost_deal( $uid );
 	}
 
 	/** The one-time invitation popup, for AppPage's chain; false when not due. */
@@ -119,8 +122,8 @@ final class Survey {
 			return false;
 		}
 		return array(
-			'title' => 'Get a free profile boost',
-			'text'  => "Answer 6 quick questions about CA Shaadi. It takes about a minute.\n\nYour answers help us improve, and you get 1 free profile boost.",
+			'title' => 'Get up to 600 CA Shaadi cash',
+			'text'  => "Answer a few quick questions about CA Shaadi: get 300 CA Shaadi cash.\n\nWrite a short testimonial and let us show it with your name and photo: get another 300.\n\n1 CA Shaadi cash = ₹1 off any plan.",
 			'ok'    => 'Start',
 			'url'   => home_url( '/survey/' ),
 			'seen'  => rest_url( 'csm/v1/survey/seen' ),
@@ -146,6 +149,11 @@ final class Survey {
 		) );
 	}
 
+	private static function created_for( $uid ) {
+		$id = function_exists( 'xprofile_get_field_id_from_name' ) ? (int) xprofile_get_field_id_from_name( 'Created for' ) : 0;
+		return $id && class_exists( '\BP_XProfile_ProfileData' ) ? (string) \BP_XProfile_ProfileData::get_value_byid( $id, (int) $uid ) : '';
+	}
+
 	public static function rest_submit( $request ) {
 		$uid = get_current_user_id();
 		if ( get_user_meta( $uid, self::DONE_META, true ) ) {
@@ -154,47 +162,65 @@ final class Survey {
 		if ( ! self::open_for( $uid ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'This survey is closed. Thank you for your interest.' ), 200 );
 		}
-		$a   = array();
 		$bad = array();
-		foreach ( self::questions() as $key => $q ) {
-			$opts = $q[1];
-			if ( 'two' === $q[2] ) {
-				$v = array_values( array_unique( array_filter( array_map( 'strval', (array) $request->get_param( $key ) ), function ( $x ) use ( $opts ) { return isset( $opts[ $x ] ); } ) ) );
-				if ( count( $v ) !== 2 ) {
-					$bad[ $key ] = 'Please pick 2.';
-				}
-			} else {
-				$v = (string) $request->get_param( $key );
-				if ( '' === $v || ! isset( $opts[ $v ] ) ) {
-					$bad[ $key ] = 'Please choose one.';
-				}
-			}
-			$a[ $key ] = $v;
+		$a   = array();
+
+		$a['paid'] = (string) $request->get_param( 'paid' );
+		if ( ! isset( self::PAID[ $a['paid'] ] ) ) {
+			$bad['paid'] = 'Please choose one.';
 		}
-		$text = trim( sanitize_textarea_field( (string) $request->get_param( 'improve' ) ) );
-		if ( mb_strlen( $text ) < 3 ) {
+		$imp = (array) $request->get_param( 'importance' );
+		$a['importance'] = array();
+		foreach ( array_keys( self::FEATURES ) as $f ) {
+			$v = isset( $imp[ $f ] ) ? (int) $imp[ $f ] : 0;
+			if ( $v < 1 || $v > 5 ) {
+				$bad['importance'] = 'Please rate every feature.';
+			}
+			$a['importance'][ $f ] = $v;
+		}
+		$a['problems'] = array_values( array_unique( array_filter( array_map( 'strval', (array) $request->get_param( 'problems' ) ), function ( $x ) { return isset( self::PROBLEMS[ $x ] ); } ) ) );
+		if ( ! $a['problems'] || count( $a['problems'] ) > 2 ) {
+			$bad['problems'] = 'Please pick 1 or 2.';
+		}
+		$nps = $request->get_param( 'nps' );
+		$a['nps'] = is_numeric( $nps ) ? (int) $nps : -1;
+		if ( $a['nps'] < 0 || $a['nps'] > 10 ) {
+			$bad['nps'] = 'Please choose a number.';
+		}
+		$a['improve'] = mb_substr( trim( sanitize_textarea_field( (string) $request->get_param( 'improve' ) ) ), 0, 1000 );
+		if ( mb_strlen( $a['improve'] ) < 3 ) {
 			$bad['improve'] = 'Please write a few words.';
 		}
-		$a['improve'] = mb_substr( $text, 0, 1000 );
+		$a['testimonial'] = mb_substr( trim( sanitize_textarea_field( (string) $request->get_param( 'testimonial' ) ) ), 0, 1000 );
+		$a['permission']  = $request->get_param( 'permission' ) ? 1 : 0;
+		if ( $a['permission'] && mb_strlen( $a['testimonial'] ) < self::TESTI_MIN ) {
+			$bad['testimonial'] = 'Please write at least ' . self::TESTI_MIN . ' characters to get the extra 300.';
+		}
 		if ( $bad ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'errors' => $bad ), 200 );
 		}
-		$a['at'] = time();
-		// Claim first, so a double tap cannot give two boosts.
+		$a['at']          = time();
+		$a['created_for'] = self::created_for( $uid );
+		// Claim first, so a double tap cannot pay twice.
 		if ( ! add_user_meta( $uid, self::DONE_META, wp_json_encode( $a ), true ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'You have already answered. Thank you!' ), 200 );
 		}
 		update_option( self::COUNT_OPT, (int) get_option( self::COUNT_OPT, 0 ) + 1, false );
-		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) ) {
-			update_user_meta( $uid, \CAShaadi\Modules\Premium\Spotlight::CREDITS, \CAShaadi\Modules\Premium\Spotlight::credits( $uid ) + 1 );
+		$cash = 0;
+		if ( class_exists( '\\CAShaadi\\Modules\\Referral\\Referral' ) ) {
+			$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, self::CASH, 'survey', 0, 0, 'Survey answered' ) ? self::CASH : 0;
+			if ( $a['permission'] && '' !== $a['testimonial'] ) {
+				$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, self::CASH_TESTI, 'testimonial', 0, 0, 'Testimonial with name and photo' ) ? self::CASH_TESTI : 0;
+			}
 		}
 		if ( function_exists( 'cashaadi' ) ) {
 			cashaadi()->log_event( 'survey_answer', $uid, 0, array_merge( $a, array(
 				'gender' => (string) cashaadi()->get_gender( $uid ),
 				'plan'   => Membership::is_gold( $uid ) ? 'gold' : ( Membership::is_premium( $uid ) ? 'premium' : 'free' ),
+				'cash'   => $cash,
 			) ) );
 		}
-		return new \WP_REST_Response( array( 'ok' => true, 'profile' => home_url( '/profile/' ) ), 200 );
+		return new \WP_REST_Response( array( 'ok' => true, 'cash' => $cash, 'refer' => home_url( '/refer/' ) ), 200 );
 	}
 
 	/* -------------------------------------------------------------- screen */
@@ -210,7 +236,7 @@ final class Survey {
 		AppPage::open( 'Quick survey', 'profile' );
 		echo '<div class="csm-sv">';
 		if ( $done ) {
-			echo '<h1>Thank you!</h1><p>You have already answered. Your free boost is on your profile.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/profile/' ) ) . '">Go to my profile</a>';
+			echo '<h1>Thank you!</h1><p>You have already answered. Your CA Shaadi cash is in your account.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/refer/' ) ) . '">See my CA Shaadi cash</a>';
 		} elseif ( ! $open && ! current_user_can( 'manage_options' ) ) {
 			echo '<h1>This survey is closed</h1><p>Thank you for your interest.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/discover/' ) ) . '">Back to Discover</a>';
 		} else {
@@ -221,53 +247,95 @@ final class Survey {
 		exit;
 	}
 
-	private static function form() {
-		$o  = '<h1>6 quick questions</h1><p class="csm-sv-sub">Answer all of them and get 1 free profile boost.</p>';
-		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '">';
-		$n  = 0;
-		foreach ( self::questions() as $key => $q ) {
-			$n++;
-			$o .= '<fieldset class="csm-sv-q" data-key="' . esc_attr( $key ) . '"><legend><span>' . $n . '.</span> ' . esc_html( $q[0] ) . ( 'two' === $q[2] ? ' <small>(pick 2)</small>' : '' ) . '</legend>';
-			$o .= '<div class="csm-sv-opts' . ( 'scale' === $q[2] ? ' is-scale' : '' ) . '">';
-			foreach ( $q[1] as $v => $label ) {
-				$type = 'two' === $q[2] ? 'checkbox' : 'radio';
-				$o   .= '<label class="csm-sv-opt"><input type="' . $type . '" name="' . esc_attr( $key ) . ( 'checkbox' === $type ? '[]' : '' ) . '" value="' . esc_attr( (string) $v ) . '"><span>' . esc_html( $label ) . '</span></label>';
-			}
-			if ( 'scale' === $q[2] ) {
-				$o .= '<div class="csm-sv-ends"><span>Not likely</span><span>Very likely</span></div>';
-			}
-			$o .= '</div><p class="csm-sv-err"></p></fieldset>';
+	private static function options( $name, $opts, $type ) {
+		$o = '';
+		foreach ( $opts as $v => $label ) {
+			$o .= '<label class="csm-sv-opt"><input type="' . $type . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( (string) $v ) . '"><span>' . esc_html( $label ) . '</span></label>';
 		}
-		$o .= '<fieldset class="csm-sv-q" data-key="improve"><legend><span>' . ( $n + 1 ) . '.</span> One thing we should improve</legend>'
-			. '<textarea name="improve" rows="3" maxlength="1000" placeholder="Write a few words"></textarea><p class="csm-sv-err"></p></fieldset>';
-		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit and get my boost</button></form>';
+		return $o;
+	}
+
+	private static function q( $key, $n, $title, $inner, $note = '' ) {
+		return '<fieldset class="csm-sv-q" data-key="' . esc_attr( $key ) . '"><legend><span>' . (int) $n . '.</span> ' . esc_html( $title ) . ( $note ? ' <small>' . esc_html( $note ) . '</small>' : '' ) . '</legend>'
+			. $inner . '<p class="csm-sv-err"></p></fieldset>';
+	}
+
+	private static function form() {
+		$o  = '<h1>Help us improve CA Shaadi</h1>';
+		$o .= '<div class="csm-sv-cash"><b>300 CA Shaadi cash</b> for answering the survey.<br><b>Another 300</b> for a testimonial with your name and photo.<br><small>1 CA Shaadi cash = ₹1 off any plan.</small></div>';
+		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '">';
+
+		$o .= self::q( 'paid', 1, 'Have you ever paid for a matrimony service (a site, app, bureau or agent)? How much in total?',
+			'<div class="csm-sv-opts">' . self::options( 'paid', self::PAID, 'radio' ) . '</div>' );
+
+		$rows = '';
+		foreach ( self::FEATURES as $f => $label ) {
+			$cells = '';
+			for ( $i = 1; $i <= 5; $i++ ) {
+				$cells .= '<label class="csm-sv-dot"><input type="radio" name="imp_' . esc_attr( $f ) . '" value="' . $i . '"><span>' . $i . '</span></label>';
+			}
+			$rows .= '<div class="csm-sv-rate" data-f="' . esc_attr( $f ) . '"><div class="csm-sv-rate-l">' . esc_html( $label ) . '</div><div class="csm-sv-dots">' . $cells . '</div></div>';
+		}
+		$o .= self::q( 'importance', 2, 'How important is each of these to you?', '<p class="csm-sv-hint">1 = not important · 5 = very important</p>' . $rows );
+
+		$o .= self::q( 'problems', 3, 'What are the biggest problems for you on CA Shaadi right now?',
+			'<div class="csm-sv-opts">' . self::options( 'problems', self::PROBLEMS, 'checkbox' ) . '</div>', '(pick up to 2)' );
+
+		$scale = '';
+		for ( $i = 0; $i <= 10; $i++ ) {
+			$scale .= '<label class="csm-sv-opt"><input type="radio" name="nps" value="' . $i . '"><span>' . $i . '</span></label>';
+		}
+		$o .= self::q( 'nps', 4, 'How likely are you to recommend CA Shaadi to a friend?',
+			'<div class="csm-sv-opts is-scale">' . $scale . '<div class="csm-sv-ends"><span>Not likely</span><span>Very likely</span></div></div>' );
+
+		$o .= self::q( 'improve', 5, 'One thing we should improve',
+			'<textarea name="improve" rows="3" maxlength="1000" placeholder="Write a few words"></textarea>' );
+
+		$o .= self::q( 'testimonial', 6, 'Your testimonial',
+			'<p class="csm-sv-hint">What do you like about CA Shaadi? Write it and turn on the switch below to get another 300 CA Shaadi cash.</p>'
+			. '<textarea name="testimonial" rows="4" maxlength="1000" placeholder="For example: what you found here, or what you like about it"></textarea>'
+			. '<label class="csm-sv-sw"><input type="checkbox" name="permission" value="1"><span class="csm-sv-sw-t"></span><span>CA Shaadi may show this with my name and photo</span></label>',
+			'(optional, +300 cash)' );
+
+		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit</button></form>';
 		$o .= '<script>(function(){var f=document.getElementById("csm-sv-form");if(!f){return;}'
-			. '[].forEach.call(f.querySelectorAll("fieldset[data-key=helps] input"),function(c){c.addEventListener("change",function(){var on=f.querySelectorAll("fieldset[data-key=helps] input:checked");if(on.length>2){c.checked=false;}});});'
-			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={};'
+			. '[].forEach.call(f.querySelectorAll("fieldset[data-key=problems] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key=problems] input:checked").length>2){c.checked=false;}});});'
+			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={importance:{}};'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-err"),function(x){x.textContent="";});'
-			. '[].forEach.call(f.querySelectorAll("fieldset[data-key]"),function(fs){var k=fs.getAttribute("data-key");'
-			. 'if(k==="helps"){d[k]=[].map.call(fs.querySelectorAll("input:checked"),function(i){return i.value;});}'
-			. 'else if(k==="improve"){d[k]=fs.querySelector("textarea").value;}else{var c=fs.querySelector("input:checked");d[k]=c?c.value:"";}});'
+			. 'var c=f.querySelector("input[name=paid]:checked");d.paid=c?c.value:"";'
+			. '[].forEach.call(f.querySelectorAll(".csm-sv-rate"),function(r){var k=r.getAttribute("data-f"),x=r.querySelector("input:checked");d.importance[k]=x?x.value:0;});'
+			. 'd.problems=[].map.call(f.querySelectorAll("input[name=problems]:checked"),function(i){return i.value;});'
+			. 'c=f.querySelector("input[name=nps]:checked");d.nps=c?c.value:"";'
+			. 'd.improve=f.querySelector("textarea[name=improve]").value;d.testimonial=f.querySelector("textarea[name=testimonial]").value;'
+			. 'd.permission=f.querySelector("input[name=permission]").checked?1:0;'
 			. 'b.disabled=true;b.textContent="Sending…";'
 			. 'fetch(f.getAttribute("data-url"),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-WP-Nonce":f.getAttribute("data-nonce")},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(r){'
-			. 'if(r&&r.ok){f.parentNode.innerHTML="<h1>Thank you!</h1><p>Your free profile boost is ready. Start it from your profile whenever you like.</p><a class=\"csm-sv-btn\" href=\""+r.profile+"\">Go to my profile</a>";window.scrollTo(0,0);return;}'
-			. 'b.disabled=false;b.textContent="Submit and get my boost";var first=null;'
+			. 'if(r&&r.ok){f.parentNode.innerHTML="<h1>Thank you!</h1><p><b>"+r.cash+" CA Shaadi cash</b> has been added to your account. Use it on any plan.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>";window.scrollTo(0,0);return;}'
+			. 'b.disabled=false;b.textContent="Submit";var first=null;'
 			. 'Object.keys((r&&r.errors)||{}).forEach(function(k){var fs=f.querySelector("fieldset[data-key=\""+k+"\"]");if(fs){fs.querySelector(".csm-sv-err").textContent=r.errors[k];first=first||fs;}});'
 			. 'if(r&&r.message){f.querySelector(".csm-sv-top").textContent=r.message;}'
 			. 'if(first){first.scrollIntoView({block:"center",behavior:"smooth"});}'
-			. '}).catch(function(){b.disabled=false;b.textContent="Submit and get my boost";f.querySelector(".csm-sv-top").textContent="No connection. Please try again.";});});})();</script>';
+			. '}).catch(function(){b.disabled=false;b.textContent="Submit";f.querySelector(".csm-sv-top").textContent="No connection. Please try again.";});});})();</script>';
 		return $o;
 	}
 
 	private static function css() {
-		return '<style>.csm-sv{max-width:640px;margin:0 auto;padding:16px 16px 40px;color:#16212b}.csm-sv h1{font-size:24px;margin:8px 0 4px}'
-			. '.csm-sv-sub{color:#5c6a76;margin:0 0 18px}.csm-sv-q{border:1px solid #e4eaf0;border-radius:14px;padding:14px;margin:0 0 14px;background:#fff}'
+		return '<style>.csm-sv{max-width:640px;margin:0 auto;padding:16px 16px 40px;color:#16212b}.csm-sv h1{font-size:24px;margin:8px 0 10px}'
+			. '.csm-sv-cash{background:#fffaf0;border:1px solid #f0d58c;border-radius:12px;padding:12px 14px;margin:0 0 16px;line-height:1.5}.csm-sv-cash small{color:#5c6a76}'
+			. '.csm-sv-q{border:1px solid #e4eaf0;border-radius:14px;padding:14px;margin:0 0 14px;background:#fff;min-width:0}'
 			. '.csm-sv-q legend{font-weight:700;font-size:16px;line-height:1.35;padding:0 4px}.csm-sv-q legend span{color:#7a1220}.csm-sv-q legend small{font-weight:400;color:#5c6a76}'
-			. '.csm-sv-opts{display:flex;flex-direction:column;gap:8px;margin-top:8px}.csm-sv-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e4eaf0;border-radius:10px;cursor:pointer;font-size:15px}'
-			. '.csm-sv-opt input{margin:0;flex:0 0 auto}.csm-sv-opt:has(input:checked){border-color:#0b2350;background:#f3f7fc}'
-			. '.csm-sv-opts.is-scale{flex-direction:row;flex-wrap:wrap;gap:6px}.csm-sv-opts.is-scale .csm-sv-opt{flex:1 0 38px;justify-content:center;padding:10px 0;flex-direction:column;gap:2px}'
-			. '.csm-sv-opts.is-scale .csm-sv-opt input{position:absolute;opacity:0;pointer-events:none}.csm-sv-ends{width:100%;display:flex;justify-content:space-between;color:#5c6a76;font-size:12px}'
+			. '.csm-sv-hint{color:#5c6a76;font-size:13px;margin:6px 0}'
+			. '.csm-sv-opts{display:flex;flex-direction:column;gap:8px;margin-top:8px}.csm-sv-opt{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e4eaf0;border-radius:10px;cursor:pointer;font-size:15px}'
+			. '.csm-sv-opt input{margin:0;flex:0 0 auto}.csm-sv-opt:has(input:checked),.csm-sv-dot:has(input:checked){border-color:#0b2350;background:#f3f7fc}'
+			. '.csm-sv-opts.is-scale{flex-direction:row;flex-wrap:wrap;gap:6px}.csm-sv-opts.is-scale .csm-sv-opt{flex:1 0 38px;justify-content:center;padding:10px 0}'
+			. '.csm-sv-opts.is-scale .csm-sv-opt input,.csm-sv-dot input{position:absolute;opacity:0;pointer-events:none}.csm-sv-ends{width:100%;display:flex;justify-content:space-between;color:#5c6a76;font-size:12px}'
+			. '.csm-sv-rate{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #f0f2f5;flex-wrap:wrap}.csm-sv-rate-l{flex:1 1 160px;font-size:15px}'
+			. '.csm-sv-dots{display:flex;gap:6px}.csm-sv-dot{position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid #e4eaf0;border-radius:50%;cursor:pointer;font-size:14px}'
 			. '.csm-sv textarea{width:100%;box-sizing:border-box;border:1px solid #c9d2dc;border-radius:10px;padding:10px;font:inherit;margin-top:8px}'
+			. '.csm-sv-sw{display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer;font-size:14px}.csm-sv-sw input{position:absolute;opacity:0;pointer-events:none}'
+			. '.csm-sv-sw-t{flex:0 0 auto;width:40px;height:22px;border-radius:999px;background:#c9d2dc;position:relative;transition:background .15s}'
+			. '.csm-sv-sw-t:after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}'
+			. '.csm-sv-sw input:checked+.csm-sv-sw-t{background:#1a7f37}.csm-sv-sw input:checked+.csm-sv-sw-t:after{left:21px}'
 			. '.csm-sv-err{color:#b3261e;font-size:13px;margin:6px 0 0}.csm-sv-err:empty{display:none}'
 			. '.csm-sv-btn{display:block;width:100%;padding:14px;border:0;border-radius:999px;background:#0b2350;color:#fff!important;font-weight:700;font-size:16px;text-align:center;text-decoration:none;cursor:pointer}'
 			. '.csm-sv-btn:disabled{opacity:.6}</style>';
@@ -278,8 +346,9 @@ final class Survey {
 	/**
 	 * wp csm survey [--text]
 	 *
-	 * Each answer's share, overall and split by who is involved (me / family /
-	 * both), gender and plan. --text also lists the "improve" answers.
+	 * Answers, overall and split by self / parent ("Created for"), gender and
+	 * plan; the average importance of each feature; NPS. --text also lists
+	 * the improvement answers and the testimonials (with permission or not).
 	 */
 	public static function cli( $args, $assoc ) {
 		global $wpdb;
@@ -288,7 +357,7 @@ final class Survey {
 		foreach ( (array) $rows as $r ) {
 			$m = json_decode( (string) $r->metadata, true );
 			if ( is_array( $m ) ) {
-				$all[ (int) $r->actor_id ] = $m; // one per member
+				$all[ (int) $r->actor_id ] = $m;
 			}
 		}
 		$n = count( $all );
@@ -296,48 +365,76 @@ final class Survey {
 		if ( ! $n ) {
 			return;
 		}
+		$parent = function ( $m ) { return in_array( $m['created_for'] ?? '', array( 'Son', 'Daughter' ), true ); };
 		$groups = array(
 			'all'    => function () { return true; },
-			'me'     => function ( $m ) { return 'me' === ( $m['who'] ?? '' ); },
-			'family' => function ( $m ) { return 'family' === ( $m['who'] ?? '' ); },
-			'both'   => function ( $m ) { return 'both' === ( $m['who'] ?? '' ); },
+			'self'   => function ( $m ) use ( $parent ) { return ! $parent( $m ); },
+			'parent' => $parent,
 			'men'    => function ( $m ) { return 'Male' === trim( (string) ( $m['gender'] ?? '' ) ); },
 			'women'  => function ( $m ) { return 'Female' === trim( (string) ( $m['gender'] ?? '' ) ); },
 			'free'   => function ( $m ) { return 'free' === ( $m['plan'] ?? '' ); },
 			'paid'   => function ( $m ) { return 'free' !== ( $m['plan'] ?? 'free' ); },
 		);
-		$size = array();
+		$sets = array();
 		foreach ( $groups as $g => $fn ) {
-			$size[ $g ] = count( array_filter( $all, $fn ) );
+			$sets[ $g ] = array_filter( $all, $fn );
 		}
-		foreach ( self::questions() as $key => $q ) {
+		$head = function ( $g ) use ( $sets ) { return $g . ' (' . count( $sets[ $g ] ) . ')'; };
+
+		$share = function ( $title, $opts, $key ) use ( $groups, $sets, $head ) {
 			$table = array();
-			foreach ( $q[1] as $v => $label ) {
+			foreach ( $opts as $v => $label ) {
 				$row = array( 'answer' => $label );
 				foreach ( $groups as $g => $fn ) {
 					$c = 0;
-					foreach ( $all as $m ) {
-						if ( $fn( $m ) && in_array( (string) $v, array_map( 'strval', (array) ( $m[ $key ] ?? array() ) ), true ) ) {
-							$c++;
-						}
+					foreach ( $sets[ $g ] as $m ) {
+						$c += in_array( (string) $v, array_map( 'strval', (array) ( $m[ $key ] ?? array() ) ), true ) ? 1 : 0;
 					}
-					$row[ $g . ' (' . $size[ $g ] . ')' ] = $size[ $g ] ? round( 100 * $c / $size[ $g ] ) . '%' : '-';
+					$row[ $head( $g ) ] = count( $sets[ $g ] ) ? round( 100 * $c / count( $sets[ $g ] ) ) . '%' : '-';
 				}
 				$table[] = $row;
 			}
-			\WP_CLI::log( "\n" . $q[0] . ( 'two' === $q[2] ? ' (each person picked 2, so columns add to 200%)' : '' ) );
+			\WP_CLI::log( "\n" . $title );
 			\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
-			if ( 'nps' === $key ) {
-				$s = array_map( function ( $m ) { return (int) ( $m['nps'] ?? 0 ); }, $all );
-				$pro = count( array_filter( $s, function ( $x ) { return $x >= 9; } ) );
-				$det = count( array_filter( $s, function ( $x ) { return $x <= 6; } ) );
-				\WP_CLI::log( sprintf( 'NPS: %d (promoters %d%%, detractors %d%%).', round( 100 * ( $pro - $det ) / $n ), round( 100 * $pro / $n ), round( 100 * $det / $n ) ) );
+		};
+
+		$share( 'Paid for matrimony services before', self::PAID, 'paid' );
+
+		$table = array();
+		foreach ( self::FEATURES as $f => $label ) {
+			$row = array( 'feature' => $label );
+			foreach ( $groups as $g => $fn ) {
+				$s = array_map( function ( $m ) use ( $f ) { return (int) ( $m['importance'][ $f ] ?? 0 ); }, $sets[ $g ] );
+				$s = array_filter( $s );
+				$row[ $head( $g ) ] = $s ? number_format( array_sum( $s ) / count( $s ), 1 ) : '-';
 			}
+			$table[] = $row;
 		}
+		$k = $head( 'all' );
+		usort( $table, function ( $a, $b ) use ( $k ) { return (float) $b[ $k ] <=> (float) $a[ $k ]; } );
+		\WP_CLI::log( "\nHow important (average, 1 to 5)" );
+		\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
+
+		$share( 'Biggest problems (up to 2 each, so columns can add to more than 100%)', self::PROBLEMS, 'problems' );
+
+		$s   = array_map( function ( $m ) { return (int) ( $m['nps'] ?? 0 ); }, $all );
+		$pro = count( array_filter( $s, function ( $x ) { return $x >= 9; } ) );
+		$det = count( array_filter( $s, function ( $x ) { return $x <= 6; } ) );
+		\WP_CLI::log( sprintf( "\nRecommend score (NPS): %d · promoters %d%% · detractors %d%%", round( 100 * ( $pro - $det ) / $n ), round( 100 * $pro / $n ), round( 100 * $det / $n ) ) );
+
+		$testi = array_filter( $all, function ( $m ) { return '' !== ( $m['testimonial'] ?? '' ); } );
+		$perm  = array_filter( $testi, function ( $m ) { return ! empty( $m['permission'] ); } );
+		\WP_CLI::log( sprintf( 'Testimonials: %d written, %d with permission to use name and photo.', count( $testi ), count( $perm ) ) );
+
 		if ( ! empty( $assoc['text'] ) ) {
 			\WP_CLI::log( "\nOne thing we should improve:" );
 			foreach ( $all as $m ) {
-				\WP_CLI::log( '  [' . ( $m['who'] ?? '' ) . ', ' . trim( (string) ( $m['gender'] ?? '' ) ) . ', ' . ( $m['plan'] ?? '' ) . '] ' . str_replace( "\n", ' ', (string) ( $m['improve'] ?? '' ) ) );
+				\WP_CLI::log( '  [' . ( $parent( $m ) ? 'parent' : 'self' ) . ', ' . trim( (string) ( $m['gender'] ?? '' ) ) . ', ' . ( $m['plan'] ?? '' ) . '] ' . str_replace( "\n", ' ', (string) ( $m['improve'] ?? '' ) ) );
+			}
+			\WP_CLI::log( "\nTestimonials:" );
+			foreach ( $testi as $uid => $m ) {
+				$u = get_userdata( $uid );
+				\WP_CLI::log( '  ' . ( empty( $m['permission'] ) ? '[no permission] ' : '[OK to use, member ' . $uid . ( $u ? ' ' . $u->display_name : '' ) . '] ' ) . str_replace( "\n", ' ', (string) $m['testimonial'] ) );
 			}
 		}
 	}

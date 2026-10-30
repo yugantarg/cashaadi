@@ -36,7 +36,7 @@ final class ReferralAdmin {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$e = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . Referral::table() . ' WHERE id = %d', $id ) );
-		if ( $e && in_array( $e->kind, array( 'referral', 'welcome' ), true ) && (int) $e->amount > 0 ) {
+		if ( $e && in_array( $e->kind, array( 'referral', 'welcome', 'survey', 'testimonial' ), true ) && (int) $e->amount > 0 ) {
 			Referral::post( (int) $e->user_id, - (int) $e->amount, 'reversal', (int) $e->ref_user_id, (int) $e->id, 'Reversed entry #' . (int) $e->id . ' by user #' . get_current_user_id() );
 		}
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG . '&reversed=' . $id ) );
@@ -106,7 +106,7 @@ final class ReferralAdmin {
 				: self::who( $e->ref_user_id );
 			$ip = 'referral' === $e->kind ? (string) get_user_meta( (int) $e->ref_user_id, Referral::IP_META, true ) : '';
 			$action = '';
-			if ( in_array( $e->kind, array( 'referral', 'welcome' ), true ) ) {
+			if ( in_array( $e->kind, array( 'referral', 'welcome', 'survey', 'testimonial' ), true ) ) {
 				$action = isset( $rev[ (int) $e->id ] )
 					? '<em>reversed</em>'
 					: sprintf(

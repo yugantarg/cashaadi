@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.74 — 2026-10-30
+
+- Survey reworked (owner): "who is involved" removed (Created for is the proxy); each feature rated 1–5 for importance; up to 2 biggest problems; a testimonial with a switch for permission to use name and photo. Reward is CA Shaadi cash, not a boost: 300 for answering, another 300 for a testimonial (30+ characters) with permission, posted to the cash ledger (shown on /refer/ as "For answering our survey" / "For your testimonial", reversible on the admin page). Not offered to anyone ever offered the ₹99 boost. Popup and screen say both amounts plainly. `wp csm survey [--text]` lists average importance, problems, NPS, testimonials (with permission flag), split by self / parent, gender and plan.
+
 ## 1.90.73 — 2026-10-30
 
 - Member survey at /survey/ (owner): what members have paid for matrimony services (the price signal, no "what would you pay"), the 2 things that would help most, the biggest problem, who is involved (me / family / both), likelihood to recommend (0–10) and one thing to improve (required). 1 free profile boost on submit, once per member, first 300 answers (`csm_survey_max`; `csm_survey_on` 0 stops it). Invited by a one-time popup, second in line after the ₹99 boost, for members past their first two days. `wp csm survey [--text]`: each answer by who is involved, gender and plan, NPS, and the improvement answers.

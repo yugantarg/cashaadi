@@ -62,6 +62,10 @@ final class ReferralScreen {
 				return sprintf( __( '%s joined through your link', 'cashaadi-ui' ), self::first_name( (int) $row->ref_user_id ) );
 			case 'welcome':
 				return __( 'Welcome credit for joining through a referral', 'cashaadi-ui' );
+			case 'survey':
+				return __( 'For answering our survey', 'cashaadi-ui' );
+			case 'testimonial':
+				return __( 'For your testimonial', 'cashaadi-ui' );
 			case 'redeem':
 			case 'retake':
 				return __( 'Used at checkout', 'cashaadi-ui' );
