@@ -3,6 +3,19 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.58 — 2026-10-30
+
+- Premium goes to ₹4,499 at midnight on 1 November (price filter on the Premium product; LiteSpeed purged at the switch). Code OLDPRICE (`wp csm oldprice setup`): ₹3,000 off Premium only, once per member, refused before 1 November and after the member's deadline. Deadline: 11:59 pm IST on the later of 5 November and three days after the member first saw the offer; `csm_oldprice_open` 0 stops new deadlines. Pricing page: "New prices from 1 November" box with the reason, the code, "never available at ₹1,499 again, even with discounts", a live countdown and "Buy Premium at ₹1,499" (applies the code); the Premium card notes the code. Not shown to Premium or Gold members. Admin preview: `?oldprice=preview`. `wp csm oldprice status`.
+- Gold upgrade credit uses what the member paid for Premium (₹1,499 if unknown), so ₹4,499 buyers are credited fairly.
+
+## 1.90.57 — 2026-10-30
+
+- Fix: a syntax error in the Sales panel's note (1.90.56).
+
+## 1.90.56 — 2026-10-30
+
+- Sales Dashboard: a Sales panel replaces the one-line Gold summary (owner: "clear info, not 1 figure"). Revenue and orders per product (Premium, Gold, boost pack, ₹99 boost) for today, 7 days, 30 days and all time; pricing-page visits and Buy taps against purchases; the Gold popup and ₹99 boost experiments by arm; Gold places. Paid orders only, admins left out; cached 10 minutes.
+
 ## 1.90.55 — 2026-10-30
 
 - ₹99 boost popup moves to the front of the popup order, so a member drawn for it sees it on the first app page they open (owner). Other popups wait for a later page.
