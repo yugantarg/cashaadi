@@ -114,7 +114,7 @@ final class BoostDeal {
 		}
 		return array(
 			'title' => 'A profile boost for ₹' . self::PRICE,
-			'text'  => "Your profile goes to the front of Discover for 24 hours.\n\nThis offer ends in " . self::HOURS . ' hours.',
+			'text'  => "Your profile goes to the front of Discover for 24 hours.\n\nThis offer ends in " . self::HOURS . " hours. You get it at most once a month.",
 			'ok'    => 'Get it for ₹' . self::PRICE,
 			'url'   => self::buy_url(),
 			'seen'  => rest_url( 'csm/v1/boost-deal' ),
