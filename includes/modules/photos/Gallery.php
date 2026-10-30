@@ -819,7 +819,9 @@ final class Gallery {
 		echo '<div class="csm-ph-gallery" data-nonce="' . esc_attr( $nonce ) . '" data-ajax="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '">';
 		echo '<h4>Photos</h4><div class="csm-ph-gwrap">';
 		foreach ( $ids as $idx => $id ) {
-			$full = wp_get_attachment_url( $id );
+			// Others open the large copy, never the original upload (v1.90.70):
+			// it can be far bigger than needed and may carry phone location data.
+			$full = $is_owner ? wp_get_attachment_url( $id ) : ( wp_get_attachment_image_url( $id, 'large' ) ?: wp_get_attachment_image_url( $id, 'medium' ) );
 			$thmb = wp_get_attachment_image_url( $id, 'medium' );
 			$main = ( 0 === $idx );
 			echo '<div class="csm-ph-gitem' . ( $main ? ' is-main' : '' ) . '" data-id="' . (int) $id . '">';

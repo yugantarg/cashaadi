@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.70 — 2026-10-30
+
+- Older profile gallery: another member's photo opens at the large size, not the original upload (owner). A member still opens their own originals.
+
 ## 1.90.69 — 2026-10-30
 
 - Fix: `wp csm image-sizes slim` and `wp csm oldprice setup|status|extend` failed with "Too many positional arguments" (WP-CLI did not read their arguments from the docblock); arguments now declared when the commands are added.
