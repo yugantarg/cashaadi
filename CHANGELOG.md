@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.59 — 2026-10-30
+
+- OLDPRICE only for members who joined before 1 November (owner): the box, the card note and the code itself. Signed-out visitors no longer see the box.
+
 ## 1.90.58 — 2026-10-30
 
 - Premium goes to ₹4,499 at midnight on 1 November (price filter on the Premium product; LiteSpeed purged at the switch). Code OLDPRICE (`wp csm oldprice setup`): ₹3,000 off Premium only, once per member, refused before 1 November and after the member's deadline. Deadline: 11:59 pm IST on the later of 5 November and three days after the member first saw the offer; `csm_oldprice_open` 0 stops new deadlines. Pricing page: "New prices from 1 November" box with the reason, the code, "never available at ₹1,499 again, even with discounts", a live countdown and "Buy Premium at ₹1,499" (applies the code); the Premium card notes the code. Not shown to Premium or Gold members. Admin preview: `?oldprice=preview`. `wp csm oldprice status`.

@@ -15,6 +15,8 @@
  * - The pricing page says what changed and shows the code with a countdown to
  *   that deadline (PricingPage). Visitors who are not signed in see the
  *   deadline they would get if they signed up today.
+ * - Only for members who joined before 1 November; not shown to signed-out
+ *   visitors (v1.90.59).
  * - csm_oldprice_open (default 1): set to 0 to stop giving new deadlines.
  *   Members already stamped keep theirs; anyone not stamped by then has until
  *   MIN_END at most.
@@ -110,11 +112,21 @@ final class OldPrice {
 
 	/** Can this member (or a visitor) still get the old price, and should they be told? */
 	public static function offer_for( $uid ) {
-		if ( $uid && ( Membership::is_premium( $uid ) || Membership::is_gold( $uid ) ) ) {
+		if ( ! self::eligible( $uid ) || Membership::is_premium( $uid ) || Membership::is_gold( $uid ) ) {
 			return 0;
 		}
 		$end = self::deadline( $uid, true );
 		return $end > time() ? $end : 0;
+	}
+
+	/**
+	 * Only members who joined before 1 November (owner, v1.90.59): the old
+	 * price is for people who saw it. Visitors who are not signed in would
+	 * join after it, so they are not offered it either.
+	 */
+	public static function eligible( $uid ) {
+		$u = $uid ? get_userdata( (int) $uid ) : null;
+		return $u && strtotime( $u->user_registered . ' UTC' ) < self::ts( self::FROM );
 	}
 
 	public static function preview() {
@@ -129,7 +141,7 @@ final class OldPrice {
 			throw new \Exception( 'This code works from 1 November.', 100 );
 		}
 		$uid = get_current_user_id();
-		if ( ! $uid || self::deadline( $uid, true ) < time() ) {
+		if ( ! self::eligible( $uid ) || self::deadline( $uid, true ) < time() ) {
 			throw new \Exception( 'This offer has ended. Premium is no longer available at the old price.', 100 );
 		}
 		return $valid;
