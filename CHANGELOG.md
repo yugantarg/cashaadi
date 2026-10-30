@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.71 — 2026-10-30
+
+- Price notice tracking (owner): the Discover banner and the pricing-page box record who saw them (once a day), clicked their button and closed the banner (`oldprice_notice` events, `csm/v1/oldprice/ev`). Sales panel: "Premium price notice" table, banner / box / email (saw, clicked, closed, in members), with purchases using OLDPRICE and Premium bought since 30 Oct.
+
 ## 1.90.70 — 2026-10-30
 
 - Older profile gallery: another member's photo opens at the large size, not the original upload (owner). A member still opens their own originals.

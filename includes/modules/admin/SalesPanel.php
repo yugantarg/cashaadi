@@ -89,6 +89,17 @@ final class SalesPanel {
 			$h .= '</table><p style="color:#666;margin:4px 10px 0">Gold popup: Gold bought by members shown it against members not shown it. ₹99 boost: this month’s draw; members not shown are never offered it.</p>';
 		}
 
+		// 3b. The price change notice (v1.90.71).
+		if ( ! empty( $d['notice'] ) ) {
+			$n  = $d['notice'];
+			$h .= '<h3 style="margin:14px 0 4px">Premium price notice</h3><table style="border-collapse:collapse;width:100%;max-width:820px"><tr><th style="text-align:left;padding:4px 10px">Where</th><th style="' . $th . '">Saw it</th><th style="' . $th . '">Clicked</th><th style="' . $th . '">Closed</th></tr>';
+			foreach ( array( 'banner' => 'Discover banner', 'box' => 'Pricing page box' ) as $k => $label ) {
+				$h .= '<tr style="border-top:1px solid #eee"><td style="padding:4px 10px">' . esc_html( $label ) . '</td><td style="' . $td . '">' . (int) $n[ $k ]['shown'] . '</td><td style="' . $td . '">' . self::rate( (int) $n[ $k ]['click'], (int) $n[ $k ]['shown'] ) . '</td><td style="' . $td . '">' . ( 'banner' === $k ? (int) $n[ $k ]['close'] : '—' ) . '</td></tr>';
+			}
+			$h .= '<tr style="border-top:1px solid #eee"><td style="padding:4px 10px">Email</td><td style="' . $td . '">' . (int) $n['email']['opened'] . ' opened of ' . (int) $n['email']['sent'] . '</td><td style="' . $td . '">' . self::rate( (int) $n['email']['clicked'], (int) $n['email']['sent'] ) . '</td><td style="' . $td . '">—</td></tr>';
+			$h .= '</table><p style="color:#666;margin:4px 10px 0">Members, not taps. Bought with OLDPRICE: <strong>' . (int) $n['oldprice'] . '</strong> · Premium bought since 30 Oct: <strong>' . (int) $n['premium'] . '</strong>.</p>';
+		}
+
 		// 4. Gold places.
 		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ) {
 			$h .= '<p style="margin:12px 10px 0;color:#555">' . wp_strip_all_tags( \CAShaadi\Modules\Premium\Gold::dashboard_line() ) . '</p>';
@@ -226,6 +237,24 @@ final class SalesPanel {
 			$tests[] = $t;
 		}
 
-		return array( 'names' => $names, 'money' => $money, 'taps' => $taps, 'views' => $views, 'tests' => $tests );
+		// The price change notice: members who saw / clicked / closed it.
+		$notice = array();
+		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\OldPrice' ) ) {
+			$z = array( 'shown' => 0, 'click' => 0, 'close' => 0 );
+			$notice = array( 'banner' => $z, 'box' => $z );
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			foreach ( $wpdb->get_results( "SELECT JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.where' ) ) w, JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.what' ) ) x, COUNT( DISTINCT actor_id ) n FROM {$ev} WHERE event_type = 'oldprice_notice' GROUP BY w, x" ) as $r ) {
+				if ( isset( $notice[ $r->w ][ $r->x ] ) ) {
+					$notice[ $r->w ][ $r->x ] = (int) $r->n;
+				}
+			}
+			$st = class_exists( '\\CAShaadi\\Modules\\Emails\\Tracking' ) ? \CAShaadi\Modules\Emails\Tracking::stats( 'csm-price-nov26' ) : array();
+			$notice['email']    = array( 'sent' => (int) ( $st['sent'] ?? 0 ), 'opened' => (int) ( $st['opened'] ?? 0 ), 'clicked' => (int) ( $st['clicked'] ?? 0 ) );
+			$notice['oldprice'] = (int) $wpdb->get_var( "SELECT COUNT( DISTINCT actor_id ) FROM {$ev} WHERE event_type = 'purchase' AND metadata LIKE '%\"oldprice\"%'" );
+			$notice['premium']  = (int) $wpdb->get_var( "SELECT COUNT( DISTINCT actor_id ) FROM {$ev} WHERE event_type = 'purchase' AND created_at >= '2026-10-30' AND metadata LIKE '%\"premium\":1%'" );
+			// phpcs:enable
+		}
+
+		return array( 'names' => $names, 'money' => $money, 'taps' => $taps, 'views' => $views, 'tests' => $tests, 'notice' => $notice );
 	}
 }

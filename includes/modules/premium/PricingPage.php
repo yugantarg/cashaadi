@@ -226,7 +226,7 @@ final class PricingPage {
 	private static function old_price_box( $end, $anon ) {
 		$old = self::inr( OldPrice::OLD_PRICE );
 		$min = ( new \DateTimeImmutable( OldPrice::MIN_END . ' 23:59:59', wp_timezone() ) )->getTimestamp();
-		$o   = '<div class="csm-pr-op" data-end="' . ( $anon ? 0 : (int) $end ) . '" data-min="' . (int) $min . '" data-days="' . (int) OldPrice::DAYS . '">';
+		$o   = '<div class="csm-pr-op" data-end="' . ( $anon ? 0 : (int) $end ) . '" data-min="' . (int) $min . '" data-days="' . (int) OldPrice::DAYS . '"' . ( $anon ? '' : OldPrice::ev_attr( 'box' ) ) . '>';
 		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
 		$o  .= '<p>We have updated our pricing from 1st November, since we have added a lot of features to our Premium plan. You can still get Premium at the old price of ' . esc_html( $old ) . ' for a limited time, with the code <b>OLDPRICE</b>.</p>';
 		$o  .= '<p>After this offer ends, Premium will never be available at ' . esc_html( $old ) . ' again, even with discounts.</p>';
@@ -243,14 +243,14 @@ final class PricingPage {
 			. 'function p(x){return(x<10?"0":"")+x;}'
 			. 'function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
 			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
-			. 'tick();setInterval(tick,1000);})();</script>';
+			. 'tick();setInterval(tick,1000);' . OldPrice::ev_js() . 'ev(b,"shown");var a=b.querySelector(".csm-pr-buy");if(a){a.addEventListener("click",function(){ev(b,"click");});}})();</script>';
 		return $o;
 	}
 
 	/** Before 1 November: the change, the reason, buy now, and the code to come. */
 	private static function price_soon_box( $from, $anon ) {
 		$old = self::inr( OldPrice::OLD_PRICE );
-		$o   = '<div class="csm-pr-op" data-end="' . (int) $from . '">';
+		$o   = '<div class="csm-pr-op" data-end="' . (int) $from . '"' . ( $anon ? '' : OldPrice::ev_attr( 'box' ) ) . '>';
 		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
 		$o  .= '<p>We have updated our pricing from 1st November, since we have added a lot of features to our Premium plan. Premium will cost ' . esc_html( self::inr( OldPrice::NEW_PRICE ) ) . ' a year.</p>';
 		$o  .= '<p>Until then, Premium is ' . esc_html( $old ) . '. Members who join before 1 November can also get this price with the code <b>OLDPRICE</b> from 1st to 5th November.</p>';
@@ -263,7 +263,7 @@ final class PricingPage {
 		$o  .= '<script>(function(){var b=document.querySelector(".csm-pr-op");if(!b){return;}var end=+b.dataset.end*1000,t=b.querySelector(".csm-pr-op-t");'
 			. 'function p(x){return(x<10?"0":"")+x;}function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
 			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
-			. 'tick();setInterval(tick,1000);})();</script>';
+			. 'tick();setInterval(tick,1000);' . OldPrice::ev_js() . 'ev(b,"shown");var a=b.querySelector(".csm-pr-buy");if(a){a.addEventListener("click",function(){ev(b,"click");});}})();</script>';
 		return $o;
 	}
 

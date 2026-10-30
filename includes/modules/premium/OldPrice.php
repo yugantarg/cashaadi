@@ -54,6 +54,7 @@ final class OldPrice {
 		// "Buy Premium at ₹1,499" adds Premium with the code already applied.
 		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'apply_from_link' ), 30, 2 );
 		add_action( 'csm_email_opened', array( __CLASS__, 'on_email_open' ) );
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
 		// Cached pages still show the old price after midnight: purge at the switch.
 		add_action( 'csm_oldprice_go', array( __CLASS__, 'purge' ) );
 		if ( ! self::started() && ! wp_next_scheduled( 'csm_oldprice_go' ) ) {
@@ -203,7 +204,7 @@ final class OldPrice {
 			: 'Premium price goes up to ' . $new . ' on 1 November. Get it now at ' . $old . '.';
 		$lead = $live ? 'Offer ends in ' : 'Price goes up in ';
 		$url  = $live ? self::buy_url() : home_url( '/membership-pricing/?src=oldprice-banner' . ( self::preview() ? '&oldprice=soon' : '' ) );
-		return '<div class="csm-opb" data-end="' . (int) $to . '">'
+		return '<div class="csm-opb" data-end="' . (int) $to . '"' . self::ev_attr( 'banner' ) . '>'
 			. '<button type="button" class="csm-opb-x" aria-label="Close">×</button>'
 			. '<p class="csm-opb-t">' . esc_html( $text ) . '</p>'
 			. '<p class="csm-opb-cd">' . esc_html( $lead ) . '<span></span></p>'
@@ -213,13 +214,61 @@ final class OldPrice {
 			. '.csm-opb p{margin:0 0 6px}.csm-opb-cd{font-weight:700;color:#ffd27a}'
 			. '.csm-opb-btn{display:inline-block;padding:8px 16px;border-radius:999px;background:#fff;color:#0b2350!important;font-weight:700;text-decoration:none}'
 			. '.csm-opb-x{position:absolute;top:6px;right:8px;border:0;background:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:4px}</style>'
-			. '<script>(function(){var b=document.querySelector(".csm-opb");if(!b){return;}var k="csm_opb_hide",d=new Date().toDateString();'
+			. '<script>(function(){var b=document.querySelector(".csm-opb");if(!b){return;}var k="csm_opb_hide",d=new Date().toDateString();' . self::ev_js()
 			. 'try{if(localStorage.getItem(k)===d){b.remove();return;}}catch(e){}'
-			. 'b.querySelector(".csm-opb-x").onclick=function(){try{localStorage.setItem(k,d);}catch(e){}b.remove();};'
+			. 'ev(b,"shown");b.querySelector(".csm-opb-btn").addEventListener("click",function(){ev(b,"click");});'
+			. 'b.querySelector(".csm-opb-x").onclick=function(){ev(b,"close");try{localStorage.setItem(k,d);}catch(e){}b.remove();};'
 			. 'var end=+b.dataset.end*1000,t=b.querySelector(".csm-opb-cd span");function p(x){return(x<10?"0":"")+x;}'
 			. 'function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.remove();return;}'
 			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
 			. 'tick();setInterval(tick,1000);})();</script>';
+	}
+
+	/* ------------------------------------------------ notice tracking */
+
+	/**
+	 * Who saw, tapped or closed the price notice (owner, v1.90.71: "track how
+	 * many people clicked on the notice of price increase"). where: banner
+	 * (Discover) | box (pricing page); what: shown (once a day per member) |
+	 * click | close. Written to the event log as oldprice_notice; the Sales
+	 * panel counts members.
+	 */
+	public static function rest_routes() {
+		register_rest_route( 'csm/v1', '/oldprice/ev', array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'rest_ev' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+	}
+
+	public static function rest_ev( $request ) {
+		$uid   = get_current_user_id();
+		$where = (string) $request->get_param( 'where' );
+		$what  = (string) $request->get_param( 'what' );
+		if ( ! in_array( $where, array( 'banner', 'box' ), true ) || ! in_array( $what, array( 'shown', 'click', 'close' ), true ) || user_can( $uid, 'manage_options' ) ) {
+			return new \WP_REST_Response( array( 'ok' => false ), 200 );
+		}
+		if ( 'shown' === $what ) {
+			$k = 'csm_op_shown_' . $where;
+			if ( get_user_meta( $uid, $k, true ) === wp_date( 'Y-m-d' ) ) {
+				return new \WP_REST_Response( array( 'ok' => true ), 200 );
+			}
+			update_user_meta( $uid, $k, wp_date( 'Y-m-d' ) );
+		}
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( 'oldprice_notice', $uid, 0, array( 'where' => $where, 'what' => $what, 'live' => self::started() ? 1 : 0 ) );
+		}
+		return new \WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	/** Attributes for a notice element: the beacon URL with its nonce. */
+	public static function ev_attr( $where ) {
+		return ' data-ev="' . esc_url( add_query_arg( array( 'where' => $where, '_wpnonce' => wp_create_nonce( 'wp_rest' ) ), rest_url( 'csm/v1/oldprice/ev' ) ) ) . '"';
+	}
+
+	/** JS: ev(el, what) sends one beacon; survives the page navigating away. */
+	public static function ev_js() {
+		return 'function ev(el,w){var u=el.getAttribute("data-ev");if(!u){return;}u+="&what="+w;try{if(navigator.sendBeacon&&navigator.sendBeacon(u)){return;}}catch(e){}try{fetch(u,{method:"POST",credentials:"same-origin",keepalive:true});}catch(e){}}';
 	}
 
 	public static function buy_url() {
