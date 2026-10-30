@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.63 — 2026-10-30
+
+- Fix: `?oldprice=preview` showed nothing to an admin on a paid plan (the offer is hidden from Premium and Gold). Preview now always shows the banner and pricing box, and stamps nothing.
+
 ## 1.90.62 — 2026-10-30
 
 - Discover: a banner for members who can still get Premium at ₹1,499 (owner). Until 1 November: "Premium price goes up to ₹4,499 on 1 November. Get it now at ₹1,499" with a countdown to the change; from then: "Premium is now ₹4,499. You can still get it at ₹1,499 with code OLDPRICE" with a countdown to the member's deadline and a button that applies the code. Close hides it for the day. Not for Premium, Gold, members who joined from 1 November, or admins (preview with `?oldprice=preview`).

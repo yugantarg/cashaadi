@@ -116,6 +116,10 @@ final class OldPrice {
 
 	/** Can this member (or a visitor) still get the old price, and should they be told? */
 	public static function offer_for( $uid ) {
+		// An admin previewing is usually on a paid plan: show it anyway, stamp nothing.
+		if ( self::preview() ) {
+			return max( self::deadline( $uid ), time() + DAY_IN_SECONDS );
+		}
 		if ( ! self::eligible( $uid ) || Membership::is_premium( $uid ) || Membership::is_gold( $uid ) ) {
 			return 0;
 		}
