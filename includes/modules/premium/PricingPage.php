@@ -157,6 +157,8 @@ final class PricingPage {
 					'Gold badge on your profile (with CA verification)',
 				),
 				'price' => self::inr( $gp ) . ' / year',
+				// "₹7,999 till 5 Nov, then ₹14,999" (owner, v1.90.80).
+				'note'  => class_exists( __NAMESPACE__ . '\\OldPrice' ) && ! $is_g ? OldPrice::gold_note() : '',
 				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Founding places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon ) ),
 			);
 			if ( ! $female ) {

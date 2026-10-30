@@ -112,7 +112,10 @@ final class GoldIntro {
 		}
 		$lines[] = '• Your requests appear first on their list';
 		$left = self::places_left();
-		$tail = $left > 0 ? sprintf( "\n\nOnly %d founding Gold places left. ₹7,999 for a year.", $left ) : "\n\n₹7,999 for a year.";
+		// The live price (₹14,999 after 5 Nov 2026, OldPrice).
+		$gp   = function_exists( 'wc_get_product' ) && wc_get_product( Config::WC_GOLD_PRODUCT ) ? (int) wc_get_product( Config::WC_GOLD_PRODUCT )->get_price() : 7999;
+		$amt  = '₹' . number_format_i18n( $gp ) . ' for a year.';
+		$tail = $left > 0 ? sprintf( "\n\nOnly %d founding Gold places left. %s", $left, $amt ) : "\n\n" . $amt;
 		if ( Membership::is_premium( $uid ) ) {
 			$tail .= ' Your unused Premium days are taken off the price.';
 		}

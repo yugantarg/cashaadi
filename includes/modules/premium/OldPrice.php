@@ -42,6 +42,10 @@ final class OldPrice {
 	const OLD_PRICE  = 1499;
 	const NEW_PRICE  = 4499;
 	const FROM       = '2026-11-01 00:00:00';
+	// Gold goes to ₹14,999 after 5 November, quietly (owner, v1.90.80): no
+	// code and no notice, only a line on the pricing page's Gold card.
+	const GOLD_NEW   = 14999;
+	const GOLD_UNTIL = '2026-11-05 23:59:59';
 	const MIN_END    = '2026-11-05';
 	const DAYS       = 3;
 	const FIRST_META = 'csm_op_first';
@@ -59,6 +63,10 @@ final class OldPrice {
 		add_action( 'csm_oldprice_go', array( __CLASS__, 'purge' ) );
 		if ( ! self::started() && ! wp_next_scheduled( 'csm_oldprice_go' ) ) {
 			wp_schedule_single_event( self::ts( self::FROM ) + 60, 'csm_oldprice_go' );
+		}
+		add_action( 'csm_goldprice_go', array( __CLASS__, 'purge' ) );
+		if ( ! self::gold_raised() && ! wp_next_scheduled( 'csm_goldprice_go' ) ) {
+			wp_schedule_single_event( self::ts( self::GOLD_UNTIL ) + 61, 'csm_goldprice_go' );
 		}
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm oldprice', array( __CLASS__, 'cli' ), array(
@@ -83,9 +91,25 @@ final class OldPrice {
 		return time() >= self::ts( self::FROM );
 	}
 
+	/** Has Gold's new price started (after 5 November)? */
+	public static function gold_raised() {
+		return time() > self::ts( self::GOLD_UNTIL );
+	}
+
+	/** The pricing page's Gold card line while ₹7,999 lasts, or ''. */
+	public static function gold_note() {
+		return self::gold_raised() ? '' : '₹' . number_format_i18n( 7999 ) . ' till 5 Nov, then ₹' . number_format_i18n( self::GOLD_NEW );
+	}
+
 	public static function price( $price, $product ) {
-		if ( self::started() && $product && (int) $product->get_id() === (int) Config::WC_PREMIUM_PRODUCT ) {
+		if ( ! $product ) {
+			return $price;
+		}
+		if ( self::started() && (int) $product->get_id() === (int) Config::WC_PREMIUM_PRODUCT ) {
 			return (string) self::NEW_PRICE;
+		}
+		if ( self::gold_raised() && (int) $product->get_id() === (int) Config::WC_GOLD_PRODUCT ) {
+			return (string) self::GOLD_NEW;
 		}
 		return $price;
 	}

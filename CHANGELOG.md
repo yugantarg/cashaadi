@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.80 — 2026-10-30
+
+- Gold goes to ₹14,999 after 11:59 pm on 5 November (price filter on the Gold product; site cache purged at the switch). No code and no notice: until then the pricing page's Gold card says "₹7,999 till 5 Nov, then ₹14,999" (not shown to Gold members). The Gold popup test reads the live price instead of a fixed ₹7,999. Upgrade credit unchanged (what the member paid for Premium).
+
 ## 1.90.79 — 2026-10-30
 
 - Privacy fix: survey drafts were saved under one browser key, so a second account on the same browser could see the first member's answers and their name-and-photo permission. Drafts are now saved per member (an opaque per-member key), the permission switch is never saved (chosen fresh each time), and the old shared key is removed on load.
