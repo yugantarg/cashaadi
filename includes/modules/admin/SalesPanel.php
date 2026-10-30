@@ -86,7 +86,7 @@ final class SalesPanel {
 					. '<td style="' . $td . '">' . (int) $t['show'] . '</td><td style="' . $td . '">' . (int) $t['seen'] . '</td><td style="' . $td . '">' . (int) $t['tapped'] . '</td>'
 					. '<td style="' . $td . '">' . self::rate( $t['bought'], $t['show'] ) . '</td><td style="' . $td . '">' . (int) $t['control'] . '</td><td style="' . $td . '">' . self::rate( $t['c_bought'], $t['control'] ) . '</td></tr>';
 			}
-			$h .= '</table><p style="color:#666;margin:4px 10px 0">Gold popup: Gold bought by members shown it against members not shown it. ₹99 boost: this month's draw; members not shown are never offered it.</p>';
+			$h .= '</table><p style="color:#666;margin:4px 10px 0">Gold popup: Gold bought by members shown it against members not shown it. ₹99 boost: this month’s draw; members not shown are never offered it.</p>';
 		}
 
 		// 4. Gold places.
