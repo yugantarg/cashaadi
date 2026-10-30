@@ -336,6 +336,10 @@ final class AppPage {
 		$gold_intro = ! $ff15 && ! $reqs && ! $boost && ! $social && ! $vnudge && class_exists( '\\CAShaadi\\Modules\\Premium\\GoldIntro' )
 			? \CAShaadi\Modules\Premium\GoldIntro::payload( get_current_user_id() )
 			: false;
+		// The ₹99 boost (v1.90.52, an experiment): after Gold, same rule.
+		$boost_deal = ! $ff15 && ! $reqs && ! $boost && ! $social && ! $vnudge && ! $gold_intro && class_exists( '\\CAShaadi\\Modules\\Premium\\BoostDeal' )
+			? \CAShaadi\Modules\Premium\BoostDeal::payload( get_current_user_id() )
+			: false;
 		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'askPhoto'  => rest_url( 'csm/v1/photo-request' ),
@@ -353,6 +357,7 @@ final class AppPage {
 			'socialIntro' => $social,
 			'verifyNudge' => $vnudge,
 			'goldIntro'   => $gold_intro,
+			'boostDeal'   => $boost_deal,
 		) );
 
 		// The spotlight overlay: the new-account tour and the first-action

@@ -278,15 +278,20 @@ final class Spotlight {
 	/** A paid order with the pack adds PACK boosts per unit, once. */
 	public static function on_paid( $order_id ) {
 		$pid   = self::product_id();
-		$order = $pid && function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+		$deal  = class_exists( __NAMESPACE__ . '\\BoostDeal' ) ? BoostDeal::product_id() : 0; // the ₹99 single boost (v1.90.52)
+		$order = ( $pid || $deal ) && function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
 		if ( ! $order instanceof \WC_Order || $order->get_meta( '_csm_spot_added' ) ) {
 			return;
 		}
-		$uid = (int) $order->get_customer_id();
-		$n   = 0;
+		$uid  = (int) $order->get_customer_id();
+		$n    = 0;
+		$is_deal = 0;
 		foreach ( $order->get_items() as $item ) {
-			if ( (int) $item->get_product_id() === $pid ) {
+			if ( $pid && (int) $item->get_product_id() === $pid ) {
 				$n += self::PACK * max( 1, (int) $item->get_quantity() );
+			} elseif ( $deal && (int) $item->get_product_id() === $deal ) {
+				$n += 1;
+				$is_deal = 1;
 			}
 		}
 		if ( ! $uid || ! $n ) {
@@ -297,7 +302,7 @@ final class Spotlight {
 		$order->save();
 		$order->add_order_note( 'CA Shaadi: ' . $n . ' profile boosts added.' );
 		if ( function_exists( 'cashaadi' ) ) {
-			cashaadi()->log_event( 'boost_bought', $uid, (int) $order_id, array( 'boosts' => $n ) );
+			cashaadi()->log_event( 'boost_bought', $uid, (int) $order_id, array( 'boosts' => $n, 'deal' => $is_deal ) );
 		}
 	}
 
@@ -333,6 +338,8 @@ final class Spotlight {
 		$uid   = (int) $uid;
 		$until = self::active_until( $uid );
 		$pid   = self::product_id();
+		// While the ₹99 offer runs, the card offers that instead of the pack.
+		$deal  = class_exists( __NAMESPACE__ . '\\BoostDeal' ) && BoostDeal::live( $uid );
 		return array(
 			'until'     => $until ? $until : 0,
 			'hoursLeft' => $until ? (int) ceil( ( $until - time() ) / HOUR_IN_SECONDS ) : 0,
@@ -340,9 +347,9 @@ final class Spotlight {
 			'available' => self::available( $uid ),
 			'plan'      => Membership::is_gold( $uid ) ? 'gold' : ( Membership::is_premium( $uid ) ? 'premium' : 'free' ),
 			'start'     => rest_url( 'csm/v1/boost/start' ),
-			'buy'       => $pid ? home_url( '/checkout/?add-to-cart=' . $pid ) : '',
-			'price'     => self::PRICE,
-			'pack'      => self::PACK,
+			'buy'       => $deal ? BoostDeal::buy_url() : ( $pid ? home_url( '/checkout/?add-to-cart=' . $pid ) : '' ),
+			'price'     => $deal ? BoostDeal::PRICE : self::PRICE,
+			'pack'      => $deal ? 1 : self::PACK,
 		);
 	}
 

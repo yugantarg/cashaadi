@@ -73,7 +73,7 @@
 		box.appendChild( el( 'span', null, 'gold' === b.plan ? 'Your next Gold boost arrives on Monday.'
 			: ( 'premium' === b.plan ? 'Your next Premium boost arrives on the 1st of next month.' : 'Be shown first in Discover for 24 hours.' ) ) );
 		if ( b.buy ) {
-			var a = link( 'csm-p-boost-btn', b.buy, 'Get ' + b.pack + ' boosts for \u20b9' + b.price );
+			var a = link( 'csm-p-boost-btn', b.buy, 'Get ' + ( 1 === b.pack ? '1 boost' : b.pack + ' boosts' ) + ' for \u20b9' + b.price );
 			box.appendChild( a );
 		}
 		return box;

@@ -91,6 +91,7 @@ final class Journey {
 			\WP_CLI::add_command( 'csm journey', __NAMESPACE__ . '\\JourneyCli' );
 			\WP_CLI::add_command( 'csm audience', __NAMESPACE__ . '\\AudienceCli' );
 			\WP_CLI::add_command( 'csm pricing', __NAMESPACE__ . '\\PricingCli' );
+			\WP_CLI::add_command( 'csm payers', __NAMESPACE__ . '\\PayersCli' );
 		}
 	}
 
@@ -625,6 +626,9 @@ final class Journey {
 		$what = (int) Config::WC_GOLD_PRODUCT === $pid ? 'gold' : ( (int) Config::WC_PREMIUM_PRODUCT === $pid ? 'premium' : '' );
 		if ( '' === $what && class_exists( '\\CAShaadi\\Modules\\Premium\\Spotlight' ) && $pid === \CAShaadi\Modules\Premium\Spotlight::product_id() ) {
 			$what = 'boost_pack'; // v1.89.52
+		}
+		if ( '' === $what && class_exists( '\\CAShaadi\\Modules\\Premium\\BoostDeal' ) && $pid === \CAShaadi\Modules\Premium\BoostDeal::product_id() ) {
+			$what = 'boost_deal'; // the ₹99 single boost, v1.90.52
 		}
 		$uid  = get_current_user_id();
 		if ( '' === $what || ! $uid || user_can( $uid, 'manage_options' ) || ! function_exists( 'cashaadi' ) ) {

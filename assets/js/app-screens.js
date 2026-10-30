@@ -580,7 +580,8 @@ window.csmProfileCard = function ( p ) {
  * moment it appears; "See Gold" is recorded separately.
  */
 ( function () {
-	var cfg = window.CSM_APP && window.CSM_APP.goldIntro;
+	// The ₹99 boost (v1.90.52) uses the same popup; only one is ever set.
+	var cfg = window.CSM_APP && ( window.CSM_APP.goldIntro || window.CSM_APP.boostDeal );
 	if ( ! cfg || ! cfg.url || typeof window.csmConfirm !== 'function' ) { return; }
 	if ( /^\/(welcome|profile\/edit|membership-pricing)\b/.test( window.location.pathname ) ) { return; }
 	function mark( clicked ) {
@@ -596,7 +597,7 @@ window.csmProfileCard = function ( p ) {
 	}
 	setTimeout( function () {
 		mark( false );
-		window.csmConfirm( cfg.text, { title: cfg.title, okText: 'See Gold', cancelText: 'Not now' } ).then( function ( yes ) {
+		window.csmConfirm( cfg.text, { title: cfg.title, okText: cfg.ok || 'See Gold', cancelText: 'Not now' } ).then( function ( yes ) {
 			if ( ! yes ) { return; }
 			var go = function () { window.location.href = cfg.url; };
 			var p  = mark( true );

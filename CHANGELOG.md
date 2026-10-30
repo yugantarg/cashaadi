@@ -3,6 +3,12 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.52 — 2026-10-30
+
+- ₹99 single boost, a throwaway deal run as an experiment (owner): members who have never paid, past their first two days, are assigned once to 'show' (share `csm_boost_deal_pct`, default 0 = off) or 'control'. 'show' gets a one-time popup ("A profile boost for ₹99"), then 48 hours in which the profile's Boost card also offers it. Hidden ₹99 product created by `wp csm boost-deal product`; only a member with a running offer can buy it, once. The boost is added (and taken back on refund) by the existing boost code. `wp csm boost-deal report`: seen, tapped, bought, by gender and "Created for" (self / parent / other family), and who in each arm paid for anything else afterwards. Last in the popup order, never on a page with another popup.
+- `wp csm payers [--min-days=14]`: which markers go with paying (gender, "Created for", age, CA qualified, verified, photo, metro city, LinkedIn, paid-ad signup, first-week activity), one at a time and together (logistic regression), with an AUC check. Prints totals only. The base for an ability-to-pay score.
+- Boost button says "Get 1 boost" for a single boost.
+
 ## 1.90.51 — 2026-10-30
 
 - Gold popup test limited to a small group (owner: "say 200"): `csm_gold_intro_max` (default 200) caps the 'show' arm; once reached, nobody new is assigned, so with a 50% share control ends near the same size. `wp csm gold-intro` prints the cap.
