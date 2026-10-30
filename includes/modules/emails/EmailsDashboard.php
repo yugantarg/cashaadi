@@ -4,15 +4,11 @@
  * complicated and not useful, have a common dashboard that is genuinely
  * useful").
  *
- * Four answers, in this order:
- *   1. Is email working? Sending on or off, the provider, sent today against
- *      the daily cap, failures in the last 24 hours, waiting in the queue.
- *   2. How is each email doing? Last 30 days, one row per kind of email:
- *      sent, opened, clicked, unsubscribed, failed. Clicks are the number to
- *      trust (opens are blocked or faked by some mail apps).
- *   3. Campaigns: what is staged, and Stage / Preview / Release in one place
- *      (the actions are Campaigns' own handler, which returns here).
- *   4. Recent problems: the last failures and why.
+ * Only what is used often (owner, 2026-10-30): is email working (sending,
+ * provider, sent today against the cap, failures, waiting, on hold) and the
+ * campaigns with Stage / Preview / Release (Campaigns' own handler, which
+ * returns here). How each email performs, and failures, are a command:
+ * `wp csm emails [--days=30]`.
  *
  * The three older screens (Reminder Emails, Email delivery, Email campaigns)
  * leave the menu but still open from the links at the bottom, for settings.
@@ -61,6 +57,11 @@ final class EmailsDashboard {
 
 	public static function register() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 40 );
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'csm emails', array( __CLASS__, 'cli' ), array(
+				'synopsis' => array( array( 'type' => 'assoc', 'name' => 'days', 'optional' => true ) ),
+			) );
+		}
 	}
 
 	public static function menu() {
@@ -98,9 +99,7 @@ final class EmailsDashboard {
 		$t     = Queue::table();
 		$today = wp_date( 'Y-m-d' ) . ' 00:00:00';
 		$day   = wp_date( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
-		$month = wp_date( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS );
 		$box   = 'background:#fff;border:1px solid #ccd0d4;border-radius:6px;padding:14px 16px;margin:16px 0;max-width:980px';
-		$cell  = 'padding:6px 10px;text-align:right';
 
 		echo '<div class="wrap"><h1>Emails</h1>';
 		if ( ! empty( $_GET['csm_msg'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -132,70 +131,6 @@ final class EmailsDashboard {
 			echo '<div style="flex:1 1 140px;border:1px solid #e4eaf0;border-radius:8px;padding:10px 12px"><div style="color:#5c6a76;font-size:12px">' . esc_html( $tile[0] ) . '</div><div style="font-size:20px;font-weight:700;color:' . esc_attr( $tile[2] ) . '">' . esc_html( $tile[1] ) . '</div></div>';
 		}
 		echo '</div></div>';
-
-		// 2. How is each email doing? (last 30 days)
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT email_type, SUM( status = 'sent' ) sent, SUM( status = 'failed' ) failed,
-			        SUM( status = 'sent' AND opened_at IS NOT NULL ) opened, SUM( status = 'sent' AND clicked_at IS NOT NULL ) clicked,
-			        SUM( unsub_at IS NOT NULL ) unsub, MAX( processed_at ) last
-			 FROM {$t} WHERE processed_at >= %s GROUP BY email_type",
-			$month
-		) );
-		/*
-		 * Conversions (v1.90.67): members who paid for anything within 7 days
-		 * after opening the email (a click counts as an open). The purchase
-		 * events come from Journey::on_order.
-		 */
-		$ev   = $wpdb->prefix . 'csm_event_log';
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$conv = $wpdb->get_results( $wpdb->prepare(
-			"SELECT q.email_type, COUNT( DISTINCT q.user_id ) buyers, SUM( CAST( JSON_EXTRACT( e.metadata, '$.total' ) AS DECIMAL(10,2) ) ) revenue
-			 FROM {$t} q JOIN {$ev} e ON e.actor_id = q.user_id AND e.event_type = 'purchase'
-			  AND e.created_at >= q.opened_at AND e.created_at < DATE_ADD( q.opened_at, INTERVAL 7 DAY )
-			 WHERE q.status = 'sent' AND q.opened_at IS NOT NULL AND q.processed_at >= %s
-			 GROUP BY q.email_type",
-			$month
-		) );
-		$paid = array();
-		foreach ( (array) $conv as $r ) {
-			$g = self::group( $r->email_type );
-			$paid[ $g ][0] = ( $paid[ $g ][0] ?? 0 ) + (int) $r->buyers;
-			$paid[ $g ][1] = ( $paid[ $g ][1] ?? 0 ) + (float) $r->revenue;
-		}
-		$by = array();
-		foreach ( (array) $rows as $r ) {
-			$g = self::group( $r->email_type );
-			if ( ! isset( $by[ $g ] ) ) {
-				$by[ $g ] = array( 'sent' => 0, 'failed' => 0, 'opened' => 0, 'clicked' => 0, 'unsub' => 0, 'last' => '' );
-			}
-			foreach ( array( 'sent', 'failed', 'opened', 'clicked', 'unsub' ) as $k ) {
-				$by[ $g ][ $k ] += (int) $r->$k;
-			}
-			$by[ $g ]['last'] = max( $by[ $g ]['last'], (string) $r->last );
-		}
-		uasort( $by, function ( $a, $b ) { return $b['sent'] <=> $a['sent']; } );
-		$pct = function ( $n, $of ) {
-			return $of ? (int) $n . ' <span style="color:#666">(' . round( 100 * $n / $of ) . '%)</span>' : (int) $n;
-		};
-		echo '<div style="' . $box . '"><h2 style="margin:0 0 4px">How each email is doing</h2><p style="margin:0 0 10px;color:#5c6a76">Last 30 days. Clicks are the number to trust: some mail apps block opens, others report opens nobody made. <b>Paid within 7 days</b>: members who bought anything in the 7 days after opening that email, and what they paid.</p>';
-		if ( ! $by ) {
-			echo '<p>Nothing sent in the last 30 days.</p>';
-		} else {
-			echo '<table class="widefat striped"><thead><tr><th>Email</th><th style="' . $cell . '">Sent</th><th style="' . $cell . '">Opened</th><th style="' . $cell . '">Clicked</th><th style="' . $cell . '">Unsubscribed</th><th style="' . $cell . '">Paid within 7 days</th><th style="' . $cell . '">Failed</th><th style="' . $cell . '">Last sent</th></tr></thead><tbody>';
-			foreach ( $by as $g => $s ) {
-				echo '<tr><td>' . esc_html( self::name( $g ) ) . '</td>'
-					. '<td style="' . $cell . '">' . (int) $s['sent'] . '</td>'
-					. '<td style="' . $cell . '">' . $pct( $s['opened'], $s['sent'] ) . '</td>'
-					. '<td style="' . $cell . '"><strong>' . $pct( $s['clicked'], $s['sent'] ) . '</strong></td>'
-					. '<td style="' . $cell . '">' . $pct( $s['unsub'], $s['sent'] ) . '</td>'
-					. '<td style="' . $cell . '">' . ( empty( $paid[ $g ][0] ) ? '<span style="color:#aaa">0</span>' : '<strong style="color:#1a7f37">' . (int) $paid[ $g ][0] . '</strong> <span style="color:#666">(₹' . esc_html( number_format_i18n( $paid[ $g ][1] ) ) . ')</span>' ) . '</td>'
-					. '<td style="' . $cell . ( $s['failed'] ? ';color:#b3261e' : '' ) . '">' . (int) $s['failed'] . '</td>'
-					. '<td style="' . $cell . '">' . esc_html( $s['last'] ? human_time_diff( strtotime( $s['last'] ), current_time( 'timestamp' ) ) . ' ago' : '—' ) . '</td></tr>';
-			}
-			echo '</tbody></table>';
-		}
-		echo '</div>';
 
 		// 3. Campaigns.
 		echo '<div style="' . $box . '"><h2 style="margin:0 0 4px">Campaigns</h2><p style="margin:0 0 10px;color:#5c6a76">One-off mailings. Stage writes them without sending; Release sends that many, within the daily and hourly limits.</p>';
@@ -231,23 +166,75 @@ final class EmailsDashboard {
 		}
 		echo '</div>';
 
-		// 4. Recent problems.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$fails = $wpdb->get_results( $wpdb->prepare( "SELECT email_type, user_email, note, processed_at FROM {$t} WHERE status = 'failed' AND processed_at >= %s ORDER BY processed_at DESC LIMIT 10", wp_date( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) ) );
-		echo '<div style="' . $box . '"><h2 style="margin:0 0 8px">Problems, last 7 days</h2>';
-		if ( ! $fails ) {
-			echo '<p style="margin:0;color:#1a7f37">None.</p>';
-		} else {
-			echo '<table class="widefat striped"><thead><tr><th>When</th><th>Email</th><th>To</th><th>Why</th></tr></thead><tbody>';
-			foreach ( $fails as $f ) {
-				echo '<tr><td>' . esc_html( human_time_diff( strtotime( $f->processed_at ), current_time( 'timestamp' ) ) ) . ' ago</td><td>' . esc_html( self::name( self::group( $f->email_type ) ) ) . '</td><td>' . esc_html( $f->user_email ) . '</td><td>' . esc_html( $f->note ) . '</td></tr>';
-			}
-			echo '</tbody></table>';
-		}
-		echo '</div>';
-
 		echo '<p style="color:#5c6a76">Settings and tools: <a href="' . esc_url( admin_url( 'admin.php?page=csm-reminder-emails' ) ) . '">sending switch, limits and the queue</a> · <a href="' . esc_url( admin_url( 'admin.php?page=csm-email-delivery' ) ) . '">provider and test email</a> · <a href="' . esc_url( admin_url( 'admin.php?page=csm-campaigns' ) ) . '">campaigns in detail</a></p>';
 		echo '</div>';
+	}
+
+	/**
+	 * wp csm emails [--days=30]
+	 *
+	 * Each kind of email: sent, opened, clicked, unsubscribed, paid within 7
+	 * days of opening, failed; then failures in the last 7 days and why. The
+	 * numbers that used to be on the Emails page (owner, 2026-10-30: "I just
+	 * want the data to be tracked ... I will ask you to give me the command").
+	 */
+	public static function cli( $args, $assoc ) {
+		global $wpdb;
+		$t     = Queue::table();
+		$ev    = $wpdb->prefix . 'csm_event_log';
+		$days  = max( 1, (int) ( $assoc['days'] ?? 30 ) );
+		$month = wp_date( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT email_type, SUM( status = 'sent' ) sent, SUM( status = 'failed' ) failed,
+			        SUM( status = 'sent' AND opened_at IS NOT NULL ) opened, SUM( status = 'sent' AND clicked_at IS NOT NULL ) clicked,
+			        SUM( unsub_at IS NOT NULL ) unsub
+			 FROM {$t} WHERE processed_at >= %s GROUP BY email_type",
+			$month
+		) );
+		$conv = $wpdb->get_results( $wpdb->prepare(
+			"SELECT q.email_type, COUNT( DISTINCT q.user_id ) buyers, SUM( CAST( JSON_EXTRACT( e.metadata, '$.total' ) AS DECIMAL(10,2) ) ) revenue
+			 FROM {$t} q JOIN {$ev} e ON e.actor_id = q.user_id AND e.event_type = 'purchase'
+			  AND e.created_at >= q.opened_at AND e.created_at < DATE_ADD( q.opened_at, INTERVAL 7 DAY )
+			 WHERE q.status = 'sent' AND q.opened_at IS NOT NULL AND q.processed_at >= %s
+			 GROUP BY q.email_type",
+			$month
+		) );
+		$fails = $wpdb->get_results( $wpdb->prepare( "SELECT email_type, user_email, note, processed_at FROM {$t} WHERE status = 'failed' AND processed_at >= %s ORDER BY processed_at DESC LIMIT 15", wp_date( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) ) );
+		// phpcs:enable
+		$by = array();
+		foreach ( (array) $rows as $r ) {
+			$g = self::name( self::group( $r->email_type ) );
+			if ( ! isset( $by[ $g ] ) ) {
+				$by[ $g ] = array( 'email' => $g, 'sent' => 0, 'opened' => 0, 'clicked' => 0, 'unsub' => 0, 'paid 7d' => 0, 'revenue' => 0, 'failed' => 0 );
+			}
+			foreach ( array( 'sent', 'opened', 'clicked', 'unsub', 'failed' ) as $k ) {
+				$by[ $g ][ $k ] += (int) $r->$k;
+			}
+		}
+		foreach ( (array) $conv as $r ) {
+			$g = self::name( self::group( $r->email_type ) );
+			if ( isset( $by[ $g ] ) ) {
+				$by[ $g ]['paid 7d'] += (int) $r->buyers;
+				$by[ $g ]['revenue'] += (float) $r->revenue;
+			}
+		}
+		uasort( $by, function ( $a, $b ) { return $b['sent'] <=> $a['sent']; } );
+		foreach ( $by as &$r ) {
+			foreach ( array( 'opened', 'clicked', 'unsub' ) as $k ) {
+				$r[ $k ] = $r[ $k ] . ( $r['sent'] ? ' (' . round( 100 * $r[ $k ] / $r['sent'] ) . '%)' : '' );
+			}
+			$r['revenue'] = '₹' . number_format( $r['revenue'] );
+		}
+		unset( $r );
+		\WP_CLI::log( "Last {$days} days. Clicks are the number to trust. paid 7d = bought anything within 7 days of opening." );
+		if ( $by ) {
+			\WP_CLI\Utils\format_items( 'table', array_values( $by ), array( 'email', 'sent', 'opened', 'clicked', 'unsub', 'paid 7d', 'revenue', 'failed' ) );
+		}
+		\WP_CLI::log( 'Failures, last 7 days: ' . count( (array) $fails ) );
+		foreach ( (array) $fails as $f ) {
+			\WP_CLI::log( '  ' . $f->processed_at . ' · ' . self::name( self::group( $f->email_type ) ) . ' · ' . $f->user_email . ' · ' . $f->note );
+		}
 	}
 
 	private static function button( $type, $do, $label ) {

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.72 — 2026-10-30
+
+- Dashboards cut to key numbers (owner: "I just want the data to be tracked ... I will ask you to give me the command"). Sales Dashboard: activity tiles (DAU, WAU, MAU, registered, paid), then one table per product (on the plan now, people who bought and revenue in 30 days and all time), the email-failure alert and the member table. Sign-ups by channel, the sign-up funnel, conversion, experiments and the price-notice tables leave the page; all still tracked. Emails page: status and campaigns only; per-email numbers and failures are `wp csm emails [--days=30]`. `wp csm oldprice status` adds the notice's seen / clicked / closed, email opens and clicks, and OLDPRICE purchases.
+
 ## 1.90.71 — 2026-10-30
 
 - Price notice tracking (owner): the Discover banner and the pricing-page box record who saw them (once a day), clicked their button and closed the banner (`oldprice_notice` events, `csm/v1/oldprice/ev`). Sales panel: "Premium price notice" table, banner / box / email (saw, clicked, closed, in members), with purchases using OLDPRICE and Premium bought since 30 Oct.

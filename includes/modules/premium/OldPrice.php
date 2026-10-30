@@ -320,5 +320,18 @@ final class OldPrice {
 		$seen = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = %s", self::FIRST_META ) );
 		$c    = class_exists( '\WC_Coupon' ) ? new \WC_Coupon( self::CODE ) : null;
 		\WP_CLI::log( 'New price ' . ( self::started() ? 'live' : 'starts ' . self::FROM ) . ' · new deadlines ' . ( get_option( self::OPEN_OPT, 1 ) ? 'on' : 'off' ) . " · {$seen} members have seen the offer · OLDPRICE used " . ( $c && $c->get_id() ? (int) $c->get_usage_count() : 0 ) . ' times.' );
+		// The notice: members who saw / clicked / closed it (v1.90.71).
+		$ev = $wpdb->prefix . 'csm_event_log';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		foreach ( $wpdb->get_results( "SELECT JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.where' ) ) w, JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.what' ) ) x, COUNT( DISTINCT actor_id ) n FROM {$ev} WHERE event_type = 'oldprice_notice' GROUP BY w, x ORDER BY w, x" ) as $r ) {
+			\WP_CLI::log( sprintf( '  %-7s %-6s %d members', 'banner' === $r->w ? 'Discover banner' : 'Pricing box', $r->x, (int) $r->n ) );
+		}
+		if ( class_exists( '\\CAShaadi\\Modules\\Emails\\Tracking' ) ) {
+			$st = \CAShaadi\Modules\Emails\Tracking::stats( 'csm-price-nov26' );
+			\WP_CLI::log( sprintf( '  Email: %d sent · %d opened · %d clicked', (int) $st['sent'], (int) $st['opened'], (int) $st['clicked'] ) );
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$bought = (int) $wpdb->get_var( "SELECT COUNT( DISTINCT actor_id ) FROM {$ev} WHERE event_type = 'purchase' AND metadata LIKE '%\"oldprice\"%'" );
+		\WP_CLI::log( "  Bought with OLDPRICE: {$bought} members" );
 	}
 }

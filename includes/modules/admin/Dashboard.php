@@ -413,8 +413,8 @@ final class Dashboard {
 			'Activity tiles'      => array( __NAMESPACE__ . '\\ActiveUsers', 'card' ),
 			'Sales'               => array( __NAMESPACE__ . '\\SalesPanel', 'card' ),
 			'Email alert'         => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'alert' ),
-			'Sign-ups by channel' => array( __CLASS__, 'channel_summary' ),
-			'Sign-up funnel'      => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'summary' ),
+			// Sign-ups by channel and the sign-up funnel are still tracked; read
+			// them with a command when needed (owner, 2026-10-30: key numbers only).
 		);
 		foreach ( $panels as $label => $cb ) {
 			if ( ! class_exists( $cb[0] ) ) {
