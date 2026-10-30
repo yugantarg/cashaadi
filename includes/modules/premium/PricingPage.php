@@ -76,6 +76,14 @@ final class PricingPage {
 		$is_p   = $uid && ! $is_g && Membership::is_premium( $uid );
 		$credit = $is_p ? Gold::credit_for( $uid ) : 0;
 		$her    = $anon ? 'their' : ( $female ? 'his' : 'her' );
+		// Premium's old price, for a limited time (OldPrice, v1.90.58).
+		$op_end = 0;
+		if ( class_exists( __NAMESPACE__ . '\\OldPrice' ) && ( OldPrice::started() || OldPrice::preview() ) ) {
+			$op_end = OldPrice::offer_for( $uid );
+			if ( OldPrice::preview() ) {
+				$pp = OldPrice::NEW_PRICE;
+			}
+		}
 
 		/*
 		 * Three cards (owner, 2026-10-25: "free, premium shows everything in
@@ -119,6 +127,7 @@ final class PricingPage {
 					'Keep all your saved profiles',
 				),
 				'price' => self::inr( $pp ) . ' / year',
+				'note'  => $op_end ? self::inr( OldPrice::OLD_PRICE ) . ' with code OLDPRICE, for a limited time' : '',
 				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon ),
 			),
 		);
@@ -150,6 +159,9 @@ final class PricingPage {
 		$o  = self::css();
 		$o .= '<div class="csm-pr">';
 		$o .= '<h1 class="csm-pr-h">' . esc_html( $head ) . '</h1><p class="csm-pr-sub">' . esc_html( $sub ) . '</p>';
+		if ( $op_end ) {
+			$o .= self::old_price_box( $op_end, $anon );
+		}
 		$o .= '<div class="csm-pr-cards n' . count( $plans ) . '">';
 		foreach ( $plans as $key => $pl ) {
 			$hl  = $key === $badge;
@@ -159,6 +171,9 @@ final class PricingPage {
 			}
 			$o .= '<h2>' . esc_html( $pl['name'] ) . '</h2>';
 			$o .= '<p class="csm-pr-price">' . esc_html( $pl['price'] ) . '</p>';
+			if ( ! empty( $pl['note'] ) ) {
+				$o .= '<p class="csm-pr-note">' . esc_html( $pl['note'] ) . '</p>';
+			}
 			if ( $pl['lead'] ) {
 				$o .= '<p class="csm-pr-lead">' . esc_html( $pl['lead'] ) . '</p>';
 			}
@@ -194,6 +209,36 @@ final class PricingPage {
 		return $o;
 	}
 
+	/**
+	 * "New prices from 1 November", the code and a countdown to this
+	 * member's deadline. Signed-out visitors may get a cached page, so their
+	 * deadline is worked out in the browser: 11:59 pm on the later of
+	 * 5 November and three days from today (IST), as OldPrice does.
+	 */
+	private static function old_price_box( $end, $anon ) {
+		$old = self::inr( OldPrice::OLD_PRICE );
+		$min = ( new \DateTimeImmutable( OldPrice::MIN_END . ' 23:59:59', wp_timezone() ) )->getTimestamp();
+		$o   = '<div class="csm-pr-op" data-end="' . ( $anon ? 0 : (int) $end ) . '" data-min="' . (int) $min . '" data-days="' . (int) OldPrice::DAYS . '">';
+		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
+		$o  .= '<p>We have updated our pricing from 1st November, since we have added a lot of features to our Premium plan. You can still get Premium at the old price of ' . esc_html( $old ) . ' for a limited time, with the code <b>OLDPRICE</b>.</p>';
+		$o  .= '<p>After this offer ends, Premium will never be available at ' . esc_html( $old ) . ' again, even with discounts.</p>';
+		$o  .= '<p class="csm-pr-op-cd">Offer ends in <span class="csm-pr-op-t">' . esc_html( human_time_diff( time(), $end ) ) . '</span><small class="csm-pr-op-d"></small></p>';
+		$o  .= $anon
+			? '<a class="csm-pr-buy" href="' . esc_url( home_url( '/register/' ) ) . '">Join and get Premium at ' . esc_html( $old ) . '</a>'
+			: '<a class="csm-pr-buy" href="' . esc_url( OldPrice::buy_url() ) . '">Buy Premium at ' . esc_html( $old ) . '</a>';
+		$o  .= '</div>';
+		$o  .= '<script>(function(){var b=document.querySelector(".csm-pr-op");if(!b){return;}'
+			. 'var IST=19800000,end=+b.dataset.end*1000;'
+			. 'if(!end){var n=new Date(Date.now()+IST),d=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+(+b.dataset.days),23,59,59)-IST;end=Math.max(d,+b.dataset.min*1000);}'
+			. 'var t=b.querySelector(".csm-pr-op-t"),dl=b.querySelector(".csm-pr-op-d");'
+			. 'try{dl.textContent=" (on "+new Date(end).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"long"})+", 11:59 pm)";}catch(e){}'
+			. 'function p(x){return(x<10?"0":"")+x;}'
+			. 'function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
+			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
+			. 'tick();setInterval(tick,1000);})();</script>';
+		return $o;
+	}
+
 	private static function buy( $product, $label, $anon ) {
 		$url = $anon ? home_url( '/register/' ) : home_url( '/checkout/?add-to-cart=' . (int) $product );
 		return '<a class="csm-pr-buy" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
@@ -225,6 +270,13 @@ final class PricingPage {
 .csm-pr-card.is-gold .csm-pr-buy{background:#3a2806;color:#ffe7a3!important}
 .csm-pr-cur{display:inline-block;padding:8px 14px;border-radius:999px;border:1px solid #c9d2dc;color:#5c6a76;font-size:13px}
 .csm-pr-credit{margin:18px 0 0;padding:12px 14px;background:#fffaf0;border:1px solid #f0d58c;border-radius:10px;text-align:center}
+.csm-pr-note{margin:-10px 0 12px;font-size:13.5px;color:#2e7d32;font-weight:600}
+.csm-pr-op{margin:0 0 22px;padding:18px 20px;border:2px solid #0b2350;border-radius:16px;background:#f3f7fc;text-align:center}
+.csm-pr-op-h{display:block;font-size:18px;margin-bottom:6px}
+.csm-pr-op p{margin:0 0 8px;line-height:1.45}
+.csm-pr-op-cd{font-weight:700;font-size:17px;color:#b3261e}
+.csm-pr-op-cd small{display:block;font-weight:400;font-size:13px;color:#5c6a76}
+.csm-pr-op .csm-pr-buy{display:inline-block;margin-top:4px}
 .csm-pr-foot{margin-top:18px;text-align:center;color:#5c6a76;font-size:13px}
 .csm-pr-boost{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0 0;padding:16px 18px;border:1px solid #e4eaf0;border-radius:14px;background:#fff}
 .csm-pr-boost strong{display:block;font-size:16px}

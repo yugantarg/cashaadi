@@ -332,7 +332,9 @@ final class Gold {
 			return 0;
 		}
 		$days = max( 0, ( (int) $lvl->enddate - time() ) / DAY_IN_SECONDS );
-		return (int) floor( self::PREMIUM_PRICE_FOR_CREDIT * min( 365, $days ) / 365 );
+		// What they paid (₹1,499 before 1 Nov 2026, ₹4,499 after); the old price if unknown.
+		$paid = isset( $lvl->initial_payment ) && (float) $lvl->initial_payment > 0 ? (float) $lvl->initial_payment : self::PREMIUM_PRICE_FOR_CREDIT;
+		return (int) floor( $paid * min( 365, $days ) / 365 );
 	}
 
 	public static function upgrade_credit( $cart ) {

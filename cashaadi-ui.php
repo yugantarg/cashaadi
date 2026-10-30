@@ -499,6 +499,11 @@ if ( class_exists( 'CAShaadi\\Modules\\Premium\\GoldIntro' ) ) {
 	\CAShaadi\Modules\Premium\GoldIntro::register();
 }
 
+// Premium ₹4,499 from 1 Nov 2026; OLDPRICE keeps ₹1,499 for a while (v1.90.58).
+if ( class_exists( 'CAShaadi\\Modules\\Premium\\OldPrice' ) ) {
+	\CAShaadi\Modules\Premium\OldPrice::register();
+}
+
 // The ₹99 boost, an experiment (v1.90.52). Off until csm_boost_deal_pct > 0.
 if ( class_exists( 'CAShaadi\\Modules\\Premium\\BoostDeal' ) ) {
 	\CAShaadi\Modules\Premium\BoostDeal::register();
