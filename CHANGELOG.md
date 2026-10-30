@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.61 — 2026-10-30
+
+- Price email: the "3 full days" line replaced with "If you missed using this offer, email our support ... we may be able to activate the offer in certain cases" (owner). `wp csm oldprice extend <email>` gives a member 3 days from now.
+
 ## 1.90.60 — 2026-10-30
 
 - Premium price notice email, a campaign on the Email campaigns screen (stage, then release): activated members who are not Premium or Gold. Says ₹4,499 from 1 November, OLDPRICE for ₹1,499 from 1st to 5th November, 3 full days from opening for anyone reading it after 2 November, and never at ₹1,499 again; lists Premium's features (by gender).

@@ -181,12 +181,23 @@ final class OldPrice {
 	/**
 	 * wp csm oldprice setup    create the OLDPRICE coupon (once)
 	 * wp csm oldprice status   how many saw it, used it, and deadlines
+	 * wp csm oldprice extend <email>   give a member 3 more days from now (support)
 	 *
 	 * ## OPTIONS
 	 * <action>
+	 * [<email>]
 	 */
 	public static function cli( $args ) {
 		$action = $args[0] ?? 'status';
+		if ( 'extend' === $action ) {
+			$u = isset( $args[1] ) ? get_user_by( 'email', $args[1] ) : null;
+			if ( ! $u ) {
+				\WP_CLI::error( 'No member with that email.' );
+			}
+			update_user_meta( $u->ID, self::FIRST_META, time() );
+			\WP_CLI::success( $u->user_email . ' can use OLDPRICE until ' . wp_date( 'j F, g:i a', self::deadline_from( time() ) ) . '.' );
+			return;
+		}
 		if ( 'setup' === $action ) {
 			if ( ! class_exists( '\WC_Coupon' ) ) {
 				\WP_CLI::error( 'WooCommerce is not active.' );

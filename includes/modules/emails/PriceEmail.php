@@ -57,7 +57,7 @@ final class PriceEmail {
 			Engagement::greeting( $uid ),
 			'<p>From 1st November, Premium on CA Shaadi costs ₹4,499 a year. We have added a lot of features to Premium, so we have updated our pricing.</p>'
 			. '<p>You can still get Premium at the old price of <strong>₹1,499</strong>. Use the code <strong>OLDPRICE</strong> when you buy, from 1st to 5th November.</p>'
-			. '<p>If you are reading this after 2nd November, you still get 3 full days from when you open this email.</p>'
+			. '<p>If you missed using this offer, email our support at <a href="mailto:support@cashaadi.in">support@cashaadi.in</a>. We may be able to activate the offer in certain cases.</p>'
 			. '<p>After that, Premium will never be available at ₹1,499 again, even with discounts.</p>'
 			. '<p>With Premium you get:</p><ul style="padding-left:20px;margin:0 0 12px">' . $li . '</ul>'
 			. '<p>One payment for the whole year. It does not renew automatically.</p>',
