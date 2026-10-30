@@ -265,19 +265,17 @@ final class OldPrice {
 		}
 		$live = self::started();
 		$to   = $live ? $end : self::ts( self::FROM );
-		// Covers both plans (owner, v1.90.82: "change the notices to generic").
-		$new  = 'Premium ₹' . number_format_i18n( self::NEW_PRICE ) . ', Gold ₹' . number_format_i18n( self::GOLD_NEW );
-		$old  = 'Premium ₹' . number_format_i18n( self::OLD_PRICE ) . ', Gold ₹' . number_format_i18n( self::GOLD_OLD );
+		// Short and for both plans; the pricing page shows the amounts (owner, v1.90.83).
 		$text = $live
-			? 'New prices: ' . $new . '. You can still get the old prices (' . $old . ') with code OLDPRICE.'
-			: 'Prices go up on 1 November: ' . $new . '. Buy now at the old prices: ' . $old . '.';
+			? 'Prices have gone up. Use the code OLDPRICE to get the old prices.'
+			: 'Prices go up on 1 November. Buy now at the old prices.';
 		$lead = $live ? 'Offer ends in ' : 'Prices go up in ';
 		$url  = home_url( '/membership-pricing/?src=oldprice-banner' . ( self::preview() ? ( $live ? '&oldprice=preview' : '&oldprice=soon' ) : '' ) );
 		return '<div class="csm-opb" data-end="' . (int) $to . '"' . self::ev_attr( 'banner' ) . '>'
 			. '<button type="button" class="csm-opb-x" aria-label="Close">×</button>'
 			. '<p class="csm-opb-t">' . esc_html( $text ) . '</p>'
 			. '<p class="csm-opb-cd">' . esc_html( $lead ) . '<span></span></p>'
-			. '<a class="csm-opb-btn" href="' . esc_url( $url ) . '">See plans at the old prices</a>'
+			. '<a class="csm-opb-btn" href="' . esc_url( $url ) . '">See plans</a>'
 			. '</div>'
 			. '<style>.csm-opb{position:relative;margin:10px 12px 0;padding:12px 40px 12px 14px;border-radius:14px;background:#0b2350;color:#fff;font-size:14px;line-height:1.4}'
 			. '.csm-opb p{margin:0 0 6px}.csm-opb-cd{font-weight:700;color:#ffd27a}'

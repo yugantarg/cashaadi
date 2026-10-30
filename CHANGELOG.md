@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.83 — 2026-10-30
+
+- Price notices made short (owner: "they can see the pricing page and understand"). Pricing page: "New prices from 1 November", one line ("Buy now at the old prices." / "Use the code OLDPRICE to get the old prices. They will not be available again.") and the countdown; no amounts or buttons in the box (the cards show the prices, and from 1 November Buy Premium and Buy Gold apply the code). Discover banner: "Prices go up on 1 November. Buy now at the old prices." / "Prices have gone up. Use the code OLDPRICE to get the old prices.", countdown, "See plans".
+
 ## 1.90.82 — 2026-10-30
 
 - Price notices cover both plans (owner): the Discover banner ("Prices go up on 1 November: Premium ₹4,499, Gold ₹14,999. Buy now at the old prices…" / "New prices… You can still get the old prices… with code OLDPRICE", button "See plans at the old prices" to the pricing page), the pricing-page box (both prices, "these prices will never be available again", Buy Premium at ₹1,499 and Buy Gold at ₹7,999, which apply the code from 1 November). The price email is unchanged (owner: already sent).

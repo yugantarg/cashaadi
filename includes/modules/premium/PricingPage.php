@@ -137,7 +137,7 @@ final class PricingPage {
 				),
 				'price' => self::inr( $pp ) . ' / year',
 				'note'  => ! $op_end ? '' : ( $op_live ? self::inr( OldPrice::OLD_PRICE ) . ' with code OLDPRICE, for a limited time' : 'Goes up to ' . self::inr( OldPrice::NEW_PRICE ) . ' on 1 November' ),
-				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon ),
+				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon, $op_live && $op_end && ! $anon ),
 			),
 		);
 		// Women open numbers with Premium; men with Gold (owner, 2026-10-25).
@@ -224,67 +224,36 @@ final class PricingPage {
 	}
 
 	/**
-	 * "New prices from 1 November", the code and a countdown to this
-	 * member's deadline. Signed-out visitors may get a cached page, so their
-	 * deadline is worked out in the browser: 11:59 pm on the later of
-	 * 5 November and three days from today (IST), as OldPrice does.
+	 * The short notice above the cards (owner: "they can see the pricing page
+	 * and understand"): one line and a countdown. Signed-out visitors may get
+	 * a cached page, so their deadline is worked out in the browser: 11:59 pm
+	 * on the later of 5 November and three days from today (IST).
 	 */
-	/** "Premium ₹4,499 and Gold ₹14,999", or Premium alone when Gold is not on sale. */
-	private static function both( $premium, $gold_price, $gold ) {
-		return 'Premium ' . self::inr( $premium ) . ( $gold ? ' and Gold ' . self::inr( $gold_price ) : '' );
-	}
-
-	/** The box's buttons: Premium, and Gold when on sale, at the old prices. */
-	private static function old_buttons( $anon, $gold, $code ) {
-		if ( $anon ) {
-			return '<a class="csm-pr-buy" href="' . esc_url( home_url( '/register/' ) ) . '">Join and get the old prices</a>';
-		}
-		$q = $code ? '&oldprice=1' : '';
-		$o = '<div class="csm-pr-op-btns"><a class="csm-pr-buy" href="' . esc_url( home_url( '/checkout/?add-to-cart=' . (int) Config::WC_PREMIUM_PRODUCT . $q ) ) . '">Buy Premium at ' . esc_html( self::inr( OldPrice::OLD_PRICE ) ) . '</a>';
-		if ( $gold ) {
-			$o .= '<a class="csm-pr-buy is-gold" href="' . esc_url( home_url( '/checkout/?add-to-cart=' . (int) Config::WC_GOLD_PRODUCT . $q ) ) . '">Buy Gold at ' . esc_html( self::inr( OldPrice::GOLD_OLD ) ) . '</a>';
-		}
-		return $o . '</div>';
-	}
-
-	private static function old_price_box( $end, $anon, $gold = false ) {
-		$old = self::inr( OldPrice::OLD_PRICE );
+	private static function notice( $end, $live, $anon, $line ) {
 		$min = ( new \DateTimeImmutable( OldPrice::MIN_END . ' 23:59:59', wp_timezone() ) )->getTimestamp();
-		$o   = '<div class="csm-pr-op" data-end="' . ( $anon ? 0 : (int) $end ) . '" data-min="' . (int) $min . '" data-days="' . (int) OldPrice::DAYS . '"' . ( $anon ? '' : OldPrice::ev_attr( 'box' ) ) . '>';
+		$o   = '<div class="csm-pr-op" data-end="' . ( $live && $anon ? 0 : (int) $end ) . '" data-min="' . (int) $min . '" data-days="' . (int) OldPrice::DAYS . '"' . ( $anon ? '' : OldPrice::ev_attr( 'box' ) ) . '>';
 		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
-		$o  .= '<p>We have updated our pricing from 1st November, since we have added a lot of features to our plans: ' . esc_html( self::both( OldPrice::NEW_PRICE, OldPrice::GOLD_NEW, $gold ) ) . ' a year. You can still get the old prices, ' . esc_html( self::both( OldPrice::OLD_PRICE, OldPrice::GOLD_OLD, $gold ) ) . ', for a limited time with the code <b>OLDPRICE</b>.</p>';
-		$o  .= '<p>After this offer ends, these prices will never be available again, even with discounts.</p>';
-		$o  .= '<p class="csm-pr-op-cd">Offer ends in <span class="csm-pr-op-t">' . esc_html( human_time_diff( time(), $end ) ) . '</span><small class="csm-pr-op-d"></small></p>';
-		$o  .= self::old_buttons( $anon, $gold, true );
+		$o  .= '<p>' . $line . '</p>';
+		$o  .= '<p class="csm-pr-op-cd">' . ( $live ? 'Offer ends in ' : 'Prices go up in ' ) . '<span class="csm-pr-op-t"></span></p>';
 		$o  .= '</div>';
 		$o  .= '<script>(function(){var b=document.querySelector(".csm-pr-op");if(!b){return;}'
 			. 'var IST=19800000,end=+b.dataset.end*1000;'
 			. 'if(!end){var n=new Date(Date.now()+IST),d=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+(+b.dataset.days),23,59,59)-IST;end=Math.max(d,+b.dataset.min*1000);}'
-			. 'var t=b.querySelector(".csm-pr-op-t"),dl=b.querySelector(".csm-pr-op-d");'
-			. 'try{dl.textContent=" (on "+new Date(end).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"long"})+", 11:59 pm)";}catch(e){}'
-			. 'function p(x){return(x<10?"0":"")+x;}'
+			. 'var t=b.querySelector(".csm-pr-op-t");function p(x){return(x<10?"0":"")+x;}'
 			. 'function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
 			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
-			. 'tick();setInterval(tick,1000);' . OldPrice::ev_js() . 'ev(b,"shown");[].forEach.call(b.querySelectorAll(".csm-pr-buy"),function(a){a.addEventListener("click",function(){ev(b,"click");});});})();</script>';
+			. 'tick();setInterval(tick,1000);' . OldPrice::ev_js() . 'ev(b,"shown");})();</script>';
 		return $o;
 	}
 
-	/** Before 1 November: the change, the reason, buy now, and the code to come. */
+	/** From 1 November: the code and this member's countdown. */
+	private static function old_price_box( $end, $anon, $gold = false ) {
+		return self::notice( $end, true, $anon, 'Use the code <b>OLDPRICE</b> to get the old prices. They will not be available again.' );
+	}
+
+	/** Before 1 November: buy now at the old prices. */
 	private static function price_soon_box( $from, $anon, $gold = false ) {
-		$old = self::inr( OldPrice::OLD_PRICE );
-		$o   = '<div class="csm-pr-op" data-end="' . (int) $from . '"' . ( $anon ? '' : OldPrice::ev_attr( 'box' ) ) . '>';
-		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
-		$o  .= '<p>We have updated our pricing from 1st November, since we have added a lot of features to our plans: ' . esc_html( self::both( OldPrice::NEW_PRICE, OldPrice::GOLD_NEW, $gold ) ) . ' a year.</p>';
-		$o  .= '<p>Until then, the old prices stay: ' . esc_html( self::both( OldPrice::OLD_PRICE, OldPrice::GOLD_OLD, $gold ) ) . '. Members who join before 1 November can also get them with the code <b>OLDPRICE</b> from 1st to 5th November.</p>';
-		$o  .= '<p>After that, these prices will never be available again, even with discounts.</p>';
-		$o  .= '<p class="csm-pr-op-cd">Prices go up in <span class="csm-pr-op-t"></span></p>';
-		$o  .= self::old_buttons( $anon, $gold, false );
-		$o  .= '</div>';
-		$o  .= '<script>(function(){var b=document.querySelector(".csm-pr-op");if(!b){return;}var end=+b.dataset.end*1000,t=b.querySelector(".csm-pr-op-t");'
-			. 'function p(x){return(x<10?"0":"")+x;}function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
-			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
-			. 'tick();setInterval(tick,1000);' . OldPrice::ev_js() . 'ev(b,"shown");[].forEach.call(b.querySelectorAll(".csm-pr-buy"),function(a){a.addEventListener("click",function(){ev(b,"click");});});})();</script>';
-		return $o;
+		return self::notice( $from, false, $anon, 'Buy now at the old prices.' );
 	}
 
 	private static function buy( $product, $label, $anon, $code = false ) {
@@ -324,7 +293,7 @@ final class PricingPage {
 .csm-pr-op p{margin:0 0 8px;line-height:1.45}
 .csm-pr-op-cd{font-weight:700;font-size:17px;color:#b3261e}
 .csm-pr-op-cd small{display:block;font-weight:400;font-size:13px;color:#5c6a76}
-.csm-pr-op .csm-pr-buy{display:inline-block;margin:4px 4px 0}.csm-pr-op .csm-pr-buy.is-gold{background:#3a2806;color:#ffe7a3!important}
+.csm-pr-op .csm-pr-buy{display:inline-block;margin:4px 4px 0}
 .csm-pr-foot{margin-top:18px;text-align:center;color:#5c6a76;font-size:13px}
 .csm-pr-boost{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0 0;padding:16px 18px;border:1px solid #e4eaf0;border-radius:14px;background:#fff}
 .csm-pr-boost strong{display:block;font-size:16px}
