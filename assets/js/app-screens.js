@@ -598,7 +598,11 @@ window.csmProfileCard = function ( p ) {
 	setTimeout( function () {
 		mark( false );
 		window.csmConfirm( cfg.text, { title: cfg.title, okText: cfg.ok || 'See Gold', cancelText: 'Not now' } ).then( function ( yes ) {
-			if ( ! yes ) { return; }
+			if ( ! yes ) {
+				// Where to find it later (the survey, v1.90.78).
+				if ( cfg.later ) { window.csmConfirm( cfg.later, { okText: 'OK', alert: true } ); }
+				return;
+			}
 			var go = function () { window.location.href = cfg.url; };
 			var p  = mark( true );
 			setTimeout( go, 800 );

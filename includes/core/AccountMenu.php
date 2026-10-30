@@ -117,6 +117,13 @@ final class AccountMenu {
 			$cash   = class_exists( '\CAShaadi\Modules\Referral\Referral' ) ? (int) \CAShaadi\Modules\Referral\Referral::balance( $uid ) : 0;
 			$rows[] = array( 'label' => 'Refer & earn', 'url' => home_url( '/refer/' ), 'value' => $cash > 0 ? '₹' . number_format_i18n( $cash ) . ' cash' : '' );
 		}
+		// The survey, for invited members who have not answered (v1.90.78).
+		if ( class_exists( '\\CAShaadi\\Modules\\Survey\\Survey' ) ) {
+			$sv = \CAShaadi\Modules\Survey\Survey::profile_row( $uid );
+			if ( $sv ) {
+				$rows[] = $sv;
+			}
+		}
 		$out[] = array( 'key' => 'membership', 'title' => 'Membership', 'rows' => $rows );
 
 		// Privacy & safety.

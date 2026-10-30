@@ -73,6 +73,10 @@ final class DiscoverScreen {
 		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\OldPrice' ) ) {
 			echo \CAShaadi\Modules\Premium\OldPrice::discover_banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts
 		}
+		// "Continue the survey", for a member who started it and left (v1.90.78).
+		if ( class_exists( '\\CAShaadi\\Modules\\Survey\\Survey' ) ) {
+			echo \CAShaadi\Modules\Survey\Survey::banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts
+		}
 		echo '<div id="csm-discover-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
 		AppPage::close( 'discover' );
 		exit;

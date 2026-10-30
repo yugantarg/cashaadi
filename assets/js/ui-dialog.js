@@ -57,7 +57,8 @@
 				overlay.addEventListener( 'click', function ( e ) { if ( e.target === overlay ) { close( false ); } } );
 				document.addEventListener( 'keydown', onKey );
 
-				row.appendChild( cancel );
+				// opts.alert: a message with one button (v1.90.78).
+				if ( ! opts.alert ) { row.appendChild( cancel ); }
 				row.appendChild( ok );
 				sheet.appendChild( row );
 				overlay.appendChild( sheet );

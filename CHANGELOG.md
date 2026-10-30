@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.78 — 2026-10-30
+
+- Survey follow-ups (owner): after "Not now", a one-button note says it is on the Profile tab (the popup never comes back). Profile tab, Membership: "Earn ₹600: answer a short survey" for invited members who have not answered ("Continue" once started). Discover: a "Continue the survey" banner for members who opened it and left; × hides it for good. Answers in progress are kept in the browser, so nothing is lost on leaving. `csmConfirm` gains `alert` (one button).
+
 ## 1.90.77 — 2026-10-30
 
 - Survey in batches (owner): nobody is invited until `wp csm survey invite <n>`; the next n eligible members who open the app then see the popup, and only invited members can answer. `wp csm survey batches`: per batch invited, saw the popup, answered, testimonials, response rate.

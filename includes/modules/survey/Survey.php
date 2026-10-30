@@ -55,6 +55,8 @@ final class Survey {
 	const LEFT_OPT   = 'csm_survey_invites_left';
 	const BATCH_OPT  = 'csm_survey_batch_no';
 	const BATCH_META = 'csm_survey1_batch';
+	const START_META = 'csm_survey1_started'; // opened the survey (v1.90.78)
+	const HIDE_META  = 'csm_survey1_banner_off'; // closed the "continue" banner
 	const CASH       = 300;
 	const CASH_TESTI = 300;
 	const TESTI_MIN  = 60;   // characters, for the testimonial cash
@@ -172,15 +174,60 @@ final class Survey {
 			'title' => 'Help improve CA Shaadi and earn ₹600',
 			'text'  => "₹300 for answering a short survey\n₹300 for a testimonial\n\nYou receive it as CA Shaadi Cash, which you can use anywhere on CA Shaadi, on top of any other discount or offer.",
 			'ok'    => 'Start',
+			'later' => 'No problem. You can take the survey any time from your Profile tab and still earn ₹600.',
 			'url'   => home_url( '/survey/' ),
 			'seen'  => rest_url( 'csm/v1/survey/seen' ),
 		);
+	}
+
+	/**
+	 * The row on the Profile tab for an invited member who has not answered
+	 * (owner: after "Not now", it stays available from the Profile section).
+	 */
+	public static function profile_row( $uid ) {
+		if ( ! self::open_for( $uid ) ) {
+			return null;
+		}
+		return array(
+			'label' => 'Earn ₹600: answer a short survey',
+			'url'   => home_url( '/survey/' ),
+			'value' => get_user_meta( (int) $uid, self::START_META, true ) ? 'Continue' : '',
+		);
+	}
+
+	/**
+	 * "Continue the survey" above Discover, for a member who opened the
+	 * survey and left without submitting. The × hides it for good; the Profile
+	 * row stays.
+	 */
+	public static function banner( $uid ) {
+		if ( ! self::open_for( $uid ) || ! get_user_meta( (int) $uid, self::START_META, true ) || get_user_meta( (int) $uid, self::HIDE_META, true ) ) {
+			return '';
+		}
+		$hide = esc_url( add_query_arg( '_wpnonce', wp_create_nonce( 'wp_rest' ), rest_url( 'csm/v1/survey/hide' ) ) );
+		return '<div class="csm-svb"><button type="button" class="csm-svb-x" aria-label="Close" data-hide="' . $hide . '">×</button>'
+			. '<p>You started our survey. Finish it to earn ₹300, or ₹600 with a testimonial.</p>'
+			. '<a class="csm-svb-btn" href="' . esc_url( home_url( '/survey/' ) ) . '">Continue the survey</a>'
+			. '<small>You can also find it on your Profile tab.</small></div>'
+			. '<style>.csm-svb{position:relative;margin:10px 12px 0;padding:12px 40px 12px 14px;border-radius:14px;background:#fffaf0;border:1px solid #f0d58c;font-size:14px;line-height:1.4;color:#16212b}'
+			. '.csm-svb p{margin:0 0 8px}.csm-svb small{display:block;margin-top:6px;color:#5c6a76}'
+			. '.csm-svb-btn{display:inline-block;padding:8px 16px;border-radius:999px;background:#0b2350;color:#fff!important;font-weight:700;text-decoration:none}'
+			. '.csm-svb-x{position:absolute;top:6px;right:8px;border:0;background:none;color:#5c6a76;font-size:22px;line-height:1;cursor:pointer;padding:4px}</style>'
+			. '<script>(function(){var b=document.querySelector(".csm-svb");if(!b){return;}var x=b.querySelector(".csm-svb-x");x.onclick=function(){var u=x.getAttribute("data-hide");try{if(!(navigator.sendBeacon&&navigator.sendBeacon(u))){fetch(u,{method:"POST",credentials:"same-origin",keepalive:true});}}catch(e){}b.remove();};})();</script>';
 	}
 
 	public static function routes() {
 		register_rest_route( 'csm/v1', '/survey', array(
 			'methods'             => 'POST',
 			'callback'            => array( __CLASS__, 'rest_submit' ),
+			'permission_callback' => 'is_user_logged_in',
+		) );
+		register_rest_route( 'csm/v1', '/survey/hide', array(
+			'methods'             => 'POST',
+			'callback'            => function () {
+				update_user_meta( get_current_user_id(), self::HIDE_META, time() );
+				return new \WP_REST_Response( array( 'ok' => true ), 200 );
+			},
 			'permission_callback' => 'is_user_logged_in',
 		) );
 		register_rest_route( 'csm/v1', '/survey/seen', array(
@@ -324,6 +371,9 @@ final class Survey {
 		} elseif ( ! $open && ! current_user_can( 'manage_options' ) ) {
 			echo '<h1>This survey is closed</h1><p>Thank you for your interest.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/discover/' ) ) . '">Back to Discover</a>';
 		} else {
+			if ( $open && ! get_user_meta( $uid, self::START_META, true ) ) {
+				update_user_meta( $uid, self::START_META, time() );
+			}
 			echo self::form(); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts
 		}
 		echo '</div>' . self::css();
@@ -407,6 +457,10 @@ final class Survey {
 			. 'var tx=f.querySelector("textarea[name=testimonial]"),pm=f.querySelector("input[name=permission]");'
 			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&tx.value.trim().length>=(+f.getAttribute("data-min"))?"600":"300");}'
 			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();}tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
+			// Answers so far are kept in this browser, so leaving and coming back loses nothing.
+			. 'var DK="csm_sv1_draft";function save(){try{var s={};[].forEach.call(f.querySelectorAll("input,textarea"),function(i){if(i.type==="radio"||i.type==="checkbox"){if(i.checked){(s[i.name]=s[i.name]||[]).push(i.value);}}else if(i.name){s[i.name]=i.value;}});localStorage.setItem(DK,JSON.stringify(s));}catch(e){}}'
+			. 'try{var s0=JSON.parse(localStorage.getItem(DK)||"null");if(s0){[].forEach.call(f.querySelectorAll("input,textarea"),function(i){var v=s0[i.name];if(v===undefined){return;}if(i.type==="radio"||i.type==="checkbox"){i.checked=v.indexOf(i.value)!==-1;}else{i.value=v;}});}}catch(e){}'
+			. 'f.addEventListener("change",save);f.addEventListener("input",save);upd();'
 			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={importance:{}};'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-err"),function(x){x.textContent="";});'
 			. 'var c;d.paid=f.querySelector("input[name=paid]").value;'
@@ -419,7 +473,7 @@ final class Survey {
 			. 'd.permission=pm.checked?1:0;d.start=f.getAttribute("data-start");'
 			. 'b.disabled=true;b.textContent="Sending…";'
 			. 'fetch(f.getAttribute("data-url"),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-WP-Nonce":f.getAttribute("data-nonce")},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(r){'
-			. 'if(r&&r.ok){f.parentNode.innerHTML="<h1>Thank you!</h1><p><b>₹"+r.cash+" CA Shaadi Cash</b> has been added to your account. Use it anywhere on CA Shaadi.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>";window.scrollTo(0,0);return;}'
+			. 'if(r&&r.ok){try{localStorage.removeItem(DK);}catch(e){}f.parentNode.innerHTML="<h1>Thank you!</h1><p><b>₹"+r.cash+" CA Shaadi Cash</b> has been added to your account. Use it anywhere on CA Shaadi.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>";window.scrollTo(0,0);return;}'
 			. 'b.disabled=false;b.textContent=lbl();var first=null;'
 			. 'Object.keys((r&&r.errors)||{}).forEach(function(k){var fs=f.querySelector("fieldset[data-key=\""+k+"\"]");if(fs){fs.querySelector(".csm-sv-err").textContent=r.errors[k];first=first||fs;}});'
 			. 'if(r&&r.message){f.querySelector(".csm-sv-top").textContent=r.message;}'
