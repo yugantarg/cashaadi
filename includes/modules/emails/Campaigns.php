@@ -41,6 +41,13 @@ final class Campaigns {
 				'stage' => array( '\CAShaadi\Modules\Emails\Announcement', 'stage' ),
 				'size'  => array( '\CAShaadi\Modules\Emails\Announcement', 'audience' ),
 			),
+			PriceEmail::TYPE => array(
+				'title' => 'Premium price notice (₹4,499 from 1 Nov, OLDPRICE till 5 Nov)',
+				'why'   => 'Activated members who are not Premium or Gold. Opening it starts the member\'s OLDPRICE days: '
+					. 'opened by 2 November, the code runs to 5 November; later, three days from the open.',
+				'stage' => array( '\CAShaadi\Modules\Emails\PriceEmail', 'stage' ),
+				'size'  => array( '\CAShaadi\Modules\Emails\PriceEmail', 'audience' ),
+			),
 			Engagement::PHOTO_QUALITY_TYPE => array(
 				'title' => 'Low-quality photo — ask for a re-upload',
 				'why'   => 'Members whose stored photo is under 300px across, so it renders soft on a card. '

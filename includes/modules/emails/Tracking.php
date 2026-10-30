@@ -198,6 +198,9 @@ final class Tracking {
 			$data['opened_at'] = current_time( 'mysql' );
 		}
 		$wpdb->update( $t, $data, array( 'id' => (int) $row->id ) );
+		if ( empty( $row->opened_at ) ) {
+			do_action( 'csm_email_opened', $row ); // first open only (v1.90.60)
+		}
 	}
 
 	private static function record_click( $token ) {
@@ -218,6 +221,9 @@ final class Tracking {
 			$data['open_count'] = (int) $row->open_count + 1;
 		}
 		$wpdb->update( $t, $data, array( 'id' => (int) $row->id ) );
+		if ( empty( $row->opened_at ) ) {
+			do_action( 'csm_email_opened', $row );
+		}
 	}
 
 	/** A 1x1 transparent GIF, uncacheable so repeat opens are seen. */

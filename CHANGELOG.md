@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.60 — 2026-10-30
+
+- Premium price notice email, a campaign on the Email campaigns screen (stage, then release): activated members who are not Premium or Gold. Says ₹4,499 from 1 November, OLDPRICE for ₹1,499 from 1st to 5th November, 3 full days from opening for anyone reading it after 2 November, and never at ₹1,499 again; lists Premium's features (by gender).
+- Opening that email (first open or first click) starts the member's OLDPRICE days, moving them later if they had seen the offer earlier (`csm_email_opened` action from email tracking).
+
 ## 1.90.59 — 2026-10-30
 
 - OLDPRICE only for members who joined before 1 November (owner): the box, the card note and the code itself. Signed-out visitors no longer see the box.

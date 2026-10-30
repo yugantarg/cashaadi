@@ -21,6 +21,9 @@
  *   Members already stamped keep theirs; anyone not stamped by then has until
  *   MIN_END at most.
  *
+ * Opening the price email (PriceEmail) also stamps it, and a later open
+ * moves it later, never earlier.
+ *
  * Admins can see the banner before 1 November with ?oldprice=preview.
  */
 
@@ -50,6 +53,7 @@ final class OldPrice {
 		add_filter( 'woocommerce_coupon_is_valid', array( __CLASS__, 'coupon_valid' ), 20, 2 );
 		// "Buy Premium at ₹1,499" adds Premium with the code already applied.
 		add_action( 'woocommerce_add_to_cart', array( __CLASS__, 'apply_from_link' ), 30, 2 );
+		add_action( 'csm_email_opened', array( __CLASS__, 'on_email_open' ) );
 		// Cached pages still show the old price after midnight: purge at the switch.
 		add_action( 'csm_oldprice_go', array( __CLASS__, 'purge' ) );
 		if ( ! self::started() && ! wp_next_scheduled( 'csm_oldprice_go' ) ) {
@@ -153,6 +157,20 @@ final class OldPrice {
 		}
 		if ( self::started() && self::offer_for( get_current_user_id() ) && ! WC()->cart->has_discount( self::CODE ) ) {
 			WC()->cart->apply_coupon( self::CODE );
+		}
+	}
+
+	/**
+	 * Opening the price email starts (or restarts, if later) the member's
+	 * days (owner: "the count starts from point of opening email").
+	 */
+	public static function on_email_open( $row ) {
+		if ( ! is_object( $row ) || \CAShaadi\Modules\Emails\PriceEmail::TYPE !== $row->email_type ) {
+			return;
+		}
+		$uid = (int) $row->user_id;
+		if ( $uid && get_option( self::OPEN_OPT, 1 ) ) {
+			update_user_meta( $uid, self::FIRST_META, max( time(), (int) get_user_meta( $uid, self::FIRST_META, true ) ) );
 		}
 	}
 
