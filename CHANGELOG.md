@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.79 — 2026-10-30
+
+- Privacy fix: survey drafts were saved under one browser key, so a second account on the same browser could see the first member's answers and their name-and-photo permission. Drafts are now saved per member (an opaque per-member key), the permission switch is never saved (chosen fresh each time), and the old shared key is removed on load.
+
 ## 1.90.78 — 2026-10-30
 
 - Survey follow-ups (owner): after "Not now", a one-button note says it is on the Profile tab (the popup never comes back). Profile tab, Membership: "Earn ₹600: answer a short survey" for invited members who have not answered ("Continue" once started). Discover: a "Continue the survey" banner for members who opened it and left; × hides it for good. Answers in progress are kept in the browser, so nothing is lost on leaving. `csmConfirm` gains `alert` (one button).

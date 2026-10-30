@@ -415,7 +415,7 @@ final class Survey {
 		$t0 = time();
 		$o  = '<h1>Help improve CA Shaadi and earn ₹600</h1>';
 		$o .= '<div class="csm-sv-cash"><b>₹300</b> for the survey<br><b>₹300</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
-		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '">';
+		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '" data-dk="' . esc_attr( 'csm_sv1_draft_' . substr( wp_hash( 'csm_sv_draft_' . get_current_user_id() ), 0, 16 ) ) . '">';
 
 		$o .= self::q( 'paid', 1, 'How much have you paid in total for matrimony services so far (sites, apps, bureaus or agents)?',
 			'<p class="csm-sv-hint">An approximate amount is fine. Write 0 if you never paid.</p>'
@@ -457,9 +457,16 @@ final class Survey {
 			. 'var tx=f.querySelector("textarea[name=testimonial]"),pm=f.querySelector("input[name=permission]");'
 			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&tx.value.trim().length>=(+f.getAttribute("data-min"))?"600":"300");}'
 			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();}tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
-			// Answers so far are kept in this browser, so leaving and coming back loses nothing.
-			. 'var DK="csm_sv1_draft";function save(){try{var s={};[].forEach.call(f.querySelectorAll("input,textarea"),function(i){if(i.type==="radio"||i.type==="checkbox"){if(i.checked){(s[i.name]=s[i.name]||[]).push(i.value);}}else if(i.name){s[i.name]=i.value;}});localStorage.setItem(DK,JSON.stringify(s));}catch(e){}}'
-			. 'try{var s0=JSON.parse(localStorage.getItem(DK)||"null");if(s0){[].forEach.call(f.querySelectorAll("input,textarea"),function(i){var v=s0[i.name];if(v===undefined){return;}if(i.type==="radio"||i.type==="checkbox"){i.checked=v.indexOf(i.value)!==-1;}else{i.value=v;}});}}catch(e){}'
+			/*
+			 * Answers so far are kept in this browser, so leaving and coming back
+			 * loses nothing. The key is per member (an opaque hash), so another
+			 * account on the same browser never sees them, and the name-and-photo
+			 * permission is never saved: it is chosen fresh each time (v1.90.79).
+			 * The shared key used by 1.90.78 is removed.
+			 */
+			. 'var DK=f.getAttribute("data-dk");try{localStorage.removeItem("csm_sv1_draft");}catch(e){}'
+			. 'function save(){try{var s={};[].forEach.call(f.querySelectorAll("input,textarea"),function(i){if(i.name==="permission"){return;}if(i.type==="radio"||i.type==="checkbox"){if(i.checked){(s[i.name]=s[i.name]||[]).push(i.value);}}else if(i.name){s[i.name]=i.value;}});localStorage.setItem(DK,JSON.stringify(s));}catch(e){}}'
+			. 'try{var s0=JSON.parse(localStorage.getItem(DK)||"null");if(s0){[].forEach.call(f.querySelectorAll("input,textarea"),function(i){var v=s0[i.name];if(v===undefined||i.name==="permission"){return;}if(i.type==="radio"||i.type==="checkbox"){i.checked=v.indexOf(i.value)!==-1;}else{i.value=v;}});}}catch(e){}'
 			. 'f.addEventListener("change",save);f.addEventListener("input",save);upd();'
 			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={importance:{}};'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-err"),function(x){x.textContent="";});'
