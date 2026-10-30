@@ -87,6 +87,7 @@ final class PricingPage {
 				$op_end = OldPrice::offer_for( $uid );
 				if ( OldPrice::preview() ) {
 					$pp = OldPrice::NEW_PRICE;
+					$gp = OldPrice::GOLD_NEW;
 				}
 			} elseif ( ( ! $is_p && ! $is_g ) || ( isset( $_GET['oldprice'] ) && 'soon' === $_GET['oldprice'] && current_user_can( 'manage_options' ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$op_end = ( new \DateTimeImmutable( OldPrice::FROM, wp_timezone() ) )->getTimestamp();
@@ -145,6 +146,9 @@ final class PricingPage {
 			$plans['premium']['items'][] = $phone_line;
 		}
 		if ( $gold ) {
+			// While OLDPRICE works for this member, Buy Gold applies it (v1.90.81).
+			$gold_note = class_exists( __NAMESPACE__ . '\\OldPrice' ) ? OldPrice::gold_note( $uid ) : '';
+			$gold_code = false !== strpos( $gold_note, 'OLDPRICE' ) && ! $anon;
 			$sold_out = ! $is_g && ! Gold::purchasable( true, function_exists( 'wc_get_product' ) ? wc_get_product( Config::WC_GOLD_PRODUCT ) : null );
 			$plans['gold'] = array(
 				'name'  => 'Gold',
@@ -157,9 +161,9 @@ final class PricingPage {
 					'Gold badge on your profile (with CA verification)',
 				),
 				'price' => self::inr( $gp ) . ' / year',
-				// "₹7,999 till 5 Nov, then ₹14,999" (owner, v1.90.80).
-				'note'  => class_exists( __NAMESPACE__ . '\\OldPrice' ) && ! $is_g ? OldPrice::gold_note() : '',
-				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Founding places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon ) ),
+				// Gold's old price with OLDPRICE, quietly (owner, v1.90.81).
+				'note'  => $gold_note,
+				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Founding places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon, $gold_code ) ),
 			);
 			if ( ! $female ) {
 				array_splice( $plans['gold']['items'], 4, 0, array( $phone_line ) );
@@ -269,8 +273,8 @@ final class PricingPage {
 		return $o;
 	}
 
-	private static function buy( $product, $label, $anon ) {
-		$url = $anon ? home_url( '/register/' ) : home_url( '/checkout/?add-to-cart=' . (int) $product );
+	private static function buy( $product, $label, $anon, $code = false ) {
+		$url = $anon ? home_url( '/register/' ) : home_url( '/checkout/?add-to-cart=' . (int) $product . ( $code ? '&oldprice=1' : '' ) );
 		return '<a class="csm-pr-buy" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
 	}
 

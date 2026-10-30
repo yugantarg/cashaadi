@@ -24,6 +24,11 @@
  * Opening the price email (PriceEmail) also stamps it, and a later open
  * moves it later, never earlier.
  *
+ * Gold follows the same rules (v1.90.81): ₹14,999 from FROM, ₹7,999 with
+ * OLDPRICE until the same per-member deadline (Premium members can use it
+ * for Gold too, with the upgrade credit). Only notice: a line on the Gold
+ * pricing card; Buy Gold applies the code while it works.
+ *
  * Admins can see the banner before 1 November with ?oldprice=preview.
  */
 
@@ -42,10 +47,12 @@ final class OldPrice {
 	const OLD_PRICE  = 1499;
 	const NEW_PRICE  = 4499;
 	const FROM       = '2026-11-01 00:00:00';
-	// Gold goes to ₹14,999 after 5 November, quietly (owner, v1.90.80): no
-	// code and no notice, only a line on the pricing page's Gold card.
+	// Gold too (owner, v1.90.81: "use the same OLDPRICE code system and the
+	// 3 day thing, keep everything same except the notices"): ₹14,999 from
+	// FROM, ₹7,999 with OLDPRICE until the member's deadline. No email,
+	// banner or box for Gold; only a line on its pricing card.
+	const GOLD_OLD   = 7999;
 	const GOLD_NEW   = 14999;
-	const GOLD_UNTIL = '2026-11-05 23:59:59';
 	const MIN_END    = '2026-11-05';
 	const DAYS       = 3;
 	const FIRST_META = 'csm_op_first';
@@ -64,10 +71,11 @@ final class OldPrice {
 		if ( ! self::started() && ! wp_next_scheduled( 'csm_oldprice_go' ) ) {
 			wp_schedule_single_event( self::ts( self::FROM ) + 60, 'csm_oldprice_go' );
 		}
-		add_action( 'csm_goldprice_go', array( __CLASS__, 'purge' ) );
-		if ( ! self::gold_raised() && ! wp_next_scheduled( 'csm_goldprice_go' ) ) {
-			wp_schedule_single_event( self::ts( self::GOLD_UNTIL ) + 61, 'csm_goldprice_go' );
-		}
+		// One code for both plans: Gold is added to its products, and its
+		// amount is Gold's difference when Gold is in the cart (the cart only
+		// ever holds one plan: Buy Premium / Buy Gold start a clean cart).
+		add_filter( 'woocommerce_coupon_get_product_ids', array( __CLASS__, 'coupon_products' ), 20, 2 );
+		add_filter( 'woocommerce_coupon_get_amount', array( __CLASS__, 'coupon_amount' ), 20, 2 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm oldprice', array( __CLASS__, 'cli' ), array(
 				'synopsis' => array(
@@ -91,14 +99,47 @@ final class OldPrice {
 		return time() >= self::ts( self::FROM );
 	}
 
-	/** Has Gold's new price started (after 5 November)? */
-	public static function gold_raised() {
-		return time() > self::ts( self::GOLD_UNTIL );
+	private static function is_code( $coupon ) {
+		return $coupon && self::CODE === strtolower( (string) $coupon->get_code() );
 	}
 
-	/** The pricing page's Gold card line while ₹7,999 lasts, or ''. */
-	public static function gold_note() {
-		return self::gold_raised() ? '' : '₹' . number_format_i18n( 7999 ) . ' till 5 Nov, then ₹' . number_format_i18n( self::GOLD_NEW );
+	public static function coupon_products( $ids, $coupon ) {
+		if ( self::is_code( $coupon ) ) {
+			$ids   = (array) $ids;
+			$ids[] = (int) Config::WC_GOLD_PRODUCT;
+			$ids   = array_values( array_unique( array_map( 'intval', $ids ) ) );
+		}
+		return $ids;
+	}
+
+	public static function coupon_amount( $amount, $coupon ) {
+		if ( ! self::is_code( $coupon ) || ! function_exists( 'WC' ) || ! WC()->cart ) {
+			return $amount;
+		}
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( (int) $item['product_id'] === (int) Config::WC_GOLD_PRODUCT ) {
+				return self::GOLD_NEW - self::GOLD_OLD;
+			}
+		}
+		return $amount;
+	}
+
+	/**
+	 * Gold's line on the pricing card: before 1 November, the coming price;
+	 * from then, the code while this member's deadline lasts. Premium members
+	 * can use it for Gold too (the upgrade credit still applies). '' = none.
+	 */
+	public static function gold_note( $uid ) {
+		if ( $uid && Membership::is_gold( $uid ) ) {
+			return '';
+		}
+		if ( ! self::started() && ! self::preview() ) {
+			return 'Goes up to ₹' . number_format_i18n( self::GOLD_NEW ) . ' on 1 November';
+		}
+		if ( self::preview() || ( self::eligible( $uid ) && self::deadline( $uid, true ) > time() ) ) {
+			return '₹' . number_format_i18n( self::GOLD_OLD ) . ' with code OLDPRICE, for a limited time';
+		}
+		return '';
 	}
 
 	public static function price( $price, $product ) {
@@ -108,7 +149,7 @@ final class OldPrice {
 		if ( self::started() && (int) $product->get_id() === (int) Config::WC_PREMIUM_PRODUCT ) {
 			return (string) self::NEW_PRICE;
 		}
-		if ( self::gold_raised() && (int) $product->get_id() === (int) Config::WC_GOLD_PRODUCT ) {
+		if ( self::started() && (int) $product->get_id() === (int) Config::WC_GOLD_PRODUCT ) {
 			return (string) self::GOLD_NEW;
 		}
 		return $price;
@@ -186,10 +227,13 @@ final class OldPrice {
 	}
 
 	public static function apply_from_link( $key, $product_id ) {
-		if ( (int) $product_id !== (int) Config::WC_PREMIUM_PRODUCT || empty( $_GET['oldprice'] ) || ! function_exists( 'WC' ) || ! WC()->cart ) { // phpcs:ignore WordPress.Security.NonceVerification
+		$gold = (int) $product_id === (int) Config::WC_GOLD_PRODUCT;
+		if ( ( ! $gold && (int) $product_id !== (int) Config::WC_PREMIUM_PRODUCT ) || empty( $_GET['oldprice'] ) || ! function_exists( 'WC' ) || ! WC()->cart ) { // phpcs:ignore WordPress.Security.NonceVerification
 			return;
 		}
-		if ( self::started() && self::offer_for( get_current_user_id() ) && ! WC()->cart->has_discount( self::CODE ) ) {
+		$uid = get_current_user_id();
+		$ok  = $gold ? ( self::eligible( $uid ) && self::deadline( $uid, true ) > time() ) : self::offer_for( $uid );
+		if ( self::started() && $ok && ! WC()->cart->has_discount( self::CODE ) ) {
 			WC()->cart->apply_coupon( self::CODE );
 		}
 	}

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.81 — 2026-10-30
+
+- Gold uses the OLDPRICE system (owner, replaces 1.90.80's fixed 5 November date): ₹14,999 from 1 November; OLDPRICE gives ₹7,000 off Gold (₹7,999) until the same per-member deadline (later of 5 November and three days after first seeing the offer), members who joined before 1 November only, once per member across both plans. Premium members can use it for Gold, with the upgrade credit. No email, banner or box for Gold: the Gold card says "Goes up to ₹14,999 on 1 November" before then and "₹7,999 with code OLDPRICE, for a limited time" while it works, and Buy Gold then applies the code. Admin preview shows Gold at ₹14,999.
+
 ## 1.90.80 — 2026-10-30
 
 - Gold goes to ₹14,999 after 11:59 pm on 5 November (price filter on the Gold product; site cache purged at the switch). No code and no notice: until then the pricing page's Gold card says "₹7,999 till 5 Nov, then ₹14,999" (not shown to Gold members). The Gold popup test reads the live price instead of a fixed ₹7,999. Upgrade credit unchanged (what the member paid for Premium).
