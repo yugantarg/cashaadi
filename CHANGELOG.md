@@ -5,7 +5,7 @@ commit per version.
 
 ## 1.90.82 — 2026-10-30
 
-- Price notices cover both plans (owner): the Discover banner ("Prices go up on 1 November: Premium ₹4,499, Gold ₹14,999. Buy now at the old prices…" / "New prices… You can still get the old prices… with code OLDPRICE", button "See plans at the old prices" to the pricing page), the pricing-page box (both prices, "these prices will never be available again", Buy Premium at ₹1,499 and Buy Gold at ₹7,999, which apply the code from 1 November), and the price email (new subject, both prices, a line on Gold, button "See plans at the old prices"). Unsent price emails are rewritten with the new wording whenever the campaign is staged again.
+- Price notices cover both plans (owner): the Discover banner ("Prices go up on 1 November: Premium ₹4,499, Gold ₹14,999. Buy now at the old prices…" / "New prices… You can still get the old prices… with code OLDPRICE", button "See plans at the old prices" to the pricing page), the pricing-page box (both prices, "these prices will never be available again", Buy Premium at ₹1,499 and Buy Gold at ₹7,999, which apply the code from 1 November). The price email is unchanged (owner: already sent).
 
 ## 1.90.81 — 2026-10-30
 

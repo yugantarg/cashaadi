@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class PriceEmail {
 
 	const TYPE    = 'csm-price-nov26';
-	const SUBJECT = 'Our prices are changing. Get the old prices till 5 November';
+	const SUBJECT = 'Premium price is changing. Get the old price till 5 November';
 
 	public static function audience() {
 		$out = array();
@@ -55,37 +55,19 @@ final class PriceEmail {
 		}
 		return Engagement::wrap(
 			Engagement::greeting( $uid ),
-			// Covers both plans (owner, v1.90.82: notices generic).
-			'<p>From 1st November, our plans cost: Premium ₹4,499 a year, Gold ₹14,999 a year. We have added a lot of features, so we have updated our pricing.</p>'
-			. '<p>You can still get the old prices, <strong>Premium ₹1,499</strong> and <strong>Gold ₹7,999</strong>. Use the code <strong>OLDPRICE</strong> when you buy, from 1st to 5th November.</p>'
-			. '<p>After this offer ends, these prices will never be available again, even with discounts.</p>'
+			'<p>From 1st November, Premium on CA Shaadi costs ₹4,499 a year. We have added a lot of features to Premium, so we have updated our pricing.</p>'
+			. '<p>You can still get Premium at the old price of <strong>₹1,499</strong>. Use the code <strong>OLDPRICE</strong> when you buy, from 1st to 5th November.</p>'
+			. '<p>After this offer ends, Premium will never be available at ₹1,499 again, even with discounts.</p>'
 			. '<p>If you missed using this offer, email our support at <a href="mailto:support@cashaadi.in">support@cashaadi.in</a>. We may be able to activate the offer in certain cases.</p>'
 			. '<p>With Premium you get:</p><ul style="padding-left:20px;margin:0 0 12px">' . $li . '</ul>'
-			. '<p>Gold gives you everything in Premium, plus unlimited profiles and your requests shown first.</p>'
 			. '<p>One payment for the whole year. It does not renew automatically.</p>',
 			home_url( '/membership-pricing/?src=price-email' ),
-			'See plans at the old prices'
+			'Get Premium at ₹1,499'
 		);
-	}
-
-	/**
-	 * Rewrite emails not yet sent (held or waiting) with the current wording
-	 * (v1.90.82): their text was stored when they were staged.
-	 */
-	public static function refresh_unsent() {
-		global $wpdb;
-		$t = Queue::table();
-		$n = 0;
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT id, user_id FROM {$t} WHERE email_type = %s AND status IN ( 'held', 'pending', 'deferred', 'waiting' )", self::TYPE ) ) as $r ) {
-			$n += (int) $wpdb->update( $t, array( 'subject' => self::SUBJECT, 'body' => self::body( (int) $r->user_id ) ), array( 'id' => (int) $r->id ) );
-		}
-		return $n;
 	}
 
 	/** Writes HELD rows; sends nothing until released on the campaigns screen. */
 	public static function stage() {
-		self::refresh_unsent();
 		$audience = self::audience();
 		$staged   = 0;
 		$skipped  = 0;
