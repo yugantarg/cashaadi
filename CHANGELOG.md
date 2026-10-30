@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.68 — 2026-10-30
+
+- Member photo uploads make only the thumbnail, medium and large copies the app uses, instead of ~17 (theme, Elementor and WooCommerce sizes). Admin uploads unchanged. `wp csm image-sizes slim [--yes]` removes the unused copies already made for member photos (counts only without --yes). Owner: too many inodes.
+
 ## 1.90.67 — 2026-10-30
 
 - Emails page: "Paid within 7 days" per email: members who bought anything in the 7 days after opening it (a click counts as an open), and what they paid.

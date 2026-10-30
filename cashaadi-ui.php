@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.90.67
+ * Version:           1.90.68
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.90.67' );
+define( 'CASHAADI_UI_VER', '1.90.68' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -197,6 +197,10 @@ if ( class_exists( 'CAShaadi\\Modules\\Welcome\\Welcome' ) ) {
 // while both are live and nothing changes when the snippet is retired.
 if ( class_exists( 'CAShaadi\\Modules\\Media\\MediaQuality' ) ) {
 	MediaQuality::register();
+}
+// Member photos: only the sizes the app shows (v1.90.68, inodes).
+if ( class_exists( 'CAShaadi\\Modules\\Media\\ImageSizes' ) ) {
+	\CAShaadi\Modules\Media\ImageSizes::register();
 }
 
 // Tracking credentials, editable at Settings -> CA Shaadi Tracking rather than
