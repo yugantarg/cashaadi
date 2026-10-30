@@ -6,8 +6,10 @@
  *
  * Who: members who have never paid (no paid Premium or Gold, no boost
  * bought), past their first two days (Boost::is_new), not admins or paused.
- * On their first eligible app page they get an arm, once and for good: 'show'
- * with probability csm_boost_deal_pct (0-100), else 'control'. 'show' sees a
+ * On their first eligible app page each calendar month they get an arm for
+ * that month: 'show' with probability csm_boost_deal_pct (0-100), else
+ * 'control' (owner: "once a month randomly because willingness to pay might
+ * change", v1.90.54). A member who buys has paid, so is not drawn again. 'show' sees a
  * popup once; the offer then runs for 48 hours. While it runs, the Boost card
  * on their profile offers the same ₹99 boost instead of the pack.
  *
@@ -16,7 +18,11 @@
  * itself is added by Spotlight::on_paid, like the pack, so refunds work the
  * same way.
  *
- * `wp csm boost-deal` reads the result: who bought, by gender and "Created
+ * Each draw, popup, tap and purchase is also written to the event log
+ * (boost_deal_arm / _seen / _tap / _bought, with the month), so every month's
+ * result survives the next draw.
+ *
+ * `wp csm boost-deal report` reads the result: who bought, by gender and "Created
  * for" (self or parent), and whether either arm went on to pay for anything
  * else afterwards.
  *
@@ -42,6 +48,7 @@ final class BoostDeal {
 	const UNTIL_META   = 'csm_bd_until';    // when the offer ends
 	const CLICKED_META = 'csm_bd_clicked';  // when "Get it" was tapped
 	const BOUGHT_META  = 'csm_bd_bought';   // the order id, once bought
+	const ROUND_META   = 'csm_bd_round';    // the month (Y-m) the arm is for
 	const PCT_OPT      = 'csm_boost_deal_pct';
 	const PRODUCT_OPT  = 'csm_boost_deal_product';
 
@@ -97,6 +104,14 @@ final class BoostDeal {
 			return false;
 		}
 		$arm = (string) get_user_meta( $uid, self::ARM_META, true );
+		// A new month: a fresh draw, unless last month's offer is still running.
+		if ( '' !== $arm && get_user_meta( $uid, self::ROUND_META, true ) !== self::round()
+			&& (int) get_user_meta( $uid, self::UNTIL_META, true ) <= time() ) {
+			foreach ( array( self::ARM_META, self::AT_META, self::SEEN_META, self::UNTIL_META, self::CLICKED_META ) as $k ) {
+				delete_user_meta( $uid, $k );
+			}
+			$arm = '';
+		}
 		if ( 'control' === $arm || get_user_meta( $uid, self::SEEN_META, true ) ) {
 			return false;
 		}
@@ -108,6 +123,8 @@ final class BoostDeal {
 			$arm = wp_rand( 1, 100 ) <= $pct ? 'show' : 'control';
 			update_user_meta( $uid, self::ARM_META, $arm );
 			update_user_meta( $uid, self::AT_META, time() );
+			update_user_meta( $uid, self::ROUND_META, self::round() );
+			self::log( 'boost_deal_arm', $uid, array( 'arm' => $arm ) );
 			if ( 'control' === $arm ) {
 				return false;
 			}
@@ -119,6 +136,17 @@ final class BoostDeal {
 			'url'   => self::buy_url(),
 			'seen'  => rest_url( 'csm/v1/boost-deal' ),
 		);
+	}
+
+	/** This month, Asia/Kolkata. */
+	public static function round() {
+		return wp_date( 'Y-m' );
+	}
+
+	private static function log( $type, $uid, $extra = array() ) {
+		if ( function_exists( 'cashaadi' ) ) {
+			cashaadi()->log_event( $type, (int) $uid, 0, array_merge( array( 'round' => (string) get_user_meta( (int) $uid, self::ROUND_META, true ) ), $extra ) );
+		}
 	}
 
 	public static function buy_url() {
@@ -142,9 +170,11 @@ final class BoostDeal {
 		if ( ! get_user_meta( $uid, self::SEEN_META, true ) ) {
 			update_user_meta( $uid, self::SEEN_META, time() );
 			update_user_meta( $uid, self::UNTIL_META, time() + self::HOURS * HOUR_IN_SECONDS );
+			self::log( 'boost_deal_seen', $uid );
 		}
 		if ( $request->get_param( 'clicked' ) && ! get_user_meta( $uid, self::CLICKED_META, true ) ) {
 			update_user_meta( $uid, self::CLICKED_META, time() );
+			self::log( 'boost_deal_tap', $uid );
 		}
 		return new \WP_REST_Response( array( 'ok' => true ), 200 );
 	}
@@ -177,6 +207,7 @@ final class BoostDeal {
 		foreach ( $order->get_items() as $item ) {
 			if ( $uid && (int) $item->get_product_id() === $pid && ! get_user_meta( $uid, self::BOUGHT_META, true ) ) {
 				update_user_meta( $uid, self::BOUGHT_META, (int) $order_id );
+				self::log( 'boost_deal_bought', $uid, array( 'order' => (int) $order_id ) );
 			}
 		}
 	}

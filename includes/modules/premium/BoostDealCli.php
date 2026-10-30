@@ -38,53 +38,75 @@ final class BoostDealCli {
 	}
 
 	/**
-	 * Who was offered the ₹99 boost, who bought it, by gender and "Created
-	 * for"; and, for both arms, who paid for anything else after being assigned.
+	 * Each month's draw: members in each arm, who saw the offer, tapped,
+	 * bought it, and who paid for anything else within 30 days of the draw.
+	 * Then everyone shown the offer, by gender and "Created for".
 	 */
 	public function report() {
 		global $wpdb;
 		\WP_CLI::log( 'Offer share: ' . (int) get_option( BoostDeal::PCT_OPT, 0 ) . '% (' . BoostDeal::PCT_OPT . '), product ' . ( BoostDeal::product_id() ?: 'not created' ) );
-		$cf_id = function_exists( 'xprofile_get_field_id_from_name' ) ? (int) xprofile_get_field_id_from_name( 'Created for' ) : 0;
-		$mu    = $wpdb->pmpro_memberships_users;
-		$ev    = $wpdb->prefix . 'csm_event_log';
-		$seg   = array();
-		foreach ( array( 'show', 'control' ) as $arm ) {
-			$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s", BoostDeal::ARM_META, $arm ) ) );
-			$n = count( $ids );
-			$seen = $clicked = $bought = $later = 0;
-			foreach ( $ids as $uid ) {
-				$at      = gmdate( 'Y-m-d H:i:s', (int) get_user_meta( $uid, BoostDeal::AT_META, true ) );
-				$b       = get_user_meta( $uid, BoostDeal::BOUGHT_META, true ) ? 1 : 0;
-				$seen   += get_user_meta( $uid, BoostDeal::SEEN_META, true ) ? 1 : 0;
-				$clicked += get_user_meta( $uid, BoostDeal::CLICKED_META, true ) ? 1 : 0;
-				$bought += $b;
-				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$paid = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$mu} WHERE user_id = %d AND membership_id IN ( %d, %d ) AND initial_payment > 0 AND startdate >= %s", $uid, Config::PMPRO_PREMIUM_LEVEL, Config::PMPRO_GOLD_LEVEL, $at ) )
-					+ (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$ev} WHERE event_type = 'boost_bought' AND actor_id = %d AND created_at >= %s AND metadata NOT LIKE %s", $uid, get_date_from_gmt( $at ), '%"deal":1%' ) );
-				// phpcs:enable
-				$later += $paid ? 1 : 0;
-				if ( 'show' === $arm && get_user_meta( $uid, BoostDeal::SEEN_META, true ) ) {
-					$g  = function_exists( 'cashaadi' ) ? (string) cashaadi()->get_gender( $uid ) : '';
-					$cf = $cf_id && class_exists( '\BP_XProfile_ProfileData' ) ? (string) \BP_XProfile_ProfileData::get_value_byid( $cf_id, $uid ) : '';
-					$who = in_array( $cf, array( 'Son', 'Daughter' ), true ) ? 'parent' : ( 'Self' === $cf || '' === $cf ? 'self' : 'other family' );
-					$k   = ( $g ? $g : '?' ) . ' · ' . $who;
-					if ( ! isset( $seg[ $k ] ) ) {
-						$seg[ $k ] = array( 'segment' => $k, 'saw' => 0, 'tapped' => 0, 'bought' => 0 );
-					}
-					$seg[ $k ]['saw']++;
-					$seg[ $k ]['tapped'] += get_user_meta( $uid, BoostDeal::CLICKED_META, true ) ? 1 : 0;
-					$seg[ $k ]['bought'] += $b;
-				}
+		$ev = $wpdb->prefix . 'csm_event_log';
+		$mu = $wpdb->pmpro_memberships_users;
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( "SELECT event_type, actor_id, created_at, JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.round' ) ) round, JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.arm' ) ) arm FROM {$ev} WHERE event_type LIKE 'boost\_deal\_%' ORDER BY id" );
+		$draw = array(); // round => uid => [arm, at, seen, tap, bought]
+		foreach ( $rows as $r ) {
+			$u = (int) $r->actor_id;
+			if ( 'boost_deal_arm' === $r->event_type ) {
+				$draw[ $r->round ][ $u ] = array( 'arm' => $r->arm, 'at' => $r->created_at, 'seen' => 0, 'tap' => 0, 'bought' => 0 );
+			} elseif ( isset( $draw[ $r->round ][ $u ] ) ) {
+				$k = substr( $r->event_type, 11 );
+				$draw[ $r->round ][ $u ][ $k ] = 1;
 			}
-			\WP_CLI::log( sprintf( '  %-8s %5d members · %5d saw it · %4d tapped · %3d bought ₹%d boost · %3d paid for something else afterwards (%s)', $arm, $n, $seen, $clicked, $bought, BoostDeal::PRICE, $later, $n ? round( 100 * $later / $n, 1 ) . '%' : '-' ) );
 		}
+		$cf_id = function_exists( 'xprofile_get_field_id_from_name' ) ? (int) xprofile_get_field_id_from_name( 'Created for' ) : 0;
+		$seg   = array();
+		$out   = array();
+		ksort( $draw );
+		foreach ( $draw as $round => $members ) {
+			foreach ( array( 'show', 'control' ) as $arm ) {
+				$t = array( 'month' => $round, 'arm' => $arm, 'members' => 0, 'saw' => 0, 'tapped' => 0, 'bought ₹' . BoostDeal::PRICE => 0, 'paid other, 30d' => 0 );
+				foreach ( $members as $uid => $m ) {
+					if ( $arm !== $m['arm'] ) {
+						continue;
+					}
+					$end = wp_date( 'Y-m-d H:i:s', strtotime( $m['at'] ) + 30 * DAY_IN_SECONDS );
+					$t['members']++;
+					$t['saw']    += $m['seen'];
+					$t['tapped'] += $m['tap'];
+					$t[ 'bought ₹' . BoostDeal::PRICE ] += $m['bought'];
+					$other = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$mu} WHERE user_id = %d AND membership_id IN ( %d, %d ) AND initial_payment > 0 AND startdate BETWEEN %s AND %s", $uid, Config::PMPRO_PREMIUM_LEVEL, Config::PMPRO_GOLD_LEVEL, get_gmt_from_date( $m['at'] ), get_gmt_from_date( $end ) ) )
+						+ (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$ev} WHERE event_type = 'boost_bought' AND actor_id = %d AND created_at BETWEEN %s AND %s AND metadata NOT LIKE %s", $uid, $m['at'], $end, '%"deal":1%' ) );
+					$t['paid other, 30d'] += $other ? 1 : 0;
+					if ( 'show' === $arm && $m['seen'] ) {
+						$g   = function_exists( 'cashaadi' ) ? (string) cashaadi()->get_gender( $uid ) : '';
+						$cf  = $cf_id && class_exists( '\BP_XProfile_ProfileData' ) ? (string) \BP_XProfile_ProfileData::get_value_byid( $cf_id, $uid ) : '';
+						$who = in_array( $cf, array( 'Son', 'Daughter' ), true ) ? 'parent' : ( 'Self' === $cf || '' === $cf ? 'self' : 'other family' );
+						$k   = ( $g ? $g : '?' ) . ' · ' . $who;
+						if ( ! isset( $seg[ $k ] ) ) {
+							$seg[ $k ] = array( 'segment' => $k, 'saw' => 0, 'tapped' => 0, 'bought' => 0 );
+						}
+						$seg[ $k ]['saw']++;
+						$seg[ $k ]['tapped'] += $m['tap'];
+						$seg[ $k ]['bought'] += $m['bought'];
+					}
+				}
+				$out[] = $t;
+			}
+		}
+		// phpcs:enable
+		if ( ! $out ) {
+			\WP_CLI::log( 'No draws yet.' );
+			return;
+		}
+		\WP_CLI\Utils\format_items( 'table', $out, array_keys( $out[0] ) );
 		if ( $seg ) {
 			ksort( $seg );
 			foreach ( $seg as &$r ) {
 				$r['buy rate'] = $r['saw'] ? round( 100 * $r['bought'] / $r['saw'], 1 ) . '%' : '-';
 			}
 			unset( $r );
-			\WP_CLI::log( 'Shown the offer, by segment:' );
+			\WP_CLI::log( 'Shown the offer, all months, by segment:' );
 			\WP_CLI\Utils\format_items( 'table', array_values( $seg ), array( 'segment', 'saw', 'tapped', 'bought', 'buy rate' ) );
 		}
 	}

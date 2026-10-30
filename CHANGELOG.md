@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.54 — 2026-10-30
+
+- ₹99 boost: a fresh random draw each month for members who have still never paid (owner: willingness to pay can change). A running offer is not cut short by the new month. Draws, popups, taps and purchases go to the event log with the month; `wp csm boost-deal report` shows each month's arms (with other purchases within 30 days) and all months by segment.
+
 ## 1.90.53 — 2026-10-30
 
 - ₹99 boost popup adds "You get it at most once a month." (owner).
