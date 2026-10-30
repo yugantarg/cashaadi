@@ -23,6 +23,10 @@
  *
  * csm_gold_intro_pct = 0 (default) is off: no new arms, no popups. Arms
  * already recorded are kept, so the result can still be read.
+ *
+ * csm_gold_intro_max (default 200; owner: "a small group of say 200") caps
+ * the 'show' arm. Once that many have it, nobody new gets an arm, so with a
+ * 50% share the control group ends near the same size. 0 = no cap.
  */
 
 namespace CAShaadi\Modules\Premium;
@@ -41,6 +45,7 @@ final class GoldIntro {
 	const SEEN_META    = 'csm_gi_seen';     // when the popup was shown
 	const CLICKED_META = 'csm_gi_clicked';  // when "See Gold" was tapped
 	const PCT_OPT      = 'csm_gold_intro_pct';
+	const MAX_OPT      = 'csm_gold_intro_max';
 
 	public static function register() {
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_routes' ) );
@@ -52,6 +57,24 @@ final class GoldIntro {
 	private static function places_left() {
 		$cap = (int) get_option( 'csm_gold_cap', 25 );
 		return $cap > 0 ? max( 0, $cap - (int) Gold::count() ) : -1; // -1: no cap
+	}
+
+	/** True once the 'show' arm has reached csm_gold_intro_max. */
+	private static function group_full() {
+		$max = (int) get_option( self::MAX_OPT, 200 );
+		if ( $max <= 0 ) {
+			return false;
+		}
+		if ( get_transient( 'csm_gi_full' ) ) {
+			return true;
+		}
+		global $wpdb;
+		$n = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = 'show'", self::ARM_META ) );
+		if ( $n >= $max ) {
+			set_transient( 'csm_gi_full', 1, HOUR_IN_SECONDS );
+			return true;
+		}
+		return false;
 	}
 
 	/** What the app shell hands the page: the popup's content, or false. */
@@ -72,6 +95,9 @@ final class GoldIntro {
 			return false;
 		}
 		if ( '' === $arm ) {
+			if ( self::group_full() ) {
+				return false;
+			}
 			$arm = wp_rand( 1, 100 ) <= $pct ? 'show' : 'control';
 			update_user_meta( $uid, self::ARM_META, $arm );
 			update_user_meta( $uid, self::AT_META, time() );
@@ -132,7 +158,7 @@ final class GoldIntro {
 		global $wpdb;
 		$t    = $wpdb->pmpro_memberships_users;
 		$gold = (int) Config::PMPRO_GOLD_LEVEL;
-		\WP_CLI::log( 'Popup share: ' . (int) get_option( self::PCT_OPT, 0 ) . '% (' . self::PCT_OPT . ')' );
+		\WP_CLI::log( 'Popup share: ' . (int) get_option( self::PCT_OPT, 0 ) . '% (' . self::PCT_OPT . '), max shown ' . (int) get_option( self::MAX_OPT, 200 ) . ' (' . self::MAX_OPT . ')' );
 		foreach ( array( 'show', 'control' ) as $arm ) {
 			$ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s", self::ARM_META, $arm ) ) );
 			$n = count( $ids );
