@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.82 — 2026-10-30
+
+- Price notices cover both plans (owner): the Discover banner ("Prices go up on 1 November: Premium ₹4,499, Gold ₹14,999. Buy now at the old prices…" / "New prices… You can still get the old prices… with code OLDPRICE", button "See plans at the old prices" to the pricing page), the pricing-page box (both prices, "these prices will never be available again", Buy Premium at ₹1,499 and Buy Gold at ₹7,999, which apply the code from 1 November), and the price email (new subject, both prices, a line on Gold, button "See plans at the old prices"). Unsent price emails are rewritten with the new wording whenever the campaign is staged again.
+
 ## 1.90.81 — 2026-10-30
 
 - Gold uses the OLDPRICE system (owner, replaces 1.90.80's fixed 5 November date): ₹14,999 from 1 November; OLDPRICE gives ₹7,000 off Gold (₹7,999) until the same per-member deadline (later of 5 November and three days after first seeing the offer), members who joined before 1 November only, once per member across both plans. Premium members can use it for Gold, with the upgrade credit. No email, banner or box for Gold: the Gold card says "Goes up to ₹14,999 on 1 November" before then and "₹7,999 with code OLDPRICE, for a limited time" while it works, and Buy Gold then applies the code. Admin preview shows Gold at ₹14,999.
