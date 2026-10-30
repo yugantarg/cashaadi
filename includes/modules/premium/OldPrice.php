@@ -197,7 +197,7 @@ final class OldPrice {
 			? 'Premium is now ' . $new . '. You can still get it at ' . $old . ' with code OLDPRICE.'
 			: 'Premium price goes up to ' . $new . ' on 1 November. Get it now at ' . $old . '.';
 		$lead = $live ? 'Offer ends in ' : 'Price goes up in ';
-		$url  = $live ? self::buy_url() : home_url( '/membership-pricing/?src=oldprice-banner' );
+		$url  = $live ? self::buy_url() : home_url( '/membership-pricing/?src=oldprice-banner' . ( self::preview() ? '&oldprice=soon' : '' ) );
 		return '<div class="csm-opb" data-end="' . (int) $to . '">'
 			. '<button type="button" class="csm-opb-x" aria-label="Close">×</button>'
 			. '<p class="csm-opb-t">' . esc_html( $text ) . '</p>'

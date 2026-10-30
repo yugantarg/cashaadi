@@ -77,11 +77,19 @@ final class PricingPage {
 		$credit = $is_p ? Gold::credit_for( $uid ) : 0;
 		$her    = $anon ? 'their' : ( $female ? 'his' : 'her' );
 		// Premium's old price, for a limited time (OldPrice, v1.90.58).
-		$op_end = 0;
-		if ( class_exists( __NAMESPACE__ . '\\OldPrice' ) && ( OldPrice::started() || OldPrice::preview() ) ) {
-			$op_end = OldPrice::offer_for( $uid );
-			if ( OldPrice::preview() ) {
-				$pp = OldPrice::NEW_PRICE;
+		// Before 1 November (v1.90.64): the change is coming; buy now at the old
+		// price. Everyone who can still join before then is told, signed in or not.
+		$op_end  = 0;
+		$op_live = false;
+		if ( class_exists( __NAMESPACE__ . '\\OldPrice' ) ) {
+			$op_live = OldPrice::started() || OldPrice::preview();
+			if ( $op_live ) {
+				$op_end = OldPrice::offer_for( $uid );
+				if ( OldPrice::preview() ) {
+					$pp = OldPrice::NEW_PRICE;
+				}
+			} elseif ( ( ! $is_p && ! $is_g ) || ( isset( $_GET['oldprice'] ) && 'soon' === $_GET['oldprice'] && current_user_can( 'manage_options' ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				$op_end = ( new \DateTimeImmutable( OldPrice::FROM, wp_timezone() ) )->getTimestamp();
 			}
 		}
 
@@ -127,7 +135,7 @@ final class PricingPage {
 					'Keep all your saved profiles',
 				),
 				'price' => self::inr( $pp ) . ' / year',
-				'note'  => $op_end ? self::inr( OldPrice::OLD_PRICE ) . ' with code OLDPRICE, for a limited time' : '',
+				'note'  => ! $op_end ? '' : ( $op_live ? self::inr( OldPrice::OLD_PRICE ) . ' with code OLDPRICE, for a limited time' : 'Goes up to ' . self::inr( OldPrice::NEW_PRICE ) . ' on 1 November' ),
 				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon ),
 			),
 		);
@@ -160,7 +168,7 @@ final class PricingPage {
 		$o .= '<div class="csm-pr">';
 		$o .= '<h1 class="csm-pr-h">' . esc_html( $head ) . '</h1><p class="csm-pr-sub">' . esc_html( $sub ) . '</p>';
 		if ( $op_end ) {
-			$o .= self::old_price_box( $op_end, $anon );
+			$o .= $op_live ? self::old_price_box( $op_end, $anon ) : self::price_soon_box( $op_end, $anon );
 		}
 		$o .= '<div class="csm-pr-cards n' . count( $plans ) . '">';
 		foreach ( $plans as $key => $pl ) {
@@ -234,6 +242,26 @@ final class PricingPage {
 			. 'try{dl.textContent=" (on "+new Date(end).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"long"})+", 11:59 pm)";}catch(e){}'
 			. 'function p(x){return(x<10?"0":"")+x;}'
 			. 'function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
+			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
+			. 'tick();setInterval(tick,1000);})();</script>';
+		return $o;
+	}
+
+	/** Before 1 November: the change, the reason, buy now, and the code to come. */
+	private static function price_soon_box( $from, $anon ) {
+		$old = self::inr( OldPrice::OLD_PRICE );
+		$o   = '<div class="csm-pr-op" data-end="' . (int) $from . '">';
+		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
+		$o  .= '<p>We have updated our pricing from 1st November, since we have added a lot of features to our Premium plan. Premium will cost ' . esc_html( self::inr( OldPrice::NEW_PRICE ) ) . ' a year.</p>';
+		$o  .= '<p>Until then, Premium is ' . esc_html( $old ) . '. Members who join before 1 November can also get this price with the code <b>OLDPRICE</b> from 1st to 5th November.</p>';
+		$o  .= '<p>After that, Premium will never be available at ' . esc_html( $old ) . ' again, even with discounts.</p>';
+		$o  .= '<p class="csm-pr-op-cd">Price goes up in <span class="csm-pr-op-t"></span></p>';
+		$o  .= $anon
+			? '<a class="csm-pr-buy" href="' . esc_url( home_url( '/register/' ) ) . '">Join and get Premium at ' . esc_html( $old ) . '</a>'
+			: '<a class="csm-pr-buy" href="' . esc_url( home_url( '/checkout/?add-to-cart=' . (int) Config::WC_PREMIUM_PRODUCT ) ) . '">Buy Premium at ' . esc_html( $old ) . '</a>';
+		$o  .= '</div>';
+		$o  .= '<script>(function(){var b=document.querySelector(".csm-pr-op");if(!b){return;}var end=+b.dataset.end*1000,t=b.querySelector(".csm-pr-op-t");'
+			. 'function p(x){return(x<10?"0":"")+x;}function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.style.display="none";return;}'
 			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
 			. 'tick();setInterval(tick,1000);})();</script>';
 		return $o;

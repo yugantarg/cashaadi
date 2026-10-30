@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.64 — 2026-10-30
+
+- Pricing page before 1 November: a "New prices from 1 November" box (₹4,499 from then, the reason, ₹1,499 until then, OLDPRICE from 1st to 5th November for members who joined before 1 November, never again at ₹1,499) with a countdown to the change and Buy Premium at ₹1,499; the Premium card notes "Goes up to ₹4,499 on 1 November". Shown to free members and signed-out visitors. Admin preview `?oldprice=soon`; the Discover banner's preview link uses it.
+
 ## 1.90.63 — 2026-10-30
 
 - Fix: `?oldprice=preview` showed nothing to an admin on a paid plan (the offer is hidden from Premium and Gold). Preview now always shows the banner and pricing box, and stamps nothing.
