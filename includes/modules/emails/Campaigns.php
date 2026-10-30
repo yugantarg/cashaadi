@@ -32,7 +32,7 @@ final class Campaigns {
 	}
 
 	/** The campaigns this screen knows how to stage. */
-	private static function all() {
+	public static function all() {
 		return array(
 			Announcement::TYPE => array(
 				'title' => 'CAShaadi v2 is now live — the launch announcement',
@@ -114,6 +114,10 @@ final class Campaigns {
 	}
 
 	private static function url() {
+		// From the Emails page, go back there (v1.90.66).
+		if ( isset( $_POST['back'] ) && 'emails' === $_POST['back'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return EmailsDashboard::url();
+		}
 		return admin_url( 'admin.php?page=csm-campaigns' );
 	}
 
