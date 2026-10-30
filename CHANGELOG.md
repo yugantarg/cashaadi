@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.77 — 2026-10-30
+
+- Survey in batches (owner): nobody is invited until `wp csm survey invite <n>`; the next n eligible members who open the app then see the popup, and only invited members can answer. `wp csm survey batches`: per batch invited, saw the popup, answered, testimonials, response rate.
+- Feature ratings and problems are shuffled per member ("Something else" stays last); the order shown is saved with each answer.
+
 ## 1.90.76 — 2026-10-30
 
 - Survey copy (owner): "Help improve CA Shaadi and earn ₹600" · ₹300 for the survey · ₹300 for a testimonial · CA Shaadi Cash, usable anywhere on CA Shaadi on top of any other discount or offer. The Submit button shows the amount ("Submit and earn ₹300", ₹600 once a testimonial of 60+ characters has the permission switch on).

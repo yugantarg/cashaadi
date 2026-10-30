@@ -19,6 +19,12 @@
  * 300 for answering; another 300 for a testimonial of 30+ characters with
  * the permission switch on. Each once per member (the ledger's UNIQUE key).
  *
+ * Batches (v1.90.77): nobody is invited until `wp csm survey invite <n>`;
+ * then the next n eligible members to open the app get the popup, and only
+ * invited members can answer. `wp csm survey batches` shows each batch's
+ * response. Feature and problem lists are shuffled per member ("Something
+ * else" stays last) and the order shown is saved with the answer.
+ *
  * Who: members past their first two days who were never offered the ₹99
  * boost (owner: "don't send survey to those you have given 99 boost
  * option"). Invited by a one-time popup in AppPage's chain. First
@@ -44,6 +50,11 @@ final class Survey {
 	const COUNT_OPT  = 'csm_survey1_count';
 	const MAX_OPT    = 'csm_survey_max';
 	const ON_OPT     = 'csm_survey_on';
+	// Invitations go out in batches (owner, v1.90.77): `wp csm survey invite <n>`
+	// lets the next n eligible members who open the app see the popup.
+	const LEFT_OPT   = 'csm_survey_invites_left';
+	const BATCH_OPT  = 'csm_survey_batch_no';
+	const BATCH_META = 'csm_survey1_batch';
 	const CASH       = 300;
 	const CASH_TESTI = 300;
 	const TESTI_MIN  = 60;   // characters, for the testimonial cash
@@ -84,6 +95,8 @@ final class Survey {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm survey', array( __CLASS__, 'cli' ), array(
 				'synopsis' => array(
+					array( 'type' => 'positional', 'name' => 'action', 'optional' => true ),
+					array( 'type' => 'positional', 'name' => 'n', 'optional' => true ),
 					array( 'type' => 'flag', 'name' => 'text', 'optional' => true ),
 					array( 'type' => 'flag', 'name' => 'all', 'optional' => true ),
 				),
@@ -118,11 +131,40 @@ final class Survey {
 		if ( class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' ) && \CAShaadi\Modules\Discover\Boost::is_new( $uid ) ) {
 			return false;
 		}
-		return ! self::had_boost_deal( $uid );
+		if ( self::had_boost_deal( $uid ) ) {
+			return false;
+		}
+		// Only members invited in a batch (the popup) can answer.
+		return (bool) get_user_meta( $uid, self::BATCH_META, true );
+	}
+
+	/** Not invited yet, and could be: the popup takes one place from the batch. */
+	private static function invite( $uid ) {
+		global $wpdb;
+		$uid = (int) $uid;
+		if ( ! $uid || ! get_option( self::ON_OPT, 1 ) || user_can( $uid, 'manage_options' ) || get_user_meta( $uid, self::BATCH_META, true ) || get_user_meta( $uid, self::DONE_META, true )
+			|| (int) get_option( self::LEFT_OPT, 0 ) <= 0
+			|| ( class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' ) && \CAShaadi\Modules\Discover\Boost::is_new( $uid ) )
+			|| self::had_boost_deal( $uid ) ) {
+			return false;
+		}
+		// Take a place atomically, so two pages at once cannot overshoot the batch.
+		$took = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = option_value - 1 WHERE option_name = %s AND CAST( option_value AS SIGNED ) > 0", self::LEFT_OPT ) );
+		wp_cache_delete( self::LEFT_OPT, 'options' );
+		wp_cache_delete( 'notoptions', 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		if ( 1 !== (int) $took ) {
+			return false;
+		}
+		update_user_meta( $uid, self::BATCH_META, (int) get_option( self::BATCH_OPT, 1 ) );
+		return true;
 	}
 
 	/** The one-time invitation popup, for AppPage's chain; false when not due. */
 	public static function payload( $uid ) {
+		if ( ! get_user_meta( (int) $uid, self::BATCH_META, true ) ) {
+			self::invite( $uid );
+		}
 		if ( ! self::open_for( $uid ) || get_user_meta( (int) $uid, self::SEEN_META, true ) ) {
 			return false;
 		}
@@ -226,6 +268,12 @@ final class Survey {
 		}
 		$a['seconds'] = $took;
 		$a['flags']   = array();
+		$a['batch']   = (int) get_user_meta( $uid, self::BATCH_META, true );
+		// The order each list was shown in (it is shuffled per member), to check for position effects.
+		$a['order']   = array(
+			'features' => array_values( array_intersect( array_map( 'strval', (array) $request->get_param( 'order_features' ) ), array_keys( self::FEATURES ) ) ),
+			'problems' => array_values( array_intersect( array_map( 'strval', (array) $request->get_param( 'order_problems' ) ), array_keys( self::PROBLEMS ) ) ),
+		);
 		if ( 1 === count( array_unique( $a['importance'] ) ) ) {
 			$a['flags'][] = 'same_ratings';
 		}
@@ -283,6 +331,23 @@ final class Survey {
 		exit;
 	}
 
+	/** Random order; $last (e.g. "Something else") stays at the end. */
+	private static function shuffled( $opts, $last = '' ) {
+		$keys = array_keys( $opts );
+		if ( '' !== $last ) {
+			$keys = array_values( array_diff( $keys, array( $last ) ) );
+		}
+		shuffle( $keys );
+		if ( '' !== $last && isset( $opts[ $last ] ) ) {
+			$keys[] = $last;
+		}
+		$out = array();
+		foreach ( $keys as $k ) {
+			$out[ $k ] = $opts[ $k ];
+		}
+		return $out;
+	}
+
 	private static function options( $name, $opts, $type ) {
 		$o = '';
 		foreach ( $opts as $v => $label ) {
@@ -307,7 +372,8 @@ final class Survey {
 			. '<label class="csm-sv-amt"><span>₹</span><input type="text" name="paid" inputmode="numeric" autocomplete="off" placeholder="0"></label>' );
 
 		$rows = '';
-		foreach ( self::FEATURES as $f => $label ) {
+		// Shuffled per member (owner: remove the effect of being first or last).
+		foreach ( self::shuffled( self::FEATURES ) as $f => $label ) {
 			$cells = '';
 			for ( $i = 1; $i <= 5; $i++ ) {
 				$cells .= '<label class="csm-sv-dot"><input type="radio" name="imp_' . esc_attr( $f ) . '" value="' . $i . '"><span>' . $i . '</span></label>';
@@ -317,7 +383,7 @@ final class Survey {
 		$o .= self::q( 'importance', 2, 'How important is each of these to you?', '<p class="csm-sv-hint">1 = not important · 5 = very important</p>' . $rows );
 
 		$o .= self::q( 'problems', 3, 'What are the biggest problems for you on CA Shaadi right now?',
-			'<div class="csm-sv-opts">' . self::options( 'problems', self::PROBLEMS, 'checkbox' ) . '</div>', '(pick up to 2)' );
+			'<div class="csm-sv-opts">' . self::options( 'problems', self::shuffled( self::PROBLEMS, 'other' ), 'checkbox' ) . '</div>', '(pick up to 2)' );
 
 		$scale = '';
 		for ( $i = 0; $i <= 10; $i++ ) {
@@ -346,6 +412,8 @@ final class Survey {
 			. 'var c;d.paid=f.querySelector("input[name=paid]").value;'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-rate"),function(r){var k=r.getAttribute("data-f"),x=r.querySelector("input:checked");d.importance[k]=x?x.value:0;});'
 			. 'd.problems=[].map.call(f.querySelectorAll("input[name=problems]:checked"),function(i){return i.value;});'
+			. 'd.order_features=[].map.call(f.querySelectorAll(".csm-sv-rate"),function(r){return r.getAttribute("data-f");});'
+			. 'd.order_problems=[].map.call(f.querySelectorAll("input[name=problems]"),function(i){return i.value;});'
 			. 'c=f.querySelector("input[name=nps]:checked");d.nps=c?c.value:"";'
 			. 'd.improve=f.querySelector("textarea[name=improve]").value;d.testimonial=f.querySelector("textarea[name=testimonial]").value;'
 			. 'd.permission=pm.checked?1:0;d.start=f.getAttribute("data-start");'
@@ -395,6 +463,45 @@ final class Survey {
 	 */
 	public static function cli( $args, $assoc ) {
 		global $wpdb;
+		$action = $args[0] ?? '';
+		if ( 'invite' === $action ) {
+			$n = max( 0, (int) ( $args[1] ?? 0 ) );
+			if ( ! $n ) {
+				\WP_CLI::error( 'Usage: wp csm survey invite <number of members>' );
+			}
+			$b = (int) get_option( self::BATCH_OPT, 0 ) + 1;
+			update_option( self::BATCH_OPT, $b, false );
+			update_option( self::LEFT_OPT, $n, false );
+			\WP_CLI::success( "Batch {$b}: the next {$n} eligible members who open the app will see the survey popup." );
+			return;
+		}
+		if ( 'batches' === $action ) {
+			$rows = array();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT meta_value b, user_id FROM {$wpdb->usermeta} WHERE meta_key = %s", self::BATCH_META ) ) as $r ) {
+				$b = (int) $r->b;
+				if ( ! isset( $rows[ $b ] ) ) {
+					$rows[ $b ] = array( 'batch' => $b, 'invited' => 0, 'saw popup' => 0, 'answered' => 0, 'testimonial' => 0 );
+				}
+				$rows[ $b ]['invited']++;
+				$rows[ $b ]['saw popup'] += get_user_meta( (int) $r->user_id, self::SEEN_META, true ) ? 1 : 0;
+				$done = json_decode( (string) get_user_meta( (int) $r->user_id, self::DONE_META, true ), true );
+				if ( is_array( $done ) ) {
+					$rows[ $b ]['answered']++;
+					$rows[ $b ]['testimonial'] += ! empty( $done['permission'] ) ? 1 : 0;
+				}
+			}
+			ksort( $rows );
+			foreach ( $rows as &$r ) {
+				$r['response'] = $r['invited'] ? round( 100 * $r['answered'] / $r['invited'] ) . '%' : '-';
+			}
+			unset( $r );
+			\WP_CLI::log( 'Places left in the current batch: ' . (int) get_option( self::LEFT_OPT, 0 ) . ' · total answers ' . (int) get_option( self::COUNT_OPT, 0 ) . ' of the cap ' . (int) get_option( self::MAX_OPT, 300 ) . '.' );
+			if ( $rows ) {
+				\WP_CLI\Utils\format_items( 'table', array_values( $rows ), array( 'batch', 'invited', 'saw popup', 'answered', 'testimonial', 'response' ) );
+			}
+			return;
+		}
 		$rows = $wpdb->get_results( "SELECT actor_id, metadata FROM {$wpdb->prefix}csm_event_log WHERE event_type = 'survey_answer' ORDER BY id" );
 		$all  = array();
 		foreach ( (array) $rows as $r ) {
