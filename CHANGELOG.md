@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.62 — 2026-10-30
+
+- Discover: a banner for members who can still get Premium at ₹1,499 (owner). Until 1 November: "Premium price goes up to ₹4,499 on 1 November. Get it now at ₹1,499" with a countdown to the change; from then: "Premium is now ₹4,499. You can still get it at ₹1,499 with code OLDPRICE" with a countdown to the member's deadline and a button that applies the code. Close hides it for the day. Not for Premium, Gold, members who joined from 1 November, or admins (preview with `?oldprice=preview`).
+
 ## 1.90.61 — 2026-10-30
 
 - Price email: the "3 full days" line replaced with "If you missed using this offer, email our support ... we may be able to activate the offer in certain cases" (owner). `wp csm oldprice extend <email>` gives a member 3 days from now.

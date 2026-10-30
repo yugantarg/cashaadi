@@ -69,6 +69,10 @@ final class DiscoverScreen {
 		) );
 
 		AppPage::open( __( 'Discover', 'cashaadi-ui' ), 'discover' );
+		// Premium's old price, while this member can still get it (v1.90.62).
+		if ( class_exists( '\\CAShaadi\\Modules\\Premium\\OldPrice' ) ) {
+			echo \CAShaadi\Modules\Premium\OldPrice::discover_banner( get_current_user_id() ); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts
+		}
 		echo '<div id="csm-discover-app"><p class="csm-app-loading">' . esc_html__( 'Loading…', 'cashaadi-ui' ) . '</p></div>';
 		AppPage::close( 'discover' );
 		exit;

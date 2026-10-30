@@ -174,6 +174,45 @@ final class OldPrice {
 		}
 	}
 
+	/**
+	 * A banner above Discover for members who can still get the old price
+	 * (owner, v1.90.62). Before 1 November it counts down to the price change;
+	 * from then, to the member's own deadline, with the code. A close button
+	 * hides it until the next day.
+	 */
+	public static function discover_banner( $uid ) {
+		$end = self::offer_for( $uid );
+		if ( ! $end || user_can( (int) $uid, 'manage_options' ) && ! self::preview() ) {
+			return '';
+		}
+		$live = self::started();
+		$to   = $live ? $end : self::ts( self::FROM );
+		$old  = '₹' . number_format_i18n( self::OLD_PRICE );
+		$new  = '₹' . number_format_i18n( self::NEW_PRICE );
+		$text = $live
+			? 'Premium is now ' . $new . '. You can still get it at ' . $old . ' with code OLDPRICE.'
+			: 'Premium price goes up to ' . $new . ' on 1 November. Get it now at ' . $old . '.';
+		$lead = $live ? 'Offer ends in ' : 'Price goes up in ';
+		$url  = $live ? self::buy_url() : home_url( '/membership-pricing/?src=oldprice-banner' );
+		return '<div class="csm-opb" data-end="' . (int) $to . '">'
+			. '<button type="button" class="csm-opb-x" aria-label="Close">×</button>'
+			. '<p class="csm-opb-t">' . esc_html( $text ) . '</p>'
+			. '<p class="csm-opb-cd">' . esc_html( $lead ) . '<span></span></p>'
+			. '<a class="csm-opb-btn" href="' . esc_url( $url ) . '">Get Premium at ' . esc_html( $old ) . '</a>'
+			. '</div>'
+			. '<style>.csm-opb{position:relative;margin:10px 12px 0;padding:12px 40px 12px 14px;border-radius:14px;background:#0b2350;color:#fff;font-size:14px;line-height:1.4}'
+			. '.csm-opb p{margin:0 0 6px}.csm-opb-cd{font-weight:700;color:#ffd27a}'
+			. '.csm-opb-btn{display:inline-block;padding:8px 16px;border-radius:999px;background:#fff;color:#0b2350!important;font-weight:700;text-decoration:none}'
+			. '.csm-opb-x{position:absolute;top:6px;right:8px;border:0;background:none;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:4px}</style>'
+			. '<script>(function(){var b=document.querySelector(".csm-opb");if(!b){return;}var k="csm_opb_hide",d=new Date().toDateString();'
+			. 'try{if(localStorage.getItem(k)===d){b.remove();return;}}catch(e){}'
+			. 'b.querySelector(".csm-opb-x").onclick=function(){try{localStorage.setItem(k,d);}catch(e){}b.remove();};'
+			. 'var end=+b.dataset.end*1000,t=b.querySelector(".csm-opb-cd span");function p(x){return(x<10?"0":"")+x;}'
+			. 'function tick(){var s=Math.max(0,Math.floor((end-Date.now())/1000));if(!s){b.remove();return;}'
+			. 't.textContent=Math.floor(s/86400)+"d "+p(Math.floor(s%86400/3600))+"h "+p(Math.floor(s%3600/60))+"m "+p(s%60)+"s";}'
+			. 'tick();setInterval(tick,1000);})();</script>';
+	}
+
 	public static function buy_url() {
 		return home_url( '/checkout/?add-to-cart=' . (int) Config::WC_PREMIUM_PRODUCT . '&oldprice=1' );
 	}
