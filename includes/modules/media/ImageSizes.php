@@ -28,7 +28,13 @@ final class ImageSizes {
 	public static function register() {
 		add_filter( 'intermediate_image_sizes_advanced', array( __CLASS__, 'only_used' ), 99 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			\WP_CLI::add_command( 'csm image-sizes', array( __CLASS__, 'cli' ) );
+			// Synopsis given here: WP-CLI did not read it from the docblock (v1.90.69).
+			\WP_CLI::add_command( 'csm image-sizes', array( __CLASS__, 'cli' ), array(
+				'synopsis' => array(
+					array( 'type' => 'positional', 'name' => 'action', 'optional' => false ),
+					array( 'type' => 'flag', 'name' => 'yes', 'optional' => true ),
+				),
+			) );
 		}
 	}
 

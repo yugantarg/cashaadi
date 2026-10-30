@@ -60,7 +60,12 @@ final class OldPrice {
 			wp_schedule_single_event( self::ts( self::FROM ) + 60, 'csm_oldprice_go' );
 		}
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			\WP_CLI::add_command( 'csm oldprice', array( __CLASS__, 'cli' ) );
+			\WP_CLI::add_command( 'csm oldprice', array( __CLASS__, 'cli' ), array(
+				'synopsis' => array(
+					array( 'type' => 'positional', 'name' => 'action', 'optional' => true ),
+					array( 'type' => 'positional', 'name' => 'email', 'optional' => true ),
+				),
+			) );
 		}
 	}
 

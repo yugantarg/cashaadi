@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.69 — 2026-10-30
+
+- Fix: `wp csm image-sizes slim` and `wp csm oldprice setup|status|extend` failed with "Too many positional arguments" (WP-CLI did not read their arguments from the docblock); arguments now declared when the commands are added.
+
 ## 1.90.68 — 2026-10-30
 
 - Member photo uploads make only the thumbnail, medium and large copies the app uses, instead of ~17 (theme, Elementor and WooCommerce sizes). Admin uploads unchanged. `wp csm image-sizes slim [--yes]` removes the unused copies already made for member photos (counts only without --yes). Owner: too many inodes.
