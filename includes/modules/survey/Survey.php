@@ -46,7 +46,9 @@ final class Survey {
 	const ON_OPT     = 'csm_survey_on';
 	const CASH       = 300;
 	const CASH_TESTI = 300;
-	const TESTI_MIN  = 30;
+	const TESTI_MIN  = 60;   // characters, for the testimonial cash
+	const IMPROVE_MIN = 15;  // characters
+	const MIN_SECONDS = 40;  // faster than this is not reading the questions
 
 	/** Bands for reading the amount members type in (question 1). */
 	const PAID_BANDS = array(
@@ -81,7 +83,10 @@ final class Survey {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm survey', array( __CLASS__, 'cli' ), array(
-				'synopsis' => array( array( 'type' => 'flag', 'name' => 'text', 'optional' => true ) ),
+				'synopsis' => array(
+					array( 'type' => 'flag', 'name' => 'text', 'optional' => true ),
+					array( 'type' => 'flag', 'name' => 'all', 'optional' => true ),
+				),
 			) );
 		}
 	}
@@ -122,8 +127,8 @@ final class Survey {
 			return false;
 		}
 		return array(
-			'title' => 'Get up to 600 CA Shaadi cash',
-			'text'  => "Answer a few quick questions about CA Shaadi: get 300 CA Shaadi cash.\n\nWrite a short testimonial and let us show it with your name and photo: get another 300.\n\n1 CA Shaadi cash = ₹1 off any plan.",
+			'title' => 'Help improve CA Shaadi and earn ₹600',
+			'text'  => "₹300 for answering a short survey\n₹300 for a testimonial\n\nYou receive it as CA Shaadi Cash, which you can use anywhere on CA Shaadi, on top of any other discount or offer.",
 			'ok'    => 'Start',
 			'url'   => home_url( '/survey/' ),
 			'seen'  => rest_url( 'csm/v1/survey/seen' ),
@@ -152,6 +157,15 @@ final class Survey {
 	private static function created_for( $uid ) {
 		$id = function_exists( 'xprofile_get_field_id_from_name' ) ? (int) xprofile_get_field_id_from_name( 'Created for' ) : 0;
 		return $id && class_exists( '\BP_XProfile_ProfileData' ) ? (string) \BP_XProfile_ProfileData::get_value_byid( $id, (int) $uid ) : '';
+	}
+
+	/** Looks like words: long enough, enough words, not one character repeated. */
+	private static function real_text( $t, $min_chars, $min_words ) {
+		$t = trim( (string) $t );
+		if ( mb_strlen( $t ) < $min_chars || count( preg_split( '/\s+/u', $t ) ) < $min_words ) {
+			return false;
+		}
+		return count( array_unique( preg_split( '//u', mb_strtolower( preg_replace( '/[^\p{L}]/u', '', $t ) ), -1, PREG_SPLIT_NO_EMPTY ) ) ) >= 6;
 	}
 
 	public static function rest_submit( $request ) {
@@ -190,13 +204,33 @@ final class Survey {
 			$bad['nps'] = 'Please choose a number.';
 		}
 		$a['improve'] = mb_substr( trim( sanitize_textarea_field( (string) $request->get_param( 'improve' ) ) ), 0, 1000 );
-		if ( mb_strlen( $a['improve'] ) < 3 ) {
-			$bad['improve'] = 'Please write a few words.';
+		if ( ! self::real_text( $a['improve'], self::IMPROVE_MIN, 3 ) ) {
+			$bad['improve'] = 'Please write a little more (a short sentence).';
 		}
 		$a['testimonial'] = mb_substr( trim( sanitize_textarea_field( (string) $request->get_param( 'testimonial' ) ) ), 0, 1000 );
 		$a['permission']  = $request->get_param( 'permission' ) ? 1 : 0;
-		if ( $a['permission'] && mb_strlen( $a['testimonial'] ) < self::TESTI_MIN ) {
-			$bad['testimonial'] = 'Please write at least ' . self::TESTI_MIN . ' characters to get the extra 300.';
+		if ( $a['permission'] && ! self::real_text( $a['testimonial'], self::TESTI_MIN, 8 ) ) {
+			$bad['testimonial'] = 'Please write at least ' . self::TESTI_MIN . ' characters (a sentence or two) to earn the extra ₹300.';
+		}
+		/*
+		 * Against random filling (owner, v1.90.76). Refused: answered faster
+		 * than MIN_SECONDS (the start time is signed, so it cannot be edited),
+		 * and text that is not words (above). Flagged, not refused: every
+		 * feature rated the same, or under two minutes; flagged answers are
+		 * left out of `wp csm survey` unless --all.
+		 */
+		list( $t0, $sig ) = array_pad( explode( '.', (string) $request->get_param( 'start' ), 2 ), 2, '' );
+		$took = hash_equals( wp_hash( 'csm_sv_' . $uid . '_' . $t0 ), $sig ) ? time() - (int) $t0 : 0;
+		if ( $took < self::MIN_SECONDS && ! $bad ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'Please take a moment to read each question and answer it properly.' ), 200 );
+		}
+		$a['seconds'] = $took;
+		$a['flags']   = array();
+		if ( 1 === count( array_unique( $a['importance'] ) ) ) {
+			$a['flags'][] = 'same_ratings';
+		}
+		if ( $took < 120 ) {
+			$a['flags'][] = 'fast';
 		}
 		if ( $bad ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'errors' => $bad ), 200 );
@@ -263,9 +297,10 @@ final class Survey {
 	}
 
 	private static function form() {
-		$o  = '<h1>Help us improve CA Shaadi</h1>';
-		$o .= '<div class="csm-sv-cash"><b>300 CA Shaadi cash</b> for answering the survey.<br><b>Another 300</b> for a testimonial with your name and photo.<br><small>1 CA Shaadi cash = ₹1 off any plan.</small></div>';
-		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '">';
+		$t0 = time();
+		$o  = '<h1>Help improve CA Shaadi and earn ₹600</h1>';
+		$o .= '<div class="csm-sv-cash"><b>₹300</b> for the survey<br><b>₹300</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
+		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '">';
 
 		$o .= self::q( 'paid', 1, 'How much have you paid in total for matrimony services so far (sites, apps, bureaus or agents)?',
 			'<p class="csm-sv-hint">An approximate amount is fine. Write 0 if you never paid.</p>'
@@ -292,17 +327,20 @@ final class Survey {
 			'<div class="csm-sv-opts is-scale">' . $scale . '<div class="csm-sv-ends"><span>Not likely</span><span>Very likely</span></div></div>' );
 
 		$o .= self::q( 'improve', 5, 'One thing we should improve',
-			'<textarea name="improve" rows="3" maxlength="1000" placeholder="Write a few words"></textarea>' );
+			'<textarea name="improve" rows="3" maxlength="1000" placeholder="A short sentence"></textarea>' );
 
 		$o .= self::q( 'testimonial', 6, 'Your testimonial',
-			'<p class="csm-sv-hint">What do you like about CA Shaadi? Write it and turn on the switch below to get another 300 CA Shaadi cash.</p>'
+			'<p class="csm-sv-hint">What do you like about CA Shaadi? Write a sentence or two and turn on the switch below to earn another ₹300.</p>'
 			. '<textarea name="testimonial" rows="4" maxlength="1000" placeholder="For example: what you found here, or what you like about it"></textarea>'
 			. '<label class="csm-sv-sw"><input type="checkbox" name="permission" value="1"><span class="csm-sv-sw-t"></span><span>CA Shaadi may show this with my name and photo</span></label>',
-			'(optional, +300 cash)' );
+			'(optional, +₹300)' );
 
-		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit</button></form>';
+		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit and earn ₹300</button></form>';
 		$o .= '<script>(function(){var f=document.getElementById("csm-sv-form");if(!f){return;}'
 			. '[].forEach.call(f.querySelectorAll("fieldset[data-key=problems] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key=problems] input:checked").length>2){c.checked=false;}});});'
+			. 'var tx=f.querySelector("textarea[name=testimonial]"),pm=f.querySelector("input[name=permission]");'
+			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&tx.value.trim().length>=(+f.getAttribute("data-min"))?"600":"300");}'
+			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();}tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
 			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={importance:{}};'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-err"),function(x){x.textContent="";});'
 			. 'var c;d.paid=f.querySelector("input[name=paid]").value;'
@@ -310,15 +348,15 @@ final class Survey {
 			. 'd.problems=[].map.call(f.querySelectorAll("input[name=problems]:checked"),function(i){return i.value;});'
 			. 'c=f.querySelector("input[name=nps]:checked");d.nps=c?c.value:"";'
 			. 'd.improve=f.querySelector("textarea[name=improve]").value;d.testimonial=f.querySelector("textarea[name=testimonial]").value;'
-			. 'd.permission=f.querySelector("input[name=permission]").checked?1:0;'
+			. 'd.permission=pm.checked?1:0;d.start=f.getAttribute("data-start");'
 			. 'b.disabled=true;b.textContent="Sending…";'
 			. 'fetch(f.getAttribute("data-url"),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-WP-Nonce":f.getAttribute("data-nonce")},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(r){'
-			. 'if(r&&r.ok){f.parentNode.innerHTML="<h1>Thank you!</h1><p><b>"+r.cash+" CA Shaadi cash</b> has been added to your account. Use it on any plan.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>";window.scrollTo(0,0);return;}'
-			. 'b.disabled=false;b.textContent="Submit";var first=null;'
+			. 'if(r&&r.ok){f.parentNode.innerHTML="<h1>Thank you!</h1><p><b>₹"+r.cash+" CA Shaadi Cash</b> has been added to your account. Use it anywhere on CA Shaadi.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>";window.scrollTo(0,0);return;}'
+			. 'b.disabled=false;b.textContent=lbl();var first=null;'
 			. 'Object.keys((r&&r.errors)||{}).forEach(function(k){var fs=f.querySelector("fieldset[data-key=\""+k+"\"]");if(fs){fs.querySelector(".csm-sv-err").textContent=r.errors[k];first=first||fs;}});'
 			. 'if(r&&r.message){f.querySelector(".csm-sv-top").textContent=r.message;}'
 			. 'if(first){first.scrollIntoView({block:"center",behavior:"smooth"});}'
-			. '}).catch(function(){b.disabled=false;b.textContent="Submit";f.querySelector(".csm-sv-top").textContent="No connection. Please try again.";});});})();</script>';
+			. '}).catch(function(){b.disabled=false;b.textContent=lbl();f.querySelector(".csm-sv-top").textContent="No connection. Please try again.";});});})();</script>';
 		return $o;
 	}
 
@@ -365,8 +403,12 @@ final class Survey {
 				$all[ (int) $r->actor_id ] = $m;
 			}
 		}
+		$flagged = array_filter( $all, function ( $m ) { return ! empty( $m['flags'] ); } );
+		\WP_CLI::log( count( $all ) . ' answers (cap ' . (int) get_option( self::MAX_OPT, 300 ) . ', survey ' . ( get_option( self::ON_OPT, 1 ) ? 'on' : 'off' ) . '); ' . count( $flagged ) . ' flagged as possibly careless (all features rated the same, or under 2 minutes)' . ( empty( $assoc['all'] ) ? ', left out below (--all to include).' : ', included.' ) );
+		if ( empty( $assoc['all'] ) ) {
+			$all = array_diff_key( $all, $flagged );
+		}
 		$n = count( $all );
-		\WP_CLI::log( "{$n} answers (cap " . (int) get_option( self::MAX_OPT, 300 ) . ', survey ' . ( get_option( self::ON_OPT, 1 ) ? 'on' : 'off' ) . ').' );
 		if ( ! $n ) {
 			return;
 		}

@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.76 — 2026-10-30
+
+- Survey copy (owner): "Help improve CA Shaadi and earn ₹600" · ₹300 for the survey · ₹300 for a testimonial · CA Shaadi Cash, usable anywhere on CA Shaadi on top of any other discount or offer. The Submit button shows the amount ("Submit and earn ₹300", ₹600 once a testimonial of 60+ characters has the permission switch on).
+- Against random filling: refused if answered in under 40 seconds (signed start time) or if the text is not words (improve: 15+ characters, 3+ words; testimonial: 60+ characters, 8+ words; not one letter repeated). Flagged, not refused: every feature rated the same, or under 2 minutes; `wp csm survey` leaves flagged answers out unless --all.
+
 ## 1.90.75 — 2026-10-30
 
 - Survey question 1 is a typed amount in rupees ("How much have you paid in total for matrimony services so far?", 0 if never) instead of ranges (owner). `wp csm survey` groups the amounts into bands and gives the median and average of those who paid.
