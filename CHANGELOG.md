@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.65 — 2026-10-30
+
+- Gold upgrade credit reads what the member paid for Premium from their latest paid WooCommerce order (after any coupon), not PMPro's record, which may carry the level's price. ₹1,499 buyers (old price or OLDPRICE) and ₹4,499 buyers are each credited on their own price; no order (granted by hand): ₹1,499.
+
 ## 1.90.64 — 2026-10-30
 
 - Pricing page before 1 November: a "New prices from 1 November" box (₹4,499 from then, the reason, ₹1,499 until then, OLDPRICE from 1st to 5th November for members who joined before 1 November, never again at ₹1,499) with a countdown to the change and Buy Premium at ₹1,499; the Premium card notes "Goes up to ₹4,499 on 1 November". Shown to free members and signed-out visitors. Admin preview `?oldprice=soon`; the Discover banner's preview link uses it.

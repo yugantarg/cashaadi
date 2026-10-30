@@ -332,9 +332,41 @@ final class Gold {
 			return 0;
 		}
 		$days = max( 0, ( (int) $lvl->enddate - time() ) / DAY_IN_SECONDS );
-		// What they paid (₹1,499 before 1 Nov 2026, ₹4,499 after); the old price if unknown.
-		$paid = isset( $lvl->initial_payment ) && (float) $lvl->initial_payment > 0 ? (float) $lvl->initial_payment : self::PREMIUM_PRICE_FOR_CREDIT;
-		return (int) floor( $paid * min( 365, $days ) / 365 );
+		return (int) floor( self::premium_paid( $uid ) * min( 365, $days ) / 365 );
+	}
+
+	/**
+	 * What the member paid for their Premium (v1.90.65): the latest paid
+	 * order's Premium line, after any coupon, so ₹1,499 (old price or
+	 * OLDPRICE) and ₹4,499 buyers are each credited on their own price. Read
+	 * from WooCommerce, not PMPro, whose record may carry the level's price
+	 * rather than the order's. No order (granted by hand): the old price.
+	 */
+	public static function premium_paid( $uid ) {
+		static $memo = array();
+		$uid = (int) $uid;
+		if ( isset( $memo[ $uid ] ) ) {
+			return $memo[ $uid ];
+		}
+		$paid = 0.0;
+		if ( function_exists( 'wc_get_orders' ) ) {
+			$orders = wc_get_orders( array(
+				'customer_id' => $uid,
+				'status'      => array( 'processing', 'completed' ),
+				'orderby'     => 'date',
+				'order'       => 'DESC',
+				'limit'       => 10,
+			) );
+			foreach ( $orders as $o ) {
+				foreach ( $o->get_items() as $item ) {
+					if ( (int) $item->get_product_id() === (int) Config::WC_PREMIUM_PRODUCT ) {
+						$paid = (float) $item->get_total();
+						break 2;
+					}
+				}
+			}
+		}
+		return $memo[ $uid ] = $paid > 0 ? $paid : (float) self::PREMIUM_PRICE_FOR_CREDIT;
 	}
 
 	public static function upgrade_credit( $cart ) {
