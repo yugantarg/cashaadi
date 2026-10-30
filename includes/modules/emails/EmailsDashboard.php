@@ -142,6 +142,27 @@ final class EmailsDashboard {
 			 FROM {$t} WHERE processed_at >= %s GROUP BY email_type",
 			$month
 		) );
+		/*
+		 * Conversions (v1.90.67): members who paid for anything within 7 days
+		 * after opening the email (a click counts as an open). The purchase
+		 * events come from Journey::on_order.
+		 */
+		$ev   = $wpdb->prefix . 'csm_event_log';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$conv = $wpdb->get_results( $wpdb->prepare(
+			"SELECT q.email_type, COUNT( DISTINCT q.user_id ) buyers, SUM( CAST( JSON_EXTRACT( e.metadata, '$.total' ) AS DECIMAL(10,2) ) ) revenue
+			 FROM {$t} q JOIN {$ev} e ON e.actor_id = q.user_id AND e.event_type = 'purchase'
+			  AND e.created_at >= q.opened_at AND e.created_at < DATE_ADD( q.opened_at, INTERVAL 7 DAY )
+			 WHERE q.status = 'sent' AND q.opened_at IS NOT NULL AND q.processed_at >= %s
+			 GROUP BY q.email_type",
+			$month
+		) );
+		$paid = array();
+		foreach ( (array) $conv as $r ) {
+			$g = self::group( $r->email_type );
+			$paid[ $g ][0] = ( $paid[ $g ][0] ?? 0 ) + (int) $r->buyers;
+			$paid[ $g ][1] = ( $paid[ $g ][1] ?? 0 ) + (float) $r->revenue;
+		}
 		$by = array();
 		foreach ( (array) $rows as $r ) {
 			$g = self::group( $r->email_type );
@@ -157,17 +178,18 @@ final class EmailsDashboard {
 		$pct = function ( $n, $of ) {
 			return $of ? (int) $n . ' <span style="color:#666">(' . round( 100 * $n / $of ) . '%)</span>' : (int) $n;
 		};
-		echo '<div style="' . $box . '"><h2 style="margin:0 0 4px">How each email is doing</h2><p style="margin:0 0 10px;color:#5c6a76">Last 30 days. Clicks are the number to trust: some mail apps block opens, others report opens nobody made.</p>';
+		echo '<div style="' . $box . '"><h2 style="margin:0 0 4px">How each email is doing</h2><p style="margin:0 0 10px;color:#5c6a76">Last 30 days. Clicks are the number to trust: some mail apps block opens, others report opens nobody made. <b>Paid within 7 days</b>: members who bought anything in the 7 days after opening that email, and what they paid.</p>';
 		if ( ! $by ) {
 			echo '<p>Nothing sent in the last 30 days.</p>';
 		} else {
-			echo '<table class="widefat striped"><thead><tr><th>Email</th><th style="' . $cell . '">Sent</th><th style="' . $cell . '">Opened</th><th style="' . $cell . '">Clicked</th><th style="' . $cell . '">Unsubscribed</th><th style="' . $cell . '">Failed</th><th style="' . $cell . '">Last sent</th></tr></thead><tbody>';
+			echo '<table class="widefat striped"><thead><tr><th>Email</th><th style="' . $cell . '">Sent</th><th style="' . $cell . '">Opened</th><th style="' . $cell . '">Clicked</th><th style="' . $cell . '">Unsubscribed</th><th style="' . $cell . '">Paid within 7 days</th><th style="' . $cell . '">Failed</th><th style="' . $cell . '">Last sent</th></tr></thead><tbody>';
 			foreach ( $by as $g => $s ) {
 				echo '<tr><td>' . esc_html( self::name( $g ) ) . '</td>'
 					. '<td style="' . $cell . '">' . (int) $s['sent'] . '</td>'
 					. '<td style="' . $cell . '">' . $pct( $s['opened'], $s['sent'] ) . '</td>'
 					. '<td style="' . $cell . '"><strong>' . $pct( $s['clicked'], $s['sent'] ) . '</strong></td>'
 					. '<td style="' . $cell . '">' . $pct( $s['unsub'], $s['sent'] ) . '</td>'
+					. '<td style="' . $cell . '">' . ( empty( $paid[ $g ][0] ) ? '<span style="color:#aaa">0</span>' : '<strong style="color:#1a7f37">' . (int) $paid[ $g ][0] . '</strong> <span style="color:#666">(₹' . esc_html( number_format_i18n( $paid[ $g ][1] ) ) . ')</span>' ) . '</td>'
 					. '<td style="' . $cell . ( $s['failed'] ? ';color:#b3261e' : '' ) . '">' . (int) $s['failed'] . '</td>'
 					. '<td style="' . $cell . '">' . esc_html( $s['last'] ? human_time_diff( strtotime( $s['last'] ), current_time( 'timestamp' ) ) . ' ago' : '—' ) . '</td></tr>';
 			}

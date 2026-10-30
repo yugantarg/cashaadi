@@ -508,6 +508,7 @@ final class Journey {
 			'channel'      => (string) get_user_meta( $uid, 'csm_channel', true ),
 			'pricing_src'  => (string) get_user_meta( $uid, 'csm_last_pricing_src', true ),
 			'pricing_views'=> (int) get_user_meta( $uid, 'csm_pricing_views', true ),
+			'coupons'      => array_values( array_map( 'strtolower', (array) $order->get_coupon_codes() ) ), // e.g. oldprice (v1.90.67)
 			'journey'      => self::totals( $uid ),
 		) );
 		$order->update_meta_data( '_csm_journey_logged', 1 );

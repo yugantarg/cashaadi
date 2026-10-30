@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.67 — 2026-10-30
+
+- Emails page: "Paid within 7 days" per email: members who bought anything in the 7 days after opening it (a click counts as an open), and what they paid.
+- Purchase events record the coupon codes used (e.g. oldprice).
+
 ## 1.90.66 — 2026-10-30
 
 - One "Emails" page under Sales Dashboard replaces Reminder Emails, Email delivery and Email campaigns in the menu (owner: "complicated and not useful"). It shows: is email working (sending, provider, sent today of the cap, failures in 24 h, waiting, on hold); each kind of email over 30 days (sent, opened, clicked, unsubscribed, failed, last sent; dated types grouped under one name); campaigns with Stage, Release and Preview; failures in the last 7 days and why. The older screens stay reachable from links at the bottom for settings.
