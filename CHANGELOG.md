@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.73 — 2026-10-30
+
+- Member survey at /survey/ (owner): what members have paid for matrimony services (the price signal, no "what would you pay"), the 2 things that would help most, the biggest problem, who is involved (me / family / both), likelihood to recommend (0–10) and one thing to improve (required). 1 free profile boost on submit, once per member, first 300 answers (`csm_survey_max`; `csm_survey_on` 0 stops it). Invited by a one-time popup, second in line after the ₹99 boost, for members past their first two days. `wp csm survey [--text]`: each answer by who is involved, gender and plan, NPS, and the improvement answers.
+
 ## 1.90.72 — 2026-10-30
 
 - Dashboards cut to key numbers (owner: "I just want the data to be tracked ... I will ask you to give me the command"). Sales Dashboard: activity tiles (DAU, WAU, MAU, registered, paid), then one table per product (on the plan now, people who bought and revenue in 30 days and all time), the email-failure alert and the member table. Sign-ups by channel, the sign-up funnel, conversion, experiments and the price-notice tables leave the page; all still tracked. Emails page: status and campaigns only; per-email numbers and failures are `wp csm emails [--days=30]`. `wp csm oldprice status` adds the notice's seen / clicked / closed, email opens and clicks, and OLDPRICE purchases.

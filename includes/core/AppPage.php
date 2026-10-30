@@ -311,34 +311,38 @@ final class AppPage {
 		$boost_deal = class_exists( '\\CAShaadi\\Modules\\Premium\\BoostDeal' )
 			? \CAShaadi\Modules\Premium\BoostDeal::payload( get_current_user_id() )
 			: false;
-		$ff15 = ! $boost_deal && class_exists( '\\CAShaadi\\Modules\\Discover\\FreeFemale' )
+		// The survey invitation (v1.90.73): one-time, right after the ₹99 boost.
+		$survey = ! $boost_deal && class_exists( '\\CAShaadi\\Modules\\Survey\\Survey' )
+			? \CAShaadi\Modules\Survey\Survey::payload( get_current_user_id() )
+			: false;
+		$ff15 = ! $boost_deal && ! $survey && class_exists( '\\CAShaadi\\Modules\\Discover\\FreeFemale' )
 			? \CAShaadi\Modules\Discover\FreeFemale::payload( get_current_user_id() )
 			: false;
 		// "N match requests waiting" (v1.78.0): again only when a new request
 		// has arrived since it was last shown.
 		// Off since v1.89.53 (owner: "comes too often"): a red count on the
 		// Requests tab in the bottom bar says it instead.
-		$reqs = false && ! $boost_deal && ! $ff15 && class_exists( '\\CAShaadi\\Modules\\Matches\\RequestsWaiting' )
+		$reqs = false && ! $boost_deal && ! $survey && ! $ff15 && class_exists( '\\CAShaadi\\Modules\\Matches\\RequestsWaiting' )
 			&& ! preg_match( '#^/(requests|welcome)\b#', (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) )
 			? \CAShaadi\Modules\Matches\RequestsWaiting::popup( get_current_user_id() )
 			: false;
 		// One-time "Get 10 more profiles: photo + verify" (v1.75.0). Replaces
 		// the verify-only popup, whose test it was built on.
-		$boost = ! $boost_deal && ! $ff15 && ! $reqs && class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' )
+		$boost = ! $boost_deal && ! $survey && ! $ff15 && ! $reqs && class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' )
 			? \CAShaadi\Modules\Discover\Boost::popup( get_current_user_id() )
 			: false;
 		// One-time "add LinkedIn / Instagram" popup for existing members.
-		$social = ! $boost_deal && ! $ff15 && ! $reqs && ! $boost && class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\SocialIntro' )
+		$social = ! $boost_deal && ! $survey && ! $ff15 && ! $reqs && ! $boost && class_exists( '\\CAShaadi\\Modules\\ProfileEdit\\SocialIntro' )
 			? \CAShaadi\Modules\ProfileEdit\SocialIntro::payload( get_current_user_id() )
 			: false;
 		// Sampled one-time "get your Verified CA badge" popup. One popup per
 		// page: while the social one is pending this is not even assigned.
-		$vnudge = ! $boost_deal && ! $ff15 && ! $reqs && ! $boost && ! $social && class_exists( '\\CAShaadi\\Modules\\CaVerify\\VerifyNudge' )
+		$vnudge = ! $boost_deal && ! $survey && ! $ff15 && ! $reqs && ! $boost && ! $social && class_exists( '\\CAShaadi\\Modules\\CaVerify\\VerifyNudge' )
 			? \CAShaadi\Modules\CaVerify\VerifyNudge::payload( get_current_user_id() )
 			: false;
 		// "Introducing Gold" (v1.90.50, an experiment): last in line, only on a
 		// page where no other popup is due, so it never stacks on one.
-		$gold_intro = ! $boost_deal && ! $ff15 && ! $reqs && ! $boost && ! $social && ! $vnudge && class_exists( '\\CAShaadi\\Modules\\Premium\\GoldIntro' )
+		$gold_intro = ! $boost_deal && ! $survey && ! $ff15 && ! $reqs && ! $boost && ! $social && ! $vnudge && class_exists( '\\CAShaadi\\Modules\\Premium\\GoldIntro' )
 			? \CAShaadi\Modules\Premium\GoldIntro::payload( get_current_user_id() )
 			: false;
 		wp_localize_script( 'cashaadi-app-screens', 'CSM_APP', array(
@@ -359,6 +363,7 @@ final class AppPage {
 			'verifyNudge' => $vnudge,
 			'goldIntro'   => $gold_intro,
 			'boostDeal'   => $boost_deal,
+			'survey'      => $survey,
 		) );
 
 		// The spotlight overlay: the new-account tour and the first-action

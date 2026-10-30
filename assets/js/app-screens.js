@@ -581,9 +581,9 @@ window.csmProfileCard = function ( p ) {
  */
 ( function () {
 	// The ₹99 boost (v1.90.52) uses the same popup; only one is ever set.
-	var cfg = window.CSM_APP && ( window.CSM_APP.goldIntro || window.CSM_APP.boostDeal );
+	var cfg = window.CSM_APP && ( window.CSM_APP.goldIntro || window.CSM_APP.boostDeal || window.CSM_APP.survey );
 	if ( ! cfg || ! cfg.url || typeof window.csmConfirm !== 'function' ) { return; }
-	if ( /^\/(welcome|profile\/edit|membership-pricing)\b/.test( window.location.pathname ) ) { return; }
+	if ( /^\/(welcome|profile\/edit|membership-pricing|survey)\b/.test( window.location.pathname ) ) { return; }
 	function mark( clicked ) {
 		try {
 			return fetch( cfg.seen + ( clicked ? '?clicked=1' : '' ), {
