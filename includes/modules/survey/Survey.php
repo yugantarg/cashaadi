@@ -25,7 +25,8 @@
  * response. Feature and problem lists are shuffled per member ("Something
  * else" stays last) and the order shown is saved with the answer.
  *
- * Who: members past their first two days who were never offered the ₹99
+ * Who: members who joined 7+ days ago, acted on 3+ profiles and used the app
+ * on 2+ days (engaged(), v1.90.84), and were never offered the ₹99
  * boost (owner: "don't send survey to those you have given 99 boost
  * option"). Invited by a one-time popup in AppPage's chain. First
  * csm_survey_max answers (default 300); csm_survey_on = 0 stops it.
@@ -140,13 +141,35 @@ final class Survey {
 		return (bool) get_user_meta( $uid, self::BATCH_META, true );
 	}
 
+	/**
+	 * Who is invited (owner, v1.90.84): joined at least 7 days ago, acted on
+	 * at least 3 profiles (sent a request, passed or saved, in Discover's
+	 * record), and used the app on at least 2 different days (the active-days
+	 * table; logins themselves are not recorded).
+	 */
+	private static function engaged( $uid ) {
+		global $wpdb;
+		$u = get_userdata( (int) $uid );
+		if ( ! $u || strtotime( $u->user_registered . ' UTC' ) > time() - 7 * DAY_IN_SECONDS ) {
+			return false;
+		}
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$acted = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_seen WHERE viewer_id = %d AND action IN ( 'liked', 'passed', 'saved' )", (int) $uid ) );
+		if ( $acted < 3 ) {
+			return false;
+		}
+		$days = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_active_days WHERE user_id = %d", (int) $uid ) );
+		// phpcs:enable
+		return $days >= 2;
+	}
+
 	/** Not invited yet, and could be: the popup takes one place from the batch. */
 	private static function invite( $uid ) {
 		global $wpdb;
 		$uid = (int) $uid;
 		if ( ! $uid || ! get_option( self::ON_OPT, 1 ) || user_can( $uid, 'manage_options' ) || get_user_meta( $uid, self::BATCH_META, true ) || get_user_meta( $uid, self::DONE_META, true )
 			|| (int) get_option( self::LEFT_OPT, 0 ) <= 0
-			|| ( class_exists( '\\CAShaadi\\Modules\\Discover\\Boost' ) && \CAShaadi\Modules\Discover\Boost::is_new( $uid ) )
+			|| ! self::engaged( $uid )
 			|| self::had_boost_deal( $uid ) ) {
 			return false;
 		}

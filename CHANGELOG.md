@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.84 — 2026-10-30
+
+- Survey invitations only for engaged members (owner): joined at least 7 days ago, acted on at least 3 profiles (request, pass or save), and used the app on at least 2 different days. Still never to anyone offered the ₹99 boost.
+
 ## 1.90.83 — 2026-10-30
 
 - Price notices made short (owner: "they can see the pricing page and understand"). Pricing page: "New prices from 1 November", one line ("Buy now at the old prices." / "Use the code OLDPRICE to get the old prices. They will not be available again.") and the countdown; no amounts or buttons in the box (the cards show the prices, and from 1 November Buy Premium and Buy Gold apply the code). Discover banner: "Prices go up on 1 November. Buy now at the old prices." / "Prices have gone up. Use the code OLDPRICE to get the old prices.", countdown, "See plans".
