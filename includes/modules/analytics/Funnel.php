@@ -66,6 +66,72 @@ final class Funnel {
 		add_action( 'csm_welcome_view', array( __CLASS__, 'on_welcome_view' ) );
 		add_action( 'csm_welcome_step', array( __CLASS__, 'on_welcome_step' ), 10, 2 );
 		add_action( 'csm_onboarding_completed', array( __CLASS__, 'on_onboarded' ) );
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'csm funnel', array( __CLASS__, 'cli' ), array(
+				'synopsis' => array( array( 'type' => 'assoc', 'name' => 'days', 'optional' => true ) ),
+			) );
+		}
+	}
+
+	/**
+	 * wp csm funnel [--days=7]
+	 *
+	 * The sign-up funnel for the last --days (IST, including today): people at
+	 * each step and the share kept from the step before, problems along the
+	 * way, onboarding steps answered, and the same by day.
+	 */
+	public static function cli( $args, $assoc ) {
+		global $wpdb;
+		$t    = self::table();
+		$days = max( 1, (int) ( $assoc['days'] ?? 7 ) );
+		list( $a, $b ) = self::bounds( wp_date( 'Y-m-d', strtotime( '-' . ( $days - 1 ) . ' days' ) ), wp_date( 'Y-m-d' ) );
+		$counts = array();
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT step, COUNT(DISTINCT pkey) n FROM {$t} WHERE created_at BETWEEN %s AND %s GROUP BY step", $a, $b ) ) as $r ) {
+			$counts[ $r->step ] = (int) $r->n;
+		}
+		\WP_CLI::log( "Sign-up funnel, last {$days} days. Note: 'Opened' and 'Started' were not recorded on the new sign-up screen from 28 Oct until v1.90.87." );
+		$rows = array();
+		$prev = 0;
+		foreach ( self::PATH as $step => $label ) {
+			$n      = $counts[ $step ] ?? 0;
+			$rows[] = array( 'step' => $label, 'people' => $n, 'kept from previous' => $prev ? round( 100 * $n / $prev ) . '%' : '' );
+			$prev   = $n ? $n : $prev;
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'step', 'people', 'kept from previous' ) );
+		$side = array( 'validation_error' => 'Form rejected at least once', 'code_email_failed' => 'Code email FAILED', 'code_resend' => 'Asked for a new code', 'code_wrong' => 'Entered a wrong / expired code' );
+		$rows = array();
+		foreach ( $side as $step => $label ) {
+			$rows[] = array( 'problem' => $label, 'people' => $counts[ $step ] ?? 0 );
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'problem', 'people' ) );
+		$ws = $wpdb->get_results( $wpdb->prepare( "SELECT detail, COUNT(DISTINCT user_id) n FROM {$t} WHERE step = 'welcome_step' AND created_at BETWEEN %s AND %s GROUP BY detail ORDER BY n DESC", $a, $b ) );
+		if ( $ws ) {
+			$rows = array();
+			foreach ( $ws as $r ) {
+				$rows[] = array( 'onboarding step answered' => 'blur' === $r->detail ? 'Photo step' : self::field_label( $r->detail ), 'members' => (int) $r->n );
+			}
+			\WP_CLI\Utils\format_items( 'table', $rows, array( 'onboarding step answered', 'members' ) );
+		}
+		$off  = (int) wp_timezone()->getOffset( new \DateTime( 'now', new \DateTimeZone( 'UTC' ) ) );
+		$cols = array( 'register_view' => 'opened', 'form_submit' => 'submitted', 'signup_created' => 'accepted', 'code_email_failed' => 'email failed', 'activated' => 'activated', 'onboarded' => 'onboarded' );
+		$dayr = array();
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT DATE(DATE_ADD(created_at, INTERVAL %d SECOND)) d, step, COUNT(DISTINCT pkey) n FROM {$t} WHERE created_at BETWEEN %s AND %s GROUP BY d, step ORDER BY d DESC", $off, $a, $b ) ) as $r ) {
+			if ( isset( $cols[ $r->step ] ) ) {
+				$dayr[ $r->d ]['day']              = $r->d;
+				$dayr[ $r->d ][ $cols[ $r->step ] ] = (int) $r->n;
+			}
+		}
+		// phpcs:enable
+		if ( $dayr ) {
+			foreach ( $dayr as &$r ) {
+				foreach ( $cols as $c ) {
+					$r[ $c ] = $r[ $c ] ?? 0;
+				}
+			}
+			unset( $r );
+			\WP_CLI\Utils\format_items( 'table', array_values( $dayr ), array_merge( array( 'day' ), array_values( $cols ) ) );
+		}
 	}
 
 	public static function schema( $wpdb ) {
@@ -145,7 +211,11 @@ final class Funnel {
 	 * browser tab session.
 	 */
 	public static function beacon() {
-		if ( is_admin() || ! function_exists( 'bp_is_register_page' ) || ! bp_is_register_page() ) {
+		// The Join screen (v1.90.39) too: it replaced the BuddyPress form, and the
+		// beacon looked only for that form, so opens and starts went unrecorded
+		// from 28 Oct 2026 until v1.90.87.
+		$join = class_exists( '\\CAShaadi\\Modules\\Signup\\Join' ) && \CAShaadi\Modules\Signup\Join::$drawing;
+		if ( is_admin() || ( ! $join && ( ! function_exists( 'bp_is_register_page' ) || ! bp_is_register_page() ) ) ) {
 			return;
 		}
 		$url = esc_url_raw( rest_url( 'csm/v1/funnel' ) );
@@ -156,7 +226,7 @@ if(!s){s='';for(var i=0;i<32;i++){s+=Math.floor(Math.random()*16).toString(16);}
 var q=new URLSearchParams(location.search),src=q.get('utm_source')||(document.referrer?(new URL(document.referrer)).hostname:'direct');
 function send(step){try{if(sessionStorage.getItem('csm_f_'+step))return;sessionStorage.setItem('csm_f_'+step,'1');}catch(e){}
 var b=new URLSearchParams({step:step,sid:s,src:src});if(navigator.sendBeacon){navigator.sendBeacon(<?php echo wp_json_encode( $url ); ?>,b);}else{fetch(<?php echo wp_json_encode( $url ); ?>,{method:'POST',body:b,keepalive:true});}}
-if(!document.querySelector('form input[name="signup_email"]'))return;
+if(!document.querySelector('form input[name="signup_email"],#cj-form input[name="email"]'))return;
 send('register_view');
 document.addEventListener('focusin',function f(e){if(e.target&&e.target.form){send('form_start');document.removeEventListener('focusin',f);}});
 }catch(e){}})();</script>

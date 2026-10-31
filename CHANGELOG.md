@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.87 — 2026-10-31
+
+- Fix: the sign-up funnel stopped recording "opened the register page" and "started the form" when the new sign-up screen went live (28 Oct): its beacon only looked for the old BuddyPress form. It now runs on the Join screen too. Later steps (submitted, accepted, code email, activated, onboarding) were unaffected.
+- `wp csm funnel [--days=7]`: the funnel by step with the share kept from the step before, problems (rejected form, failed code email, resend, wrong code), onboarding steps answered, and the same by day.
+
 ## 1.90.86 — 2026-10-31
 
 - Fix: Sales Dashboard showed members with no photo as Complete. It asked BuddyPress whether a member has an avatar, which our placeholder avatar makes true for everyone. It now uses the setup wizard's check (a gallery photo, or a real uploaded avatar file), so "Photo pending" appears again.

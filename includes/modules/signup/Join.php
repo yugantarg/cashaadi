@@ -41,6 +41,9 @@ final class Join {
 	const MIN_AGE  = 18;
 	const THROTTLE = 8; // submissions per address (IP) per 10 minutes
 
+	/** True while this request draws the Join screen (Funnel's beacon reads it). */
+	public static $drawing = false;
+
 	public static function register() {
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 3 );
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
@@ -83,6 +86,7 @@ final class Join {
 			add_filter( 'wp_robots', 'wp_robots_no_robots' );
 			add_filter( 'wpseo_robots', function () { return 'noindex, nofollow'; } );
 		}
+		self::$drawing = true;
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 999 );
 		// Drawn last, so Site Kit's and other tags are registered (as the landing page).
 		add_action( 'template_redirect', array( __CLASS__, 'draw' ), PHP_INT_MAX );
