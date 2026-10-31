@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.91.21
+
+- Testimonials: under each name, the member's job title and company from their profile ("Assistant Manager at EY"), only from fields they show to everyone; otherwise "CA Shaadi member".
+
 ## 1.91.20
 
 - Survey reward test changed: each woman invited from the profiles batch on gets either ₹200 + ₹200 in CA Shaadi Cash or 5 + 5 extra profiles, half each (was ₹300/₹200/₹100). Men get profiles. The batches table compares women's two arms and men.

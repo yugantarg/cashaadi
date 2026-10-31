@@ -4,7 +4,8 @@
  * home page and the pricing page.
  *
  * Each member gave permission in the survey ("CA Shaadi may show this with my
- * name and photo"). Quotes are theirs, with spelling corrected only. The photo
+ * name and photo"). Quotes are theirs, with spelling corrected only. Under
+ * the name: their job title and company, if they show those to everyone. The photo
  * is their current main photo; if they remove it or close their account, the
  * card shows their initial, and a closed account is left out.
  */
@@ -24,6 +25,23 @@ final class Testimonials {
 		1895 => array( 'Aishwarya', 'One platform where I can find people with the same interests, in the same profession.' ),
 	);
 
+	/**
+	 * "Assistant Manager at EY" from their profile (owner, 2026-10-31), only
+	 * from fields they show to everyone; else "CA Shaadi member".
+	 */
+	private static function position( $uid ) {
+		if ( ! class_exists( '\CAShaadi\Core\Profile' ) ) {
+			return 'CA Shaadi member';
+		}
+		$hidden  = \CAShaadi\Core\Profile::hidden_for( $uid, 0 );
+		$job     = trim( (string) \CAShaadi\Core\Profile::field( 'Current Job Title', $uid, $hidden ) );
+		$company = trim( (string) \CAShaadi\Core\Profile::field( 'Company Name', $uid, $hidden ) );
+		if ( $job && $company ) {
+			return $job . ' at ' . $company;
+		}
+		return $job ? $job : ( $company ? $company : 'CA Shaadi member' );
+	}
+
 	public static function html( $title = 'What members say' ) {
 		$cards = '';
 		foreach ( self::ITEMS as $uid => $it ) {
@@ -39,7 +57,7 @@ final class Testimonials {
 				? '<img src="' . esc_url( $photo ) . '" alt="" loading="lazy">'
 				: '<span>' . esc_html( mb_strtoupper( mb_substr( $it[0], 0, 1 ) ) ) . '</span>';
 			$cards .= '<figure class="csm-tm-card"><blockquote>“' . esc_html( $it[1] ) . '”</blockquote>'
-				. '<figcaption><span class="csm-tm-face">' . $face . '</span><b>' . esc_html( $it[0] ) . '</b><small>CA Shaadi member</small></figcaption></figure>';
+				. '<figcaption><span class="csm-tm-face">' . $face . '</span><b>' . esc_html( $it[0] ) . '</b><small>' . esc_html( self::position( $uid ) ) . '</small></figcaption></figure>';
 		}
 		if ( '' === $cards ) {
 			return '';
