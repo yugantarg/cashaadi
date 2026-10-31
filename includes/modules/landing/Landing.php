@@ -495,6 +495,8 @@ final class Landing {
 <footer class="lp-foot">
 	<nav>
 		<a href="<?php echo esc_url( home_url( '/about-us/' ) ); ?>">About us</a>
+		<a href="<?php echo esc_url( home_url( '/membership-pricing/' ) ); ?>">Pricing</a>
+		<a href="<?php echo esc_url( home_url( '/contact-us/' ) ); ?>">Contact us</a>
 		<a href="<?php echo esc_url( home_url( '/terms-and-conditions/' ) ); ?>">Terms</a>
 		<a href="<?php echo esc_url( home_url( '/privacy-policy/' ) ); ?>">Privacy</a>
 		<a href="<?php echo esc_url( home_url( '/refund-policy/' ) ); ?>">Refunds</a>

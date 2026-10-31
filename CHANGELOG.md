@@ -16,6 +16,10 @@ commit per version.
 
 
 
+
+## 1.91.11
+
+- Home page footer links Pricing and Contact us too, so every page a payment gateway checks is one click from the home page.
 ## 1.91.10
 
 - Speed: when a page of profile cards is built, the viewer's blocks, opened phone numbers, photo requests and friendships are each read in one query, and the cards' gallery photos in one go, instead of once per card. Viewed me loads its viewers' accounts in one query.
