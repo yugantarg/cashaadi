@@ -470,6 +470,8 @@ final class Landing {
 		</div>
 	</section>
 
+	<?php echo Testimonials::html(); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped ?>
+
 	<section class="lp-faq">
 		<h2 class="lp-in">Questions</h2>
 		<details class="lp-in"><summary>Who can join?</summary><p>CA Shaadi is mainly for Chartered Accountants and CA Inter qualified. People from related backgrounds, like CS, CFA, CMA, ACCA, B Com, CA Foundation qualified and others from similar backgrounds, are welcome to join too. The Verified badge is given only to CAs and CA Inter qualified who verify with ICAI.</p></details>

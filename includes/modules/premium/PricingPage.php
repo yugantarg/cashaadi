@@ -217,6 +217,9 @@ final class PricingPage {
 				. self::buy( Spotlight::product_id(), 'Buy boosts', $anon )
 				. '</div>';
 		}
+		if ( class_exists( '\\CAShaadi\\Modules\\Landing\\Testimonials' ) ) {
+			$o .= \CAShaadi\Modules\Landing\Testimonials::html( 'What members say' ); // three members, with permission (v1.91.14)
+		}
 		$o .= '<p class="csm-pr-foot">One-time payment for a year. No automatic renewal. Viewing a phone number sends that member a match request. Questions? <a href="mailto:support@cashaadi.in">support@cashaadi.in</a></p>';
 		$o .= '</div>';
 		$out = $o;

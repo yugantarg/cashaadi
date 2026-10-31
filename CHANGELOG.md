@@ -19,6 +19,10 @@ commit per version.
 
 
 
+
+## 1.91.14
+
+- Three member testimonials with name and photo (Amarnath, Anil Nagaraj, Aishwarya; all gave permission in the survey) on the home page, above the questions, and on the pricing page, above the footnote. A member who removes their photo shows as an initial; a closed account is left out.
 ## 1.91.13
 
 - Unfinished payment email: a member whose order sat unpaid for 1 to 48 hours, who has not paid since and is not on that plan, gets one email (once ever, not in quiet hours) naming what they were buying, the OLDPRICE price while it runs for them, a link back to pricing, and what to do if money left their account. Shows as "Unfinished payment" in `wp csm emails`.
