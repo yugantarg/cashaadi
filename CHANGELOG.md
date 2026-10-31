@@ -21,6 +21,11 @@ commit per version.
 
 
 
+
+## 1.91.16
+
+- Survey reward for men: extra profiles instead of CA Shaadi Cash, 5 for answering and 5 more for a testimonial with permission, drawn straight into his Discover as the next profiles in line by his own score, outside his weekly set. Every line of the survey (popup, Profile row, banner, form, button, hints, thank-you) says so for men; women still get ₹300 + ₹300. Event survey_profile per profile given.
+- "Were this week's profiles relevant to you?" card on the end-of-week Discover screen, from the batch of Monday 2 November: Yes, or No with what should change (age, location, community, religion, qualification, something else) and a line of text. Once a week per member, not for Gold. `wp csm deck-feedback [--weeks=1]`.
 ## 1.91.15
 
 - Survey results: "paid before" is shown as typed; CA Shaadi's own payments are no longer taken off.

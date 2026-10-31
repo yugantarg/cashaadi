@@ -66,6 +66,7 @@ final class DiscoverScreen {
 			'act'     => rest_url( 'csm/v1/discover/act' ),
 			'view'    => rest_url( 'csm/v1/discover/view' ),
 			'filters' => rest_url( 'csm/v1/discover/filters' ),
+			'feedback' => rest_url( 'csm/v1/discover/feedback' ),
 		) );
 
 		AppPage::open( __( 'Discover', 'cashaadi-ui' ), 'discover' );
@@ -293,6 +294,8 @@ final class DiscoverScreen {
 			'upgrade'   => site_url( '/membership-pricing/' ),
 			// Gold: every member, 50 at a time, no weekly limit (v1.88.1).
 			'unlimited' => class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( $viewer_id ),
+			// Weekly "were these relevant?" card at the end of the set (v1.91.16).
+			'feedback'  => class_exists( __NAMESPACE__ . '\\DeckFeedback' ) && DeckFeedback::due( $viewer_id ),
 		), 200 );
 	}
 

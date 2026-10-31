@@ -60,6 +60,10 @@ final class Survey {
 	const HIDE_META  = 'csm_survey1_banner_off'; // closed the "continue" banner
 	const CASH       = 300;
 	const CASH_TESTI = 300;
+	// Men get extra profiles instead of cash (owner, 2026-10-31): 5 for
+	// answering, 5 more for a testimonial, outside the weekly set.
+	const PROFILES       = 5;
+	const PROFILES_TESTI = 5;
 	const TESTI_MIN  = 30;   // characters, for the testimonial cash (was 60; owner, 2026-10-31)
 	const TESTI_WORDS = 4;   // words, likewise
 	const IMPROVE_MIN = 15;  // characters
@@ -177,6 +181,19 @@ final class Survey {
 		return self::LEFT_OPT . ( $f ? '_f' : '_m' );
 	}
 
+	/** Men get profiles, women cash (v1.91.16). */
+	private static function gets_profiles( $uid ) {
+		return function_exists( 'cashaadi' ) && 'Male' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
+	}
+
+	/** The reward in words, for this member: [ both, survey part, testimonial part ]. */
+	private static function words( $uid ) {
+		if ( self::gets_profiles( $uid ) ) {
+			return array( ( self::PROFILES + self::PROFILES_TESTI ) . ' extra profiles', self::PROFILES . ' extra profiles', self::PROFILES_TESTI . ' more profiles' );
+		}
+		return array( '₹' . ( self::CASH + self::CASH_TESTI ), '₹' . self::CASH, 'another ₹' . self::CASH_TESTI );
+	}
+
 	/** Not invited yet, and could be: the popup takes one place from the batch. */
 	private static function invite( $uid ) {
 		global $wpdb;
@@ -208,11 +225,15 @@ final class Survey {
 		if ( ! self::open_for( $uid ) || get_user_meta( (int) $uid, self::SEEN_META, true ) ) {
 			return false;
 		}
+		$w   = self::words( $uid );
+		$men = self::gets_profiles( $uid );
 		return array(
-			'title' => 'Help improve CA Shaadi and earn ₹600',
-			'text'  => "₹300 for answering a short survey\n₹300 for a testimonial\n\nYou receive it as CA Shaadi Cash, which you can use anywhere on CA Shaadi, on top of any other discount or offer.",
+			'title' => 'Help improve CA Shaadi and ' . ( $men ? 'get ' : 'earn ' ) . $w[0],
+			'text'  => $men
+				? self::PROFILES . " extra profiles for answering a short survey\n" . self::PROFILES_TESTI . " more for a testimonial\n\nThey are added to your Discover straight away, on top of your weekly profiles."
+				: "₹300 for answering a short survey\n₹300 for a testimonial\n\nYou receive it as CA Shaadi Cash, which you can use anywhere on CA Shaadi, on top of any other discount or offer.",
 			'ok'    => 'Start',
-			'later' => 'No problem. You can take the survey any time from your Profile tab and still earn ₹600.',
+			'later' => 'No problem. You can take the survey any time from your Profile tab and still ' . ( $men ? 'get ' : 'earn ' ) . $w[0] . '.',
 			'url'   => home_url( '/survey/' ),
 			'seen'  => rest_url( 'csm/v1/survey/seen' ),
 		);
@@ -227,7 +248,7 @@ final class Survey {
 			return null;
 		}
 		return array(
-			'label' => 'Earn ₹600: answer a short survey',
+			'label' => ( self::gets_profiles( $uid ) ? 'Get ' : 'Earn ' ) . self::words( $uid )[0] . ': answer a short survey',
 			'url'   => home_url( '/survey/' ),
 			'value' => get_user_meta( (int) $uid, self::START_META, true ) ? 'Continue' : '',
 		);
@@ -244,7 +265,9 @@ final class Survey {
 		}
 		$hide = esc_url( add_query_arg( '_wpnonce', wp_create_nonce( 'wp_rest' ), rest_url( 'csm/v1/survey/hide' ) ) );
 		return '<div class="csm-svb"><button type="button" class="csm-svb-x" aria-label="Close" data-hide="' . $hide . '">×</button>'
-			. '<p>You started our survey. Finish it to earn ₹300, or ₹600 with a testimonial.</p>'
+			. '<p>' . esc_html( self::gets_profiles( $uid )
+				? 'You started our survey. Finish it to get ' . self::PROFILES . ' extra profiles, or ' . ( self::PROFILES + self::PROFILES_TESTI ) . ' with a testimonial.'
+				: 'You started our survey. Finish it to earn ₹300, or ₹600 with a testimonial.' ) . '</p>'
 			. '<a class="csm-svb-btn" href="' . esc_url( home_url( '/survey/' ) ) . '">Continue the survey</a>'
 			. '<small>You can also find it on your Profile tab.</small></div>'
 			. '<style>.csm-svb{position:relative;margin:10px 12px 0;padding:12px 40px 12px 14px;border-radius:14px;background:#fffaf0;border:1px solid #f0d58c;font-size:14px;line-height:1.4;color:#16212b}'
@@ -334,7 +357,7 @@ final class Survey {
 		$a['testimonial'] = mb_substr( trim( sanitize_textarea_field( (string) $request->get_param( 'testimonial' ) ) ), 0, 1000 );
 		$a['permission']  = $request->get_param( 'permission' ) ? 1 : 0;
 		if ( $a['permission'] && ! self::real_text( $a['testimonial'], self::TESTI_MIN, self::TESTI_WORDS ) ) {
-			$bad['testimonial'] = 'Please write at least ' . self::TESTI_MIN . ' characters (a sentence or two) to earn the extra ₹300.';
+			$bad['testimonial'] = 'Please write at least ' . self::TESTI_MIN . ' characters (a sentence or two) to get ' . self::words( $uid )[2] . '.';
 		}
 		/*
 		 * Against random filling (owner, v1.90.76). Refused: answered faster
@@ -366,8 +389,12 @@ final class Survey {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => 'You have already answered. Thank you!' ), 200 );
 		}
 		update_option( self::COUNT_OPT, (int) get_option( self::COUNT_OPT, 0 ) + 1, false );
-		$cash = 0;
-		if ( class_exists( '\\CAShaadi\\Modules\\Referral\\Referral' ) ) {
+		$cash  = 0;
+		$extra = 0;
+		if ( self::gets_profiles( $uid ) ) {
+			// The next profiles in line by his own Discover score, outside his weekly set.
+			$extra = self::give_profiles( $uid, self::PROFILES + ( $a['permission'] && '' !== $a['testimonial'] ? self::PROFILES_TESTI : 0 ) );
+		} elseif ( class_exists( '\\CAShaadi\\Modules\\Referral\\Referral' ) ) {
 			$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, self::CASH, 'survey', 0, 0, 'Survey answered' ) ? self::CASH : 0;
 			if ( $a['permission'] && '' !== $a['testimonial'] ) {
 				$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, self::CASH_TESTI, 'testimonial', 0, 0, 'Testimonial with name and photo' ) ? self::CASH_TESTI : 0;
@@ -378,9 +405,24 @@ final class Survey {
 				'gender' => (string) cashaadi()->get_gender( $uid ),
 				'plan'   => Membership::is_gold( $uid ) ? 'gold' : ( Membership::is_premium( $uid ) ? 'premium' : 'free' ),
 				'cash'   => $cash,
+				'profiles' => $extra,
 			) ) );
 		}
-		return new \WP_REST_Response( array( 'ok' => true, 'cash' => $cash, 'refer' => home_url( '/refer/' ) ), 200 );
+		return new \WP_REST_Response( array( 'ok' => true, 'cash' => $cash, 'profiles' => $extra, 'refer' => home_url( '/refer/' ), 'discover' => home_url( '/discover/' ) ), 200 );
+	}
+
+	/** Draw $n extra profiles into his Discover, as bonus cards. Returns how many. */
+	private static function give_profiles( $uid, $n ) {
+		if ( ! function_exists( 'csm_refill_tray' ) || ! class_exists( '\\CAShaadi\\Modules\\Discover\\Bonus' ) ) {
+			return 0;
+		}
+		\CAShaadi\Modules\Discover\Bonus::$want = (int) $n;
+		$got = (array) csm_refill_tray( (int) $uid );
+		\CAShaadi\Modules\Discover\Bonus::$want = 0;
+		foreach ( $got as $pid ) {
+			cashaadi()->log_event( 'survey_profile', (int) $uid, (int) $pid, array() );
+		}
+		return count( $got );
 	}
 
 	/* -------------------------------------------------------------- screen */
@@ -396,7 +438,9 @@ final class Survey {
 		AppPage::open( 'Quick survey', 'profile' );
 		echo '<div class="csm-sv">';
 		if ( $done ) {
-			echo '<h1>Thank you!</h1><p>You have already answered. Your CA Shaadi cash is in your account.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/refer/' ) ) . '">See my CA Shaadi cash</a>';
+			echo self::gets_profiles( $uid )
+				? '<h1>Thank you!</h1><p>You have already answered. Your extra profiles are in your Discover.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/discover/' ) ) . '">Go to Discover</a>'
+				: '<h1>Thank you!</h1><p>You have already answered. Your CA Shaadi cash is in your account.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/refer/' ) ) . '">See my CA Shaadi cash</a>';
 		} elseif ( ! $open && ! current_user_can( 'manage_options' ) ) {
 			echo '<h1>This survey is closed</h1><p>Thank you for your interest.</p><a class="csm-sv-btn" href="' . esc_url( home_url( '/discover/' ) ) . '">Back to Discover</a>';
 		} else {
@@ -441,10 +485,16 @@ final class Survey {
 	}
 
 	private static function form() {
-		$t0 = time();
-		$o  = '<h1>Help improve CA Shaadi and earn ₹600</h1>';
-		$o .= '<div class="csm-sv-cash"><b>₹300</b> for the survey<br><b>₹300</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
-		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '" data-words="' . (int) self::TESTI_WORDS . '" data-dk="' . esc_attr( 'csm_sv1_draft_' . substr( wp_hash( 'csm_sv_draft_' . get_current_user_id() ), 0, 16 ) ) . '">';
+		$t0   = time();
+		$uid  = get_current_user_id();
+		$men  = self::gets_profiles( $uid );
+		$w    = self::words( $uid );
+		$verb = $men ? 'get' : 'earn';
+		$o  = '<h1>Help improve CA Shaadi and ' . $verb . ' ' . esc_html( $w[0] ) . '</h1>';
+		$o .= $men
+			? '<div class="csm-sv-cash"><b>' . self::PROFILES . ' extra profiles</b> for the survey<br><b>' . self::PROFILES_TESTI . ' more</b> for a testimonial<br><small>They are added to your Discover straight away, on top of your weekly profiles.</small></div>'
+			: '<div class="csm-sv-cash"><b>₹300</b> for the survey<br><b>₹300</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
+		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '" data-words="' . (int) self::TESTI_WORDS . '" data-verb="' . esc_attr( $verb ) . '" data-r0="' . esc_attr( $w[0] ) . '" data-r1="' . esc_attr( $w[1] ) . '" data-r2="' . esc_attr( $w[2] ) . '" data-dk="' . esc_attr( 'csm_sv1_draft_' . substr( wp_hash( 'csm_sv_draft_' . get_current_user_id() ), 0, 16 ) ) . '">';
 
 		$o .= self::q( 'paid', 1, 'How much have you paid in total for matrimony services so far (sites, apps, bureaus or agents)?',
 			'<p class="csm-sv-hint">An approximate amount is fine. Write 0 if you never paid.</p>'
@@ -468,13 +518,13 @@ final class Survey {
 			'<textarea name="improve" rows="3" maxlength="1000" placeholder="A short sentence"></textarea>' );
 
 		$o .= self::q( 'testimonial', 6, 'Your testimonial',
-			'<p class="csm-sv-hint">What do you like about CA Shaadi? Write a sentence or two and turn on the switch below to earn another ₹300.</p>'
+			'<p class="csm-sv-hint">What do you like about CA Shaadi? Write a sentence or two and turn on the switch below to ' . $verb . ' ' . esc_html( $w[2] ) . '.</p>'
 			. '<textarea name="testimonial" rows="4" maxlength="1000" placeholder="For example: what you found here, or what you like about it"></textarea>'
 			. '<p class="csm-sv-hint csm-sv-left" aria-live="polite"></p>'
 			. '<label class="csm-sv-sw"><input type="checkbox" name="permission" value="1"><span class="csm-sv-sw-t"></span><span>CA Shaadi may show this with my name and photo</span></label>',
-			'(optional, +₹300)' );
+			$men ? '(optional, +' . self::PROFILES_TESTI . ' profiles)' : '(optional, +₹300)' );
 
-		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit and earn ₹300</button></form>';
+		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit and ' . $verb . ' ' . esc_html( $w[1] ) . '</button></form>';
 		$o .= '<script>(function(){var f=document.getElementById("csm-sv-form");if(!f){return;}'
 			. '["problems","top"].forEach(function(k){[].forEach.call(f.querySelectorAll("fieldset[data-key="+k+"] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key="+k+"] input:checked").length>2){c.checked=false;}});});});'
 			. 'var tx=f.querySelector("textarea[name=testimonial]"),pm=f.querySelector("input[name=permission]");'
@@ -486,10 +536,11 @@ final class Survey {
 			. 'var MIN=+f.getAttribute("data-min"),left=f.querySelector(".csm-sv-left");'
 			. 'function words(){var t=tx.value.trim();return t?t.split(/\\s+/).length:0;}'
 			. 'function full(){return tx.value.trim().length>=MIN&&words()>=(+f.getAttribute("data-words"));}'
-			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&full()?"600":"300");}'
+			. 'var V=f.getAttribute("data-verb"),R0=f.getAttribute("data-r0"),R1=f.getAttribute("data-r1"),R2=f.getAttribute("data-r2");'
+			. 'function lbl(){return "Submit and "+V+" "+(pm.checked&&full()?R0:R1);}'
 			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();var t=tx.value.trim(),m="";'
-			. 'if(t||pm.checked){if(!full()){var n=Math.max(0,MIN-t.length);m=n>0?"Write "+n+" more characters to earn the extra ₹300.":"Write a few more words to earn the extra ₹300.";}'
-			. 'else if(!pm.checked){m="Turn on the switch below to earn the extra ₹300.";}else{m="You will earn ₹600.";}}left.textContent=m;}'
+			. 'if(t||pm.checked){if(!full()){var n=Math.max(0,MIN-t.length);m=n>0?"Write "+n+" more characters to "+V+" "+R2+".":"Write a few more words to "+V+" "+R2+".";}'
+			. 'else if(!pm.checked){m="Turn on the switch below to "+V+" "+R2+".";}else{m="You will "+V+" "+R0+".";}}left.textContent=m;}'
 			. 'tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
 			/*
 			 * Answers so far are kept in this browser, so leaving and coming back
@@ -514,7 +565,7 @@ final class Survey {
 			. 'd.permission=pm.checked?1:0;d.start=f.getAttribute("data-start");'
 			. 'b.disabled=true;b.textContent="Sending…";'
 			. 'fetch(f.getAttribute("data-url"),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-WP-Nonce":f.getAttribute("data-nonce")},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(r){'
-			. 'if(r&&r.ok){try{localStorage.removeItem(DK);}catch(e){}f.parentNode.innerHTML="<h1>Thank you!</h1><p><b>₹"+r.cash+" CA Shaadi Cash</b> has been added to your account. Use it anywhere on CA Shaadi.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>";window.scrollTo(0,0);return;}'
+			. 'if(r&&r.ok){try{localStorage.removeItem(DK);}catch(e){}f.parentNode.innerHTML=r.profiles>0?"<h1>Thank you!</h1><p><b>"+r.profiles+" extra profiles</b> have been added to your Discover, on top of your weekly profiles.</p><a class=\"csm-sv-btn\" href=\""+r.discover+"\">See them</a>":(r.cash>0?"<h1>Thank you!</h1><p><b>₹"+r.cash+" CA Shaadi Cash</b> has been added to your account. Use it anywhere on CA Shaadi.</p><a class=\"csm-sv-btn\" href=\""+r.refer+"\">See my CA Shaadi cash</a>":"<h1>Thank you!</h1><p>Thank you for your answers.</p><a class=\"csm-sv-btn\" href=\""+r.discover+"\">Back to Discover</a>");window.scrollTo(0,0);return;}'
 			. 'b.disabled=false;b.textContent=lbl();var first=null;'
 			. 'Object.keys((r&&r.errors)||{}).forEach(function(k){var fs=f.querySelector("fieldset[data-key=\""+k+"\"]");if(fs){fs.querySelector(".csm-sv-err").textContent=r.errors[k];first=first||fs;}});'
 			. 'if(r&&r.message){f.querySelector(".csm-sv-top").textContent=r.message;}'

@@ -56,6 +56,58 @@
 	 * the two questions they actually have — when do more arrive, and can I get
 	 * more now — using the same weekly reset the quota banner quotes.
 	 */
+	var FB_REASONS = [ [ 'age', 'Age' ], [ 'location', 'Location' ], [ 'community', 'Community' ], [ 'religion', 'Religion' ], [ 'qual', 'Qualification' ], [ 'other', 'Something else' ] ];
+	function feedbackCard() {
+		var c = el( 'div', 'csm-d-fb' );
+		c.appendChild( el( 'h3', null, 'Were this week\u2019s profiles relevant to you?' ) );
+		var row = el( 'div', 'csm-d-fb-row' );
+		var yes = el( 'button', 'csm-d-fb-btn', 'Yes' );
+		var no  = el( 'button', 'csm-d-fb-btn', 'No' );
+		yes.type = 'button';
+		no.type  = 'button';
+		row.appendChild( yes );
+		row.appendChild( no );
+		c.appendChild( row );
+		function send( d ) {
+			meta.feedback = false;
+			api( CFG.feedback, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify( d ) } ).catch( function () {} );
+		}
+		function thanks() {
+			c.innerHTML = '';
+			c.appendChild( el( 'p', 'csm-d-fb-thanks', 'Thank you. This helps us choose better profiles for you.' ) );
+		}
+		yes.addEventListener( 'click', function () { send( { relevant: 1 } ); thanks(); } );
+		no.addEventListener( 'click', function () {
+			c.innerHTML = '';
+			c.appendChild( el( 'h3', null, 'What should change?' ) );
+			var opts = el( 'div', 'csm-d-fb-opts' );
+			FB_REASONS.forEach( function ( r ) {
+				var l = el( 'label', 'csm-d-fb-opt' );
+				var i = document.createElement( 'input' );
+				i.type  = 'checkbox';
+				i.value = r[0];
+				l.appendChild( i );
+				l.appendChild( el( 'span', null, r[1] ) );
+				opts.appendChild( l );
+			} );
+			c.appendChild( opts );
+			var t = document.createElement( 'textarea' );
+			t.className   = 'csm-d-fb-text';
+			t.rows        = 2;
+			t.maxLength   = 500;
+			t.placeholder = 'Tell us more (optional)';
+			c.appendChild( t );
+			var go = el( 'button', 'csm-d-fb-send', 'Send' );
+			go.type = 'button';
+			go.addEventListener( 'click', function () {
+				send( { relevant: 0, reasons: [].map.call( opts.querySelectorAll( 'input:checked' ), function ( x ) { return x.value; } ), text: t.value } );
+				thanks();
+			} );
+			c.appendChild( go );
+		} );
+		return c;
+	}
+
 	function empty( message ) {
 		root.innerHTML = '';
 		var box = el( 'div', 'csm-d-empty' );
@@ -77,6 +129,8 @@
 			return;
 		}
 		box.appendChild( el( 'h2', null, 'That\u2019s your ' + ( meta.quota || meta.freeQuota || 5 ) + ' for this week' ) );
+		// The week's set is done: were they relevant? (owner, 2026-10-31; once a week)
+		if ( ! message && meta.feedback && CFG.feedback ) { box.appendChild( feedbackCard() ); }
 
 		if ( ! message && ! meta.isPremium ) {
 			box.appendChild( el( 'p', null,

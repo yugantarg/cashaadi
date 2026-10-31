@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version: 1.91.15
+ * Version: 1.91.16
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.91.15' );
+define( 'CASHAADI_UI_VER', '1.91.16' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -468,6 +468,11 @@ if ( class_exists( 'CAShaadi\\Modules\\Discover\\Reach' ) ) {
 // A withdrawn request goes to More → Passed (v1.90.14, v1.90.98).
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\Withdrawn' ) ) {
 	\CAShaadi\Modules\Discover\Withdrawn::register();
+}
+
+// "Were this week's profiles relevant?" at the end of the set (v1.91.16).
+if ( class_exists( 'CAShaadi\\Modules\\Discover\\DeckFeedback' ) ) {
+	\CAShaadi\Modules\Discover\DeckFeedback::register();
 }
 
 // Bonus profiles for active women, as a test (v1.91.0). `wp csm bonus`.
