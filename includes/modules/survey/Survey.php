@@ -643,7 +643,7 @@ final class Survey {
 			. '.csm-sv-sw-t:after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}'
 			. '.csm-sv-sw input:checked+.csm-sv-sw-t{background:#1a7f37}.csm-sv-sw input:checked+.csm-sv-sw-t:after{left:21px}'
 			. '.csm-sv-err{color:#b3261e;font-size:13px;margin:6px 0 0}.csm-sv-err:empty{display:none}'
-			. '.csm-sv-btn{display:block;width:100%;padding:14px;border:0;border-radius:999px;background:#0b2350;color:#fff!important;font-weight:700;font-size:16px;text-align:center;text-decoration:none;cursor:pointer}'
+			. '.csm-sv-btn{display:block;width:100%;box-sizing:border-box;padding:14px;border:0;border-radius:999px;background:#0b2350;color:#fff!important;font-weight:700;font-size:16px;text-align:center;text-decoration:none;cursor:pointer}'
 			. '.csm-sv-btn:disabled{opacity:.6}</style>';
 	}
 
