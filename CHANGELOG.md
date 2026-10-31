@@ -8,6 +8,10 @@ commit per version.
 
 
 
+
+## 1.91.3
+
+- Speed: when no newcomer qualifies for a member, the newcomer check waits 30 minutes before scoring every newcomer again (it ran on every Discover open, and the 72-hour window tripled the newcomers). Bonus profiles are tried at most once per half hour per member, since each try is a full Discover draw.
 ## 1.91.2
 
 - The "Deleted profile" tile now sits at the end of the list's own grid, not apart under Show more.

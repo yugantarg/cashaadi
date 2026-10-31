@@ -63,6 +63,11 @@ final class Intro {
 		if ( ! $viewer || ! function_exists( 'cashaadi' ) || get_user_meta( $viewer, self::DAY, true ) === $today ) {
 			return;
 		}
+		// Nobody qualified a moment ago: wait before scoring every newcomer again
+		// (v1.91.3; each Discover open did it, and with 72 hours there are 3x as many).
+		if ( get_transient( 'csm_intro_wait_' . $viewer ) ) {
+			return;
+		}
 		$week = cashaadi()->get_week_id();
 		$wk   = get_user_meta( $viewer, self::WEEK, true );
 		$used = ( is_array( $wk ) && isset( $wk[0], $wk[1] ) && $wk[0] === $week ) ? (int) $wk[1] : 0;
@@ -151,6 +156,7 @@ final class Intro {
 			}
 		}
 		if ( ! $pick ) {
+			set_transient( 'csm_intro_wait_' . $viewer, 1, 30 * MINUTE_IN_SECONDS );
 			return;
 		}
 		$ok = $wpdb->insert( $wpdb->prefix . 'csm_tray', array(

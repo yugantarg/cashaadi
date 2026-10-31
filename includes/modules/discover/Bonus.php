@@ -82,6 +82,11 @@ final class Bonus {
 		if ( $n < 1 ) {
 			return;
 		}
+		// One try per half hour: each try is a full Discover draw (v1.91.3).
+		if ( get_transient( 'csm_bonus_wait_' . $viewer ) ) {
+			return;
+		}
+		set_transient( 'csm_bonus_wait_' . $viewer, 1, 30 * MINUTE_IN_SECONDS );
 		self::$want = $n;
 		$got        = (array) csm_refill_tray( $viewer );
 		self::$want = 0;
