@@ -29,7 +29,11 @@ wp_set_current_user( $u->ID );
 $run = function ( $label, $fn ) use ( $wpdb ) {
 	$q0 = $wpdb->num_queries;
 	$wpdb->queries = array();
-	wp_cache_flush(); // every run cold, as a real visit is without an object cache
+	// Cold runs only without a shared object cache: flushing Memcached would
+	// empty it for the whole site.
+	if ( ! wp_using_ext_object_cache() ) {
+		wp_cache_flush();
+	}
 	$t0 = microtime( true );
 	$fn();
 	$ms = round( 1000 * ( microtime( true ) - $t0 ) );
