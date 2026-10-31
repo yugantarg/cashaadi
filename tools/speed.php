@@ -40,15 +40,21 @@ $run = function ( $label, $fn ) use ( $wpdb ) {
 	$qs = (array) $wpdb->queries;
 	$qt = 0;
 	$slow = array();
+	$many = array();
 	foreach ( $qs as $q ) {
 		$qt += $q[1];
 		$k = substr( preg_replace( '/\d+/', 'N', preg_replace( '/\s+/', ' ', $q[0] ) ), 0, 90 );
 		$slow[ $k ] = ( $slow[ $k ] ?? 0 ) + $q[1];
+		$many[ $k ] = ( $many[ $k ] ?? 0 ) + 1;
 	}
+	arsort( $many );
 	arsort( $slow );
 	WP_CLI::log( sprintf( '%-34s %6d ms  %5d queries  %5d ms in queries', $label, $ms, $wpdb->num_queries - $q0, round( 1000 * $qt ) ) );
 	foreach ( array_slice( $slow, 0, 3, true ) as $k => $t ) {
 		WP_CLI::log( sprintf( '      %5d ms  %s', round( 1000 * $t ), $k ) );
+	}
+	foreach ( array_slice( $many, 0, 6, true ) as $k => $c ) {
+		WP_CLI::log( sprintf( '      %5dx    %s', $c, $k ) );
 	}
 };
 
