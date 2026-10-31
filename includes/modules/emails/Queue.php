@@ -53,6 +53,84 @@ final class Queue {
 
 		// Capture the last transport-level mail failure so a test send can report why.
 		add_action( 'wp_mail_failed', array( __CLASS__, 'capture_mail_error' ) );
+
+		// Completion reminders say exactly what is missing (v1.90.91).
+		add_filter( 'bp_email_get_property', array( __CLASS__, 'say_missing' ), 20, 4 );
+	}
+
+	/** Set while a completion reminder is being sent: whose profile it is about. */
+	private static $missing_uid = 0;
+
+	/**
+	 * What this member's profile still lacks, in plain words: a photo, then
+	 * each empty required field (owner, 2026-10-31: "the email should
+	 * specifically mention what is missing").
+	 */
+	public static function missing_for( $uid ) {
+		global $wpdb;
+		$uid   = (int) $uid;
+		$out   = array();
+		$photo = class_exists( '\\CAShaadi\\Modules\\Onboarding\\PhotoOptions' ) ? \CAShaadi\Modules\Onboarding\PhotoOptions::has_photo( $uid ) : (bool) get_user_meta( $uid, 'csm_photos', true );
+		if ( ! $photo ) {
+			$out[] = 'a profile photo';
+		}
+		$words = array(
+			'Language (Mother Tongue)' => 'your mother tongue',
+			'Occupation Status'        => 'what you do (occupation)',
+			'Qualification'            => 'your qualification',
+			'Date of birth'            => 'your date of birth',
+			'City'                     => 'your city',
+			'Phone Number'             => 'your phone number',
+			'Name'                     => 'your name',
+		);
+		$p = $wpdb->prefix;
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT f.name FROM {$p}bp_xprofile_fields f LEFT JOIN {$p}bp_xprofile_data d ON d.field_id = f.id AND d.user_id = %d
+			 WHERE f.is_required = 1 AND f.parent_id = 0 AND ( d.value IS NULL OR d.value = '' ) ORDER BY f.group_id, f.field_order",
+			$uid
+		) );
+		foreach ( (array) $rows as $r ) {
+			$out[] = $words[ $r->name ] ?? 'your ' . strtolower( (string) $r->name );
+		}
+		return $out;
+	}
+
+	private static function join_words( $items ) {
+		$last = array_pop( $items );
+		return $items ? implode( ', ', $items ) . ' and ' . $last : (string) $last;
+	}
+
+	/** Adds the "still missing" line to the top of a completion reminder, and a matching subject. */
+	public static function say_missing( $value, $property, $transform, $email = null ) {
+		if ( ! self::$missing_uid || ! is_string( $value ) || '' === $value ) {
+			return $value;
+		}
+		$miss = self::missing_for( self::$missing_uid );
+		if ( ! $miss ) {
+			return $value;
+		}
+		$only_photo = array( 'a profile photo' ) === $miss;
+		if ( 'subject' === $property ) {
+			return $only_photo ? 'Add a photo to your CA Shaadi profile' : 'A few details are missing from your CA Shaadi profile';
+		}
+		$line = 'Still missing on your profile: ' . self::join_words( $miss ) . '.';
+		$why  = $only_photo
+			? 'Members see profiles with a photo first, and most requests go to them.'
+			: 'Members see complete profiles first. It takes about two minutes.';
+		$url  = $only_photo ? home_url( '/profile/' ) : home_url( '/profile/edit/' );
+		if ( 'content_plaintext' === $property ) {
+			return $line . "\n" . $why . "\n" . $url . "\n\n" . $value;
+		}
+		if ( 'content_html' !== $property ) {
+			return $value;
+		}
+		$block = '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:#16212b;margin:0 0 22px">'
+			. '<p style="margin:0 0 6px"><strong>' . esc_html( $line ) . '</strong></p>'
+			. '<p style="margin:0 0 14px;color:#5c6a76">' . esc_html( $why ) . '</p>'
+			. '<p style="margin:0"><a href="' . esc_url( $url ) . '" style="background:#0b2350;color:#fff;text-decoration:none;font-weight:700;padding:11px 22px;border-radius:999px;display:inline-block">' . ( $only_photo ? 'Add my photo' : 'Complete my profile' ) . '</a></p>'
+			. '</div>';
+		return $block . $value;
 	}
 
 	/**
@@ -759,9 +837,11 @@ final class Queue {
 
 			$ok = false;
 			if ( function_exists( 'bp_send_email' ) ) {
+				self::$missing_uid = 'completion' === $want ? (int) $r->user_id : 0;
 				$sent = bp_send_email( $r->email_type, intval( $r->user_id ), array(
 					'tokens' => self::tokens( $r->user_id, $label ),
 				) );
+				self::$missing_uid = 0;
 				$ok = ! is_wp_error( $sent ) && false !== $sent;
 			}
 
@@ -1082,9 +1162,11 @@ final class Queue {
 		$mysql = current_time( 'mysql' );
 		delete_transient( 'csm_remail_mail_error' );
 
+		self::$missing_uid = 'completion' === self::family_for_label( $label ) ? (int) $r->user_id : 0;
 		$sent = bp_send_email( $r->email_type, intval( $r->user_id ), array(
 			'tokens' => self::tokens( $r->user_id, $label ),
 		) );
+		self::$missing_uid = 0;
 
 		$transport = get_transient( 'csm_remail_mail_error' );
 		$failed    = is_wp_error( $sent ) || false === $sent || ! empty( $transport );

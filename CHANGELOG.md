@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.91 — 2026-10-31
+
+- Profile completion reminders say exactly what is missing (owner): a line at the top, "Still missing on your profile: a profile photo, your qualification and your mother tongue.", one sentence on why, and a button (Add my photo / Complete my profile). Subject: "Add a photo to your CA Shaadi profile" when only the photo is missing, otherwise "A few details are missing from your CA Shaadi profile". The rest of the email (the template in WordPress → Emails) is unchanged.
+
 ## 1.90.90 — 2026-10-31
 
 - Fix (audit): names with an apostrophe showed as "D&#039;cunha" on Discover and Requests cards. Display names now turn quote entities back into characters (only quotes; HTML output still escapes the name).
