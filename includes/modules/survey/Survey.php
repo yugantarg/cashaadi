@@ -297,14 +297,11 @@ final class Survey {
 		if ( $a['paid'] < 0 || $a['paid'] > 10000000 ) {
 			$bad['paid'] = 'Please enter an amount in rupees. Write 0 if never.';
 		}
-		$imp = (array) $request->get_param( 'importance' );
-		$a['importance'] = array();
-		foreach ( array_keys( self::FEATURES ) as $f ) {
-			$v = isset( $imp[ $f ] ) ? (int) $imp[ $f ] : 0;
-			if ( $v < 1 || $v > 5 ) {
-				$bad['importance'] = 'Please rate every feature.';
-			}
-			$a['importance'][ $f ] = $v;
+		// The 2 that matter most (owner, v1.90.94): 1-5 ratings came back 4-5
+		// for everything, so they told us nothing.
+		$a['top'] = array_values( array_unique( array_filter( array_map( 'strval', (array) $request->get_param( 'top' ) ), function ( $x ) { return isset( self::FEATURES[ $x ] ); } ) ) );
+		if ( 2 !== count( $a['top'] ) ) {
+			$bad['top'] = 'Please pick 2.';
 		}
 		$a['problems'] = array_values( array_unique( array_filter( array_map( 'strval', (array) $request->get_param( 'problems' ) ), function ( $x ) { return isset( self::PROBLEMS[ $x ] ); } ) ) );
 		if ( ! $a['problems'] || count( $a['problems'] ) > 2 ) {
@@ -344,12 +341,6 @@ final class Survey {
 			'features' => array_values( array_intersect( array_map( 'strval', (array) $request->get_param( 'order_features' ) ), array_keys( self::FEATURES ) ) ),
 			'problems' => array_values( array_intersect( array_map( 'strval', (array) $request->get_param( 'order_problems' ) ), array_keys( self::PROBLEMS ) ) ),
 		);
-		if ( 1 === count( array_unique( $a['importance'] ) ) ) {
-			$a['flags'][] = 'same_ratings';
-		}
-		if ( $took < 120 ) {
-			$a['flags'][] = 'fast';
-		}
 		if ( $bad ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'errors' => $bad ), 200 );
 		}
@@ -444,16 +435,9 @@ final class Survey {
 			'<p class="csm-sv-hint">An approximate amount is fine. Write 0 if you never paid.</p>'
 			. '<label class="csm-sv-amt"><span>₹</span><input type="text" name="paid" inputmode="numeric" autocomplete="off" placeholder="0"></label>' );
 
-		$rows = '';
 		// Shuffled per member (owner: remove the effect of being first or last).
-		foreach ( self::shuffled( self::FEATURES ) as $f => $label ) {
-			$cells = '';
-			for ( $i = 1; $i <= 5; $i++ ) {
-				$cells .= '<label class="csm-sv-dot"><input type="radio" name="imp_' . esc_attr( $f ) . '" value="' . $i . '"><span>' . $i . '</span></label>';
-			}
-			$rows .= '<div class="csm-sv-rate" data-f="' . esc_attr( $f ) . '"><div class="csm-sv-rate-l">' . esc_html( $label ) . '</div><div class="csm-sv-dots">' . $cells . '</div></div>';
-		}
-		$o .= self::q( 'importance', 2, 'How important is each of these to you?', '<p class="csm-sv-hint">1 = not important · 5 = very important</p>' . $rows );
+		$o .= self::q( 'top', 2, 'Which 2 of these matter most to you?',
+			'<div class="csm-sv-opts">' . self::options( 'top', self::shuffled( self::FEATURES ), 'checkbox' ) . '</div>', '(pick 2)' );
 
 		$o .= self::q( 'problems', 3, 'What are the biggest problems for you on CA Shaadi right now?',
 			'<div class="csm-sv-opts">' . self::options( 'problems', self::shuffled( self::PROBLEMS, 'other' ), 'checkbox' ) . '</div>', '(pick up to 2)' );
@@ -476,7 +460,7 @@ final class Survey {
 
 		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit and earn ₹300</button></form>';
 		$o .= '<script>(function(){var f=document.getElementById("csm-sv-form");if(!f){return;}'
-			. '[].forEach.call(f.querySelectorAll("fieldset[data-key=problems] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key=problems] input:checked").length>2){c.checked=false;}});});'
+			. '["problems","top"].forEach(function(k){[].forEach.call(f.querySelectorAll("fieldset[data-key="+k+"] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key="+k+"] input:checked").length>2){c.checked=false;}});});});'
 			. 'var tx=f.querySelector("textarea[name=testimonial]"),pm=f.querySelector("input[name=permission]");'
 			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&tx.value.trim().length>=(+f.getAttribute("data-min"))?"600":"300");}'
 			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();}tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
@@ -491,12 +475,12 @@ final class Survey {
 			. 'function save(){try{var s={};[].forEach.call(f.querySelectorAll("input,textarea"),function(i){if(i.name==="permission"){return;}if(i.type==="radio"||i.type==="checkbox"){if(i.checked){(s[i.name]=s[i.name]||[]).push(i.value);}}else if(i.name){s[i.name]=i.value;}});localStorage.setItem(DK,JSON.stringify(s));}catch(e){}}'
 			. 'try{var s0=JSON.parse(localStorage.getItem(DK)||"null");if(s0){[].forEach.call(f.querySelectorAll("input,textarea"),function(i){var v=s0[i.name];if(v===undefined||i.name==="permission"){return;}if(i.type==="radio"||i.type==="checkbox"){i.checked=v.indexOf(i.value)!==-1;}else{i.value=v;}});}}catch(e){}'
 			. 'f.addEventListener("change",save);f.addEventListener("input",save);upd();'
-			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={importance:{}};'
+			. 'f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector(".csm-sv-btn"),d={};'
 			. '[].forEach.call(f.querySelectorAll(".csm-sv-err"),function(x){x.textContent="";});'
 			. 'var c;d.paid=f.querySelector("input[name=paid]").value;'
-			. '[].forEach.call(f.querySelectorAll(".csm-sv-rate"),function(r){var k=r.getAttribute("data-f"),x=r.querySelector("input:checked");d.importance[k]=x?x.value:0;});'
+			. 'd.top=[].map.call(f.querySelectorAll("input[name=top]:checked"),function(i){return i.value;});'
 			. 'd.problems=[].map.call(f.querySelectorAll("input[name=problems]:checked"),function(i){return i.value;});'
-			. 'd.order_features=[].map.call(f.querySelectorAll(".csm-sv-rate"),function(r){return r.getAttribute("data-f");});'
+			. 'd.order_features=[].map.call(f.querySelectorAll("input[name=top]"),function(i){return i.value;});'
 			. 'd.order_problems=[].map.call(f.querySelectorAll("input[name=problems]"),function(i){return i.value;});'
 			. 'c=f.querySelector("input[name=nps]:checked");d.nps=c?c.value:"";'
 			. 'd.improve=f.querySelector("textarea[name=improve]").value;d.testimonial=f.querySelector("textarea[name=testimonial]").value;'
@@ -594,8 +578,10 @@ final class Survey {
 				$all[ (int) $r->actor_id ] = $m;
 			}
 		}
-		$flagged = array_filter( $all, function ( $m ) { return ! empty( $m['flags'] ); } );
-		\WP_CLI::log( count( $all ) . ' answers (cap ' . (int) get_option( self::MAX_OPT, 300 ) . ', survey ' . ( get_option( self::ON_OPT, 1 ) ? 'on' : 'off' ) . '); ' . count( $flagged ) . ' flagged as possibly careless (all features rated the same, or under 2 minutes)' . ( empty( $assoc['all'] ) ? ', left out below (--all to include).' : ', included.' ) );
+		// Careless = every feature rated the same (earlier version of question 2).
+		// Answering quickly no longer counts (owner, v1.90.94).
+		$flagged = array_filter( $all, function ( $m ) { return in_array( 'same_ratings', (array) ( $m['flags'] ?? array() ), true ); } );
+		\WP_CLI::log( count( $all ) . ' answers (cap ' . (int) get_option( self::MAX_OPT, 300 ) . ', survey ' . ( get_option( self::ON_OPT, 1 ) ? 'on' : 'off' ) . '); ' . count( $flagged ) . ' flagged as careless (every feature rated the same)' . ( empty( $assoc['all'] ) ? ', left out below (--all to include).' : ', included.' ) );
 		if ( empty( $assoc['all'] ) ) {
 			$all = array_diff_key( $all, $flagged );
 		}
@@ -636,6 +622,29 @@ final class Survey {
 			\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
 		};
 
+		/*
+		 * Paid before, to OTHER services: question 1 asks about matrimony
+		 * services in general, so a member's own CA Shaadi payments (paid
+		 * orders before they answered) are taken off what they typed
+		 * (owner, v1.90.94).
+		 */
+		$ours = 0;
+		$hit  = 0;
+		foreach ( $all as $uid => &$m ) {
+			$cs = function_exists( 'wc_get_orders' ) ? array_sum( array_map( function ( $o ) use ( $m ) {
+				$t = $o->get_date_paid() ? $o->get_date_paid()->getTimestamp() : 0;
+				return $t && $t <= (int) ( $m['at'] ?? time() ) ? (float) $o->get_total() : 0;
+			}, wc_get_orders( array( 'customer_id' => $uid, 'status' => array( 'processing', 'completed' ), 'limit' => 20 ) ) ) ) : 0;
+			if ( $cs > 0 && (int) ( $m['paid'] ?? 0 ) > 0 ) {
+				$hit++;
+				$ours += min( $cs, (int) $m['paid'] );
+			}
+			$m['paid'] = max( 0, (int) ( $m['paid'] ?? 0 ) - (int) round( $cs ) );
+		}
+		unset( $m );
+		foreach ( $sets as $g => $_ ) {
+			$sets[ $g ] = array_intersect_key( $all, $sets[ $g ] );
+		}
 		// Paid before: bands of the typed amounts, then the median and the average.
 		$table = array();
 		foreach ( self::PAID_BANDS as $band ) {
@@ -656,9 +665,12 @@ final class Survey {
 			}
 			$table[] = $row;
 		}
-		\WP_CLI::log( "\nPaid for matrimony services before" );
+		\WP_CLI::log( "\nPaid to other matrimony services before (" . $hit . ' answers included CA Shaadi payments, ₹' . number_format( $ours ) . ' in all, taken off)' );
 		\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
 
+		$share( 'Matter most (each picked 2, so columns add to 200%)', self::FEATURES, 'top' );
+
+		// Earlier answers rated each feature 1-5 (until v1.90.94).
 		$table = array();
 		foreach ( self::FEATURES as $f => $label ) {
 			$row = array( 'feature' => $label );
@@ -671,7 +683,7 @@ final class Survey {
 		}
 		$k = $head( 'all' );
 		usort( $table, function ( $a, $b ) use ( $k ) { return (float) $b[ $k ] <=> (float) $a[ $k ]; } );
-		\WP_CLI::log( "\nHow important (average, 1 to 5)" );
+		\WP_CLI::log( "\nEarlier answers: how important (average, 1 to 5)" );
 		\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
 
 		$share( 'Biggest problems (up to 2 each, so columns can add to more than 100%)', self::PROBLEMS, 'problems' );

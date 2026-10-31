@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.94 — 2026-10-31
+
+- Survey (owner): question 2 is now "Which 2 of these matter most to you?" (pick 2, shuffled) instead of rating every feature 1–5, which came back 4–5 for everything. Only "every feature rated the same" counts as careless; answering in under 2 minutes no longer does. `wp csm survey` takes each member's own CA Shaadi payments (paid before they answered) off the amount they typed for question 1, so it shows what they paid to other services, and says how much was taken off; the earlier 1–5 ratings are still shown separately.
+
 ## 1.90.93 — 2026-10-31
 
 - Profile completion reminders go to every incomplete member, not only those who joined in the last 30 days (owner). The planner now walks every member (it stopped at the newest 1,000), reminders parked as "older than the window" are planned again, and the window holds back only activation reminders. Sending stays within the daily and hourly caps, so the backlog goes out over several days.
