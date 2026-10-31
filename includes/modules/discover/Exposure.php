@@ -145,15 +145,15 @@ final class Exposure {
 			$rules[] = sprintf( '%d viewer(s) were drawn more than their weekly allowance in the last day: %s', count( $over ), implode( ', ', array_slice( $over, 0, 5 ) ) );
 		}
 
-		// Liked shown again; passed shown again inside its window.
+		// Liked or passed shown again.
 		$liked = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$seen} WHERE action = 'liked' AND acted_at IS NOT NULL AND last_seen_at > DATE_ADD( acted_at, INTERVAL 1 MINUTE ) AND last_seen_at >= %s", $since ) );
 		if ( $liked ) {
 			$rules[] = "{$liked} profile(s) were shown again to someone who had already sent them a request.";
 		}
-		$pass_days = (int) get_option( 'csm_pass_reshow_days', 30 );
-		$passed = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$seen} WHERE action = 'passed' AND acted_at IS NOT NULL AND last_seen_at > DATE_ADD( acted_at, INTERVAL 1 MINUTE ) AND last_seen_at < DATE_ADD( acted_at, INTERVAL %d DAY ) AND last_seen_at >= %s", $pass_days, $since ) );
+		// Passes are permanent since v1.90.98: any passed profile shown again is wrong.
+		$passed = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$seen} WHERE action = 'passed' AND acted_at IS NOT NULL AND last_seen_at > DATE_ADD( acted_at, INTERVAL 1 MINUTE ) AND last_seen_at >= %s", $since ) );
 		if ( $passed ) {
-			$rules[] = "{$passed} passed profile(s) were shown again within {$pass_days} days.";
+			$rules[] = "{$passed} passed profile(s) were shown again in Discover.";
 		}
 
 		// Paused or held members shown after their pause or hold began.
