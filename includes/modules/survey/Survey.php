@@ -455,6 +455,7 @@ final class Survey {
 		$o .= self::q( 'testimonial', 6, 'Your testimonial',
 			'<p class="csm-sv-hint">What do you like about CA Shaadi? Write a sentence or two and turn on the switch below to earn another ₹300.</p>'
 			. '<textarea name="testimonial" rows="4" maxlength="1000" placeholder="For example: what you found here, or what you like about it"></textarea>'
+			. '<p class="csm-sv-hint csm-sv-left" aria-live="polite"></p>'
 			. '<label class="csm-sv-sw"><input type="checkbox" name="permission" value="1"><span class="csm-sv-sw-t"></span><span>CA Shaadi may show this with my name and photo</span></label>',
 			'(optional, +₹300)' );
 
@@ -462,8 +463,19 @@ final class Survey {
 		$o .= '<script>(function(){var f=document.getElementById("csm-sv-form");if(!f){return;}'
 			. '["problems","top"].forEach(function(k){[].forEach.call(f.querySelectorAll("fieldset[data-key="+k+"] input"),function(c){c.addEventListener("change",function(){if(f.querySelectorAll("fieldset[data-key="+k+"] input:checked").length>2){c.checked=false;}});});});'
 			. 'var tx=f.querySelector("textarea[name=testimonial]"),pm=f.querySelector("input[name=permission]");'
-			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&tx.value.trim().length>=(+f.getAttribute("data-min"))?"600":"300");}'
-			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();}tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
+			/*
+			 * ₹600 needs the switch on and a testimonial of TESTI_MIN characters
+			 * and 8 words, as the server checks. Say what is still missing
+			 * (owner, 2026-10-31: the button never reached 600 and nothing said why).
+			 */
+			. 'var MIN=+f.getAttribute("data-min"),left=f.querySelector(".csm-sv-left");'
+			. 'function words(){var t=tx.value.trim();return t?t.split(/\\s+/).length:0;}'
+			. 'function full(){return tx.value.trim().length>=MIN&&words()>=8;}'
+			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&full()?"600":"300");}'
+			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();var t=tx.value.trim(),m="";'
+			. 'if(t||pm.checked){if(!full()){var n=Math.max(0,MIN-t.length);m=n>0?"Write "+n+" more characters to earn the extra ₹300.":"Write a few more words to earn the extra ₹300.";}'
+			. 'else if(!pm.checked){m="Turn on the switch below to earn the extra ₹300.";}else{m="You will earn ₹600.";}}left.textContent=m;}'
+			. 'tx.addEventListener("input",upd);pm.addEventListener("change",upd);'
 			/*
 			 * Answers so far are kept in this browser, so leaving and coming back
 			 * loses nothing. The key is per member (an opaque hash), so another

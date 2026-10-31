@@ -17,6 +17,10 @@ commit per version.
 
 
 
+
+## 1.91.12
+
+- Survey: under the testimonial box, a live line says what is still missing for ₹600 ("Write 23 more characters…", "Turn on the switch below…", "You will earn ₹600"). The button reached ₹600 only at 60 characters and 8 words with the switch on, and nothing said so. The button now checks the 8 words too, as the server does.
 ## 1.91.11
 
 - Home page footer links Pricing and Contact us too, so every page a payment gateway checks is one click from the home page.
