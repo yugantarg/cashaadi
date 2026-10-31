@@ -229,7 +229,11 @@
 	function addGone() {
 		var n = goneN( tab );
 		if ( ! n ) { return; }
-		var grid = el( 'div', 'csm-d-grid csm-r-gone' );
+		// Inside the list's own grid, as its last tiles; a grid of their own only
+		// when the list has none (v1.91.1: it showed apart, under Show more).
+		var grids = root.querySelectorAll( '.csm-d-grid' );
+		var own   = ! grids.length;
+		var grid  = own ? el( 'div', 'csm-d-grid csm-r-gone' ) : grids[ grids.length - 1 ];
 		for ( var i = 0; i < n; i++ ) {
 			var cell = el( 'div', 'csm-d-tile csm-r-gonetile' );
 			cell.appendChild( el( 'div', 'csm-d-tilephoto' ) );
@@ -237,7 +241,7 @@
 			cell.appendChild( el( 'span', 'csm-d-tilemeta', 'This member deleted their account' ) );
 			grid.appendChild( cell );
 		}
-		root.appendChild( grid );
+		if ( own ) { root.appendChild( grid ); }
 	}
 
 	function draw() {
