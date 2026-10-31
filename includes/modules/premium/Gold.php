@@ -173,7 +173,22 @@ final class Gold {
 
 	/* ------------------------------------------------------------- phone */
 
+	/** Viewers whose revealed numbers are loaded for this request (v1.91.10). */
+	private static $warm = array();
+
+	/** Load every number $viewer has opened, once, for a page of cards. Read paths only. */
+	public static function warm( $viewer ) {
+		global $wpdb;
+		$viewer = (int) $viewer;
+		if ( $viewer && ! isset( self::$warm[ $viewer ] ) ) {
+			self::$warm[ $viewer ] = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT profile_id FROM {$wpdb->prefix}csm_phone_views WHERE viewer_id = %d", $viewer ) ) ) );
+		}
+	}
+
 	public static function revealed( $viewer, $profile ) {
+		if ( isset( self::$warm[ (int) $viewer ] ) ) {
+			return isset( self::$warm[ (int) $viewer ][ (int) $profile ] );
+		}
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (bool) $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}csm_phone_views WHERE viewer_id = %d AND profile_id = %d", (int) $viewer, (int) $profile ) );

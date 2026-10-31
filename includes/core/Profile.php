@@ -478,15 +478,46 @@ final class Profile {
 	 * card read each field with its own query: 3,606 queries for one Requests
 	 * load on the live site (tools/speed.php, 2026-10-31). Safe to call twice.
 	 */
-	public static function prime( array $ids ) {
+	public static function prime( array $ids, $viewer_id = null ) {
 		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
 		if ( ! $ids ) {
 			return;
 		}
+		$viewer_id = null === $viewer_id ? get_current_user_id() : (int) $viewer_id;
 		if ( function_exists( 'cache_users' ) ) {
 			cache_users( $ids );
 		}
 		update_meta_cache( 'user', $ids );
+		/*
+		 * The viewer's side, each in one query (v1.91.10): blocks, numbers
+		 * opened, photo requests and friendships were read once per card.
+		 */
+		if ( $viewer_id ) {
+			if ( class_exists( '\\CAShaadi\\Modules\\Block\\Block' ) ) {
+				\CAShaadi\Modules\Block\Block::warm( $viewer_id );
+			}
+			if ( class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ) {
+				\CAShaadi\Modules\Premium\Gold::warm( $viewer_id );
+			}
+			if ( class_exists( '\\CAShaadi\\Modules\\Photos\\PhotoRequest' ) ) {
+				\CAShaadi\Modules\Photos\PhotoRequest::warm( $viewer_id );
+			}
+			if ( class_exists( 'BP_Friends_Friendship' ) && method_exists( 'BP_Friends_Friendship', 'update_bp_friends_cache' ) ) {
+				\BP_Friends_Friendship::update_bp_friends_cache( $viewer_id, $ids );
+			}
+		}
+		// Gallery photos: their attachment rows and meta in one go.
+		$att = array();
+		foreach ( $ids as $id ) {
+			foreach ( (array) get_user_meta( $id, 'csm_photos', true ) as $a ) {
+				if ( (int) $a > 0 ) {
+					$att[] = (int) $a;
+				}
+			}
+		}
+		if ( $att && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( array_unique( $att ), false, true );
+		}
 		if ( ! class_exists( 'BP_XProfile_ProfileData' ) ) {
 			return;
 		}

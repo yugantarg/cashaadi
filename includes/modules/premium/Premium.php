@@ -212,6 +212,7 @@ final class Premium {
 		}
 		$hidden = function_exists( 'csm_bl_hidden_ids' ) ? array_flip( csm_bl_hidden_ids( $uid ) ) : array();
 		$out    = array();
+		cache_users( array_map( 'intval', wp_list_pluck( $rows, 'viewer_id' ) ) ); // one query, not one per viewer (v1.91.10)
 		foreach ( $rows as $r ) {
 			$vid = (int) $r->viewer_id;
 			if ( isset( $hidden[ $vid ] ) || user_can( $vid, 'manage_options' ) ) {

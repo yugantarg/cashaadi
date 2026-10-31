@@ -161,11 +161,29 @@ final class Block {
 		return $cache[ $uid ];
 	}
 
+	/** Viewers whose block list is loaded for this request (Profile::prime, v1.91.10). */
+	private static $warm = array();
+
+	/** Load $uid's whole block list once, for a page of cards. Read paths only. */
+	public static function warm( $uid ) {
+		$uid = (int) $uid;
+		if ( $uid ) {
+			self::$warm[ $uid ] = array_flip( self::hidden_ids( $uid ) );
+		}
+	}
+
 	/** True if either user has blocked the other. */
 	public static function is_blocked_pair( $a, $b ) {
 		$a = (int) $a; $b = (int) $b;
 		if ( ! $a || ! $b ) {
 			return false;
+		}
+		// A page of cards: one query for the viewer's list, not one per card.
+		if ( isset( self::$warm[ $a ] ) ) {
+			return isset( self::$warm[ $a ][ $b ] );
+		}
+		if ( isset( self::$warm[ $b ] ) ) {
+			return isset( self::$warm[ $b ][ $a ] );
 		}
 		// A closed account is unreachable by anyone: no messages, requests,
 		// profile views, photo requests or match emails.

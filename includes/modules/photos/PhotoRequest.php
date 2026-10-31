@@ -107,7 +107,24 @@ final class PhotoRequest {
 
 	/* ---- state --------------------------------------------------------- */
 
+	/** Requesters whose photo requests are loaded for this request (v1.91.10). */
+	private static $warm = array();
+
+	/** Load all of $requester's photo requests once, for a page of cards. Read paths only. */
+	public static function warm( $requester ) {
+		global $wpdb;
+		$requester = (int) $requester;
+		if ( $requester && ! isset( self::$warm[ $requester ] ) ) {
+			$t = self::table();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			self::$warm[ $requester ] = wp_list_pluck( (array) $wpdb->get_results( $wpdb->prepare( "SELECT owner_id, status FROM {$t} WHERE requester_id = %d", $requester ) ), 'status', 'owner_id' );
+		}
+	}
+
 	private static function status( $requester_id, $owner_id ) {
+		if ( isset( self::$warm[ (int) $requester_id ] ) ) {
+			return self::$warm[ (int) $requester_id ][ (int) $owner_id ] ?? null;
+		}
 		global $wpdb;
 		$t = self::table();
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
