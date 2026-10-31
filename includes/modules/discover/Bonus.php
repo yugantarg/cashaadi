@@ -5,7 +5,7 @@
  *
  * Who: a woman (not Gold, who already sees everyone) who has decided (sent a
  * request or passed) on 3 or more profiles in the last 7 days, opening
- * Discover with fewer than 3 undecided cards left.
+ * Discover.
  *
  * What: the next men in line by her own Discover score, drawn by the same
  * engine as her weekly cards (same filters, exclusions and ranking points),
@@ -36,7 +36,6 @@ final class Bonus {
 	const PER_DAY   = 3;
 	const PER_WEEK  = 10;
 	const MIN_DONE  = 3;                  // decisions in the last 7 days
-	const LOW_DECK  = 3;                  // given when fewer undecided cards than this
 
 	/** Set while the engine draws bonus cards: how many. */
 	public static $want = 0;
@@ -73,17 +72,13 @@ final class Bonus {
 		if ( 'show' !== $arm ) {
 			return;
 		}
-		$open = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csm_tray WHERE viewer_id = %d AND status = 'pending'", $viewer ) );
-		if ( $open >= self::LOW_DECK ) {
-			return;
-		}
 		$today = wp_date( 'Y-m-d' );
 		$week  = cashaadi()->get_week_id();
 		$d     = get_user_meta( $viewer, self::DAY, true );
 		$w     = get_user_meta( $viewer, self::WEEK, true );
 		$d_n   = ( is_array( $d ) && ( $d[0] ?? '' ) === $today ) ? (int) $d[1] : 0;
 		$w_n   = ( is_array( $w ) && ( $w[0] ?? '' ) === $week ) ? (int) $w[1] : 0;
-		$n     = min( self::PER_DAY - $d_n, self::PER_WEEK - $w_n, self::LOW_DECK - $open );
+		$n     = min( self::PER_DAY - $d_n, self::PER_WEEK - $w_n );
 		if ( $n < 1 ) {
 			return;
 		}

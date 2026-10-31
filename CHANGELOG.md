@@ -9,7 +9,7 @@ commit per version.
 ## 1.91.0
 
 - Newcomer introductions: among the newcomers a member qualifies for, the one introduced to the fewest people so far now wins (the score only breaks ties), and a new man's window is 72 hours instead of 24. Before, the best score won, so on 30 Oct 115 introductions went to 50 new men and about 74 got none.
-- Bonus profiles for active women (a test): a woman (not Gold) who decided on 3+ profiles in the last 7 days and opens Discover with fewer than 3 undecided cards gets the next men in line by her own score, up to 3 a day and 10 a week, outside her weekly allowance. Half the eligible women get them (csm_bonus_pct); `wp csm bonus` compares the two halves.
+- Bonus profiles for active women (a test): a woman (not Gold) who decided on 3+ profiles in the last 7 days gets, when she opens Discover, the next men in line by her own score, up to 3 a day and 10 a week, outside her weekly allowance. Half the eligible women get them (csm_bonus_pct); `wp csm bonus` compares the two halves.
 ## 1.90.99
 
 - The email queue's per-run batch (was fixed at 25 an hour) is now the option csm_remail_batch, default 25, so a big send can go out faster.
