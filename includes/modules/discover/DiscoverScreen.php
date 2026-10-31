@@ -212,6 +212,7 @@ final class DiscoverScreen {
 		$week     = gmdate( 'o-\WW' );
 		$profiles = array();
 
+		Profile::prime( wp_list_pluck( (array) $rows, 'profile_id' ) ); // one go, not per card (v1.91.8)
 		foreach ( (array) $rows as $row ) {
 			$pid = (int) $row->profile_id;
 

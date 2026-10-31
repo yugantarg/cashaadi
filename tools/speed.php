@@ -29,6 +29,7 @@ wp_set_current_user( $u->ID );
 $run = function ( $label, $fn ) use ( $wpdb ) {
 	$q0 = $wpdb->num_queries;
 	$wpdb->queries = array();
+	wp_cache_flush(); // every run cold, as a real visit is without an object cache
 	$t0 = microtime( true );
 	$fn();
 	$ms = round( 1000 * ( microtime( true ) - $t0 ) );
@@ -55,10 +56,17 @@ $rest = function ( $route ) {
 };
 
 WP_CLI::log( "As #{$u->ID}.\n" );
-$run( 'Requests list (all tabs)', $rest( '/csm/v1/requests/list' ) );
-$run( 'Requests list, again', $rest( '/csm/v1/requests/list' ) );
+$only = function ( $tab ) {
+	return function () use ( $tab ) {
+		$req = new WP_REST_Request( 'GET', '/csm/v1/requests/list' );
+		$req->set_param( 'only', $tab );
+		rest_do_request( $req );
+	};
+};
+$run( 'Requests: Received tab', $only( 'received' ) );
+$run( 'Requests: Matches tab', $only( 'matches' ) );
+$run( 'Requests: all tabs (old way)', $rest( '/csm/v1/requests/list' ) );
 $run( 'Discover queue', $rest( '/csm/v1/discover/queue' ) );
-$run( 'Discover queue, again', $rest( '/csm/v1/discover/queue' ) );
 
 $ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT profile_id FROM {$wpdb->prefix}csm_seen WHERE viewer_id = %d LIMIT 24", $u->ID ) ) );
 if ( $ids && class_exists( '\CAShaadi\Core\Profile' ) ) {

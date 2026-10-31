@@ -282,6 +282,7 @@ final class RequestsScreen {
 		$rids     = array_merge( array_values( array_intersect( $rids, $gold_ids ) ), array_values( array_diff( $rids, $gold_ids ) ) );
 		$received_total = count( $rids );
 		list( $a, $b ) = $take( 'received' );
+		Profile::prime( array_slice( $rids, $a, $b ) );
 		foreach ( array_slice( $rids, $a, $b ) as $rid ) {
 			$received[] = self::request_card( $rid, $uid );
 		}
@@ -299,6 +300,7 @@ final class RequestsScreen {
 		 */
 		$sent_premium = class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid );
 		list( $a, $b ) = $sent_premium ? $take( 'sent' ) : array( 0, $skip( 'sent' ) ? 0 : 6 );
+		Profile::prime( array_slice( $sent_ids, $a, $b ) );
 		foreach ( array_slice( $sent_ids, $a, $b ) as $sid ) {
 			if ( $sent_premium ) {
 				$sent[] = self::card( $sid, $uid, 'sent' );
@@ -357,6 +359,7 @@ final class RequestsScreen {
 		}
 		$matches_total = count( $match_ids );
 		list( $a, $b ) = $take( 'matches' );
+		Profile::prime( array_slice( $match_ids, $a, $b ) );
 		foreach ( array_slice( $match_ids, $a, $b ) as $mid ) {
 			$matches[] = self::card( $mid, $uid, 'match' );
 		}
@@ -371,6 +374,9 @@ final class RequestsScreen {
 		$now     = current_time( 'timestamp' );
 		list( $va, $vb ) = $take( 'viewers' );
 		$vi = 0;
+		if ( $premium ) {
+			Profile::prime( array_map( 'intval', wp_list_pluck( array_slice( $rows, $va, $vb ), 'viewer_id' ) ) );
+		}
 
 		foreach ( $rows as $r ) {
 			$ts  = strtotime( (string) $r->last_at );
@@ -428,6 +434,7 @@ final class RequestsScreen {
 		}
 		$now = current_time( 'timestamp' );
 		list( $a, $b ) = $premium ? $take( 'declined' ) : array( 0, $skip( 'declined' ) ? 0 : 6 );
+		Profile::prime( array_column( array_slice( $declined_ids, $a, $b ), 0 ) );
 		foreach ( array_slice( $declined_ids, $a, $b ) as $d ) {
 			$ts  = strtotime( $d[1] );
 			$ago = $ts ? sprintf( 'Declined %s ago', human_time_diff( $ts, $now ) ) : '';
@@ -477,6 +484,7 @@ final class RequestsScreen {
 		// A withdrawn request is listed here too (owner, 2026-10-31), so labelled.
 		$withdrawn = class_exists( '\CAShaadi\Modules\Discover\Withdrawn' ) ? array_flip( \CAShaadi\Modules\Discover\Withdrawn::ids( $uid ) ) : array();
 		list( $a, $b ) = $premium ? $take( 'passed' ) : array( 0, $skip( 'passed' ) ? 0 : 6 );
+		Profile::prime( array_column( array_slice( $passed_ids, $a, $b ), 0 ) );
 		foreach ( array_slice( $passed_ids, $a, $b ) as $d ) {
 			$ts  = strtotime( $d[1] );
 			$ago = $ts ? sprintf( isset( $withdrawn[ $d[0] ] ) ? 'Request withdrawn %s ago' : 'Passed %s ago', human_time_diff( $ts, $now ) ) : '';

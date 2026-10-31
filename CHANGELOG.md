@@ -13,6 +13,11 @@ commit per version.
 
 
 
+
+## 1.91.8
+
+- Speed: profile cards for Discover and every Requests list load their members' profile fields, user meta and user rows in one go (Profile::prime), about 40 queries, instead of one query per field per card (3,606 queries for one Requests load on the live site).
+- tools/speed.php measures every call cold, and the Requests tabs one at a time.
 ## 1.91.7
 
 - Speed: Requests builds only the tab on screen (`?only=<tab>`) and just counts the others; switching tabs fetches that tab. Before, every load built up to 24 full cards for each of seven lists (about 150) to show one.

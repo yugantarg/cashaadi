@@ -472,6 +472,36 @@ final class Profile {
 		return $inter ? 'Verified CA Inter' : 'Verified CA';
 	}
 
+	/**
+	 * Load what full() reads for many members at once (v1.91.8): every profile
+	 * field, user meta and user rows, a few queries in all. Without it each
+	 * card read each field with its own query: 3,606 queries for one Requests
+	 * load on the live site (tools/speed.php, 2026-10-31). Safe to call twice.
+	 */
+	public static function prime( array $ids ) {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+		if ( ! $ids ) {
+			return;
+		}
+		if ( function_exists( 'cache_users' ) ) {
+			cache_users( $ids );
+		}
+		update_meta_cache( 'user', $ids );
+		if ( ! class_exists( 'BP_XProfile_ProfileData' ) ) {
+			return;
+		}
+		static $fields = null;
+		if ( null === $fields ) {
+			global $wpdb;
+			$fields = array_map( 'intval', (array) $wpdb->get_col( "SELECT id FROM {$wpdb->prefix}bp_xprofile_fields WHERE parent_id = 0" ) );
+		}
+		foreach ( array_chunk( $ids, 200 ) as $chunk ) {
+			foreach ( $fields as $f ) {
+				\BP_XProfile_ProfileData::get_value_byid( $f, $chunk );
+			}
+		}
+	}
+
 	public static function full( $profile_id, $viewer_id = null ) {
 		$profile_id = (int) $profile_id;
 		$viewer_id  = ( null === $viewer_id ) ? get_current_user_id() : (int) $viewer_id;
