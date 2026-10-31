@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.97 — 2026-10-31
+
+- Daily watch: the Discover showings check looks at the last 2 days, not 7 (owner), so a fixed problem stops being reported after two days.
+
 ## 1.90.96 — 2026-10-31
 
 - OLDPRICE works once per plan (owner): a member can use it for Premium and again for Gold. The coupon's per-member limit is lifted; a second use for the same plan is refused ("You have already used OLDPRICE for this plan").

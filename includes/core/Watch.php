@@ -184,7 +184,9 @@ final class Watch {
 		if ( ! class_exists( '\\CAShaadi\\Modules\\Discover\\Exposure' ) ) {
 			return self::row( 'exposure', true, 'Skipped.' );
 		}
-		$r    = \CAShaadi\Modules\Discover\Exposure::audit( 7 );
+		// The last 2 days only (owner, v1.90.97): a 7-day look kept reporting
+		// breaks that were already fixed until they aged out.
+		$r    = \CAShaadi\Modules\Discover\Exposure::audit( 2 );
 		$bad  = array_merge(
 			array_map( function ( $s ) { return 'RULE: ' . $s; }, $r['rules'] ),
 			array_map( function ( $s ) { return 'SHAPE: ' . $s; }, $r['shape'] )
@@ -192,7 +194,7 @@ final class Watch {
 		$stat = implode( ' ', $r['stats'] );
 		// A broken rule is a bug to fix; an unusual shape is for information.
 		return self::row( 'exposure', ! $bad, $bad
-			? 'Showings (last 7 days): ' . implode( ' | ', $bad ) . ' — ' . $stat . ' Details: wp csm exposure; one member: wp csm exposure --who=<email>.'
+			? 'Showings (last 2 days): ' . implode( ' | ', $bad ) . ' — ' . $stat . ' Details: wp csm exposure --days=2; one member: wp csm exposure --who=<email>.'
 			: 'Showings match the rules and look normal. ' . $stat,
 			$r['rules'] ? 'Discover broke one of its own rules. Send this to Claude.' : '' );
 	}
