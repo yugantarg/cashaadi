@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.91.24
+
+- Admin: the dashboard is split in two. CA Shaadi → Key numbers (activity, sales, email alert; the menu's own page) and CA Shaadi → Members (the member list, its search, filters and sorting). Other screens stay under the same menu.
+
 ## 1.91.23
 
 - Sales Dashboard: the member table and the panels (activity, sales, email alert) are built in the background every 10 minutes and stored for 30, so opening the page only reads them. A line under the panels says when they were updated, with "Update now" (?refresh=1).

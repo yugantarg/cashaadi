@@ -90,15 +90,35 @@ final class Dashboard {
 
 	/** Register the top-level "Sales Dashboard" admin menu page (#11688). */
 	public static function menu() {
-		add_menu_page(
-			'Sales Dashboard',
-			'Sales Dashboard',
-			'manage_options',
-			'csm-sales-dashboard',
-			array( __CLASS__, 'render' ),
-			'dashicons-groups',
-			3
-		);
+		/*
+		 * Two pages (owner, 2026-10-31): the key numbers, and the member list
+		 * on its own. The menu keeps its slug, so the other screens under it
+		 * stay where they are.
+		 */
+		add_menu_page( 'CA Shaadi', 'CA Shaadi', 'manage_options', 'csm-sales-dashboard', array( __CLASS__, 'render_numbers' ), 'dashicons-groups', 3 );
+		add_submenu_page( 'csm-sales-dashboard', 'Key numbers', 'Key numbers', 'manage_options', 'csm-sales-dashboard', array( __CLASS__, 'render_numbers' ) );
+		add_submenu_page( 'csm-sales-dashboard', 'Members', 'Members', 'manage_options', self::MEMBERS, array( __CLASS__, 'render' ) );
+	}
+
+	const MEMBERS = 'csm-members';
+
+	/** The key numbers: the stored panels (built by warm()). */
+	public static function render_numbers() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Access denied.' );
+		}
+		if ( isset( $_GET['refresh'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			self::warm();
+		}
+		echo '<div class="wrap"><h1>Key numbers</h1>';
+		$stored = get_transient( 'csm_sd_panels' );
+		foreach ( self::panels() as $label => $cb ) {
+			echo isset( $stored['html'][ $label ] ) ? $stored['html'][ $label ] : self::panel_html( $label, $cb ); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
+		if ( is_array( $stored ) && ! empty( $stored['at'] ) ) {
+			echo '<p style="color:#646970;margin:4px 0 0">Updated ' . esc_html( human_time_diff( (int) $stored['at'], time() ) ) . ' ago · <a href="' . esc_url( add_query_arg( 'refresh', 1 ) ) . '">Update now</a></p>';
+		}
+		echo '<p style="margin-top:16px"><a class="button" href="' . esc_url( admin_url( 'admin.php?page=' . self::MEMBERS ) ) . '">Members list</a></p></div>';
 	}
 
 	public static function profile_fields_complete( $user_id ) {
@@ -446,7 +466,7 @@ final class Dashboard {
 		$paged = min( $pages, max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ) );
 		$shown = array_slice( $rows, ( $paged - 1 ) * $per, $per );
 
-		$base = admin_url( 'admin.php?page=csm-sales-dashboard' );
+		$base = admin_url( 'admin.php?page=' . self::MEMBERS );
 		$qs   = array( 'fpending' => $f_pending, 'fmember' => $f_member, 'fsrc' => $f_source, 's' => $search );
 		$sort_link = function ( $col, $label ) use ( $base, $qs, $orderby, $order ) {
 			$new_order = ( $orderby === $col && $order === 'asc' ) ? 'desc' : 'asc';
@@ -455,24 +475,10 @@ final class Dashboard {
 			return '<a href="' . esc_url( $url ) . '">' . esc_html( $label ) . $arrow . '</a>';
 		};
 
-		echo '<div class="wrap"><h1>Sales Dashboard</h1>';
-		echo '<p style="font-size:13px;color:#555;">Review new users, their activation & profile status, and phone numbers so the sales team can reach out and guide them.</p>';
-		/*
-		 * Each panel is drawn on its own, so one that fails shows its error in
-		 * place instead of taking down the whole page (2026-10-23: a "critical
-		 * error" blanked the dashboard below its heading).
-		 */
-		// Stored by warm() every 10 minutes; drawn now only if nothing is stored yet.
-		$stored = get_transient( 'csm_sd_panels' );
-		foreach ( self::panels() as $label => $cb ) {
-			echo isset( $stored['html'][ $label ] ) ? $stored['html'][ $label ] : self::panel_html( $label, $cb ); // phpcs:ignore WordPress.Security.EscapeOutput
-		}
-		if ( is_array( $stored ) && ! empty( $stored['at'] ) ) {
-			echo '<p style="color:#646970;margin:4px 0 0">Updated ' . esc_html( human_time_diff( (int) $stored['at'], time() ) ) . ' ago · <a href="' . esc_url( add_query_arg( 'refresh', 1 ) ) . '">Update now</a></p>';
-		}
-
+		echo '<div class="wrap"><h1>Members</h1>';
+		echo '<p style="font-size:13px;color:#555;">Review new users, their activation & profile status, and phone numbers so the sales team can reach out and guide them. <a href="' . esc_url( admin_url( 'admin.php?page=csm-sales-dashboard' ) ) . '">Key numbers</a></p>';
 		echo '<form method="get" style="margin:15px 0;padding:12px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;">';
-		echo '<input type="hidden" name="page" value="csm-sales-dashboard" />';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::MEMBERS ) . '" />';
 		echo '<input type="search" name="s" value="' . esc_attr( $search ) . '" placeholder="Search name / email / username" style="min-width:220px;" /> ';
 
 		$csm_pending_opts = array( 'Complete', 'Email pending', 'Profile pending', 'Photo pending' );
