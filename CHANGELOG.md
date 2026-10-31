@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.92 — 2026-10-31
+
+- Discover ranks unfinished profiles lower (owner, audit): +8 points when every required profile field is filled (qualification, occupation, mother tongue, date of birth, city …), on top of the existing +10 for a photo and +6 for verification. Nobody is removed from Discover; an unfinished, photo-less profile now starts 18 points behind a finished one with a photo. Tunable through `csm_rank_points` (`complete`).
+
 ## 1.90.91 — 2026-10-31
 
 - Profile completion reminders say exactly what is missing (owner): a line at the top, "Still missing on your profile: a profile photo, your qualification and your mother tongue.", one sentence on why, and a button (Add my photo / Complete my profile). Subject: "Add a photo to your CA Shaadi profile" when only the photo is missing, otherwise "A few details are missing from your CA Shaadi profile". The rest of the email (the template in WordPress → Emails) is unchanged.

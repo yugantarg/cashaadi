@@ -72,6 +72,7 @@ final class Ranker {
 			'random'       => 5,   // uniform 0..random
 			'photo'        => 10,  // has at least one photo (v1.72.0: 4; v1.76.1: 10)
 			'verified'     => 6,   // ICAI verification approved (v1.72.0: 3; v1.76.1: 6)
+			'complete'     => 8,   // every required profile field filled (v1.90.92, audit)
 			'new_days'     => 30,
 			'popular_max'  => 4,   // like-rate multiple that earns the full 'popular'
 			'smoothing'    => 8,   // showings before a like-rate counts
@@ -127,6 +128,9 @@ final class Ranker {
 			// badge are shown more, which is what the Discover card promises.
 			$parts['photo']     = ! empty( $trust[ $id ]['photo'] ) ? $P['photo'] : 0;
 			$parts['verified']  = ! empty( $trust[ $id ]['verified'] ) ? $P['verified'] : 0;
+			// Unfinished profiles (no qualification, occupation, mother tongue …)
+			// stay in Discover but come after finished ones (owner, 2026-10-31).
+			$parts['complete']  = ! empty( $trust[ $id ]['complete'] ) ? $P['complete'] : 0;
 
 			if ( isset( $gold[ $id ] ) && $g_mult > 1 ) {
 				$parts['gold'] = array_sum( $parts ) * ( $g_mult - 1 );
@@ -151,7 +155,7 @@ final class Ranker {
 		return array_slice( $out, 0, (int) $slots );
 	}
 
-	/** [ uid => [ photo => bool, verified => bool ] ] for many members, one query. */
+	/** [ uid => [ photo => bool, verified => bool, complete => bool ] ] for many members, in a few queries. */
 	public static function trust( array $uids ) {
 		global $wpdb;
 		$uids = array_values( array_unique( array_filter( array_map( 'intval', $uids ) ) ) );
@@ -163,6 +167,17 @@ final class Ranker {
 			 WHERE meta_key IN ('csm_photos','csm_av_status') AND user_id IN (" . implode( ',', $uids ) . ')'
 		);
 		$out = array();
+		// Every required profile field filled? One query for the whole pool.
+		static $req = null;
+		if ( null === $req ) {
+			$req = array_map( 'intval', (array) $wpdb->get_col( "SELECT id FROM {$wpdb->prefix}bp_xprofile_fields WHERE is_required = 1 AND parent_id = 0" ) );
+		}
+		if ( $req ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			foreach ( (array) $wpdb->get_results( "SELECT user_id, COUNT(DISTINCT field_id) n FROM {$wpdb->prefix}bp_xprofile_data WHERE field_id IN (" . implode( ',', $req ) . ") AND value <> '' AND user_id IN (" . implode( ',', $uids ) . ') GROUP BY user_id' ) as $c ) {
+				$out[ (int) $c->user_id ]['complete'] = (int) $c->n >= count( $req );
+			}
+		}
 		foreach ( (array) $rows as $r ) {
 			$id = (int) $r->user_id;
 			if ( 'csm_photos' === $r->meta_key ) {
