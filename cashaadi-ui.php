@@ -461,9 +461,14 @@ if ( class_exists( 'CAShaadi\\Modules\\Discover\\Reach' ) ) {
 	\CAShaadi\Modules\Discover\Reach::register();
 }
 
-// A withdrawn request puts the profile back in the sender's Discover (v1.90.14).
+// A withdrawn request goes to More → Passed (v1.90.14, v1.90.98).
 if ( class_exists( 'CAShaadi\\Modules\\Discover\\Withdrawn' ) ) {
 	\CAShaadi\Modules\Discover\Withdrawn::register();
+}
+
+// Bonus profiles for active women, as a test (v1.91.0). `wp csm bonus`.
+if ( class_exists( 'CAShaadi\\Modules\\Discover\\Bonus' ) ) {
+	\CAShaadi\Modules\Discover\Bonus::register();
 }
 
 // Exposure audit: showings against the rules (v1.89.94). `wp csm exposure`.

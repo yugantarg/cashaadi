@@ -96,7 +96,7 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 */
 		if ( class_exists( '\\CAShaadi\\Core\\Membership' ) && ! \CAShaadi\Core\Membership::is_premium( $viewer_id ) ) {
 			$wpdb->query( $wpdb->prepare(
-				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost', 'intro' )",
+				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost', 'intro', 'bonus' )",
 				$viewer_id, $week_id
 			) );
 		}
@@ -119,6 +119,12 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 			$tray_size - $served_week,
 			$open_cap - $open_pending
 		) );
+		// Bonus cards (v1.91.0): the next N in line, outside the weekly allowance.
+		$bonus = class_exists( '\\CAShaadi\\Modules\\Discover\\Bonus' ) ? (int) \CAShaadi\Modules\Discover\Bonus::$want : 0;
+		if ( $bonus > 0 ) {
+			$slots   = $bonus;
+			$week_id = \CAShaadi\Modules\Discover\Bonus::WEEK_ROW;
+		}
 		if ( $slots <= 0 ) {
 			return array();
 		}

@@ -150,6 +150,10 @@ final class DiscoverScreen {
 			if ( class_exists( __NAMESPACE__ . '\\Intro' ) ) {
 				Intro::deliver( $viewer_id );
 			}
+			// Bonus profiles for active women, when the deck runs low (v1.91.0).
+			if ( class_exists( __NAMESPACE__ . '\\Bonus' ) ) {
+				Bonus::deliver( $viewer_id );
+			}
 			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $dlock ) );
 		}
 
