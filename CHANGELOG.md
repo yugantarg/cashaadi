@@ -3,6 +3,11 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.89 — 2026-10-31
+
+- Login, lost-password and reset-password screens restyled in CA Shaadi's look (CSS only; WordPress's forms and checks unchanged; logo links to the home page).
+- Password resets recorded (pw_reset_requested, pw_reset_done). `wp csm resets [--days=30]`: per day, new sign-ups, resets asked for, resets completed, and reset links asked for but never used (read from WordPress, so it also covers the days before this version).
+
 ## 1.90.88 — 2026-10-31
 
 - Sign-up: an email that already has an account now gets "You already have an account with this email." with Log in and Forgot password? links under the field, instead of "Sorry, that email address is already used!" (78 people in two weeks). Recorded in the funnel as "already has an account".

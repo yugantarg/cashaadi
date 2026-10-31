@@ -3,7 +3,7 @@
  * Plugin Name:       CAShaadi UI
  * Plugin URI:        https://cashaadi.in
  * Description:       Premium member-area UI layer for CAShaadi — bottom-nav app shell, profile-completion wizard, and screen restyles. Progressive enhancement over BuddyPress; changes no data, validation, or completion logic.
- * Version:           1.90.88
+ * Version:           1.90.89
  * Author:            CAShaadi
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CASHAADI_UI_VER', '1.90.88' );
+define( 'CASHAADI_UI_VER', '1.90.89' );
 define( 'CASHAADI_UI_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHAADI_UI_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -604,6 +604,11 @@ if ( class_exists( 'CAShaadi\\Modules\\Signup\\Signup' ) ) {
 // csm_join_live is 1. Needs the 4-digit code endpoints, so only with signup on.
 if ( class_exists( 'CAShaadi\\Modules\\Signup\\Join' ) && \CAShaadi\Core\Config::signup_enabled() ) {
 	\CAShaadi\Modules\Signup\Join::register();
+}
+
+// Login / lost-password / reset screens in CA Shaadi's look; resets recorded (v1.90.89).
+if ( class_exists( 'CAShaadi\\Modules\\Signup\\LoginScreen' ) ) {
+	\CAShaadi\Modules\Signup\LoginScreen::register();
 }
 
 // One password rule at signup: 8 characters. Removes BuddyPress's generated
