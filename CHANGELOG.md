@@ -8,7 +8,7 @@ commit per version.
 ## 1.90.99
 
 - The email queue's per-run batch (was fixed at 25 an hour) is now the option csm_remail_batch, default 25, so a big send can go out faster.
-- The price notice email is exempt from the one-campaign-email-per-member-per-day rule.
+- At most 2 campaign emails per member per day (was 1), the price notice included (no exception).
 ## 1.90.98
 
 - A deleted (closed) account now shows as a "Deleted profile" stand-in where it was: in Matches, Received, Sent and Passed (a grey tile that does not open), in chats (name "Deleted profile", no photo or link), and on its profile link ("This member has deleted their profile."). Before, it just disappeared.
