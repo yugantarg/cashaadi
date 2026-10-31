@@ -11,6 +11,10 @@ commit per version.
 
 
 
+
+## 1.91.6
+
+- Requests lists: Show more fetches only that list's next 24 profiles and adds them below (`?tab=&offset=`), instead of reloading every list with 24 more and rebuilding every card from the top. It also loads by itself as the member scrolls near the end; the button stays as a fallback. Saved keeps the old way.
 ## 1.91.5
 
 - The "Deleted profile" tile shows only at the very end of a list, once Show more has loaded every profile.

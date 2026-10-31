@@ -561,18 +561,54 @@
 
 	/* 24 at a time (v1.89.62); "Show more" asks the server for the next 24. */
 	var limit = 24;
+	/*
+	 * Next page only (v1.91.6): fetch this list's next 24 and add them below,
+	 * instead of reloading every list with 24 more. Saved keeps the old way
+	 * (it mixes open and locked rows). Loads by itself when the button scrolls
+	 * near the screen; the button stays for older browsers.
+	 */
+	var paging = false;
 	function moreButton( total, loaded ) {
 		if ( ! total || total <= loaded ) { return; }
 		var b = el( 'button', 'csm-d-more', 'Show more' );
 		b.type = 'button';
-		b.addEventListener( 'click', function () {
+		var key = tab;
+		function go() {
+			if ( paging || b.disabled ) { return; }
+			paging = true;
 			b.disabled = true;
 			b.textContent = 'Loading\u2026';
 			var y = window.scrollY;
-			limit += 24;
-			load().then( function () { window.scrollTo( 0, y ); } );
-		} );
+			var done = function () { paging = false; window.scrollTo( 0, y ); };
+			if ( 'saved' === key || ! Array.isArray( data[ key ] ) ) {
+				limit += 24;
+				load().then( done, done );
+				return;
+			}
+			var url = CFG.list + ( CFG.list.indexOf( '?' ) === -1 ? '?' : '&' ) + 'tab=' + key + '&offset=' + data[ key ].length;
+			api( url ).then( function ( d ) {
+				if ( d && d.ok && Array.isArray( d.page ) && d.page.length ) {
+					data[ key ] = data[ key ].concat( d.page );
+					limit = Math.max( limit, data[ key ].length ); // a later full reload keeps what is on screen
+				} else if ( d && d.ok ) {
+					data[ key + 'Total' ] = data[ key ].length; // nothing more after all
+				}
+				if ( tab === key ) { draw(); }
+				done();
+			}, function () {
+				b.disabled = false;
+				b.textContent = 'Show more';
+				paging = false;
+			} );
+		}
+		b.addEventListener( 'click', go );
 		root.appendChild( b );
+		if ( 'IntersectionObserver' in window ) {
+			var io = new IntersectionObserver( function ( es ) {
+				if ( es[0] && es[0].isIntersecting ) { io.disconnect(); go(); }
+			}, { rootMargin: '400px 0px' } );
+			io.observe( b );
+		}
 	}
 
 	function load() {
