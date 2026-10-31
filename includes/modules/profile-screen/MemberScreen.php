@@ -130,6 +130,9 @@ final class MemberScreen {
 		if ( ! $uid || ! get_userdata( $uid ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That member could not be found.', 'cashaadi-ui' ) ), 200 );
 		}
+		if ( class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) && \CAShaadi\Modules\Settings\Closed::is_closed( $uid ) ) {
+			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'This member has deleted their profile.', 'cashaadi-ui' ) ), 200 );
+		}
 		if ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $viewer, $uid ) ) {
 			return new \WP_REST_Response( array( 'ok' => false, 'message' => __( 'That member could not be found.', 'cashaadi-ui' ) ), 200 );
 		}

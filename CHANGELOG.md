@@ -6,6 +6,7 @@ commit per version.
 
 ## 1.90.98
 
+- A deleted (closed) account now shows as a "Deleted profile" stand-in where it was: in Matches, Received, Sent and Passed (a grey tile that does not open), in chats (name "Deleted profile", no photo or link), and on its profile link ("This member has deleted their profile."). Before, it just disappeared.
 - Pause my profile is offered to every member (it was only for the first 7 days after joining).
 - Passed profiles never go back into Discover (they were shown again after 30 days); they stay in More → Passed. Profiles shown and never decided go back into the pool 30 days after they were last shown (was 15), and compete on points like any other. Gold is unchanged.
 - More → Passed also lists withdrawn requests ("Request withdrawn … ago"). Premium and Gold see them in full and can send a request; free members see them blurred.

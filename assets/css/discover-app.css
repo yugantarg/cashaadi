@@ -497,3 +497,8 @@ body.csm-member-view .csm-d-card {
 	.csm-d-actions .csm-d-btn svg { width: 16px; height: 16px; }
 	.csm-d-actions > .csm-d-nav { width: 30px; height: 30px; }
 }
+
+/* Deleted profile stand-in (v1.90.98): not a button, nothing to open. */
+.csm-r-gone { margin-top: 12px; }
+.csm-r-gonetile { cursor: default; opacity: .7; }
+.csm-r-gonetile .csm-d-tilephoto { background: #e4eaf0; }

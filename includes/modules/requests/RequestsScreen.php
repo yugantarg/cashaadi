@@ -100,6 +100,11 @@ final class RequestsScreen {
 		) );
 	}
 
+	/** True when $id closed (deleted) their account. */
+	private static function is_gone( $id ) {
+		return class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) && \CAShaadi\Modules\Settings\Closed::is_closed( (int) $id );
+	}
+
 	/** A received request as a full profile card: same card as Discover (v1.89.40). */
 	private static function request_card( $rid, $uid ) {
 		$row = Profile::full( (int) $rid, (int) $uid );
@@ -231,6 +236,14 @@ final class RequestsScreen {
 		 * Received. Still pending in BuddyPress; a sender who withdrew drops out.
 		 */
 		$rids      = array_map( 'intval', $rids );
+		/*
+		 * Deleted accounts stay where they were, as a "Deleted profile" stand-in
+		 * (owner, 2026-10-31), so nobody goes looking for where they went.
+		 * Listed apart (gone[]), never as a card that opens.
+		 */
+		$gone = array( 'received' => 0, 'matches' => 0, 'sent' => 0, 'passed' => 0 );
+		$gone['received'] = count( array_filter( $rids, array( __CLASS__, 'is_gone' ) ) );
+		$rids             = array_values( array_filter( $rids, function ( $r ) { return ! self::is_gone( $r ); } ) );
 		$req_saved = array_values( array_intersect( array_map( 'intval', (array) get_user_meta( $uid, self::REQ_SAVED, true ) ), $rids ) );
 		$rids      = array_values( array_diff( $rids, $req_saved ) );
 
@@ -253,6 +266,8 @@ final class RequestsScreen {
 		// Full profiles, 24 at a time, like Received (v1.89.63).
 		$sent       = array();
 		$sent_ids   = array_values( array_filter( array_map( 'intval', (array) self::sent( $uid ) ) ) );
+		$gone['sent'] = count( array_filter( $sent_ids, array( __CLASS__, 'is_gone' ) ) );
+		$sent_ids     = array_values( array_filter( $sent_ids, function ( $r ) { return ! self::is_gone( $r ); } ) );
 		$sent_total = count( $sent_ids );
 		/*
 		 * Under More, Premium and Gold only (owner, 2026-10-28): free members
@@ -303,6 +318,10 @@ final class RequestsScreen {
 		foreach ( $mids as $mid ) {
 			$mid = (int) $mid;
 			if ( ! $mid || ! get_userdata( $mid ) ) {
+				continue;
+			}
+			if ( self::is_gone( $mid ) ) {
+				$gone['matches']++;
 				continue;
 			}
 			// A block after matching should hide them here too.
@@ -413,6 +432,10 @@ final class RequestsScreen {
 			) );
 			foreach ( (array) $prows as $r ) {
 				$pid = (int) $r->profile_id;
+				if ( $pid && self::is_gone( $pid ) ) {
+					$gone['passed']++;
+					continue;
+				}
 				if ( ! $pid || ! get_userdata( $pid )
 					|| ( function_exists( 'friends_check_friendship_status' ) && 'not_friends' !== friends_check_friendship_status( $uid, $pid ) )
 					|| ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $uid, $pid ) ) ) {
@@ -537,6 +560,7 @@ final class RequestsScreen {
 			'declined'      => $declined,
 			'declinedTotal' => count( $declined_ids ),
 			'passed'        => $passed,
+			'gone'          => $gone,
 			'passedTotal'   => count( $passed_ids ),
 		), 200 );
 	}

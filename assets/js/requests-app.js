@@ -221,7 +221,31 @@
 		} );
 	}
 
+	/*
+	 * Deleted accounts (owner, 2026-10-31): a "Deleted profile" stand-in where
+	 * they were, so nobody goes looking for where they went. Not openable.
+	 */
+	function goneN( key ) { return ( data.gone || {} )[ key ] || 0; }
+	function addGone() {
+		var n = goneN( tab );
+		if ( ! n ) { return; }
+		var grid = el( 'div', 'csm-d-grid csm-r-gone' );
+		for ( var i = 0; i < n; i++ ) {
+			var cell = el( 'div', 'csm-d-tile csm-r-gonetile' );
+			cell.appendChild( el( 'div', 'csm-d-tilephoto' ) );
+			cell.appendChild( el( 'span', 'csm-d-tilename', 'Deleted profile' ) );
+			cell.appendChild( el( 'span', 'csm-d-tilemeta', 'This member deleted their account' ) );
+			grid.appendChild( cell );
+		}
+		root.appendChild( grid );
+	}
+
 	function draw() {
+		drawTab();
+		addGone();
+	}
+
+	function drawTab() {
 		root.innerHTML = '';
 		root.appendChild( tabs() );
 		if ( inMore( tab ) ) { root.appendChild( moreTabs() ); }
@@ -229,7 +253,7 @@
 		var list = el( 'ul', 'csm-r-list' );
 
 		if ( 'received' === tab ) {
-			if ( ! ( data.received || [] ).length && ! data.hiddenByFilter ) {
+			if ( ! ( data.received || [] ).length && ! data.hiddenByFilter && ! goneN( 'received' ) ) {
 				root.appendChild( emptyBox( 'No requests yet', 'When someone likes your profile, they will appear here.' ) );
 				return;
 			}
@@ -249,7 +273,7 @@
 			moreButton( data.receivedTotal, data.received.length );
 			return;
 		} else if ( 'matches' === tab ) {
-			if ( ! ( data.matches || [] ).length ) {
+			if ( ! ( data.matches || [] ).length && ! goneN( 'matches' ) ) {
 				root.appendChild( emptyBox( 'No matches yet', 'When you accept a request, or someone accepts yours, they will appear here.' ) );
 				return;
 			}
@@ -265,7 +289,7 @@
 			moreButton( data.matchesTotal, data.matches.length );
 			return;
 		} else if ( 'sent' === tab ) {
-			if ( ! ( data.sent || [] ).length ) {
+			if ( ! ( data.sent || [] ).length && ! goneN( 'sent' ) ) {
 				root.appendChild( emptyBox( 'Nothing sent yet', 'Requests you send from Discover will show here until they are answered.' ) );
 				return;
 			}
@@ -342,7 +366,7 @@
 			}
 		} else if ( 'passed' === tab ) {
 			/* Profiles passed in Discover (2026-10-28): Premium and Gold, like Declined. */
-			if ( ! ( data.passed || [] ).length ) {
+			if ( ! ( data.passed || [] ).length && ! goneN( 'passed' ) ) {
 				root.appendChild( emptyBox( 'No passed profiles', 'Profiles you pass in Discover are listed here, so you can change your mind.' ) );
 				return;
 			}

@@ -106,6 +106,16 @@ final class MessagesCompat {
 		 * MemberScreen redirects self-views to /profile/ anyway; sending them
 		 * straight there saves the bounce.
 		 */
+		// A deleted account keeps its threads, as "Deleted profile" (owner, 2026-10-31).
+		if ( class_exists( '\\CAShaadi\\Modules\\Settings\\Closed' ) && \CAShaadi\Modules\Settings\Closed::is_closed( $user_id ) ) {
+			$item['name'] = __( 'Deleted profile', 'cashaadi-ui' );
+			$item['url']  = '';
+			if ( function_exists( 'bp_core_avatar_default' ) ) {
+				$item['avatar'] = bp_core_avatar_default( 'local' );
+			}
+			return $item;
+		}
+
 		$item['url'] = ( get_current_user_id() === $user_id )
 			? home_url( '/profile/' )
 			: home_url( '/member/' . $user_id . '/' );
