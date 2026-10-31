@@ -13,8 +13,9 @@
  * cleared from csm_likes so a later like from the other side is not taken for
  * a match, and the time is kept in user meta for the label.
  *
- * restore() puts a profile back in the deck, undecided; More → Passed's
- * "Send request" uses it before sending the request.
+ * restore() is used only by More → Passed's "Send request" (Premium): the
+ * card is put back for a moment and the request sent at once, so it never
+ * shows in Discover. Nothing else puts a profile back into Discover.
  */
 
 namespace CAShaadi\Modules\Discover;
@@ -81,18 +82,19 @@ final class Withdrawn {
 		$tray = $wpdb->prefix . 'csm_tray';
 		$wpdb->delete( $wpdb->prefix . 'csm_likes', array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
 		/*
-		 * The card goes back under the week it was first drawn in (v1.90.98),
-		 * so coming back is not a new draw and does not count against this
-		 * week's allowance (it showed as #2779 51/50 in the exposure check).
-		 * A free member's deck is reset each week, so for them a card from an
-		 * earlier week still comes back as this week's, as before.
+		 * Under the week it was first drawn in (v1.90.98), so it is not a new
+		 * draw and does not count against this week's allowance (it showed as
+		 * #2779 51/50 in the exposure check).
 		 */
 		$week = $wpdb->get_var( $wpdb->prepare( "SELECT week_assigned FROM {$tray} WHERE viewer_id = %d AND profile_id = %d ORDER BY id DESC LIMIT 1", $viewer, $profile ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( ! $week ) {
+			$week = $wpdb->get_var( $wpdb->prepare( 'SELECT week_first FROM ' . Seen::table() . ' WHERE viewer_id = %d AND profile_id = %d', $viewer, $profile ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		}
 		$wpdb->delete( $tray, array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
 		return (bool) $wpdb->insert( $tray, array(
 			'viewer_id'     => $viewer,
 			'profile_id'    => $profile,
-			'week_assigned' => ( $week && \CAShaadi\Core\Membership::is_premium( $viewer ) ) ? $week : cashaadi()->get_week_id(),
+			'week_assigned' => $week ? $week : cashaadi()->get_week_id(),
 			'status'        => 'pending',
 			'assigned_at'   => current_time( 'mysql' ),
 		) );

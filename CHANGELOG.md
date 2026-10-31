@@ -6,7 +6,9 @@ commit per version.
 
 ## 1.90.98
 
-- A withdrawn request now goes to More → Passed, labelled "Request withdrawn … ago", instead of back into Discover. "Send request" there works as for any passed profile. The card keeps the week it was drawn in, so nothing counts against the weekly allowance (the exposure check showed #2779 51/50).
+- Nothing goes back into Discover (owner, 2026-10-31). Passed profiles are no longer shown again after 30 days, and undecided ones after 15 days; Gold still pages through everyone it has not decided on.
+- More → Passed now lists passed profiles, profiles shown and never decided ("Not decided, shown … ago") and withdrawn requests ("Request withdrawn … ago"). Premium and Gold see them in full and can send a request; free members see them blurred.
+- A withdrawn request goes to More → Passed instead of back into Discover. "Send request" from Passed keeps the week the card was first drawn in, so it never counts against the weekly allowance (the exposure check showed #2779 51/50).
 ## 1.90.97 — 2026-10-31
 
 - Daily watch: the Discover showings check looks at the last 2 days, not 7 (owner), so a fixed problem stops being reported after two days.

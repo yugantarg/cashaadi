@@ -134,7 +134,10 @@ final class Seen {
 	 *   add_filter( 'csm_pass_reshow_days', fn() => 60 );
 	 *   add_filter( 'csm_ignore_reshow_days', fn() => 30 );
 	 *
-	 * A pass window of 0 (or less) makes passes permanent.
+	 * A window of 0 (or less) makes it permanent. Both are 0 since v1.90.98
+	 * (owner, 2026-10-31: "nothing should go back into discover"): passed and
+	 * undecided profiles are found in More → Passed instead, which is Premium.
+	 * Gold still pages through everyone it has not decided on.
 	 *
 	 * FAILS CLOSED. If the table is missing this returns FALSE, not an empty
 	 * array, and the refill aborts. An empty array would read as "this member has
@@ -155,15 +158,15 @@ final class Seen {
 		/*
 		 * Who comes back, and when (owner, 2026-10-26):
 		 *   sent a request (liked)  never
-		 *   passed                  after csm_pass_reshow_days (30) from the pass
-		 *   ignored (shown, never   after csm_ignore_reshow_days (15) from the
-		 *   decided)                last time they were shown
+		 *   passed                  never (was 30 days; v1.90.98)
+		 *   ignored (shown, never   never (was 15 days)
+		 *   decided)
 		 * Gold: ignored profiles are never held back (they see everyone).
 		 * Profiles still in the tray (pending or saved) are kept out by the
 		 * engine itself. Cutoffs in PHP: the columns are written in IST.
 		 */
-		$pass_days   = (int) apply_filters( 'csm_pass_reshow_days', 30 );
-		$ignore_days = (int) apply_filters( 'csm_ignore_reshow_days', 15 );
+		$pass_days   = (int) apply_filters( 'csm_pass_reshow_days', 0 );
+		$ignore_days = (int) apply_filters( 'csm_ignore_reshow_days', 0 );
 		$gold        = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( (int) $viewer_id );
 		$pass_cut    = gmdate( 'Y-m-d H:i:s', $now - max( 0, $pass_days ) * DAY_IN_SECONDS );
 		$ignore_cut  = gmdate( 'Y-m-d H:i:s', $now - max( 0, $ignore_days ) * DAY_IN_SECONDS );
@@ -174,11 +177,11 @@ final class Seen {
 			 WHERE viewer_id = %d AND (
 			       action = 'liked'
 			    OR ( action = 'passed' AND ( %d <= 0 OR acted_at IS NULL OR acted_at >= %s ) )
-			    OR ( action = '' AND %d = 0 AND last_seen_at >= %s )
+			    OR ( action = '' AND %d = 0 AND ( %d <= 0 OR last_seen_at >= %s ) )
 			 )",
 			(int) $viewer_id,
 			$pass_days, $pass_cut,
-			$gold ? 1 : 0, $ignore_cut
+			$gold ? 1 : 0, $ignore_days, $ignore_cut
 		) );
 		return array_map( 'intval', (array) $ids );
 	}

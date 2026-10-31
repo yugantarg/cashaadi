@@ -394,7 +394,9 @@ final class RequestsScreen {
 		/*
 		 * Passed (owner, 2026-10-28): the Discover profiles this member passed,
 		 * newest first, so a mistaken Pass can be undone. In "More", with Viewed
-		 * me and Declined, and like them Premium and Gold only. Left out: anyone
+		 * me and Declined, and like them Premium and Gold only. Since v1.90.98
+		 * also the ones shown and never decided, and withdrawn requests:
+		 * nothing goes back into Discover (owner, 2026-10-31). Left out: anyone
 		 * since matched or asked, blocked, or back in the deck.
 		 */
 		$passed     = array();
@@ -403,10 +405,10 @@ final class RequestsScreen {
 			$seen = \CAShaadi\Modules\Discover\Seen::table();
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$prows = $wpdb->get_results( $wpdb->prepare(
-				"SELECT s.profile_id, s.acted_at FROM {$seen} s
-				 WHERE s.viewer_id = %d AND s.action = 'passed'
+				"SELECT s.profile_id, IF( s.action = 'passed', s.acted_at, s.last_seen_at ) acted_at, s.action FROM {$seen} s
+				 WHERE s.viewer_id = %d AND s.action IN ( 'passed', '' )
 				   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->prefix}csm_tray t WHERE t.viewer_id = s.viewer_id AND t.profile_id = s.profile_id AND t.status IN ( 'pending', 'saved' ) )
-				 ORDER BY s.acted_at DESC LIMIT 500",
+				 ORDER BY 2 DESC LIMIT 500",
 				$uid
 			) );
 			foreach ( (array) $prows as $r ) {
@@ -416,14 +418,14 @@ final class RequestsScreen {
 					|| ( function_exists( 'csm_bl_is_blocked_pair' ) && csm_bl_is_blocked_pair( $uid, $pid ) ) ) {
 					continue;
 				}
-				$passed_ids[] = array( $pid, (string) $r->acted_at );
+				$passed_ids[] = array( $pid, (string) $r->acted_at, (string) $r->action );
 			}
 		}
 		// A withdrawn request is listed here too (owner, 2026-10-31), so labelled.
 		$withdrawn = class_exists( '\CAShaadi\Modules\Discover\Withdrawn' ) ? array_flip( \CAShaadi\Modules\Discover\Withdrawn::ids( $uid ) ) : array();
 		foreach ( array_slice( $passed_ids, 0, $premium ? $limit : 6 ) as $d ) {
 			$ts  = strtotime( $d[1] );
-			$ago = $ts ? sprintf( isset( $withdrawn[ $d[0] ] ) ? 'Request withdrawn %s ago' : 'Passed %s ago', human_time_diff( $ts, $now ) ) : '';
+			$ago = $ts ? sprintf( isset( $withdrawn[ $d[0] ] ) ? 'Request withdrawn %s ago' : ( '' === $d[2] ? 'Not decided, shown %s ago' : 'Passed %s ago' ), human_time_diff( $ts, $now ) ) : '';
 			if ( $premium ) {
 				$passed[] = array_merge( self::card( $d[0], $uid, 'passed' ), array( 'ago' => $ago ) );
 				continue;
