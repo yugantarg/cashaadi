@@ -715,6 +715,10 @@ final class Survey {
 				$ours += min( $cs, (int) $m['paid'] );
 			}
 			$m['paid'] = max( 0, (int) ( $m['paid'] ?? 0 ) - (int) round( $cs ) );
+			// A rounded answer less our exact price leaves a few rupees (1,500 - 1,499 = 1): that is nothing.
+			if ( $m['paid'] < 500 ) {
+				$m['paid'] = 0;
+			}
 		}
 		unset( $m );
 		foreach ( $sets as $g => $_ ) {

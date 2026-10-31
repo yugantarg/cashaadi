@@ -23,6 +23,7 @@ commit per version.
 ## 1.91.14
 
 - Three member testimonials with name and photo (Amarnath, Anil Nagaraj, Aishwarya; all gave permission in the survey) on the home page, above the questions, and on the pricing page, above the footnote. A member who removes their photo shows as an initial; a closed account is left out.
+- Survey results: what is left of "paid before" after taking off CA Shaadi payments counts as nothing below ₹500 (a member who typed 1,500 after paying us 1,499 showed as having paid ₹1 elsewhere).
 ## 1.91.13
 
 - Unfinished payment email: a member whose order sat unpaid for 1 to 48 hours, who has not paid since and is not on that plan, gets one email (once ever, not in quiet hours) naming what they were buying, the OLDPRICE price while it runs for them, a link back to pricing, and what to do if money left their account. Shows as "Unfinished payment" in `wp csm emails`.
