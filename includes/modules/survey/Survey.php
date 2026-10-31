@@ -190,23 +190,27 @@ final class Survey {
 
 	private static function gets_profiles( $uid ) {
 		$from = (int) get_option( self::PROFILES_FROM, 0 );
-		return $from > 0
-			&& (int) get_user_meta( (int) $uid, self::BATCH_META, true ) >= $from
-			&& function_exists( 'cashaadi' ) && 'Male' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
+		if ( $from <= 0 || (int) get_user_meta( (int) $uid, self::BATCH_META, true ) < $from ) {
+			return false;
+		}
+		// Women in the reward test's profiles arm get profiles too (v1.91.20).
+		if ( 'profiles' === get_user_meta( (int) $uid, self::REWARD_META, true ) ) {
+			return true;
+		}
+		return function_exists( 'cashaadi' ) && 'Male' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
 	}
 
 	/**
-	 * Cash reward test (owner, 2026-10-31): from the profiles batch on, each
-	 * woman invited is given ₹300, ₹200 or ₹100 per part (survey, testimonial),
-	 * in equal shares, to see whether fewer rupees answer as often. Members
-	 * invited before keep ₹300. `wp csm survey batches` compares the arms.
+	 * Reward test for women (owner, 2026-10-31): from the profiles batch on,
+	 * each woman invited is given either ₹200 + ₹200 in CA Shaadi Cash or
+	 * 5 + 5 extra profiles, half each. Men get profiles; members invited
+	 * before keep ₹300. `wp csm survey batches` compares the arms.
 	 */
 	const REWARD_META = 'csm_survey_reward';
-	const REWARD_ARMS = array( 300, 200, 100 );
+	const REWARD_ARMS = array( 200, 'profiles' );
 
 	private static function cash_part( $uid ) {
-		$r = (int) get_user_meta( (int) $uid, self::REWARD_META, true );
-		return in_array( $r, self::REWARD_ARMS, true ) ? $r : self::CASH;
+		return 200 === (int) get_user_meta( (int) $uid, self::REWARD_META, true ) ? 200 : self::CASH;
 	}
 
 	/** The reward in words, for this member: [ both, survey part, testimonial part ]. */
@@ -240,7 +244,7 @@ final class Survey {
 		$batch = (int) get_option( self::BATCH_OPT, 1 );
 		update_user_meta( $uid, self::BATCH_META, $batch );
 		$from = (int) get_option( self::PROFILES_FROM, 0 );
-		if ( $from > 0 && $batch >= $from && ! self::gets_profiles( $uid ) ) {
+		if ( $from > 0 && $batch >= $from && function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( $uid ) ) ) {
 			$arm = self::REWARD_ARMS[ wp_rand( 0, count( self::REWARD_ARMS ) - 1 ) ];
 			update_user_meta( $uid, self::REWARD_META, $arm );
 			if ( function_exists( 'cashaadi' ) ) {
@@ -741,7 +745,8 @@ final class Survey {
 			$from = (int) get_option( self::PROFILES_FROM, 0 );
 			foreach ( $from ? $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND CAST( meta_value AS UNSIGNED ) >= %d", self::BATCH_META, $from ) ) : array() as $id ) {
 				$id  = (int) $id;
-				$key = self::gets_profiles( $id ) ? 'men: 5 + 5 profiles' : 'women: ₹' . self::cash_part( $id ) . ' + ₹' . self::cash_part( $id );
+				$fem = function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( $id ) );
+				$key = ( $fem ? 'women: ' : 'men: ' ) . ( self::gets_profiles( $id ) ? '5 + 5 profiles' : '₹' . self::cash_part( $id ) . ' + ₹' . self::cash_part( $id ) );
 				if ( ! isset( $arms[ $key ] ) ) {
 					$arms[ $key ] = array( 'reward' => $key, 'invited' => 0, 'saw popup' => 0, 'answered' => 0, 'testimonial' => 0 );
 				}
