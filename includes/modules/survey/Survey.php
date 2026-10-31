@@ -16,7 +16,7 @@
  * enough").
  *
  * Rewards, in CA Shaadi cash (the referral ledger, 1 cash = ₹1 at checkout):
- * 300 for answering; another 300 for a testimonial of 30+ characters with
+ * 300 for answering; another 300 for a testimonial of 30+ characters and 4+ words with
  * the permission switch on. Each once per member (the ledger's UNIQUE key).
  *
  * Batches (v1.90.77): nobody is invited until `wp csm survey invite <n>`;
@@ -60,7 +60,8 @@ final class Survey {
 	const HIDE_META  = 'csm_survey1_banner_off'; // closed the "continue" banner
 	const CASH       = 300;
 	const CASH_TESTI = 300;
-	const TESTI_MIN  = 60;   // characters, for the testimonial cash
+	const TESTI_MIN  = 30;   // characters, for the testimonial cash (was 60; owner, 2026-10-31)
+	const TESTI_WORDS = 4;   // words, likewise
 	const IMPROVE_MIN = 15;  // characters
 	const MIN_SECONDS = 40;  // faster than this is not reading the questions
 
@@ -76,7 +77,7 @@ final class Survey {
 	const FEATURES = array(
 		'more'     => 'More profiles every week',
 		'phone'    => 'See phone numbers',
-		'first'    => 'Your requests shown first',
+		'app'      => 'A phone app',
 		'viewers'  => 'See who viewed you',
 		'verified' => 'Only verified CAs',
 		'filters'  => 'More filters',
@@ -163,19 +164,33 @@ final class Survey {
 		return $days >= 2;
 	}
 
+	/**
+	 * Which places this member takes (owner, 2026-10-31: half of each batch
+	 * for women, who were 6 of 24 answers). A batch from before the split
+	 * keeps its shared places until they run out.
+	 */
+	private static function left_key( $uid ) {
+		if ( (int) get_option( self::LEFT_OPT, 0 ) > 0 ) {
+			return self::LEFT_OPT;
+		}
+		$f = function_exists( 'cashaadi' ) && 'Female' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
+		return self::LEFT_OPT . ( $f ? '_f' : '_m' );
+	}
+
 	/** Not invited yet, and could be: the popup takes one place from the batch. */
 	private static function invite( $uid ) {
 		global $wpdb;
 		$uid = (int) $uid;
 		if ( ! $uid || ! get_option( self::ON_OPT, 1 ) || user_can( $uid, 'manage_options' ) || get_user_meta( $uid, self::BATCH_META, true ) || get_user_meta( $uid, self::DONE_META, true )
-			|| (int) get_option( self::LEFT_OPT, 0 ) <= 0
+			|| (int) get_option( self::left_key( $uid ), 0 ) <= 0
 			|| ! self::engaged( $uid )
 			|| self::had_boost_deal( $uid ) ) {
 			return false;
 		}
 		// Take a place atomically, so two pages at once cannot overshoot the batch.
-		$took = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = option_value - 1 WHERE option_name = %s AND CAST( option_value AS SIGNED ) > 0", self::LEFT_OPT ) );
-		wp_cache_delete( self::LEFT_OPT, 'options' );
+		$key  = self::left_key( $uid );
+		$took = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = option_value - 1 WHERE option_name = %s AND CAST( option_value AS SIGNED ) > 0", $key ) );
+		wp_cache_delete( $key, 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 		if ( 1 !== (int) $took ) {
@@ -318,7 +333,7 @@ final class Survey {
 		}
 		$a['testimonial'] = mb_substr( trim( sanitize_textarea_field( (string) $request->get_param( 'testimonial' ) ) ), 0, 1000 );
 		$a['permission']  = $request->get_param( 'permission' ) ? 1 : 0;
-		if ( $a['permission'] && ! self::real_text( $a['testimonial'], self::TESTI_MIN, 8 ) ) {
+		if ( $a['permission'] && ! self::real_text( $a['testimonial'], self::TESTI_MIN, self::TESTI_WORDS ) ) {
 			$bad['testimonial'] = 'Please write at least ' . self::TESTI_MIN . ' characters (a sentence or two) to earn the extra ₹300.';
 		}
 		/*
@@ -429,7 +444,7 @@ final class Survey {
 		$t0 = time();
 		$o  = '<h1>Help improve CA Shaadi and earn ₹600</h1>';
 		$o .= '<div class="csm-sv-cash"><b>₹300</b> for the survey<br><b>₹300</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
-		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '" data-dk="' . esc_attr( 'csm_sv1_draft_' . substr( wp_hash( 'csm_sv_draft_' . get_current_user_id() ), 0, 16 ) ) . '">';
+		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '" data-words="' . (int) self::TESTI_WORDS . '" data-dk="' . esc_attr( 'csm_sv1_draft_' . substr( wp_hash( 'csm_sv_draft_' . get_current_user_id() ), 0, 16 ) ) . '">';
 
 		$o .= self::q( 'paid', 1, 'How much have you paid in total for matrimony services so far (sites, apps, bureaus or agents)?',
 			'<p class="csm-sv-hint">An approximate amount is fine. Write 0 if you never paid.</p>'
@@ -470,7 +485,7 @@ final class Survey {
 			 */
 			. 'var MIN=+f.getAttribute("data-min"),left=f.querySelector(".csm-sv-left");'
 			. 'function words(){var t=tx.value.trim();return t?t.split(/\\s+/).length:0;}'
-			. 'function full(){return tx.value.trim().length>=MIN&&words()>=8;}'
+			. 'function full(){return tx.value.trim().length>=MIN&&words()>=(+f.getAttribute("data-words"));}'
 			. 'function lbl(){return "Submit and earn ₹"+(pm.checked&&full()?"600":"300");}'
 			. 'function upd(){f.querySelector(".csm-sv-btn").textContent=lbl();var t=tx.value.trim(),m="";'
 			. 'if(t||pm.checked){if(!full()){var n=Math.max(0,MIN-t.length);m=n>0?"Write "+n+" more characters to earn the extra ₹300.":"Write a few more words to earn the extra ₹300.";}'
@@ -600,8 +615,11 @@ final class Survey {
 			}
 			$b = (int) get_option( self::BATCH_OPT, 0 ) + 1;
 			update_option( self::BATCH_OPT, $b, false );
-			update_option( self::LEFT_OPT, $n, false );
-			\WP_CLI::success( "Batch {$b}: the next {$n} eligible members who open the app will see the survey popup." );
+			// Half the places for women, half for men (owner, 2026-10-31).
+			update_option( self::LEFT_OPT, 0, false );
+			update_option( self::LEFT_OPT . '_f', (int) ceil( $n / 2 ), false );
+			update_option( self::LEFT_OPT . '_m', (int) floor( $n / 2 ), false );
+			\WP_CLI::success( sprintf( 'Batch %d: the next %d eligible women and %d eligible men who open the app will see the survey popup.', $b, ceil( $n / 2 ), floor( $n / 2 ) ) );
 			return;
 		}
 		if ( 'batches' === $action ) {
@@ -625,7 +643,7 @@ final class Survey {
 				$r['response'] = $r['invited'] ? round( 100 * $r['answered'] / $r['invited'] ) . '%' : '-';
 			}
 			unset( $r );
-			\WP_CLI::log( 'Places left in the current batch: ' . (int) get_option( self::LEFT_OPT, 0 ) . ' · total answers ' . (int) get_option( self::COUNT_OPT, 0 ) . ' of the cap ' . (int) get_option( self::MAX_OPT, 300 ) . '.' );
+			\WP_CLI::log( 'Places left in the current batch: ' . (int) get_option( self::LEFT_OPT, 0 ) . ' shared, ' . (int) get_option( self::LEFT_OPT . '_f', 0 ) . ' women, ' . (int) get_option( self::LEFT_OPT . '_m', 0 ) . ' men · total answers ' . (int) get_option( self::COUNT_OPT, 0 ) . ' of the cap ' . (int) get_option( self::MAX_OPT, 300 ) . '.' );
 			if ( $rows ) {
 				\WP_CLI\Utils\format_items( 'table', array_values( $rows ), array( 'batch', 'invited', 'saw popup', 'answered', 'testimonial', 'response' ) );
 			}
@@ -703,24 +721,7 @@ final class Survey {
 		 * orders before they answered) are taken off what they typed
 		 * (owner, v1.90.94).
 		 */
-		$ours = 0;
-		$hit  = 0;
-		foreach ( $all as $uid => &$m ) {
-			$cs = function_exists( 'wc_get_orders' ) ? array_sum( array_map( function ( $o ) use ( $m ) {
-				$t = $o->get_date_paid() ? $o->get_date_paid()->getTimestamp() : 0;
-				return $t && $t <= (int) ( $m['at'] ?? time() ) ? (float) $o->get_total() : 0;
-			}, wc_get_orders( array( 'customer_id' => $uid, 'status' => array( 'processing', 'completed' ), 'limit' => 20 ) ) ) ) : 0;
-			if ( $cs > 0 && (int) ( $m['paid'] ?? 0 ) > 0 ) {
-				$hit++;
-				$ours += min( $cs, (int) $m['paid'] );
-			}
-			$m['paid'] = max( 0, (int) ( $m['paid'] ?? 0 ) - (int) round( $cs ) );
-			// A rounded answer less our exact price leaves a few rupees (1,500 - 1,499 = 1): that is nothing.
-			if ( $m['paid'] < 500 ) {
-				$m['paid'] = 0;
-			}
-		}
-		unset( $m );
+		// Raw figures as typed (owner, 2026-10-31: no subtracting our own payments).
 		foreach ( $sets as $g => $_ ) {
 			$sets[ $g ] = array_intersect_key( $all, $sets[ $g ] );
 		}
@@ -744,7 +745,7 @@ final class Survey {
 			}
 			$table[] = $row;
 		}
-		\WP_CLI::log( "\nPaid to other matrimony services before (" . $hit . ' answers included CA Shaadi payments, ₹' . number_format( $ours ) . ' in all, taken off)' );
+		\WP_CLI::log( "\nPaid to matrimony services before (as typed)" );
 		\WP_CLI\Utils\format_items( 'table', $table, array_keys( $table[0] ) );
 
 		$share( 'Matter most (each picked 2, so columns add to 200%)', self::FEATURES, 'top' );
