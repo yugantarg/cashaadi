@@ -92,11 +92,12 @@ if ( ! function_exists( 'csm_refill_tray' ) ) {
 		 * Seen, so the new week brings new people, not the same ones again.
 		 * Premium keeps them and adds the new week's on top
 		 * (Discover::premium_carry_over); Gold pages through everyone. Boosted
-		 * bonus cards are left alone.
+		 * bonus cards, newcomers and cards back after a withdrawn request are
+		 * left alone.
 		 */
 		if ( class_exists( '\\CAShaadi\\Core\\Membership' ) && ! \CAShaadi\Core\Membership::is_premium( $viewer_id ) ) {
 			$wpdb->query( $wpdb->prepare(
-				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost', 'intro' )",
+				"DELETE FROM {$tray_tbl} WHERE viewer_id = %d AND status = 'pending' AND week_assigned NOT IN ( %s, 'boost', 'intro', 'restored' )",
 				$viewer_id, $week_id
 			) );
 		}

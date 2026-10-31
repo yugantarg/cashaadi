@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+
+## 1.90.98
+
+- A card put back in Discover after a withdrawn request now has its own label ('restored') instead of this week's. It no longer counts against the weekly allowance, so the exposure check stops reporting it as an extra draw (#2779 51/50). The weekly reset keeps it until the member acts on it.
 ## 1.90.97 — 2026-10-31
 
 - Daily watch: the Discover showings check looks at the last 2 days, not 7 (owner), so a fixed problem stops being reported after two days.

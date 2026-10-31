@@ -29,6 +29,8 @@ final class Withdrawn {
 		add_action( 'friends_friendship_withdrawn', array( __CLASS__, 'on_withdraw' ), 10, 2 );
 	}
 
+	const WEEK_ROW = 'restored';
+
 	public static function on_withdraw( $friendship_id, $friendship = null ) {
 		unset( $friendship_id );
 		if ( is_object( $friendship ) && ! empty( $friendship->initiator_user_id ) ) {
@@ -55,7 +57,10 @@ final class Withdrawn {
 		return (bool) $wpdb->insert( $tray, array(
 			'viewer_id'     => $viewer,
 			'profile_id'    => $profile,
-			'week_assigned' => cashaadi()->get_week_id(),
+			// Its own label, not this week's (v1.90.98): a card coming back is
+			// not a new draw, so it does not count against the weekly allowance
+			// (it showed as #2779 51/50 in the exposure check).
+			'week_assigned' => self::WEEK_ROW,
 			'status'        => 'pending',
 			'assigned_at'   => current_time( 'mysql' ),
 		) );
