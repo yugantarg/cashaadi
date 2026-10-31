@@ -55,3 +55,18 @@ if ( ! function_exists( 'csm_user_profile_is_complete' ) ) {
 		return true;
 	}
 }
+
+/*
+ * Apostrophes in names (audit, 2026-10-31). BuddyPress stores display names
+ * with the apostrophe as an entity, so the app's cards, which set text rather
+ * than HTML, showed "Vernon D&#039;cunha". Only quote entities are turned back
+ * into characters; anything else stays encoded, and every HTML output escapes
+ * the name again anyway.
+ */
+add_filter(
+	'bp_core_get_user_displayname',
+	function ( $name ) {
+		return is_string( $name ) ? str_replace( array( '&#039;', '&#39;', '&#8217;', '&quot;', '&#034;' ), array( "'", "'", '’', '"', '"' ), $name ) : $name;
+	},
+	99
+);

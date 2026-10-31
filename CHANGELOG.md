@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.90 — 2026-10-31
+
+- Fix (audit): names with an apostrophe showed as "D&#039;cunha" on Discover and Requests cards. Display names now turn quote entities back into characters (only quotes; HTML output still escapes the name).
+
 ## 1.90.89 — 2026-10-31
 
 - Login, lost-password and reset-password screens restyled in CA Shaadi's look (CSS only; WordPress's forms and checks unchanged; logo links to the home page).
