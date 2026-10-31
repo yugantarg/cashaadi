@@ -1,19 +1,20 @@
 <?php
 /**
- * A withdrawn request puts the profile back in the sender's Discover
- * (owner, 2026-10-28: a Premium member withdrew a request by accident and
- * could not find her again; "it should come back into Discover. That should
- * be the standard behaviour").
+ * A withdrawn request.
+ *
+ * The profile goes to the sender's More → Passed, marked "Request withdrawn"
+ * (owner, 2026-10-31: "it should go back in the more tab"), not back into
+ * Discover. From there "Send request" works as for any passed profile.
+ * Until v1.90.98 it went back into the Discover deck.
  *
  * BuddyPress deletes the request, but Discover still held the card as
- * 'liked', so it never came back and nothing could send the request again.
- * On withdrawal the card returns to the sender's deck, undecided, as part of
- * this week (it was theirs already, so it is not a free extra), and the old
- * like is cleared from csm_likes so a later like from the other side is not
- * taken for a match.
+ * 'liked'. On withdrawal the card is marked passed (keeping the week it was
+ * drawn in, so nothing new is counted against the allowance), the old like is
+ * cleared from csm_likes so a later like from the other side is not taken for
+ * a match, and the time is kept in user meta for the label.
  *
- * Not restored when the pair is blocked, or the profile is paused or held
- * for review: Discover would not show it then either.
+ * restore() puts a profile back in the deck, undecided; More → Passed's
+ * "Send request" uses it before sending the request.
  */
 
 namespace CAShaadi\Modules\Discover;
@@ -32,8 +33,31 @@ final class Withdrawn {
 	public static function on_withdraw( $friendship_id, $friendship = null ) {
 		unset( $friendship_id );
 		if ( is_object( $friendship ) && ! empty( $friendship->initiator_user_id ) ) {
-			self::restore( (int) $friendship->initiator_user_id, (int) $friendship->friend_user_id );
+			self::to_passed( (int) $friendship->initiator_user_id, (int) $friendship->friend_user_id );
 		}
+	}
+
+	const META = 'csm_withdrawn'; // profile id => time withdrawn
+
+	/** $viewer withdrew a request to $profile: into More → Passed. */
+	public static function to_passed( $viewer, $profile ) {
+		$viewer  = (int) $viewer;
+		$profile = (int) $profile;
+		if ( ! $viewer || ! $profile || $viewer === $profile ) {
+			return;
+		}
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'csm_likes', array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
+		$wpdb->update( $wpdb->prefix . 'csm_tray', array( 'status' => 'passed', 'acted_at' => current_time( 'mysql' ) ), array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
+		Seen::record_action( $viewer, $profile, 'passed' );
+		$map             = (array) get_user_meta( $viewer, self::META, true );
+		$map[ $profile ] = time();
+		update_user_meta( $viewer, self::META, $map );
+	}
+
+	/** Profile ids $viewer withdrew a request to. */
+	public static function ids( $viewer ) {
+		return array_map( 'intval', array_keys( array_filter( (array) get_user_meta( (int) $viewer, self::META, true ) ) ) );
 	}
 
 	/** Put $profile back, undecided, in $viewer's deck. True when it was. */
@@ -47,6 +71,11 @@ final class Withdrawn {
 			|| ( class_exists( '\\CAShaadi\\Modules\\Settings\\Deactivate' ) && \CAShaadi\Modules\Settings\Deactivate::is_paused( $profile ) )
 			|| ( class_exists( '\\CAShaadi\\Modules\\Photos\\PhotoHold' ) && \CAShaadi\Modules\Photos\PhotoHold::is_held( $profile ) ) ) {
 			return false;
+		}
+		$map = (array) get_user_meta( $viewer, self::META, true );
+		if ( isset( $map[ $profile ] ) ) { // no longer a withdrawn one
+			unset( $map[ $profile ] );
+			update_user_meta( $viewer, self::META, $map );
 		}
 		global $wpdb;
 		$tray = $wpdb->prefix . 'csm_tray';

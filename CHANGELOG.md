@@ -6,7 +6,7 @@ commit per version.
 
 ## 1.90.98
 
-- A card put back in Discover after a withdrawn request keeps the week it was first drawn in, instead of being added to this week. It no longer counts against the weekly allowance, so the exposure check stops reporting it as an extra draw (#2779 51/50). No new label. Free members' decks reset weekly, so for them it still comes back as this week's.
+- A withdrawn request now goes to More → Passed, labelled "Request withdrawn … ago", instead of back into Discover. "Send request" there works as for any passed profile. The card keeps the week it was drawn in, so nothing counts against the weekly allowance (the exposure check showed #2779 51/50).
 ## 1.90.97 — 2026-10-31
 
 - Daily watch: the Discover showings check looks at the last 2 days, not 7 (owner), so a fixed problem stops being reported after two days.

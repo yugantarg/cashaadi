@@ -419,9 +419,11 @@ final class RequestsScreen {
 				$passed_ids[] = array( $pid, (string) $r->acted_at );
 			}
 		}
+		// A withdrawn request is listed here too (owner, 2026-10-31), so labelled.
+		$withdrawn = class_exists( '\CAShaadi\Modules\Discover\Withdrawn' ) ? array_flip( \CAShaadi\Modules\Discover\Withdrawn::ids( $uid ) ) : array();
 		foreach ( array_slice( $passed_ids, 0, $premium ? $limit : 6 ) as $d ) {
 			$ts  = strtotime( $d[1] );
-			$ago = $ts ? sprintf( 'Passed %s ago', human_time_diff( $ts, $now ) ) : '';
+			$ago = $ts ? sprintf( isset( $withdrawn[ $d[0] ] ) ? 'Request withdrawn %s ago' : 'Passed %s ago', human_time_diff( $ts, $now ) ) : '';
 			if ( $premium ) {
 				$passed[] = array_merge( self::card( $d[0], $uid, 'passed' ), array( 'ago' => $ago ) );
 				continue;
