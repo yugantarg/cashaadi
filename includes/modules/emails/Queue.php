@@ -783,6 +783,8 @@ final class Queue {
 			 */
 			if ( $live && $bulk_cap > 0
 				&& ! self::is_transactional( (string) $r->email_type )
+				// The price notice is the exception (owner, 2026-10-31): it is time-bound.
+				&& PriceEmail::TYPE !== (string) $r->email_type
 				&& self::member_bulk_sent_today( (int) $r->user_id ) >= $bulk_cap ) {
 				$out['held']++;
 				continue;
