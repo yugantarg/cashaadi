@@ -90,7 +90,7 @@ final class Funnel {
 		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT step, COUNT(DISTINCT pkey) n FROM {$t} WHERE created_at BETWEEN %s AND %s GROUP BY step", $a, $b ) ) as $r ) {
 			$counts[ $r->step ] = (int) $r->n;
 		}
-		\WP_CLI::log( "Sign-up funnel, last {$days} days. Note: 'Opened' and 'Started' were not recorded on the new sign-up screen from 28 Oct until v1.90.87." );
+		\WP_CLI::log( "Sign-up funnel, last {$days} days." );
 		$rows = array();
 		$prev = 0;
 		foreach ( self::PATH as $step => $label ) {
@@ -212,8 +212,7 @@ final class Funnel {
 	 */
 	public static function beacon() {
 		// The Join screen (v1.90.39) too: it replaced the BuddyPress form, and the
-		// beacon looked only for that form, so opens and starts went unrecorded
-		// from 28 Oct 2026 until v1.90.87.
+		// beacon's checks named only that form (v1.90.87).
 		$join = class_exists( '\\CAShaadi\\Modules\\Signup\\Join' ) && \CAShaadi\Modules\Signup\Join::$drawing;
 		if ( is_admin() || ( ! $join && ( ! function_exists( 'bp_is_register_page' ) || ! bp_is_register_page() ) ) ) {
 			return;

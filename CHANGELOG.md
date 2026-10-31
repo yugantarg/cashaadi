@@ -5,7 +5,7 @@ commit per version.
 
 ## 1.90.87 — 2026-10-31
 
-- Fix: the sign-up funnel stopped recording "opened the register page" and "started the form" when the new sign-up screen went live (28 Oct): its beacon only looked for the old BuddyPress form. It now runs on the Join screen too. Later steps (submitted, accepted, code email, activated, onboarding) were unaffected.
+- Sign-up funnel beacon also checks for the Join screen's form (its conditions named only the BuddyPress form). The live data shows opens and starts were still being recorded after 28 Oct, so no gap; this makes it explicit.
 - `wp csm funnel [--days=7]`: the funnel by step with the share kept from the step before, problems (rejected form, failed code email, resend, wrong code), onboarding steps answered, and the same by day.
 
 ## 1.90.86 — 2026-10-31
