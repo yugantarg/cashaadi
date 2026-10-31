@@ -3,26 +3,6 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## 1.91.18
 
 - Weekly feedback card, after No: a line under "What should change?": "Tell us more. We will use this to show you more relevant profiles next week."
@@ -30,69 +10,88 @@ commit per version.
 ## 1.91.17
 
 - Survey: the extra-profiles reward for men applies only from the first batch invited after this version (option csm_survey_profiles_from, set by that `wp csm survey invite`). Men in earlier batches keep the cash reward they were shown.
+
 ## 1.91.16
 
 - Survey reward for men: extra profiles instead of CA Shaadi Cash, 5 for answering and 5 more for a testimonial with permission, drawn straight into his Discover as the next profiles in line by his own score, outside his weekly set. Every line of the survey (popup, Profile row, banner, form, button, hints, thank-you) says so for men; women still get ₹300 + ₹300. Event survey_profile per profile given.
 - "Were this week's profiles relevant to you?" card on the end-of-week Discover screen, from the batch of Monday 2 November: Yes, or No with what should change (age, location, community, religion, qualification, something else) and a line of text. Once a week per member, not for Gold. `wp csm deck-feedback [--weeks=1]`.
 - Survey: the thank-you button no longer runs past the right edge.
+
 ## 1.91.15
 
 - Survey results: "paid before" is shown as typed; CA Shaadi's own payments are no longer taken off.
 - Survey question 2: "Your requests shown first" (picked by nobody) is replaced by "A phone app".
 - Survey batches: `wp csm survey invite <n>` gives half the places to women and half to men. A batch from before keeps its shared places until they run out.
 - Survey testimonial: the extra ₹300 needs 30 characters and 4 words (was 60 and 8).
+
 ## 1.91.14
 
 - Three member testimonials with name and photo (Amarnath, Anil Nagaraj, Aishwarya; all gave permission in the survey) on the home page, above the questions, and on the pricing page, above the footnote. A member who removes their photo shows as an initial; a closed account is left out.
+
 ## 1.91.13
 
 - Unfinished payment email: a member whose order sat unpaid for 1 to 48 hours, who has not paid since and is not on that plan, gets one email (once ever, not in quiet hours) naming what they were buying, the OLDPRICE price while it runs for them, a link back to pricing, and what to do if money left their account. Shows as "Unfinished payment" in `wp csm emails`.
+
 ## 1.91.12
 
 - Survey: under the testimonial box, a live line says what is still missing for ₹600 ("Write 23 more characters…", "Turn on the switch below…", "You will earn ₹600"). The button reached ₹600 only at 60 characters and 8 words with the switch on, and nothing said so. The button now checks the 8 words too, as the server does.
+
 ## 1.91.11
 
 - Home page footer links Pricing and Contact us too, so every page a payment gateway checks is one click from the home page.
+
 ## 1.91.10
 
 - Speed: when a page of profile cards is built, the viewer's blocks, opened phone numbers, photo requests and friendships are each read in one query, and the cards' gallery photos in one go, instead of once per card. Viewed me loads its viewers' accounts in one query.
+
 ## 1.91.9
 
 - Speed: Requests loads the account rows of every sender, match, declined and passed member in one query per list, not one per member (121 single lookups for a member with 121 requests).
 - tools/speed.php also lists the most repeated queries.
+
 ## 1.91.8
 
 - Speed: profile cards for Discover and every Requests list load their members' profile fields, user meta and user rows in one go (Profile::prime), about 40 queries, instead of one query per field per card (3,606 queries for one Requests load on the live site).
 - tools/speed.php measures every call cold, and the Requests tabs one at a time.
+
 ## 1.91.7
 
 - Speed: Requests builds only the tab on screen (`?only=<tab>`) and just counts the others; switching tabs fetches that tab. Before, every load built up to 24 full cards for each of seven lists (about 150) to show one.
+
 ## 1.91.6
 
 - Requests lists: Show more fetches only that list's next 24 profiles and adds them below (`?tab=&offset=`), instead of reloading every list with 24 more and rebuilding every card from the top. It also loads by itself as the member scrolls near the end; the button stays as a fallback. Saved keeps the old way.
+
 ## 1.91.5
 
 - The "Deleted profile" tile shows only at the very end of a list, once Show more has loaded every profile.
+
 ## 1.91.4
 
 - Requests → More: the More tab's number is the total across Sent, Viewed me, Declined and Passed (it showed Viewed me only); each sub-tab shows its own number.
+
 ## 1.91.3
 
 - Speed: when no newcomer qualifies for a member, the newcomer check waits 30 minutes before scoring every newcomer again (it ran on every Discover open, and the 72-hour window tripled the newcomers). Bonus profiles are tried at most once per half hour per member, since each try is a full Discover draw.
+
 ## 1.91.2
 
 - The "Deleted profile" tile now sits at the end of the list's own grid, not apart under Show more.
+
 ## 1.91.1
 
 - `wp csm matches-why [--min-days=7]`: what makes a Discover request turn into a match. One row per request; markers about the person asked, the person asking and the pair; one marker at a time, then a logistic regression of all together. Read-only.
+
 ## 1.91.0
 
 - Newcomer introductions: among the newcomers a member qualifies for, the one introduced to the fewest people so far now wins (the score only breaks ties), and a new man's window is 72 hours instead of 24. Before, the best score won, so on 30 Oct 115 introductions went to 50 new men and about 74 got none.
 - Bonus profiles for active women (a test): a woman (not Gold) who decided on 3+ profiles in the last 7 days gets, when she opens Discover, the next men in line by her own score, up to 3 a day and 10 a week, outside her weekly allowance. Half the eligible women get them (csm_bonus_pct); `wp csm bonus` compares the two halves.
+
 ## 1.90.99
 
 - The email queue's per-run batch (was fixed at 25 an hour) is now the option csm_remail_batch, default 25, so a big send can go out faster.
 - At most 2 campaign emails per member per day (was 1), the price notice included (no exception).
+
 ## 1.90.98
 
 - A deleted (closed) account now shows as a "Deleted profile" stand-in where it was: in Matches, Received, Sent and Passed (a grey tile that does not open), in chats (name "Deleted profile", no photo or link), and on its profile link ("This member has deleted their profile."). Before, it just disappeared.
