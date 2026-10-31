@@ -92,6 +92,7 @@ final class Journey {
 			\WP_CLI::add_command( 'csm audience', __NAMESPACE__ . '\\AudienceCli' );
 			\WP_CLI::add_command( 'csm pricing', __NAMESPACE__ . '\\PricingCli' );
 			\WP_CLI::add_command( 'csm payers', __NAMESPACE__ . '\\PayersCli' );
+			\WP_CLI::add_command( 'csm matches-why', __NAMESPACE__ . '\\MatchesCli' );
 		}
 	}
 

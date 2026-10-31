@@ -6,6 +6,10 @@ commit per version.
 
 
 
+
+## 1.91.1
+
+- `wp csm matches-why [--min-days=7]`: what makes a Discover request turn into a match. One row per request; markers about the person asked, the person asking and the pair; one marker at a time, then a logistic regression of all together. Read-only.
 ## 1.91.0
 
 - Newcomer introductions: among the newcomers a member qualifies for, the one introduced to the fewest people so far now wins (the score only breaks ties), and a new man's window is 72 hours instead of 24. Before, the best score won, so on 30 Oct 115 introductions went to 50 new men and about 74 got none.

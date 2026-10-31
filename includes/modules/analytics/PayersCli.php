@@ -278,7 +278,7 @@ final class PayersCli {
 	 * L2-regularised logistic regression by Newton's method (the intercept is
 	 * not penalised). Returns the coefficients and their covariance.
 	 */
-	private static function logit( $X, $y, $lambda ) {
+	public static function logit( $X, $y, $lambda ) {
 		$n = count( $X );
 		$p = count( $X[0] );
 		$b = array_fill( 0, $p, 0.0 );
