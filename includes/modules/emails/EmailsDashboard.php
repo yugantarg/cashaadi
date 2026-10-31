@@ -53,6 +53,7 @@ final class EmailsDashboard {
 		'csm-intent-leads'   => 'Sales leads',
 		'csm-v2launch'       => 'Launch announcement (campaign)',
 		'csm-price-nov26'    => 'Premium price notice (campaign)',
+		'csm-checkout-nudge' => 'Unfinished payment',
 	);
 
 	public static function register() {

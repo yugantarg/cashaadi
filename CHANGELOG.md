@@ -18,6 +18,10 @@ commit per version.
 
 
 
+
+## 1.91.13
+
+- Unfinished payment email: a member whose order sat unpaid for 1 to 48 hours, who has not paid since and is not on that plan, gets one email (once ever, not in quiet hours) naming what they were buying, the OLDPRICE price while it runs for them, a link back to pricing, and what to do if money left their account. Shows as "Unfinished payment" in `wp csm emails`.
 ## 1.91.12
 
 - Survey: under the testimonial box, a live line says what is still missing for ₹600 ("Write 23 more characters…", "Turn on the switch below…", "You will earn ₹600"). The button reached ₹600 only at 60 characters and 8 words with the switch on, and nothing said so. The button now checks the 8 words too, as the server does.
