@@ -152,6 +152,11 @@ final class OldPrice {
 	 * from then, the code while this member's deadline lasts. Premium members
 	 * can use it for Gold too (the upgrade credit still applies). '' = none.
 	 */
+	/** "11:59 pm on Thursday, 5 November": a member's own deadline, in words. */
+	public static function until_text( $ts ) {
+		return wp_date( 'g:i a \o\n l, j F', (int) $ts );
+	}
+
 	public static function gold_note( $uid ) {
 		if ( $uid && Membership::is_gold( $uid ) ) {
 			return '';
@@ -160,7 +165,7 @@ final class OldPrice {
 			return 'Goes up to ₹' . number_format_i18n( self::GOLD_NEW ) . ' on 1 November';
 		}
 		if ( self::preview() || ( self::eligible( $uid ) && self::deadline( $uid, true ) > time() ) ) {
-			return '₹' . number_format_i18n( self::GOLD_OLD ) . ' with code OLDPRICE, for a limited time';
+			return '₹' . number_format_i18n( self::GOLD_OLD ) . ' with code OLDPRICE until ' . ( self::preview() ? 'your offer ends' : self::until_text( self::deadline( $uid, true ) ) );
 		}
 		return '';
 	}

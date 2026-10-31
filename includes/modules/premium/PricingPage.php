@@ -136,7 +136,7 @@ final class PricingPage {
 					'Keep all your saved profiles',
 				),
 				'price' => self::inr( $pp ) . ' / year',
-				'note'  => ! $op_end ? '' : ( $op_live ? self::inr( OldPrice::OLD_PRICE ) . ' with code OLDPRICE, for a limited time' : 'Goes up to ' . self::inr( OldPrice::NEW_PRICE ) . ' on 1 November' ),
+				'note'  => ! $op_end ? '' : ( $op_live ? self::inr( OldPrice::OLD_PRICE ) . ' with code OLDPRICE until ' . OldPrice::until_text( $op_end ) : 'Goes up to ' . self::inr( OldPrice::NEW_PRICE ) . ' on 1 November' ),
 				'btn'   => $is_p || $is_g ? '<span class="csm-pr-cur">Your plan</span>' : self::buy( Config::WC_PREMIUM_PRODUCT, 'Buy Premium', $anon, $op_live && $op_end && ! $anon ),
 			),
 		);
@@ -237,7 +237,11 @@ final class PricingPage {
 		$o   = '<div class="csm-pr-op" data-end="' . ( $live && $anon ? 0 : (int) $end ) . '" data-min="' . (int) $min . '" data-days="' . (int) OldPrice::DAYS . '"' . ( $anon ? '' : OldPrice::ev_attr( 'box' ) ) . '>';
 		$o  .= '<strong class="csm-pr-op-h">New prices from 1 November</strong>';
 		$o  .= '<p>' . $line . '</p>';
-		$o  .= '<p class="csm-pr-op-cd">' . ( $live ? 'Offer ends in ' : 'Prices go up in ' ) . '<span class="csm-pr-op-t"></span></p>';
+		// This member's own deadline (owner, 2026-10-31): 5 November for most, up to 3 days later for those who saw it late.
+		if ( $live && ! $anon && $end ) {
+			$o .= '<p class="csm-pr-op-when">Your offer ends at ' . esc_html( OldPrice::until_text( $end ) ) . '</p>';
+		}
+		$o  .= '<p class="csm-pr-op-cd">' . ( $live ? 'Time left: ' : 'Prices go up in ' ) . '<span class="csm-pr-op-t"></span></p>';
 		$o  .= '</div>';
 		$o  .= '<script>(function(){var b=document.querySelector(".csm-pr-op");if(!b){return;}'
 			. 'var IST=19800000,end=+b.dataset.end*1000;'

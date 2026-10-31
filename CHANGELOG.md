@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.91.22
+
+- Pricing page: OLDPRICE shows each member's own deadline instead of "for a limited time": the Premium and Gold card notes read "with code OLDPRICE until 11:59 pm on Thursday, 5 November" (later for members who first saw the offer after 2 November), and the notice above the cards says "Your offer ends at …" above the countdown ("Time left: …").
+
 ## 1.91.21
 
 - Testimonials: under each name, the member's job title and company from their profile ("Assistant Manager at EY"), only from fields they show to everyone; otherwise "CA Shaadi member".
