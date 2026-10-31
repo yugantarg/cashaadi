@@ -134,10 +134,10 @@ final class Seen {
 	 *   add_filter( 'csm_pass_reshow_days', fn() => 60 );
 	 *   add_filter( 'csm_ignore_reshow_days', fn() => 30 );
 	 *
-	 * A window of 0 (or less) makes it permanent. Both are 0 since v1.90.98
-	 * (owner, 2026-10-31: "nothing should go back into discover"): passed and
-	 * undecided profiles are found in More → Passed instead, which is Premium.
-	 * Gold still pages through everyone it has not decided on.
+	 * A window of 0 (or less) makes it permanent. Since v1.90.98 (owner,
+	 * 2026-10-31): a pass is permanent (the profile is in More → Passed), and
+	 * an ignored profile goes back into the pool 30 days after it was last
+	 * shown, to compete on points like any other. Gold is never held back.
 	 *
 	 * FAILS CLOSED. If the table is missing this returns FALSE, not an empty
 	 * array, and the refill aborts. An empty array would read as "this member has
@@ -159,14 +159,14 @@ final class Seen {
 		 * Who comes back, and when (owner, 2026-10-26):
 		 *   sent a request (liked)  never
 		 *   passed                  never (was 30 days; v1.90.98)
-		 *   ignored (shown, never   never (was 15 days)
+		 *   ignored (shown, never   30 days after last shown (was 15)
 		 *   decided)
 		 * Gold: ignored profiles are never held back (they see everyone).
 		 * Profiles still in the tray (pending or saved) are kept out by the
 		 * engine itself. Cutoffs in PHP: the columns are written in IST.
 		 */
 		$pass_days   = (int) apply_filters( 'csm_pass_reshow_days', 0 );
-		$ignore_days = (int) apply_filters( 'csm_ignore_reshow_days', 0 );
+		$ignore_days = (int) apply_filters( 'csm_ignore_reshow_days', 30 );
 		$gold        = class_exists( '\\CAShaadi\\Core\\Membership' ) && \CAShaadi\Core\Membership::is_gold( (int) $viewer_id );
 		$pass_cut    = gmdate( 'Y-m-d H:i:s', $now - max( 0, $pass_days ) * DAY_IN_SECONDS );
 		$ignore_cut  = gmdate( 'Y-m-d H:i:s', $now - max( 0, $ignore_days ) * DAY_IN_SECONDS );

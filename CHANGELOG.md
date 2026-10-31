@@ -6,10 +6,11 @@ commit per version.
 
 ## 1.90.98
 
-- Nothing goes back into Discover (owner, 2026-10-31). Passed profiles are no longer shown again after 30 days, and undecided ones after 15 days, except for Gold, whose undecided profiles still come back in Discover (and are not listed in More → Passed). What goes to More → Passed stays there.
-- More → Passed now lists passed profiles, profiles shown and never decided ("Not decided, shown … ago") and withdrawn requests ("Request withdrawn … ago"). Premium and Gold see them in full and can send a request; free members see them blurred.
+- Passed profiles never go back into Discover (they were shown again after 30 days); they stay in More → Passed. Profiles shown and never decided go back into the pool 30 days after they were last shown (was 15), and compete on points like any other. Gold is unchanged.
+- More → Passed also lists withdrawn requests ("Request withdrawn … ago"). Premium and Gold see them in full and can send a request; free members see them blurred.
 - The daily watch now flags any passed profile shown again in Discover (it only checked within 30 days).
 - A withdrawn request goes to More → Passed instead of back into Discover. "Send request" from Passed keeps the week the card was first drawn in, so it never counts against the weekly allowance (the exposure check showed #2779 51/50).
+
 ## 1.90.97 — 2026-10-31
 
 - Daily watch: the Discover showings check looks at the last 2 days, not 7 (owner), so a fixed problem stops being reported after two days.
