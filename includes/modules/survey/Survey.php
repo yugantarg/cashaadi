@@ -496,6 +496,55 @@ final class Survey {
 		return $o;
 	}
 
+	/**
+	 * Which answers came in far faster than their length allows.
+	 *
+	 * Expected seconds = base + characters typed / rate. The rate is the
+	 * median of (seconds over the median time) per extra character among
+	 * answers that typed more than the median, bounded to 1-6 characters a
+	 * second (6 is fast thumb typing; 3 is the fallback with few answers).
+	 * The base is the median of seconds minus typing time.
+	 *
+	 * @return array{base:int,rate:float,fast:array<int,string>}
+	 */
+	private static function speed_check( array $all ) {
+		$rows = array();
+		foreach ( $all as $uid => $m ) {
+			if ( isset( $m['seconds'] ) && (int) $m['seconds'] > 0 ) {
+				$rows[ $uid ] = array( (int) $m['seconds'], mb_strlen( (string) ( $m['improve'] ?? '' ) ) + mb_strlen( (string) ( $m['testimonial'] ?? '' ) ) );
+			}
+		}
+		$med = function ( $v ) {
+			sort( $v );
+			$n = count( $v );
+			return $n ? ( $n % 2 ? $v[ intdiv( $n, 2 ) ] : ( $v[ $n / 2 - 1 ] + $v[ $n / 2 ] ) / 2 ) : 0;
+		};
+		$rate = 3.0;
+		if ( count( $rows ) >= 8 ) {
+			$ms = $med( array_column( $rows, 0 ) );
+			$mc = $med( array_column( $rows, 1 ) );
+			$r  = array();
+			foreach ( $rows as $x ) {
+				if ( $x[1] > $mc && $x[0] > $ms ) {
+					$r[] = ( $x[1] - $mc ) / ( $x[0] - $ms );
+				}
+			}
+			if ( $r ) {
+				$rate = max( 1.0, min( 6.0, (float) $med( $r ) ) );
+			}
+		}
+		$base = (int) round( $med( array_map( function ( $x ) use ( $rate ) { return $x[0] - $x[1] / $rate; }, $rows ) ) );
+		$base = max( (int) self::MIN_SECONDS, $base );
+		$fast = array();
+		foreach ( $rows as $uid => $x ) {
+			$exp = $base + $x[1] / $rate;
+			if ( $x[0] < 0.5 * $exp ) {
+				$fast[ $uid ] = sprintf( '(%ds for %d characters; expected about %ds)', $x[0], $x[1], round( $exp ) );
+			}
+		}
+		return array( 'base' => $base, 'rate' => $rate, 'fast' => $fast );
+	}
+
 	private static function css() {
 		return '<style>.csm-sv{max-width:640px;margin:0 auto;padding:16px 16px 40px;color:#16212b}.csm-sv h1{font-size:24px;margin:8px 0 10px}'
 			. '.csm-sv-cash{background:#fffaf0;border:1px solid #f0d58c;border-radius:12px;padding:12px 14px;margin:0 0 16px;line-height:1.5}.csm-sv-cash small{color:#5c6a76}'
@@ -578,10 +627,24 @@ final class Survey {
 				$all[ (int) $r->actor_id ] = $m;
 			}
 		}
-		// Careless = every feature rated the same (earlier version of question 2).
-		// Answering quickly no longer counts (owner, v1.90.94).
+		/*
+		 * Careless (owner, v1.90.95): every feature rated the same (earlier
+		 * version of question 2), or answered much faster than expected for
+		 * the amount written. Expected time = the typical time for the fixed
+		 * questions + the characters typed at a typing speed; both learned
+		 * from the answers themselves (median), so it follows real members.
+		 * "Much faster" = under half the expected time.
+		 */
+		$speed = self::speed_check( $all );
 		$flagged = array_filter( $all, function ( $m ) { return in_array( 'same_ratings', (array) ( $m['flags'] ?? array() ), true ); } );
-		\WP_CLI::log( count( $all ) . ' answers (cap ' . (int) get_option( self::MAX_OPT, 300 ) . ', survey ' . ( get_option( self::ON_OPT, 1 ) ? 'on' : 'off' ) . '); ' . count( $flagged ) . ' flagged as careless (every feature rated the same)' . ( empty( $assoc['all'] ) ? ', left out below (--all to include).' : ', included.' ) );
+		foreach ( $speed['fast'] as $uid => $why ) {
+			$flagged[ $uid ] = $all[ $uid ];
+		}
+		\WP_CLI::log( count( $all ) . ' answers (cap ' . (int) get_option( self::MAX_OPT, 300 ) . ', survey ' . ( get_option( self::ON_OPT, 1 ) ? 'on' : 'off' ) . '); ' . count( $flagged ) . ' flagged as careless' . ( empty( $assoc['all'] ) ? ', left out below (--all to include).' : ', included.' ) );
+		\WP_CLI::log( sprintf( '  Typical time without typing: %ds; typing speed: %.1f characters a second. Too fast = under half the expected time.', $speed['base'], $speed['rate'] ) );
+		foreach ( $speed['fast'] as $uid => $why ) {
+			\WP_CLI::log( '  too fast: member ' . $uid . ' ' . $why );
+		}
 		if ( empty( $assoc['all'] ) ) {
 			$all = array_diff_key( $all, $flagged );
 		}

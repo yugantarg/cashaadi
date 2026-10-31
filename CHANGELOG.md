@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.95 — 2026-10-31
+
+- Survey results: answering too fast counts as careless again, judged statistically (owner). Expected time = the typical time for the fixed questions + the characters typed at a typing speed, both learned from the answers (medians; typing speed bounded to 1–6 characters a second, 3 until there are 8 answers). An answer under half its expected time is flagged; `wp csm survey` prints the typical time, the typing speed and each flagged answer with its time and expected time.
+
 ## 1.90.94 — 2026-10-31
 
 - Survey (owner): question 2 is now "Which 2 of these matter most to you?" (pick 2, shuffled) instead of rating every feature 1–5, which came back 4–5 for everything. Only "every feature rated the same" counts as careless; answering in under 2 minutes no longer does. `wp csm survey` takes each member's own CA Shaadi payments (paid before they answered) off the amount they typed for question 1, so it shows what they paid to other services, and says how much was taken off; the earlier 1–5 ratings are still shown separately.
