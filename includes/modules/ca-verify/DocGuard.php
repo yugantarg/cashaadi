@@ -31,18 +31,35 @@ final class DocGuard {
 		add_action( 'admin_post_csm_doc', array( __CLASS__, 'serve' ) );
 	}
 
-	/** Deny-all .htaccess in each document folder (and the folder, if missing). */
+	/**
+	 * The .htaccess in each document folder (and the folder, if missing).
+	 *
+	 * v2 (owner, 2026-10-31: a direct link on a member's wp-admin profile gave
+	 * 403): a direct link to a document is sent to the gated link instead of
+	 * refused, so it opens for an administrator or the member and is still
+	 * refused for anyone else (serve() checks). Nothing in these folders is
+	 * ever served directly. Without mod_rewrite: deny all, as before.
+	 */
+	const HTACCESS_VER = 'csm-docguard-v2';
+
 	public static function protect() {
-		$up = wp_get_upload_dir();
+		$up   = wp_get_upload_dir();
+		$gate = (string) wp_parse_url( admin_url( 'admin-post.php' ), PHP_URL_PATH );
 		foreach ( self::DIRS as $d ) {
 			$dir  = trailingslashit( $up['basedir'] ) . $d;
 			$file = $dir . '/.htaccess';
-			if ( file_exists( $file ) ) {
+			if ( file_exists( $file ) && false !== strpos( (string) file_get_contents( $file ), self::HTACCESS_VER ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				continue;
 			}
 			wp_mkdir_p( $dir );
+			$to   = 'bpxcftr-profile-uploads' === $d
+				? 'RewriteRule ^([0-9]+)/ ' . $gate . '?action=csm_doc&uid=$1&f=doc [R=302,L]'
+				: 'RewriteRule ^([0-9]+)/(.+)$ ' . $gate . '?action=csm_doc&uid=$1&f=$2 [R=302,L,B]';
+			$body = '# ' . self::HTACCESS_VER . ": ICAI documents, served only through admin-post.php?action=csm_doc (CA Shaadi).\n"
+				. "<IfModule mod_rewrite.c>\nRewriteEngine On\n" . $to . "\nRewriteRule ^ - [F]\n</IfModule>\n"
+				. "<IfModule !mod_rewrite.c>\n<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tOrder allow,deny\n\tDeny from all\n</IfModule>\n</IfModule>\n";
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			@file_put_contents( $file, "# ICAI documents: served only through admin-post.php?action=csm_doc (CA Shaadi).\n<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tOrder allow,deny\n\tDeny from all\n</IfModule>\n" );
+			@file_put_contents( $file, $body );
 		}
 	}
 

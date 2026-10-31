@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.91.25
+
+- ICAI documents: a direct link to a document (as on a member's wp-admin profile, or in old emails) is now sent to the gated link instead of giving 403, so it opens for an administrator or the member and is still refused for everyone else. Nothing in the document folders is served directly. The folders' .htaccess is rewritten on the next wp-admin page load.
+
 ## 1.91.24
 
 - Admin: the dashboard is split in two. CA Shaadi → Key numbers (activity, sales, email alert; the menu's own page) and CA Shaadi → Members (the member list, its search, filters and sorting). Other screens stay under the same menu.
