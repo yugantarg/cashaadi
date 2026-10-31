@@ -276,6 +276,8 @@ final class RequestsScreen {
 			$rids = \CAShaadi\Modules\Discover\Filters::keep( $uid, $rids );
 		}
 
+		// Account rows in one query, not one per sender (v1.91.9).
+		cache_users( array_map( 'intval', $rids ) );
 		$rids = array_values( array_filter( array_map( 'intval', $rids ), function ( $r ) { return $r && get_userdata( $r ); } ) );
 		// Gold senders first (v1.87.0), decided on ids so only the page shown is built.
 		$gold_ids = class_exists( '\\CAShaadi\\Modules\\Premium\\Gold' ) ? \CAShaadi\Modules\Premium\Gold::ids_among( $rids ) : array();
@@ -342,6 +344,7 @@ final class RequestsScreen {
 		}
 
 		$match_ids = array();
+		cache_users( array_map( 'intval', $mids ) );
 		foreach ( $mids as $mid ) {
 			$mid = (int) $mid;
 			if ( ! $mid || ! get_userdata( $mid ) ) {
@@ -422,6 +425,7 @@ final class RequestsScreen {
 			"SELECT rejected_id, created_at FROM {$wpdb->prefix}csm_rejections WHERE rejecter_id = %d AND source = 'request' ORDER BY created_at DESC LIMIT 500",
 			$uid
 		) );
+		cache_users( array_map( 'intval', wp_list_pluck( (array) $rej, 'rejected_id' ) ) );
 		foreach ( (array) $rej as $r ) {
 			$did = (int) $r->rejected_id;
 			if ( ! $did || ! get_userdata( $did ) ) {
@@ -467,6 +471,7 @@ final class RequestsScreen {
 				 ORDER BY s.acted_at DESC LIMIT 500",
 				$uid
 			) );
+			cache_users( array_map( 'intval', wp_list_pluck( (array) $prows, 'profile_id' ) ) );
 			foreach ( (array) $prows as $r ) {
 				$pid = (int) $r->profile_id;
 				if ( $pid && self::is_gone( $pid ) ) {

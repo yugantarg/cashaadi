@@ -14,6 +14,11 @@ commit per version.
 
 
 
+
+## 1.91.9
+
+- Speed: Requests loads the account rows of every sender, match, declined and passed member in one query per list, not one per member (121 single lookups for a member with 121 requests).
+- tools/speed.php also lists the most repeated queries.
 ## 1.91.8
 
 - Speed: profile cards for Discover and every Requests list load their members' profile fields, user meta and user rows in one go (Profile::prime), about 40 queries, instead of one query per field per card (3,606 queries for one Requests load on the live site).
