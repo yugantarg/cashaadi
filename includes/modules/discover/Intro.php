@@ -14,6 +14,8 @@
  *     and passing the viewer's own filters;
  *   - each newcomer is introduced to at most 20 women (a new man) or 40 men
  *     (a new woman): enough for a first week, not a free boost;
+ *   - fewest introductions first, the score breaking ties; a new man's
+ *     window is 72 hours, a new woman's 24 (owner, 2026-10-31);
  *   - over 24 hours, like a boost (owner, 2026-10-27): from the moment the
  *     newcomer is first eligible, their Discover score for this viewer is
  *     multiplied by the boost's own steps (1.3x, 2x at 6 hours, 5x at 12)
@@ -40,11 +42,16 @@ final class Intro {
 	const WEEK      = 'csm_intro_week';  // viewer: array( week id, count )
 	const REACHED   = 'csm_intro_reach'; // newcomer: how many it was introduced to
 	const START     = 'csm_intro_start'; // newcomer: when their 24 hours began
-	const HOURS     = 24;
+	const HOURS     = 24;                // a new woman's window
+	const HOURS_MAN = 72;                // a new man's window (owner, 2026-10-31)
 	const PER_WEEK  = 3;
 	const NEW_DAYS  = 7;
 	const CAP_MALE  = 20;                // a new man, introduced to this many women
 	const CAP_WOMAN = 40;                // a new woman, to this many men
+
+	public static function hours_for( $uid ) {
+		return 'Female' === trim( (string) cashaadi()->get_gender( (int) $uid ) ) ? self::HOURS : self::HOURS_MAN;
+	}
 
 	public static function cap_for( $uid ) {
 		return 'Female' === trim( (string) cashaadi()->get_gender( (int) $uid ) ) ? self::CAP_WOMAN : self::CAP_MALE;
@@ -102,7 +109,7 @@ final class Intro {
 				$start = time();
 				update_user_meta( $n, self::START, $start );
 			}
-			if ( time() - $start > self::HOURS * HOUR_IN_SECONDS ) {
+			if ( time() - $start > self::hours_for( $n ) * HOUR_IN_SECONDS ) {
 				continue;
 			}
 			if ( ! isset( $exclude[ $n ] ) && (int) get_user_meta( $n, self::REACHED, true ) < self::cap_for( $n ) ) {
@@ -120,17 +127,26 @@ final class Intro {
 			"SELECT MAX( score ) FROM {$wpdb->prefix}csm_impressions WHERE viewer_id = %d AND served_at > %s",
 			$viewer, wp_date( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS )
 		) );
-		$pick = 0;
-		$best = -1;
-		$why  = array();
+		/*
+		 * Fewest introductions first (owner, 2026-10-31): among the newcomers
+		 * this viewer qualifies for, the one introduced to the fewest people so
+		 * far wins; the score only breaks ties. Before, the best score won, so
+		 * a few new men took many introductions and most got none.
+		 */
+		$pick  = 0;
+		$best  = -1;
+		$fewest = PHP_INT_MAX;
+		$why   = array();
 		foreach ( $cands as $n ) {
 			$hours = ( time() - (int) get_user_meta( $n, self::START, true ) ) / HOUR_IN_SECONDS;
 			$mult  = \CAShaadi\Modules\Premium\Spotlight::multiplier( $hours );
 			$raw   = \CAShaadi\Modules\Premium\Spotlight::score_for( $viewer, $n );
 			$score = $raw * $mult;
-			if ( $score >= $bar && $score > $best ) {
-				$best = $score;
-				$pick = $n;
+			$got   = (int) get_user_meta( $n, self::REACHED, true );
+			if ( $score >= $bar && ( $got < $fewest || ( $got === $fewest && $score > $best ) ) ) {
+				$fewest = $got;
+				$best   = $score;
+				$pick   = $n;
 				$why  = array( 'hour' => round( $hours, 1 ), 'mult' => round( $mult, 2 ), 'score' => round( $raw, 2 ), 'bar' => round( $bar, 2 ) );
 			}
 		}

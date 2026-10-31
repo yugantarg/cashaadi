@@ -92,9 +92,9 @@ final class Exposure {
 		}
 
 		// Intros outside the newcomer's 24 hours.
-		$late = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$ev} WHERE event_type = 'intro_shown' AND created_at >= %s AND CAST( JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.hour' ) ) AS DECIMAL(6,1) ) > %d", $since, Intro::HOURS ) );
+		$late = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$ev} WHERE event_type = 'intro_shown' AND created_at >= %s AND CAST( JSON_UNQUOTE( JSON_EXTRACT( metadata, '$.hour' ) ) AS DECIMAL(6,1) ) > %d", $since, Intro::HOURS_MAN ) );
 		if ( $late ) {
-			$rules[] = "{$late} intro(s) were shown more than " . Intro::HOURS . ' hours into the newcomer\'s window.';
+			$rules[] = "{$late} intro(s) were shown more than " . Intro::HOURS_MAN . ' hours into the newcomer\'s window.';
 		}
 
 		// Per viewer: more than one boost or intro a day; more than 3 intros a week.
@@ -262,7 +262,7 @@ final class Exposure {
 
 		// Newcomers whose 24 hours are over, shown to fewer than NEW_MIN people.
 		$low = array();
-		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT user_id, meta_value t FROM {$wpdb->usermeta} WHERE meta_key = %s AND CAST( meta_value AS UNSIGNED ) BETWEEN %d AND %d", Intro::START, time() - $days * DAY_IN_SECONDS, time() - Intro::HOURS * HOUR_IN_SECONDS ) ) as $r ) {
+		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT user_id, meta_value t FROM {$wpdb->usermeta} WHERE meta_key = %s AND CAST( meta_value AS UNSIGNED ) BETWEEN %d AND %d", Intro::START, time() - $days * DAY_IN_SECONDS, time() - Intro::HOURS_MAN * HOUR_IN_SECONDS ) ) as $r ) {
 			$c = $count[ (int) $r->user_id ] ?? 0;
 			if ( $c < self::NEW_MIN ) {
 				$low[] = '#' . $r->user_id . ' ' . $c;
