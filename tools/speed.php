@@ -11,9 +11,18 @@ if ( ! defined( 'SAVEQUERIES' ) ) {
 	define( 'SAVEQUERIES', true );
 }
 $email = $args[0] ?? '';
-$u     = $email ? get_user_by( 'email', $email ) : false;
+$u     = ( $email && false !== strpos( $email, '@' ) ) ? get_user_by( 'email', $email ) : false;
 if ( ! $u ) {
-	WP_CLI::error( 'Usage: wp eval-file tools/speed.php <member email>' );
+	// No email given: the Premium member with the most requests received, a heavy case.
+	foreach ( (array) $wpdb->get_col( "SELECT profile_id FROM {$wpdb->prefix}csm_seen WHERE action = 'liked' GROUP BY profile_id ORDER BY COUNT(*) DESC LIMIT 50" ) as $id ) {
+		if ( \CAShaadi\Core\Membership::is_premium( (int) $id ) && ! user_can( (int) $id, 'manage_options' ) ) {
+			$u = get_userdata( (int) $id );
+			break;
+		}
+	}
+}
+if ( ! $u ) {
+	WP_CLI::error( 'Usage: wp eval-file tools/speed.php [member email]' );
 }
 wp_set_current_user( $u->ID );
 
