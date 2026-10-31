@@ -106,7 +106,7 @@ final class Monitor {
 			$notice = 'Settings saved.';
 
 		} elseif ( 'replan' === $action ) {
-			$r      = Queue::replan( 1000 );
+			$r      = Queue::replan( -1 );
 			$notice = sprintf( 'Re-planned. %d members scanned, %d newly scheduled, %d deferred, %d cleared. No email was sent.', $r['scanned'], $r['queued'], $r['deferred'], $r['cleared'] );
 
 		} elseif ( 'runnow' === $action ) {

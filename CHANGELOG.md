@@ -3,6 +3,14 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.93 — 2026-10-31
+
+- Profile completion reminders go to every incomplete member, not only those who joined in the last 30 days (owner). The planner now walks every member (it stopped at the newest 1,000), reminders parked as "older than the window" are planned again, and the window holds back only activation reminders. Sending stays within the daily and hourly caps, so the backlog goes out over several days.
+
+## 1.90.92 — 2026-10-31 (reverted)
+
+- A "complete profile" bonus in Discover's ranking was added and reverted the same day: the owner's approved point system is not changed without approval.
+
 ## 1.90.91 — 2026-10-31
 
 - Profile completion reminders say exactly what is missing (owner): a line at the top, "Still missing on your profile: a profile photo, your qualification and your mother tongue.", one sentence on why, and a button (Add my photo / Complete my profile). Subject: "Add a photo to your CA Shaadi profile" when only the photo is missing, otherwise "A few details are missing from your CA Shaadi profile". The rest of the email (the template in WordPress → Emails) is unchanged.

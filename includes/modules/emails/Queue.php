@@ -457,7 +457,11 @@ final class Queue {
 					}
 				}
 
-				if ( $row && 'waiting' !== $row->status ) {
+				// Completion reminders go to every incomplete member, however old
+				// the account (owner, v1.90.93): rows parked as "older than the
+				// window" are planned again.
+				$stale = $row && 'deferred' === $row->status && 'completion' === $rule['family'];
+				if ( $row && 'waiting' !== $row->status && ! $stale ) {
 					continue;
 				}
 
@@ -465,7 +469,9 @@ final class Queue {
 				$status = 'pending';
 				$note   = $label;
 
-				if ( '' === $follows && $window > 0 && $due < ( $now - ( $window * DAY_IN_SECONDS ) ) ) {
+				// The window now holds back only activation reminders (an old,
+				// never-verified signup is usually a dead address).
+				if ( '' === $follows && 'activation' === $rule['family'] && $window > 0 && $due < ( $now - ( $window * DAY_IN_SECONDS ) ) ) {
 					$status = 'deferred';
 					$note   = 'older than the ' . $window . '-day window';
 				}
@@ -863,7 +869,7 @@ final class Queue {
 		$last = get_option( 'csm_remail_last_plan' );
 		$age  = ( is_array( $last ) && ! empty( $last['at'] ) ) ? ( time() - strtotime( get_gmt_from_date( $last['at'] ) . ' +0000' ) ) : PHP_INT_MAX;
 		if ( $age > ( 6 * HOUR_IN_SECONDS ) ) {
-			self::replan( 1000 );
+			self::replan( -1 ); // every member, not just the newest 1,000 (v1.90.93)
 		}
 		self::process();
 	}
