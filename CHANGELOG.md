@@ -10,6 +10,10 @@ commit per version.
 
 
 
+
+## 1.91.5
+
+- The "Deleted profile" tile shows only at the very end of a list, once Show more has loaded every profile.
 ## 1.91.4
 
 - Requests → More: the More tab's number is the total across Sent, Viewed me, Declined and Passed (it showed Viewed me only); each sub-tab shows its own number.

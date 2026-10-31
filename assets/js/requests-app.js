@@ -236,6 +236,11 @@
 	function addGone() {
 		var n = goneN( tab );
 		if ( ! n ) { return; }
+		// Only once every profile is on screen: after the last page, not before
+		// Show more (owner, 2026-10-31). Free members' Sent and Passed have no pages.
+		var tot = { received: 'receivedTotal', matches: 'matchesTotal', sent: 'sentTotal', passed: 'passedTotal' }[ tab ];
+		var paged = 'received' === tab || 'matches' === tab || data.isPremium;
+		if ( paged && tot && ( data[ tab ] || [] ).length < ( data[ tot ] || 0 ) ) { return; }
 		// Inside the list's own grid, as its last tiles; a grid of their own only
 		// when the list has none (v1.91.1: it showed apart, under Show more).
 		var grids = root.querySelectorAll( '.csm-d-grid' );
