@@ -195,12 +195,27 @@ final class Survey {
 			&& function_exists( 'cashaadi' ) && 'Male' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
 	}
 
+	/**
+	 * Cash reward test (owner, 2026-10-31): from the profiles batch on, each
+	 * woman invited is given ₹300, ₹200 or ₹100 per part (survey, testimonial),
+	 * in equal shares, to see whether fewer rupees answer as often. Members
+	 * invited before keep ₹300. `wp csm survey batches` compares the arms.
+	 */
+	const REWARD_META = 'csm_survey_reward';
+	const REWARD_ARMS = array( 300, 200, 100 );
+
+	private static function cash_part( $uid ) {
+		$r = (int) get_user_meta( (int) $uid, self::REWARD_META, true );
+		return in_array( $r, self::REWARD_ARMS, true ) ? $r : self::CASH;
+	}
+
 	/** The reward in words, for this member: [ both, survey part, testimonial part ]. */
 	private static function words( $uid ) {
 		if ( self::gets_profiles( $uid ) ) {
 			return array( ( self::PROFILES + self::PROFILES_TESTI ) . ' extra profiles', self::PROFILES . ' extra profiles', self::PROFILES_TESTI . ' more profiles' );
 		}
-		return array( '₹' . ( self::CASH + self::CASH_TESTI ), '₹' . self::CASH, 'another ₹' . self::CASH_TESTI );
+		$c = self::cash_part( $uid );
+		return array( '₹' . ( 2 * $c ), '₹' . $c, 'another ₹' . $c );
 	}
 
 	/** Not invited yet, and could be: the popup takes one place from the batch. */
@@ -222,7 +237,16 @@ final class Survey {
 		if ( 1 !== (int) $took ) {
 			return false;
 		}
-		update_user_meta( $uid, self::BATCH_META, (int) get_option( self::BATCH_OPT, 1 ) );
+		$batch = (int) get_option( self::BATCH_OPT, 1 );
+		update_user_meta( $uid, self::BATCH_META, $batch );
+		$from = (int) get_option( self::PROFILES_FROM, 0 );
+		if ( $from > 0 && $batch >= $from && ! self::gets_profiles( $uid ) ) {
+			$arm = self::REWARD_ARMS[ wp_rand( 0, count( self::REWARD_ARMS ) - 1 ) ];
+			update_user_meta( $uid, self::REWARD_META, $arm );
+			if ( function_exists( 'cashaadi' ) ) {
+				cashaadi()->log_event( 'survey_reward_arm', $uid, 0, array( 'reward' => $arm, 'batch' => $batch ) );
+			}
+		}
 		return true;
 	}
 
@@ -240,7 +264,7 @@ final class Survey {
 			'title' => 'Help improve CA Shaadi and ' . ( $men ? 'get ' : 'earn ' ) . $w[0],
 			'text'  => $men
 				? self::PROFILES . " extra profiles for answering a short survey\n" . self::PROFILES_TESTI . " more for a testimonial\n\nThey are added to your Discover straight away, on top of your weekly profiles."
-				: "₹300 for answering a short survey\n₹300 for a testimonial\n\nYou receive it as CA Shaadi Cash, which you can use anywhere on CA Shaadi, on top of any other discount or offer.",
+				: $w[1] . " for answering a short survey\n" . $w[1] . " for a testimonial\n\nYou receive it as CA Shaadi Cash, which you can use anywhere on CA Shaadi, on top of any other discount or offer.",
 			'ok'    => 'Start',
 			'later' => 'No problem. You can take the survey any time from your Profile tab and still ' . ( $men ? 'get ' : 'earn ' ) . $w[0] . '.',
 			'url'   => home_url( '/survey/' ),
@@ -276,7 +300,7 @@ final class Survey {
 		return '<div class="csm-svb"><button type="button" class="csm-svb-x" aria-label="Close" data-hide="' . $hide . '">×</button>'
 			. '<p>' . esc_html( self::gets_profiles( $uid )
 				? 'You started our survey. Finish it to get ' . self::PROFILES . ' extra profiles, or ' . ( self::PROFILES + self::PROFILES_TESTI ) . ' with a testimonial.'
-				: 'You started our survey. Finish it to earn ₹300, or ₹600 with a testimonial.' ) . '</p>'
+				: 'You started our survey. Finish it to earn ' . self::words( $uid )[1] . ', or ' . self::words( $uid )[0] . ' with a testimonial.' ) . '</p>'
 			. '<a class="csm-svb-btn" href="' . esc_url( home_url( '/survey/' ) ) . '">Continue the survey</a>'
 			. '<small>You can also find it on your Profile tab.</small></div>'
 			. '<style>.csm-svb{position:relative;margin:10px 12px 0;padding:12px 40px 12px 14px;border-radius:14px;background:#fffaf0;border:1px solid #f0d58c;font-size:14px;line-height:1.4;color:#16212b}'
@@ -404,9 +428,10 @@ final class Survey {
 			// The next profiles in line by his own Discover score, outside his weekly set.
 			$extra = self::give_profiles( $uid, self::PROFILES + ( $a['permission'] && '' !== $a['testimonial'] ? self::PROFILES_TESTI : 0 ) );
 		} elseif ( class_exists( '\\CAShaadi\\Modules\\Referral\\Referral' ) ) {
-			$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, self::CASH, 'survey', 0, 0, 'Survey answered' ) ? self::CASH : 0;
+			$part  = self::cash_part( $uid );
+			$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, $part, 'survey', 0, 0, 'Survey answered' ) ? $part : 0;
 			if ( $a['permission'] && '' !== $a['testimonial'] ) {
-				$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, self::CASH_TESTI, 'testimonial', 0, 0, 'Testimonial with name and photo' ) ? self::CASH_TESTI : 0;
+				$cash += \CAShaadi\Modules\Referral\Referral::post( $uid, $part, 'testimonial', 0, 0, 'Testimonial with name and photo' ) ? $part : 0;
 			}
 		}
 		if ( function_exists( 'cashaadi' ) ) {
@@ -502,7 +527,7 @@ final class Survey {
 		$o  = '<h1>Help improve CA Shaadi and ' . $verb . ' ' . esc_html( $w[0] ) . '</h1>';
 		$o .= $men
 			? '<div class="csm-sv-cash"><b>' . self::PROFILES . ' extra profiles</b> for the survey<br><b>' . self::PROFILES_TESTI . ' more</b> for a testimonial<br><small>They are added to your Discover straight away, on top of your weekly profiles.</small></div>'
-			: '<div class="csm-sv-cash"><b>₹300</b> for the survey<br><b>₹300</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
+			: '<div class="csm-sv-cash"><b>' . esc_html( $w[1] ) . '</b> for the survey<br><b>' . esc_html( $w[1] ) . '</b> for a testimonial<br><small>You receive CA Shaadi Cash that can be freely redeemed across CA Shaadi. It can be used in addition to any other discount or offer.</small></div>';
 		$o .= '<form id="csm-sv-form" novalidate data-url="' . esc_url( rest_url( 'csm/v1/survey' ) ) . '" data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '" data-start="' . esc_attr( $t0 . '.' . wp_hash( 'csm_sv_' . get_current_user_id() . '_' . $t0 ) ) . '" data-min="' . (int) self::TESTI_MIN . '" data-words="' . (int) self::TESTI_WORDS . '" data-verb="' . esc_attr( $verb ) . '" data-r0="' . esc_attr( $w[0] ) . '" data-r1="' . esc_attr( $w[1] ) . '" data-r2="' . esc_attr( $w[2] ) . '" data-dk="' . esc_attr( 'csm_sv1_draft_' . substr( wp_hash( 'csm_sv_draft_' . get_current_user_id() ), 0, 16 ) ) . '">';
 
 		$o .= self::q( 'paid', 1, 'How much have you paid in total for matrimony services so far (sites, apps, bureaus or agents)?',
@@ -531,7 +556,7 @@ final class Survey {
 			. '<textarea name="testimonial" rows="4" maxlength="1000" placeholder="For example: what you found here, or what you like about it"></textarea>'
 			. '<p class="csm-sv-hint csm-sv-left" aria-live="polite"></p>'
 			. '<label class="csm-sv-sw"><input type="checkbox" name="permission" value="1"><span class="csm-sv-sw-t"></span><span>CA Shaadi may show this with my name and photo</span></label>',
-			$men ? '(optional, +' . self::PROFILES_TESTI . ' profiles)' : '(optional, +₹300)' );
+			$men ? '(optional, +' . self::PROFILES_TESTI . ' profiles)' : '(optional, +' . $w[1] . ')' );
 
 		$o .= '<p class="csm-sv-err csm-sv-top"></p><button type="submit" class="csm-sv-btn">Submit and ' . $verb . ' ' . esc_html( $w[1] ) . '</button></form>';
 		$o .= '<script>(function(){var f=document.getElementById("csm-sv-form");if(!f){return;}'
@@ -709,6 +734,33 @@ final class Survey {
 			\WP_CLI::log( 'Places left in the current batch: ' . (int) get_option( self::LEFT_OPT, 0 ) . ' shared, ' . (int) get_option( self::LEFT_OPT . '_f', 0 ) . ' women, ' . (int) get_option( self::LEFT_OPT . '_m', 0 ) . ' men · total answers ' . (int) get_option( self::COUNT_OPT, 0 ) . ' of the cap ' . (int) get_option( self::MAX_OPT, 300 ) . '.' );
 			if ( $rows ) {
 				\WP_CLI\Utils\format_items( 'table', array_values( $rows ), array( 'batch', 'invited', 'saw popup', 'answered', 'testimonial', 'response' ) );
+			}
+			// The reward test: by what each member was offered (v1.91.19).
+			$arms = array();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$from = (int) get_option( self::PROFILES_FROM, 0 );
+			foreach ( $from ? $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND CAST( meta_value AS UNSIGNED ) >= %d", self::BATCH_META, $from ) ) : array() as $id ) {
+				$id  = (int) $id;
+				$key = self::gets_profiles( $id ) ? 'men: 5 + 5 profiles' : 'women: ₹' . self::cash_part( $id ) . ' + ₹' . self::cash_part( $id );
+				if ( ! isset( $arms[ $key ] ) ) {
+					$arms[ $key ] = array( 'reward' => $key, 'invited' => 0, 'saw popup' => 0, 'answered' => 0, 'testimonial' => 0 );
+				}
+				$arms[ $key ]['invited']++;
+				$arms[ $key ]['saw popup'] += get_user_meta( $id, self::SEEN_META, true ) ? 1 : 0;
+				$done = json_decode( (string) get_user_meta( $id, self::DONE_META, true ), true );
+				if ( is_array( $done ) ) {
+					$arms[ $key ]['answered']++;
+					$arms[ $key ]['testimonial'] += ! empty( $done['permission'] ) ? 1 : 0;
+				}
+			}
+			if ( $arms ) {
+				ksort( $arms );
+				foreach ( $arms as &$r ) {
+					$r['response'] = $r['saw popup'] ? round( 100 * $r['answered'] / $r['saw popup'] ) . '% of those who saw it' : '-';
+				}
+				unset( $r );
+				\WP_CLI::log( "\nReward test (batch {$from} on):" );
+				\WP_CLI\Utils\format_items( 'table', array_values( $arms ), array( 'reward', 'invited', 'saw popup', 'answered', 'testimonial', 'response' ) );
 			}
 			return;
 		}

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.91.19
+
+- Survey reward test: from the profiles batch on, each woman invited is offered ₹300, ₹200 or ₹100 per part (survey, testimonial), in equal shares; every line she sees uses her amount, and she is paid it. Members invited before keep ₹300. `wp csm survey batches` adds a table by reward: invited, saw the popup, answered, testimonial, response. Event survey_reward_arm.
+
 ## 1.91.18
 
 - Weekly feedback card, after No: a line under "What should change?": "Tell us more. We will use this to show you more relevant profiles next week."
