@@ -12,6 +12,10 @@ commit per version.
 
 
 
+
+## 1.91.7
+
+- Speed: Requests builds only the tab on screen (`?only=<tab>`) and just counts the others; switching tabs fetches that tab. Before, every load built up to 24 full cards for each of seven lists (about 150) to show one.
 ## 1.91.6
 
 - Requests lists: Show more fetches only that list's next 24 profiles and adds them below (`?tab=&offset=`), instead of reloading every list with 24 more and rebuilding every card from the top. It also loads by itself as the member scrolls near the end; the button stays as a fallback. Saved keeps the old way.

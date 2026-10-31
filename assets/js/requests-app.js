@@ -58,7 +58,7 @@
 			b.type = 'button';
 			b.appendChild( document.createTextNode( t[1] ) );
 			if ( t[2] ) { b.appendChild( el( 'span', 'csm-r-badge', String( t[2] ) ) ); }
-			b.addEventListener( 'click', function () { tab = t[0]; draw(); } );
+			b.addEventListener( 'click', function () { show( t[0] ); } );
 			wrap.appendChild( b );
 		} );
 		return wrap;
@@ -77,7 +77,7 @@
 			var c = subCount( m[0] );
 			if ( c ) { b.appendChild( el( 'span', 'csm-r-badge', String( c ) ) ); }
 			b.type = 'button';
-			b.addEventListener( 'click', function () { tab = m[0]; draw(); } );
+			b.addEventListener( 'click', function () { show( m[0] ); } );
 			wrap.appendChild( b );
 		} );
 		return wrap;
@@ -611,8 +611,25 @@
 		}
 	}
 
+	/*
+	 * Only the tab on screen is built (v1.91.7); switching tabs fetches that
+	 * one. The counts on every tab come with each load.
+	 */
+	function show( t ) {
+		tab = t;
+		if ( data && data.only === t ) { draw(); return; }
+		limit = 24;
+		// Tabs and counts at once; the list follows. Not draw(): the old data
+		// would flash this tab's "nothing here" before its list arrives.
+		root.innerHTML = '';
+		root.appendChild( tabs() );
+		if ( inMore( tab ) ) { root.appendChild( moreTabs() ); }
+		root.appendChild( el( 'p', 'csm-app-loading', 'Loading\u2026' ) );
+		load();
+	}
+
 	function load() {
-		return api( CFG.list + ( CFG.list.indexOf( '?' ) === -1 ? '?' : '&' ) + 'limit=' + limit ).then( function ( d ) {
+		return api( CFG.list + ( CFG.list.indexOf( '?' ) === -1 ? '?' : '&' ) + 'limit=' + limit + '&only=' + tab ).then( function ( d ) {
 			if ( ! d || ! d.ok ) {
 				root.innerHTML = '';
 				root.appendChild( emptyBox( 'Something went wrong', 'We could not load your requests. Please refresh.' ) );

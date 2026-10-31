@@ -205,11 +205,20 @@ final class RequestsScreen {
 		$ptab = sanitize_key( (string) $request->get_param( 'tab' ) );
 		$poff = max( 0, (int) $request->get_param( 'offset' ) );
 		$page = '' !== $ptab && $poff > 0;
-		$take = function ( $key ) use ( $page, $ptab, $poff, $limit ) {
-			if ( ! $page ) {
-				return array( 0, $limit );
+		/*
+		 * Only the tab on screen (v1.91.7): ?only=<tab> builds that list's cards
+		 * and just counts the others. Before, every load built up to 24 full
+		 * cards for each of the seven lists, about 150, to show one.
+		 */
+		$only = $page ? '' : sanitize_key( (string) $request->get_param( 'only' ) );
+		$skip = function ( $key ) use ( $page, $only ) {
+			return $page || ( '' !== $only && $key !== $only );
+		};
+		$take = function ( $key ) use ( $page, $ptab, $poff, $limit, $only ) {
+			if ( $page ) {
+				return $key === $ptab ? array( $poff, 24 ) : array( 0, 0 );
 			}
-			return $key === $ptab ? array( $poff, 24 ) : array( 0, 0 );
+			return ( '' === $only || $key === $only ) ? array( 0, $limit ) : array( 0, 0 );
 		};
 
 		/*
@@ -289,7 +298,7 @@ final class RequestsScreen {
 		 * get initials, never identities, like Declined.
 		 */
 		$sent_premium = class_exists( '\CAShaadi\Core\Membership' ) && Membership::is_premium( $uid );
-		list( $a, $b ) = $sent_premium ? $take( 'sent' ) : array( 0, $page ? 0 : 6 );
+		list( $a, $b ) = $sent_premium ? $take( 'sent' ) : array( 0, $skip( 'sent' ) ? 0 : 6 );
 		foreach ( array_slice( $sent_ids, $a, $b ) as $sid ) {
 			if ( $sent_premium ) {
 				$sent[] = self::card( $sid, $uid, 'sent' );
@@ -418,7 +427,7 @@ final class RequestsScreen {
 			$declined_ids[] = array( $did, (string) $r->created_at );
 		}
 		$now = current_time( 'timestamp' );
-		list( $a, $b ) = $premium ? $take( 'declined' ) : array( 0, $page ? 0 : 6 );
+		list( $a, $b ) = $premium ? $take( 'declined' ) : array( 0, $skip( 'declined' ) ? 0 : 6 );
 		foreach ( array_slice( $declined_ids, $a, $b ) as $d ) {
 			$ts  = strtotime( $d[1] );
 			$ago = $ts ? sprintf( 'Declined %s ago', human_time_diff( $ts, $now ) ) : '';
@@ -467,7 +476,7 @@ final class RequestsScreen {
 		}
 		// A withdrawn request is listed here too (owner, 2026-10-31), so labelled.
 		$withdrawn = class_exists( '\CAShaadi\Modules\Discover\Withdrawn' ) ? array_flip( \CAShaadi\Modules\Discover\Withdrawn::ids( $uid ) ) : array();
-		list( $a, $b ) = $premium ? $take( 'passed' ) : array( 0, $page ? 0 : 6 );
+		list( $a, $b ) = $premium ? $take( 'passed' ) : array( 0, $skip( 'passed' ) ? 0 : 6 );
 		foreach ( array_slice( $passed_ids, $a, $b ) as $d ) {
 			$ts  = strtotime( $d[1] );
 			$ago = $ts ? sprintf( isset( $withdrawn[ $d[0] ] ) ? 'Request withdrawn %s ago' : 'Passed %s ago', human_time_diff( $ts, $now ) ) : '';
@@ -525,7 +534,7 @@ final class RequestsScreen {
 
 		// Saved requests come first (built below); count them against the page too.
 		$open_total = count( $req_saved );
-		$room       = $page ? 0 : max( 0, $limit - $open_total );
+		$room       = $skip( 'saved' ) ? 0 : max( 0, $limit - $open_total );
 		foreach ( (array) $all as $row ) {
 			$locked = ( '' !== $cutoff && (string) $row->acted_at < $cutoff );
 
@@ -551,7 +560,7 @@ final class RequestsScreen {
 
 		// Saved requests first: someone is waiting on an answer.
 		$saved_req = array();
-		foreach ( array_slice( $req_saved, 0, $page ? 0 : $limit ) as $rid ) {
+		foreach ( array_slice( $req_saved, 0, $skip( 'saved' ) ? 0 : $limit ) as $rid ) {
 			if ( get_userdata( $rid ) ) {
 				$saved_req[] = self::request_card( $rid, $uid );
 			}
@@ -565,6 +574,7 @@ final class RequestsScreen {
 
 		return new \WP_REST_Response( array(
 			'ok'           => true,
+			'only'         => $only,
 			// Totals beyond the page loaded, for the counts and "Show more" (v1.89.62).
 			'receivedTotal' => $received_total,
 			'savedOpenTotal' => $open_total,
