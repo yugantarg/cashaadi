@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.86 — 2026-10-31
+
+- Fix: Sales Dashboard showed members with no photo as Complete. It asked BuddyPress whether a member has an avatar, which our placeholder avatar makes true for everyone. It now uses the setup wizard's check (a gallery photo, or a real uploaded avatar file), so "Photo pending" appears again.
+
 ## 1.90.85 — 2026-10-31
 
 - Sales Dashboard: "SMS pending" removed (owner: phone verification is not required of anyone). A member with email, profile and photo done now shows Complete; the status filter no longer offers SMS pending. The reminder emails that read the same status follow it.

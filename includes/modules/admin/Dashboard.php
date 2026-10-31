@@ -99,8 +99,13 @@ final class Dashboard {
 		// 2) Required profile fields.
 		if ( ! self::profile_fields_complete( $user_id ) ) { return 'Profile pending'; }
 
-		// 3) Profile photo.
-		if ( function_exists( 'bp_get_user_has_avatar' ) && ! bp_get_user_has_avatar( $user_id ) ) {
+		/*
+		 * 3) Profile photo. NOT bp_get_user_has_avatar(): our placeholder
+		 * avatar makes BuddyPress answer "yes" for everyone, so members with
+		 * no photo showed Complete (owner, 2026-10-31). Same check as the
+		 * setup wizard: a gallery photo, or a real uploaded avatar file.
+		 */
+		if ( class_exists( '\\CAShaadi\\Modules\\Onboarding\\PhotoOptions' ) ? ! \CAShaadi\Modules\Onboarding\PhotoOptions::has_photo( $user_id ) : ! get_user_meta( $user_id, 'csm_photos', true ) ) {
 			return 'Photo pending';
 		}
 
