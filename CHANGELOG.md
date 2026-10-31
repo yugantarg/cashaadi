@@ -9,6 +9,10 @@ commit per version.
 
 
 
+
+## 1.91.4
+
+- Requests → More: the More tab's number is the total across Sent, Viewed me, Declined and Passed (it showed Viewed me only); each sub-tab shows its own number.
 ## 1.91.3
 
 - Speed: when no newcomer qualifies for a member, the newcomer check waits 30 minutes before scoring every newcomer again (it ran on every Discover open, and the 72-hour window tripled the newcomers). Bonus profiles are tried at most once per half hour per member, since each try is a full Discover draw.

@@ -52,7 +52,7 @@
 			[ 'received', 'Received', undefined !== data.receivedTotal ? data.receivedTotal : ( data.received || [] ).length ],
 			[ 'matches', 'Matches', undefined !== data.matchesTotal ? data.matchesTotal : ( data.matches || [] ).length ],
 			[ 'saved', 'Saved', undefined !== data.savedOpenTotal ? data.savedOpenTotal + ( data.saved || [] ).filter( function ( x ) { return x.masked; } ).length : ( data.saved || [] ).length ],
-			[ inMore( tab ) ? tab : 'sent', 'More', data.viewersTotal || 0 ]
+			[ inMore( tab ) ? tab : 'sent', 'More', moreCount() ]
 		].forEach( function ( t ) {
 			var b = el( 'button', 'csm-r-tab' + ( tab === t[0] ? ' is-on' : '' ) );
 			b.type = 'button';
@@ -65,10 +65,17 @@
 	}
 
 	/* Viewed me · Declined · Passed, under More. */
+	/* More shows the total of its sub-tabs; each sub-tab its own (owner, 2026-10-31). */
+	var MORE_TOTAL = { sent: 'sentTotal', viewers: 'viewersTotal', declined: 'declinedTotal', passed: 'passedTotal' };
+	function subCount( key ) { return ( data[ MORE_TOTAL[ key ] ] || 0 ) + goneN( key ); }
+	function moreCount() { return MORE.reduce( function ( t, m ) { return t + subCount( m[0] ); }, 0 ); }
+
 	function moreTabs() {
 		var wrap = el( 'div', 'csm-r-subtabs' );
 		MORE.forEach( function ( m ) {
 			var b = el( 'button', 'csm-r-subtab' + ( tab === m[0] ? ' is-on' : '' ), m[1] );
+			var c = subCount( m[0] );
+			if ( c ) { b.appendChild( el( 'span', 'csm-r-badge', String( c ) ) ); }
 			b.type = 'button';
 			b.addEventListener( 'click', function () { tab = m[0]; draw(); } );
 			wrap.appendChild( b );

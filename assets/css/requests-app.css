@@ -62,6 +62,9 @@
 .csm-r-subtab.is-on {
 	background: var(--csm-blue, #2c5b8c); border-color: var(--csm-blue, #2c5b8c); color: #fff;
 }
+/* Each sub-tab's own count (v1.91.4). */
+.csm-r-subtab .csm-r-badge { display: inline-block; margin-left: 6px; }
+.csm-r-subtab.is-on .csm-r-badge { background: #fff; color: var(--csm-blue, #2c5b8c); }
 
 /* ---- rows ---- */
 .csm-r-list { margin: 0; padding: 0; list-style: none; max-width: 560px; margin: 0 auto; }
