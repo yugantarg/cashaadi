@@ -6,6 +6,7 @@ commit per version.
 
 ## 1.90.98
 
+- Pause my profile is offered to every member (it was only for the first 7 days after joining).
 - Passed profiles never go back into Discover (they were shown again after 30 days); they stay in More → Passed. Profiles shown and never decided go back into the pool 30 days after they were last shown (was 15), and compete on points like any other. Gold is unchanged.
 - More → Passed also lists withdrawn requests ("Request withdrawn … ago"). Premium and Gold see them in full and can send a request; free members see them blurred.
 - The daily watch now flags any passed profile shown again in Discover (it only checked within 30 days).

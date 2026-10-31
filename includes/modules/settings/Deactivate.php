@@ -52,7 +52,9 @@ final class Deactivate {
 	 * Flip with define( 'CASHAADI_PAUSE_ENABLED', true ) in wp-config.php.
 	 */
 	public static function offered() {
-		return defined( 'CASHAADI_PAUSE_ENABLED' ) && CASHAADI_PAUSE_ENABLED;
+		// For everyone since v1.90.98 (owner, 2026-10-31). Off only if
+		// wp-config.php defines CASHAADI_PAUSE_ENABLED as false.
+		return ! defined( 'CASHAADI_PAUSE_ENABLED' ) || CASHAADI_PAUSE_ENABLED;
 	}
 
 	/**
