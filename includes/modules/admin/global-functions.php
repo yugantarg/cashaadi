@@ -23,7 +23,7 @@ if ( ! function_exists( 'csm_profile_pending_label' ) ) {
 	/**
 	 * @param int      $user_id
 	 * @param bool|null $is_pending Optional precomputed pending-signup flag.
-	 * @return string One of Unknown|Email pending|Profile pending|Photo pending|SMS pending|Complete.
+	 * @return string One of Unknown|Email pending|Profile pending|Photo pending|Complete.
 	 */
 	function csm_profile_pending_label( $user_id, $is_pending = null ) {
 		return \CAShaadi\Modules\Admin\Dashboard::profile_pending_label( $user_id, $is_pending );

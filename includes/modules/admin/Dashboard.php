@@ -104,10 +104,8 @@ final class Dashboard {
 			return 'Photo pending';
 		}
 
-		// 4) Phone OTP - the Discover gate condition the dashboard used to ignore.
-		if ( function_exists( 'csm_phone_is_verified' ) && ! csm_phone_is_verified( $user_id ) ) {
-			return 'SMS pending';
-		}
+		// Phone OTP is not required of anyone (owner, 2026-10-31), so it is
+		// no longer a step here.
 
 		return 'Complete';
 	}
@@ -431,7 +429,7 @@ final class Dashboard {
 		echo '<input type="hidden" name="page" value="csm-sales-dashboard" />';
 		echo '<input type="search" name="s" value="' . esc_attr( $search ) . '" placeholder="Search name / email / username" style="min-width:220px;" /> ';
 
-		$csm_pending_opts = array( 'Complete', 'Email pending', 'Profile pending', 'Photo pending', 'SMS pending' );
+		$csm_pending_opts = array( 'Complete', 'Email pending', 'Profile pending', 'Photo pending' );
 		echo ' <select name="fpending"><option value="">Any status</option>';
 		foreach ( $csm_pending_opts as $csm_opt ) {
 			echo '<option value="' . esc_attr( $csm_opt ) . '"' . selected( $f_pending, $csm_opt, false ) . '>' . esc_html( $csm_opt ) . '</option>';

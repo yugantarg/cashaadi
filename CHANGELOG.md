@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.85 — 2026-10-31
+
+- Sales Dashboard: "SMS pending" removed (owner: phone verification is not required of anyone). A member with email, profile and photo done now shows Complete; the status filter no longer offers SMS pending. The reminder emails that read the same status follow it.
+
 ## 1.90.84 — 2026-10-30
 
 - Survey invitations only for engaged members (owner): joined at least 7 days ago, acted on at least 3 profiles (request, pass or save), and used the app on at least 2 different days. Still never to anyone offered the ₹99 boost.
