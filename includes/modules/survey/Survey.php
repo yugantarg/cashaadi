@@ -181,9 +181,18 @@ final class Survey {
 		return self::LEFT_OPT . ( $f ? '_f' : '_m' );
 	}
 
-	/** Men get profiles, women cash (v1.91.16). */
+	/**
+	 * Men get profiles, women cash (v1.91.16), from the first batch invited
+	 * after that (owner: not for anyone already shown the survey). The batch
+	 * number is set by the first `wp csm survey invite` after v1.91.17.
+	 */
+	const PROFILES_FROM = 'csm_survey_profiles_from';
+
 	private static function gets_profiles( $uid ) {
-		return function_exists( 'cashaadi' ) && 'Male' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
+		$from = (int) get_option( self::PROFILES_FROM, 0 );
+		return $from > 0
+			&& (int) get_user_meta( (int) $uid, self::BATCH_META, true ) >= $from
+			&& function_exists( 'cashaadi' ) && 'Male' === trim( (string) cashaadi()->get_gender( (int) $uid ) );
 	}
 
 	/** The reward in words, for this member: [ both, survey part, testimonial part ]. */
@@ -666,6 +675,9 @@ final class Survey {
 			}
 			$b = (int) get_option( self::BATCH_OPT, 0 ) + 1;
 			update_option( self::BATCH_OPT, $b, false );
+			if ( ! get_option( self::PROFILES_FROM ) ) {
+				update_option( self::PROFILES_FROM, $b, false ); // men from this batch on get profiles
+			}
 			// Half the places for women, half for men (owner, 2026-10-31).
 			update_option( self::LEFT_OPT, 0, false );
 			update_option( self::LEFT_OPT . '_f', (int) ceil( $n / 2 ), false );

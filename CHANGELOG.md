@@ -22,6 +22,10 @@ commit per version.
 
 
 
+
+## 1.91.17
+
+- Survey: the extra-profiles reward for men applies only from the first batch invited after this version (option csm_survey_profiles_from, set by that `wp csm survey invite`). Men in earlier batches keep the cash reward they were shown.
 ## 1.91.16
 
 - Survey reward for men: extra profiles instead of CA Shaadi Cash, 5 for answering and 5 more for a testimonial with permission, drawn straight into his Discover as the next profiles in line by his own score, outside his weekly set. Every line of the survey (popup, Profile row, banner, form, button, hints, thank-you) says so for men; women still get ₹300 + ₹300. Event survey_profile per profile given.
