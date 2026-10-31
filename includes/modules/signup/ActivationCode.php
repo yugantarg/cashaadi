@@ -591,7 +591,7 @@ final class ActivationCode {
 		?>
 		<div class="csm-actcode">
 			<h2><?php esc_html_e( 'Enter your verification code', 'cashaadi-ui' ); ?></h2>
-			<p class="csm-actcode-help"><?php esc_html_e( 'We emailed you a 4-digit code. Enter it below to activate your account.', 'cashaadi-ui' ); ?></p>
+			<p class="csm-actcode-help"><?php esc_html_e( 'We emailed you a 4-digit code. Enter it below to activate your account. Not in your inbox? Check Spam or Promotions.', 'cashaadi-ui' ); ?></p>
 
 			<?php
 			/*

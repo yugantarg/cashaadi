@@ -6,7 +6,7 @@
  * - From FROM, the Premium product sells at NEW_PRICE (a price filter, so it
  *   switches at midnight without anyone touching WooCommerce).
  * - The code OLDPRICE takes Premium back to ₹1,499 (₹3,000 off Premium only,
- *   once per member). It is refused before FROM, when it would make Premium
+ *   once per member per plan, v1.90.96). It is refused before FROM, when it would make Premium
  *   free, and after the member's own deadline.
  * - Each member's deadline: 11:59 pm (IST) on the later of MIN_END and the
  *   third day after they first saw the offer. So everyone gets at least three
@@ -76,6 +76,11 @@ final class OldPrice {
 		// ever holds one plan: Buy Premium / Buy Gold start a clean cart).
 		add_filter( 'woocommerce_coupon_get_product_ids', array( __CLASS__, 'coupon_products' ), 20, 2 );
 		add_filter( 'woocommerce_coupon_get_amount', array( __CLASS__, 'coupon_amount' ), 20, 2 );
+		// Once per PLAN, not once per member (owner, v1.90.96): the coupon's
+		// own per-member limit is lifted and coupon_valid() checks the plan.
+		add_filter( 'woocommerce_coupon_get_usage_limit_per_user', function ( $n, $coupon ) {
+			return self::is_code( $coupon ) ? 0 : $n;
+		}, 20, 2 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'csm oldprice', array( __CLASS__, 'cli' ), array(
 				'synopsis' => array(
@@ -101,6 +106,24 @@ final class OldPrice {
 
 	private static function is_code( $coupon ) {
 		return $coupon && self::CODE === strtolower( (string) $coupon->get_code() );
+	}
+
+	/** Has this member already bought this plan with OLDPRICE? */
+	public static function used_for( $uid, $product_id ) {
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return false;
+		}
+		foreach ( wc_get_orders( array( 'customer_id' => (int) $uid, 'status' => array( 'processing', 'completed', 'on-hold' ), 'limit' => 20 ) ) as $o ) {
+			if ( ! in_array( self::CODE, array_map( 'strtolower', (array) $o->get_coupon_codes() ), true ) ) {
+				continue;
+			}
+			foreach ( $o->get_items() as $item ) {
+				if ( (int) $item->get_product_id() === (int) $product_id ) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	public static function coupon_products( $ids, $coupon ) {
@@ -220,6 +243,14 @@ final class OldPrice {
 			throw new \Exception( 'This code works from 1 November.', 100 );
 		}
 		$uid = get_current_user_id();
+		if ( $uid && function_exists( 'WC' ) && WC()->cart ) {
+			foreach ( WC()->cart->get_cart() as $item ) {
+				$pid = (int) $item['product_id'];
+				if ( in_array( $pid, array( (int) Config::WC_PREMIUM_PRODUCT, (int) Config::WC_GOLD_PRODUCT ), true ) && self::used_for( $uid, $pid ) ) {
+					throw new \Exception( 'You have already used OLDPRICE for this plan.', 100 );
+				}
+			}
+		}
 		if ( ! self::eligible( $uid ) || self::deadline( $uid, true ) < time() ) {
 			throw new \Exception( 'This offer has ended. Premium is no longer available at the old price.', 100 );
 		}

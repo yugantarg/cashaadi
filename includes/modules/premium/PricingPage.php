@@ -163,7 +163,7 @@ final class PricingPage {
 				'price' => self::inr( $gp ) . ' / year',
 				// Gold's old price with OLDPRICE, quietly (owner, v1.90.81).
 				'note'  => $gold_note,
-				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Founding places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon, $gold_code ) ),
+				'btn'   => $is_g ? '<span class="csm-pr-cur">Your plan</span>' : ( $sold_out ? '<span class="csm-pr-cur">Gold places taken</span>' : self::buy( Config::WC_GOLD_PRODUCT, 'Buy Gold', $anon, $gold_code ) ),
 			);
 			if ( ! $female ) {
 				array_splice( $plans['gold']['items'], 4, 0, array( $phone_line ) );
@@ -263,6 +263,7 @@ final class PricingPage {
 
 	private static function css() {
 		return '<style>
+.site-sub-header{display:none}
 .csm-pr{max-width:980px;margin:0 auto;padding:8px 16px 32px;color:#16212b}
 .csm-pr-h{font-size:30px;line-height:1.2;margin:8px 0 6px;text-align:center}
 .csm-pr-sub{text-align:center;color:#5c6a76;margin:0 0 26px}

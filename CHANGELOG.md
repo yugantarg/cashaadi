@@ -3,6 +3,13 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.96 — 2026-10-31
+
+- OLDPRICE works once per plan (owner): a member can use it for Premium and again for Gold. The coupon's per-member limit is lifted; a second use for the same plan is refused ("You have already used OLDPRICE for this plan").
+- "Founding" dropped from Gold wording (owner): "Only N Gold places left", "Gold places taken".
+- One login page (owner): /login/ redirects to the restyled WordPress login (redirect_to kept; signed-in members go to Discover).
+- Audit fixes (owner approved): weekly "requests waiting" email also reaches members who visit but leave requests unanswered for 3+ days; Profile tab heading reads "Complete your profile" (or "Profile details" when nothing is left) and the duplicate Astro details row is gone; the theme's title band is hidden on the pricing page; the PhonePe stylesheet loads only on cart and checkout; both code screens say "Check Spam or Promotions".
+
 ## 1.90.95 — 2026-10-31
 
 - Survey results: answering too fast counts as careless again, judged statistically (owner). Expected time = the typical time for the fixed questions + the characters typed at a typing speed, both learned from the answers (medians; typing speed bounded to 1–6 characters a second, 3 until there are 8 answers). An answer under half its expected time is flagged; `wp csm survey` prints the typical time, the typing speed and each flagged answer with its time and expected time.

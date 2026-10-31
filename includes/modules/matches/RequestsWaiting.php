@@ -8,7 +8,8 @@
  *
  * 1. Email, at most once a week: to a member with pending requests who has
  *    not been back for 3+ days and has at least one request from after her
- *    last visit. "N people have sent you match requests". Rides the daily
+ *    last visit, or (v1.90.96) whose oldest pending request is 3+ days old
+ *    even if she visits. "N people have sent you match requests". Rides the daily
  *    engagement cron; the week in the type key makes it once a week.
  * 2. Popup on login: "N match requests waiting", shown again only when a new
  *    request has arrived since it was last shown.
@@ -108,13 +109,17 @@ final class RequestsWaiting {
 
 		// Newest pending request per recipient (UTC → IST date).
 		$rows = $wpdb->get_results(
-			"SELECT friend_user_id uid, DATE(DATE_ADD(MAX(date_created), INTERVAL 330 MINUTE)) newest
+			"SELECT friend_user_id uid, DATE(DATE_ADD(MAX(date_created), INTERVAL 330 MINUTE)) newest,
+			        DATE(DATE_ADD(MIN(date_created), INTERVAL 330 MINUTE)) oldest
 			 FROM {$wpdb->prefix}bp_friends WHERE is_confirmed = 0 GROUP BY friend_user_id"
 		);
 		foreach ( (array) $rows as $r ) {
 			$uid  = (int) $r->uid;
 			$last = (string) get_user_meta( $uid, 'csm_active_day', true ); // Y-m-d IST
-			if ( '' !== $last && ( $last > $away || $r->newest <= $last ) ) {
+			// Also members who come back but leave requests unanswered for
+			// 3+ days (owner, v1.90.96): the 40% this email used to skip.
+			$stale = $r->oldest <= $away;
+			if ( '' !== $last && ( $last > $away || $r->newest <= $last ) && ! $stale ) {
 				continue; // been back recently, or nothing new since the last visit
 			}
 			if ( user_can( $uid, 'manage_options' )

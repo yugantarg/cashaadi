@@ -30,6 +30,10 @@ final class Site {
 	const NOINDEX_PAGE_IDS = array( 11574, 11567, 11568, 11569, 11572, 11575, 11570, 11571, 11573 );
 
 	public static function register() {
+		// --- Payment plugin styles only where payment happens (audit, v1.90.96) ---
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'payment_styles_only_at_checkout' ), 100 );
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'payment_styles_only_at_checkout' ), 100 );
+
 		// --- Noindex PMPro member pages (#11696) ---
 		add_filter( 'wpseo_robots', array( __CLASS__, 'noindex_robots' ) );
 		add_filter( 'wpseo_robots_array', array( __CLASS__, 'noindex_robots_array' ) );
@@ -210,6 +214,14 @@ final class Site {
 		// Header tidy-up for the theme's pages. The app screens render their own
 		// header and must not be touched by this.
 		Assets::style( 'site-header', 'assets/css/site-header.css' );
+	}
+
+	/** PhonePe's stylesheet loaded on every page, login included; it is needed only on cart and checkout. */
+	public static function payment_styles_only_at_checkout() {
+		if ( ( function_exists( 'is_checkout' ) && is_checkout() ) || ( function_exists( 'is_cart' ) && is_cart() ) ) {
+			return;
+		}
+		wp_dequeue_style( 'phonepe-styles' );
 	}
 
 	/**

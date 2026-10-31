@@ -165,7 +165,7 @@ final class Gold {
 	public static function dashboard_line() {
 		$cap = (int) get_option( 'csm_gold_cap', 25 );
 		return '<p style="margin:10px 0;padding:8px 12px;background:#fffaf0;border:1px solid #f0d58c;border-radius:6px"><strong>Gold members: ' . (int) self::count() . '</strong>'
-			. ( $cap > 0 ? ' of ' . $cap . ' founding places' : '' )
+			. ( $cap > 0 ? ' of ' . $cap . ' places' : '' )
 			. ' · on sale: ' . ( get_option( 'csm_gold_on_sale' ) ? 'yes' : 'no' )
 			. ' · phone access: ' . ( self::phone_live() ? 'on' : 'off' )
 			. ' · ceilings ' . ( self::ceiling_exempt() ? 'off for Gold' : 'on for Gold' ) . '</p>';

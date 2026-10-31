@@ -95,9 +95,8 @@ final class AccountMenu {
 		$rows[] = array( 'label' => 'Edit profile', 'url' => self::edit_url() );
 		$blur   = self::row( $uid, 'Photo blur' );
 		$rows[] = array( 'label' => 'My photos', 'url' => self::photos_url( $uid ), 'value' => $blur ? 'Blur ' . strtolower( (string) $blur['value'] ) : '' );
-		if ( class_exists( '\CAShaadi\Core\Astro' ) && Astro::group_id() ) {
-			$rows[] = array( 'label' => 'Astro details', 'url' => self::edit_url( Astro::group_id() ), 'value' => Astro::shown( $uid ) ? 'Shown' : 'Hidden' );
-		}
+		// "Astro details" left this list (audit, v1.90.96): it is already a row in
+		// the profile details above, so it showed twice.
 		$rows[] = array( 'label' => 'Who sees what', 'url' => home_url( '/settings/visibility/' ) );
 		$rows[] = array( 'label' => 'See how others see me', 'url' => home_url( '/profile/preview/' ) );
 		$out[]  = array( 'key' => 'me', 'title' => 'My profile', 'rows' => $rows );

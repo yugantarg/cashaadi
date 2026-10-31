@@ -25,6 +25,8 @@ final class LoginScreen {
 	public static function register() {
 		add_action( 'login_enqueue_scripts', array( __CLASS__, 'css' ), 99 );
 		add_filter( 'login_headerurl', function () { return home_url( '/' ); } );
+		// One login page (owner, v1.90.96): the theme's /login/ goes to this one.
+		add_action( 'template_redirect', array( __CLASS__, 'one_login' ), 1 );
 		add_action( 'retrieve_password_key', array( __CLASS__, 'on_requested' ), 10, 2 );
 		add_action( 'after_password_reset', array( __CLASS__, 'on_done' ), 10, 1 );
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -32,6 +34,26 @@ final class LoginScreen {
 				'synopsis' => array( array( 'type' => 'assoc', 'name' => 'days', 'optional' => true ) ),
 			) );
 		}
+	}
+
+	public static function one_login() {
+		if ( 'GET' !== ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) {
+			return;
+		}
+		$path = strtolower( trim( (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ), '/' ) );
+		if ( 'login' !== $path ) {
+			return;
+		}
+		if ( is_user_logged_in() ) {
+			wp_safe_redirect( home_url( '/discover/' ) );
+			exit;
+		}
+		$to  = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		// The WordPress screen by its own address, not wp_login_url(), which a
+		// plugin could point back at /login/.
+		$url = site_url( 'wp-login.php', 'login' );
+		wp_safe_redirect( $to ? add_query_arg( 'redirect_to', rawurlencode( $to ), $url ) : $url );
+		exit;
 	}
 
 	public static function on_requested( $user_login, $key ) {

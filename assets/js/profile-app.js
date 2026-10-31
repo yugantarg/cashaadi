@@ -223,7 +223,7 @@
 
 		/* ---- sections ---- */
 		var sec = el( 'section', 'csm-p-sections' );
-		sec.appendChild( el( 'h2', 'csm-p-h', 'Your profile' ) );
+		sec.appendChild( el( 'h2', 'csm-p-h', d.outstanding ? 'Complete your profile' : 'Profile details' ) );
 		var list = el( 'ul', 'csm-p-list' );
 		( d.sections || [] ).forEach( function ( s ) {
 			var li = el( 'li', 'csm-p-row' );

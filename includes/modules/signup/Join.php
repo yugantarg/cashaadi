@@ -389,7 +389,7 @@ final class Join {
 			<p class="cj-err" data-for="code" role="alert"></p>
 			<button type="submit" class="cj-btn">Confirm</button>
 		</form>
-		<p class="cj-small">No email? Check spam, or <button type="button" class="cj-link" id="cj-resend">send a new code</button>. <span id="cj-resend-msg" role="status"></span></p>
+		<p class="cj-small">No email? Check Spam or Promotions, or <button type="button" class="cj-link" id="cj-resend">send a new code</button>. <span id="cj-resend-msg" role="status"></span></p>
 		<p class="cj-small"><button type="button" class="cj-link" id="cj-change">Use a different email</button></p>
 	</section>
 </main>
