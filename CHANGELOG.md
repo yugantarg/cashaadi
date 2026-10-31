@@ -4,6 +4,10 @@ Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
 
+
+## 1.90.99
+
+- The email queue's per-run batch (was fixed at 25 an hour) is now the option csm_remail_batch, default 25, so a big send can go out faster.
 ## 1.90.98
 
 - A deleted (closed) account now shows as a "Deleted profile" stand-in where it was: in Matches, Received, Sent and Passed (a grey tile that does not open), in chats (name "Deleted profile", no photo or link), and on its profile link ("This member has deleted their profile."). Before, it just disappeared.

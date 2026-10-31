@@ -216,6 +216,11 @@ final class Queue {
 		return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE user_id = %d AND status = 'sent' AND processed_at >= %s", intval( $uid ), $since ) ) ) > 0;
 	}
 
+	/** Emails sent per hourly run. */
+	public static function per_run() {
+		return max( 1, intval( get_option( 'csm_remail_batch', 25 ) ) );
+	}
+
 	public static function hourly_cap() {
 		return max( 1, intval( get_option( 'csm_remail_hourly_cap', 40 ) ) );
 	}
@@ -746,7 +751,12 @@ final class Queue {
 			return $out;
 		}
 
-		$batch = $live ? min( 25, $room ) : 25;
+		// Per run (owner, 2026-10-31: "remove the caps"): csm_remail_batch, default 25.
+		$per   = self::per_run();
+		$batch = $live ? min( $per, $room ) : $per;
+		if ( $batch > 25 && function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 600 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		}
 		$rows  = self::due_rows( $batch );
 		$out['due'] = count( $rows );
 		$types = self::types();
@@ -1278,7 +1288,7 @@ final class Queue {
 			'waiting'   => array(),
 			'spaced'    => array(),
 			'by_type'   => array(),
-			'per_run'   => min( 25, self::hourly_cap() ),
+			'per_run'   => min( self::per_run(), self::hourly_cap() ),
 			'cap'       => self::hourly_cap(),
 			'generated' => $now,
 		);
