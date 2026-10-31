@@ -29,8 +29,6 @@ final class Withdrawn {
 		add_action( 'friends_friendship_withdrawn', array( __CLASS__, 'on_withdraw' ), 10, 2 );
 	}
 
-	const WEEK_ROW = 'restored';
-
 	public static function on_withdraw( $friendship_id, $friendship = null ) {
 		unset( $friendship_id );
 		if ( is_object( $friendship ) && ! empty( $friendship->initiator_user_id ) ) {
@@ -52,15 +50,20 @@ final class Withdrawn {
 		}
 		global $wpdb;
 		$tray = $wpdb->prefix . 'csm_tray';
-		$wpdb->delete( $tray, array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
 		$wpdb->delete( $wpdb->prefix . 'csm_likes', array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
+		/*
+		 * The card goes back under the week it was first drawn in (v1.90.98),
+		 * so coming back is not a new draw and does not count against this
+		 * week's allowance (it showed as #2779 51/50 in the exposure check).
+		 * A free member's deck is reset each week, so for them a card from an
+		 * earlier week still comes back as this week's, as before.
+		 */
+		$week = $wpdb->get_var( $wpdb->prepare( "SELECT week_assigned FROM {$tray} WHERE viewer_id = %d AND profile_id = %d ORDER BY id DESC LIMIT 1", $viewer, $profile ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->delete( $tray, array( 'viewer_id' => $viewer, 'profile_id' => $profile ) );
 		return (bool) $wpdb->insert( $tray, array(
 			'viewer_id'     => $viewer,
 			'profile_id'    => $profile,
-			// Its own label, not this week's (v1.90.98): a card coming back is
-			// not a new draw, so it does not count against the weekly allowance
-			// (it showed as #2779 51/50 in the exposure check).
-			'week_assigned' => self::WEEK_ROW,
+			'week_assigned' => ( $week && \CAShaadi\Core\Membership::is_premium( $viewer ) ) ? $week : cashaadi()->get_week_id(),
 			'status'        => 'pending',
 			'assigned_at'   => current_time( 'mysql' ),
 		) );
