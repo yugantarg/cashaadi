@@ -23,6 +23,10 @@ commit per version.
 
 
 
+## 1.91.18
+
+- Weekly feedback card, after No: a line under "What should change?": "Tell us more. We will use this to show you more relevant profiles next week."
+
 ## 1.91.17
 
 - Survey: the extra-profiles reward for men applies only from the first batch invited after this version (option csm_survey_profiles_from, set by that `wp csm survey invite`). Men in earlier batches keep the cash reward they were shown.

@@ -512,4 +512,5 @@ body.csm-member-view .csm-d-card {
 .csm-d-fb-opts { display: flex; flex-wrap: wrap; gap: 8px; }
 .csm-d-fb-opt { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #c9d2dc; border-radius: 999px; font-size: 14px; cursor: pointer; }
 .csm-d-fb-text { width: 100%; margin-top: 10px; padding: 10px; border: 1px solid #c9d2dc; border-radius: 10px; font: inherit; box-sizing: border-box; }
+.csm-d-fb-note { margin: -6px 0 12px !important; font-size: 14px; color: #5c6a76; }
 .csm-d-fb-thanks { margin: 0; color: #2d6a1f; font-weight: 600; }

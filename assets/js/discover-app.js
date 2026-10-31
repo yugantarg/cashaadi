@@ -80,6 +80,7 @@
 		no.addEventListener( 'click', function () {
 			c.innerHTML = '';
 			c.appendChild( el( 'h3', null, 'What should change?' ) );
+			c.appendChild( el( 'p', 'csm-d-fb-note', 'Tell us more. We will use this to show you more relevant profiles next week.' ) );
 			var opts = el( 'div', 'csm-d-fb-opts' );
 			FB_REASONS.forEach( function ( r ) {
 				var l = el( 'label', 'csm-d-fb-opt' );
@@ -95,7 +96,7 @@
 			t.className   = 'csm-d-fb-text';
 			t.rows        = 2;
 			t.maxLength   = 500;
-			t.placeholder = 'Tell us more (optional)';
+			t.placeholder = 'Tell us more';
 			c.appendChild( t );
 			var go = el( 'button', 'csm-d-fb-send', 'Send' );
 			go.type = 'button';
