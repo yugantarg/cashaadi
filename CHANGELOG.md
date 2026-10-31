@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.91.23
+
+- Sales Dashboard: the member table and the panels (activity, sales, email alert) are built in the background every 10 minutes and stored for 30, so opening the page only reads them. A line under the panels says when they were updated, with "Update now" (?refresh=1).
+
 ## 1.91.22
 
 - Pricing page: OLDPRICE shows each member's own deadline instead of "for a limited time": the Premium and Gold card notes read "with code OLDPRICE until 11:59 pm on Thursday, 5 November" (later for members who first saw the offer after 2 November), and the notice above the cards says "Your offer ends at …" above the countdown ("Time left: …").

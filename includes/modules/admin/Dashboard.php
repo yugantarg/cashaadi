@@ -39,6 +39,53 @@ final class Dashboard {
 		require_once __DIR__ . '/global-functions.php';
 
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+
+		/*
+		 * Built in the background every 10 minutes (owner, 2026-10-31: "still
+		 * very slow"), so opening the page only reads what is stored: the
+		 * member table and each panel. ?refresh=1 still rebuilds on the spot.
+		 */
+		add_filter( 'cron_schedules', function ( $s ) {
+			$s['csm_10min'] = array( 'interval' => 600, 'display' => 'Every 10 minutes' );
+			return $s;
+		} );
+		add_action( self::WARM, array( __CLASS__, 'warm' ) );
+		if ( ! wp_next_scheduled( self::WARM ) ) {
+			wp_schedule_event( time() + 60, 'csm_10min', self::WARM );
+		}
+	}
+
+	const WARM = 'csm_sd_warm';
+
+	/** The panels above the member table: label => callback. */
+	private static function panels() {
+		return array(
+			'Activity tiles' => array( __NAMESPACE__ . '\\ActiveUsers', 'card' ),
+			'Sales'          => array( __NAMESPACE__ . '\\SalesPanel', 'card' ),
+			'Email alert'    => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'alert' ),
+		);
+	}
+
+	/** One panel's HTML; a failing panel shows its error in place. */
+	private static function panel_html( $label, $cb ) {
+		if ( ! class_exists( $cb[0] ) ) {
+			return '';
+		}
+		try {
+			return (string) call_user_func( $cb );
+		} catch ( \Throwable $e ) {
+			return '<div class="notice notice-error" style="padding:8px 12px">' . esc_html( $label . ' could not load: ' . $e->getMessage() . ' (' . basename( $e->getFile() ) . ':' . $e->getLine() . ')' ) . '</div>';
+		}
+	}
+
+	/** Rebuild the table and panels now and store them (cron, or ?refresh=1). */
+	public static function warm() {
+		set_transient( 'csm_sd_rows', array( 'at' => time(), 'rows' => self::rows() ), 30 * MINUTE_IN_SECONDS );
+		$html = array();
+		foreach ( self::panels() as $label => $cb ) {
+			$html[ $label ] = self::panel_html( $label, $cb );
+		}
+		set_transient( 'csm_sd_panels', array( 'at' => time(), 'html' => $html ), 30 * MINUTE_IN_SECONDS );
 	}
 
 	/** Register the top-level "Sales Dashboard" admin menu page (#11688). */
@@ -358,10 +405,13 @@ final class Dashboard {
 		 * each on every open. Built with bulk queries (rows()), then filtered,
 		 * searched, sorted and paged here. ?refresh=1 rebuilds it now.
 		 */
-		$built = isset( $_GET['refresh'] ) ? false : get_transient( 'csm_sd_rows' );
+		if ( isset( $_GET['refresh'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			self::warm();
+		}
+		$built = get_transient( 'csm_sd_rows' );
 		if ( ! is_array( $built ) || empty( $built['rows'] ) ) {
 			$built = array( 'at' => time(), 'rows' => self::rows() );
-			set_transient( 'csm_sd_rows', $built, 10 * MINUTE_IN_SECONDS );
+			set_transient( 'csm_sd_rows', $built, 30 * MINUTE_IN_SECONDS );
 		}
 		$needle = strtolower( $search );
 		$rows   = array();
@@ -412,22 +462,13 @@ final class Dashboard {
 		 * place instead of taking down the whole page (2026-10-23: a "critical
 		 * error" blanked the dashboard below its heading).
 		 */
-		$panels = array(
-			'Activity tiles'      => array( __NAMESPACE__ . '\\ActiveUsers', 'card' ),
-			'Sales'               => array( __NAMESPACE__ . '\\SalesPanel', 'card' ),
-			'Email alert'         => array( '\\CAShaadi\\Modules\\Analytics\\Funnel', 'alert' ),
-			// Sign-ups by channel and the sign-up funnel are still tracked; read
-			// them with a command when needed (owner, 2026-10-30: key numbers only).
-		);
-		foreach ( $panels as $label => $cb ) {
-			if ( ! class_exists( $cb[0] ) ) {
-				continue;
-			}
-			try {
-				echo call_user_func( $cb ); // phpcs:ignore WordPress.Security.EscapeOutput
-			} catch ( \Throwable $e ) {
-				echo '<div class="notice notice-error" style="padding:8px 12px">' . esc_html( $label . ' could not load: ' . $e->getMessage() . ' (' . basename( $e->getFile() ) . ':' . $e->getLine() . ')' ) . '</div>';
-			}
+		// Stored by warm() every 10 minutes; drawn now only if nothing is stored yet.
+		$stored = get_transient( 'csm_sd_panels' );
+		foreach ( self::panels() as $label => $cb ) {
+			echo isset( $stored['html'][ $label ] ) ? $stored['html'][ $label ] : self::panel_html( $label, $cb ); // phpcs:ignore WordPress.Security.EscapeOutput
+		}
+		if ( is_array( $stored ) && ! empty( $stored['at'] ) ) {
+			echo '<p style="color:#646970;margin:4px 0 0">Updated ' . esc_html( human_time_diff( (int) $stored['at'], time() ) ) . ' ago · <a href="' . esc_url( add_query_arg( 'refresh', 1 ) ) . '">Update now</a></p>';
 		}
 
 		echo '<form method="get" style="margin:15px 0;padding:12px;background:#fff;border:1px solid #ccd0d4;border-radius:4px;">';
