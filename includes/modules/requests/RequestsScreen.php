@@ -406,10 +406,12 @@ final class RequestsScreen {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$prows = $wpdb->get_results( $wpdb->prepare(
 				"SELECT s.profile_id, IF( s.action = 'passed', s.acted_at, s.last_seen_at ) acted_at, s.action FROM {$seen} s
-				 WHERE s.viewer_id = %d AND s.action IN ( 'passed', '' )
+				 WHERE s.viewer_id = %d AND s.action IN ( 'passed', %s )
 				   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->prefix}csm_tray t WHERE t.viewer_id = s.viewer_id AND t.profile_id = s.profile_id AND t.status IN ( 'pending', 'saved' ) )
 				 ORDER BY 2 DESC LIMIT 500",
-				$uid
+				$uid,
+				// Gold sees its undecided ones again in Discover, so they are not listed here.
+				Membership::is_gold( $uid ) ? 'passed' : ''
 			) );
 			foreach ( (array) $prows as $r ) {
 				$pid = (int) $r->profile_id;
