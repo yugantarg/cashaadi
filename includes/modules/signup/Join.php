@@ -212,6 +212,25 @@ final class Join {
 				if ( self::pending( $email ) ) {
 					return new \WP_REST_Response( array( 'ok' => true, 'pending' => true, 'email' => $email ), 200 );
 				}
+				/*
+				 * A member who already has an account (v1.90.88): say so, and
+				 * offer Log in / Forgot password instead of a dead end. 78
+				 * people hit "that email address is already used" in two weeks.
+				 */
+				if ( email_exists( $email ) ) {
+					if ( $fkey ) {
+						\CAShaadi\Modules\Analytics\Funnel::record( 'validation_error', $fkey, 0, 'email', 'already has an account' );
+					}
+					return new \WP_REST_Response( array(
+						'ok'       => false,
+						'errors'   => (object) array( 'email' => 'You already have an account with this email.' ),
+						'message'  => '',
+						'existing' => array(
+							'login' => wp_login_url( home_url( '/discover/' ) ),
+							'lost'  => wp_lostpassword_url(),
+						),
+					), 200 );
+				}
 				$err['email'] = wp_strip_all_tags( $v['errors']->get_error_message( 'user_email' ) );
 			}
 			if ( ! empty( $v['user_name'] ) ) {

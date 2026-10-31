@@ -106,6 +106,16 @@
 			if ( r && r.ok ) { return toCode( r.email || v.email ); }
 			var errs = ( r && r.errors ) || {};
 			Object.keys( errs ).forEach( function ( k ) { show( k, errs[ k ] ); } );
+			// Already a member: Log in / Forgot password, not a dead end (v1.90.88).
+			if ( r && r.existing ) {
+				var ee = errEl( 'email' );
+				if ( ee ) {
+					var li = document.createElement( 'a' ); li.href = r.existing.login; li.textContent = 'Log in';
+					var lo = document.createElement( 'a' ); lo.href = r.existing.lost; lo.textContent = 'Forgot password?';
+					ee.appendChild( document.createTextNode( ' ' ) ); ee.appendChild( li );
+					ee.appendChild( document.createTextNode( ' · ' ) ); ee.appendChild( lo );
+				}
+			}
 			if ( r && r.message ) { show( '_', r.message ); }
 			if ( ! Object.keys( errs ).length && ! ( r && r.message ) ) { show( '_', 'Something went wrong. Please try again.' ); }
 			var bad = form.querySelector( '.is-bad, .cj-err-top:not(:empty)' );

@@ -3,6 +3,10 @@
 Earlier versions are described in the git log (`git log --oneline`), one
 commit per version.
 
+## 1.90.88 — 2026-10-31
+
+- Sign-up: an email that already has an account now gets "You already have an account with this email." with Log in and Forgot password? links under the field, instead of "Sorry, that email address is already used!" (78 people in two weeks). Recorded in the funnel as "already has an account".
+
 ## 1.90.87 — 2026-10-31
 
 - Sign-up funnel beacon also checks for the Join screen's form (its conditions named only the BuddyPress form). The live data shows opens and starts were still being recorded after 28 Oct, so no gap; this makes it explicit.

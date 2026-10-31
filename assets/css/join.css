@@ -61,6 +61,7 @@
 .cj-hint { margin: 6px 0 0; font-size: 13px; color: var(--cj-muted); }
 .cj-err { margin: 6px 0 0; font-size: 14px; color: var(--cj-red); font-weight: 500; }
 .cj-err:empty { display: none; }
+.cj-err a { color: inherit; font-weight: 700; text-decoration: underline; }
 .cj-err-top { margin: 0 0 12px; }
 .cj-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
